@@ -28,3 +28,4 @@ tsc_output.txt
 
 # Versioning
 vite.config.ts.timestamp-*
+.env
