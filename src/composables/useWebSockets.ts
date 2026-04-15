@@ -16,12 +16,6 @@ export function useWebSockets() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
         let host = window.location.host
 
-        if (host.includes('localhost') || host.includes('127.0.0.1') ||
-            window.location.port === '5173' || window.location.port === '3000') {
-            // Use the same hostname but pointed at the backend port
-            host = `${window.location.hostname}:8000`
-        }
-
         const tenantId = auth.user.tenant_id
         const token = auth.token
 
