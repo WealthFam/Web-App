@@ -220,7 +220,7 @@
                 </v-col>
 
                 <v-col cols="12" lg="8" class="d-flex">
-                    <v-card class="m3-card pa-6 w-100" rounded="xl" elevation="1">
+                    <v-card class="m3-card pa-6 w-100 overflow-hidden" rounded="xl" elevation="1">
                         <div class="d-flex justify-space-between align-center mb-6">
                             <h2 class="text-h6 font-weight-black d-flex align-center">
                                 <Activity :size="20" class="text-primary mr-2" />
@@ -229,7 +229,7 @@
                             <v-btn variant="text" size="small" color="primary" @click="router.push('/transactions')"
                                 class="text-none font-weight-black">See More</v-btn>
                         </div>
-                        <v-list class="pa-0 bg-transparent">
+                        <v-list class="pa-0 bg-transparent overflow-x-hidden" style="overflow-x: hidden;">
                             <v-list-item v-for="txn in metrics.recent_transactions.slice(0, 5)" :key="txn.id"
                                 class="rounded-xl px-4 py-4 mb-2 m3-list-item border">
                                 <template v-slot:prepend>
