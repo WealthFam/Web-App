@@ -5,7 +5,8 @@
 [![Version](https://img.shields.io/badge/Version-2.2.15-4338ca?style=for-the-badge)](https://github.com/WealthFam/frontend)
 [![Framework](https://img.shields.io/badge/Vue.js-3.x-42b883?style=for-the-badge&logo=vue.js)](https://vuejs.org/)
 [![Design](https://img.shields.io/badge/Design-Material_3-7c3aed?style=for-the-badge)](https://m3.material.io/)
-[![Status](https://img.shields.io/badge/Docs-Technical_Hub-e11d48?style=for-the-badge)](https://wealthfam.github.io/docs)
+[![Status](https://img.shields.io/badge/Docs-Technical_Hub-4338ca?style=for-the-badge)](https://wealthfam.github.io/docs)
+[![Docker Hub](https://img.shields.io/badge/Docker_Hub-wglabz/wealthfam--webapp-blue?style=for-the-badge&logo=docker)](https://hub.docker.com/r/wglabz/wealthfam-webapp)
 
 **The responsive, high-performance interface for the WealthFam ecosystem.**  
 *Built for financial clarity with Material 3 aesthetics and real-time analytics.*
