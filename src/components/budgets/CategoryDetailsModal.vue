@@ -1,197 +1,3 @@
-<script setup lang="ts">
-import { localDateString } from '@/utils/time'
-import { ref, computed, watch } from 'vue'
-import { financeApi } from '@/api/client'
-import { useCurrency } from '@/composables/useCurrency'
-import { useAuthStore } from '@/stores/auth'
-import BaseChart from '@/components/BaseChart.vue'
-import {
-    Calendar, TrendingUp, X, Hash
-} from 'lucide-vue-next'
-
-const { formatAmount } = useCurrency()
-const authStore = useAuthStore()
-
-const props = defineProps<{
-    isOpen: boolean
-    category: string
-    month: number
-    year: number
-    budget?: any
-}>()
-
-const emit = defineEmits(['update:isOpen', 'close'])
-
-// State
-const loading = ref(false)
-const transactions = ref<any[]>([])
-const totalTransactions = ref(0)
-const dailySpending = ref<{ day: number, amount: number }[]>([])
-const merchantBreakdown = ref<any[]>([])
-const serverOptions = ref({
-    page: 1,
-    itemsPerPage: 5,
-    sortBy: 'date',
-    sortOrder: 'desc'
-})
-
-const headers = [
-    { title: 'Date', key: 'date', sortable: true },
-    { title: 'Recipient', key: 'recipient', sortable: true },
-    { title: 'Description', key: 'description' },
-    { title: 'Amount', key: 'amount', align: 'end' as const, sortable: true }
-]
-
-// Fetch Data
-const fetchData = async () => {
-    if (!props.category) return
-    loading.value = true
-    try {
-        const startDate = localDateString(props.year, props.month - 1, 1) + 'T00:00:00'
-        const endDate = localDateString(props.year, props.month, 0) + 'T23:59:59'
-
-        // Fetch Transactions
-        const res = await financeApi.getTransactions(
-            undefined,
-            serverOptions.value.page,
-            serverOptions.value.itemsPerPage,
-            startDate,
-            endDate,
-            undefined,
-            props.category,
-            serverOptions.value.sortBy,
-            serverOptions.value.sortOrder,
-            authStore.selectedMemberId || undefined
-        )
-        transactions.value = res.data.items
-        totalTransactions.value = res.data.total
-
-        // Fetch Trends - Grouped by day
-        const trendRes = await financeApi.getTransactions(
-            undefined,
-            1,
-            1000,
-            startDate,
-            endDate,
-            undefined,
-            props.category,
-            'date',
-            'desc',
-            authStore.selectedMemberId || undefined
-        )
-
-        processTrendData(trendRes.data.items)
-
-        // Fetch Merchant Breakdown
-        const merchantRes = await financeApi.getMerchantBreakdown(
-            props.category,
-            startDate,
-            endDate,
-            authStore.selectedMemberId || undefined
-        )
-        merchantBreakdown.value = merchantRes.data
-
-    } catch (err) {
-        console.error('Failed to fetch category details:', err)
-    } finally {
-        loading.value = false
-    }
-}
-
-const processTrendData = (items: any[]) => {
-    const daysInMonth = new Date(props.year, props.month, 0).getDate()
-    const dailyMap = new Map()
-
-    items.forEach(t => {
-        const d = new Date(t.date).getDate()
-        dailyMap.set(d, (dailyMap.get(d) || 0) + Math.abs(t.amount))
-    })
-
-    const data = []
-    const now = new Date()
-    const isCurrentMonth = now.getMonth() + 1 === props.month && now.getFullYear() === props.year
-    const limitDay = isCurrentMonth ? now.getDate() : daysInMonth
-
-    for (let i = 1; i <= limitDay; i++) {
-        data.push({
-            day: i,
-            amount: dailyMap.get(i) || 0
-        })
-    }
-    dailySpending.value = data
-}
-
-// Chart Configurations
-const barChartData = computed(() => ({
-    labels: dailySpending.value.map(d => d.day),
-    datasets: [{
-        label: 'Spending',
-        data: dailySpending.value.map(d => d.amount),
-        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-        borderRadius: 4
-    }]
-}))
-
-const doughnutChartData = computed(() => {
-    // Take top 5 and group others
-    const sorted = [...merchantBreakdown.value].sort((a, b) => b.amount - a.amount)
-    const top = sorted.slice(0, 5)
-    const others = sorted.slice(5).reduce((acc, curr) => acc + curr.amount, 0)
-
-    if (others > 0) {
-        top.push({ merchant: 'Others', amount: others })
-    }
-
-    return {
-        labels: top.map(v => v.merchant),
-        datasets: [{
-            data: top.map(v => v.amount),
-            backgroundColor: [
-                '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#64748B'
-            ],
-            borderWidth: 0
-        }]
-    }
-})
-
-const barOptions = {
-    plugins: { legend: { display: false } },
-    scales: {
-        x: { grid: { display: false } },
-        y: { ticks: { callback: (val: any) => '₹' + val } }
-    }
-}
-
-const doughnutOptions = {
-    plugins: {
-        legend: {
-            position: 'right',
-            labels: { boxWidth: 12, padding: 15 }
-        }
-    },
-    cutout: '70%'
-}
-
-// Watchers
-watch(() => props.isOpen, (val) => {
-    if (val) fetchData()
-})
-
-watch(serverOptions, () => {
-    fetchData()
-}, { deep: true })
-
-const close = () => {
-    emit('update:isOpen', false)
-    emit('close')
-}
-
-const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr)
-    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
-}
-</script>
-
 <template>
     <v-dialog :model-value="isOpen" @update:model-value="emit('update:isOpen', $event)" max-width="1100" scrollable
         transition="dialog-bottom-transition">
@@ -313,6 +119,201 @@ const formatDate = (dateStr: string) => {
         </v-card>
     </v-dialog>
 </template>
+
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import {
+    Calendar, TrendingUp, X, Hash
+} from 'lucide-vue-next'
+
+import { financeApi } from '@/api/client'
+import BaseChart from '@/components/BaseChart.vue'
+import { useCurrency } from '@/composables/useCurrency'
+import { useAuthStore } from '@/stores/auth'
+import { localDateString } from '@/utils/time'
+
+const { formatAmount } = useCurrency()
+const authStore = useAuthStore()
+
+const props = defineProps<{
+    isOpen: boolean
+    category: string
+    month: number
+    year: number
+    budget?: any
+}>()
+
+const emit = defineEmits(['update:isOpen', 'close'])
+
+// State
+const loading = ref(false)
+const transactions = ref<any[]>([])
+const totalTransactions = ref(0)
+const dailySpending = ref<{ day: number, amount: number }[]>([])
+const merchantBreakdown = ref<any[]>([])
+const serverOptions = ref({
+    page: 1,
+    itemsPerPage: 5,
+    sortBy: 'date',
+    sortOrder: 'desc'
+})
+
+const headers = [
+    { title: 'Date', key: 'date', sortable: true },
+    { title: 'Recipient', key: 'recipient', sortable: true },
+    { title: 'Description', key: 'description' },
+    { title: 'Amount', key: 'amount', align: 'end' as const, sortable: true }
+]
+
+// Fetch Data
+const fetchData = async () => {
+    if (!props.category) return
+    loading.value = true
+    try {
+        const startDate = localDateString(props.year, props.month - 1, 1) + 'T00:00:00'
+        const endDate = localDateString(props.year, props.month, 0) + 'T23:59:59'
+
+        // Fetch Transactions
+        const res = await financeApi.getTransactions(
+            undefined,
+            serverOptions.value.page,
+            serverOptions.value.itemsPerPage,
+            startDate,
+            endDate,
+            undefined,
+            props.category,
+            serverOptions.value.sortBy,
+            serverOptions.value.sortOrder,
+            authStore.selectedMemberId || undefined
+        )
+        transactions.value = res.data.data
+        totalTransactions.value = res.data.total
+
+        // Fetch Trends - Grouped by day
+        const trendRes = await financeApi.getTransactions(
+            undefined,
+            1,
+            1000,
+            startDate,
+            endDate,
+            undefined,
+            props.category,
+            'date',
+            'desc',
+            authStore.selectedMemberId || undefined
+        )
+
+        processTrendData(trendRes.data.data)
+
+        // Fetch Merchant Breakdown
+        const merchantRes = await financeApi.getMerchantBreakdown(
+            props.category,
+            startDate,
+            endDate,
+            authStore.selectedMemberId || undefined
+        )
+        merchantBreakdown.value = merchantRes.data
+
+    } catch (err) {
+        console.error('Failed to fetch category details:', err)
+    } finally {
+        loading.value = false
+    }
+}
+
+const processTrendData = (items: any[]) => {
+    const daysInMonth = new Date(props.year, props.month, 0).getDate()
+    const dailyMap = new Map()
+
+    items.forEach(t => {
+        const d = new Date(t.date).getDate()
+        dailyMap.set(d, (dailyMap.get(d) || 0) + Math.abs(t.amount))
+    })
+
+    const data = []
+    const now = new Date()
+    const isCurrentMonth = now.getMonth() + 1 === props.month && now.getFullYear() === props.year
+    const limitDay = isCurrentMonth ? now.getDate() : daysInMonth
+
+    for (let i = 1; i <= limitDay; i++) {
+        data.push({
+            day: i,
+            amount: dailyMap.get(i) || 0
+        })
+    }
+    dailySpending.value = data
+}
+
+// Chart Configurations
+const barChartData = computed(() => ({
+    labels: dailySpending.value.map(d => d.day),
+    datasets: [{
+        label: 'Spending',
+        data: dailySpending.value.map(d => d.amount),
+        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+        borderRadius: 4
+    }]
+}))
+
+const doughnutChartData = computed(() => {
+    // Take top 5 and group others
+    const sorted = [...merchantBreakdown.value].sort((a, b) => b.amount - a.amount)
+    const top = sorted.slice(0, 5)
+    const others = sorted.slice(5).reduce((acc, curr) => acc + curr.amount, 0)
+
+    if (others > 0) {
+        top.push({ merchant: 'Others', amount: others })
+    }
+
+    return {
+        labels: top.map(v => v.merchant),
+        datasets: [{
+            data: top.map(v => v.amount),
+            backgroundColor: [
+                '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#64748B'
+            ],
+            borderWidth: 0
+        }]
+    }
+})
+
+const barOptions = {
+    plugins: { legend: { display: false } },
+    scales: {
+        x: { grid: { display: false } },
+        y: { ticks: { callback: (val: any) => '₹' + val } }
+    }
+}
+
+const doughnutOptions = {
+    plugins: {
+        legend: {
+            position: 'right',
+            labels: { boxWidth: 12, padding: 15 }
+        }
+    },
+    cutout: '70%'
+}
+
+// Watchers
+watch(() => props.isOpen, (val) => {
+    if (val) fetchData()
+})
+
+watch(serverOptions, () => {
+    fetchData()
+}, { deep: true })
+
+const close = () => {
+    emit('update:isOpen', false)
+    emit('close')
+}
+
+const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr)
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+}
+</script>
 
 <style scoped>
 .category-details-card {

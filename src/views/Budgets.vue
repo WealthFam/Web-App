@@ -1,27 +1,202 @@
+<template>
+    <MainLayout>
+        <v-container fluid class="page-container dashboard-page">
+            <!-- Header -->
+            <v-row class="mb-10 align-center">
+                <v-col cols="12" md="6">
+                    <h1 class="text-h6 font-weight-black mb-1">Budgets & Activity</h1>
+                    <p class="text-subtitle-2 text-on-surface opacity-70 font-weight-bold">Personal finance intelligence
+                    </p>
+                </v-col>
+
+                <v-col cols="12" md="6" class="d-flex justify-md-end align-center ga-4">
+                    <!-- Month Selector (Refined Vuetify Style) -->
+                    <v-sheet rounded="pill" border class="d-flex align-center px-1" height="44">
+                        <v-btn icon variant="text" size="small" @click="changeMonth(-1)" color="primary">
+                            <ChevronLeft :size="18" />
+                        </v-btn>
+                        <v-btn variant="text" class="text-none font-weight-black px-2 mx-1" @click="resetToCurrent"
+                            min-width="120">
+                            {{ monthYearLabel }}
+                        </v-btn>
+                        <v-btn icon variant="text" size="small" @click="changeMonth(1)" color="primary">
+                            <ChevronRight :size="18" />
+                        </v-btn>
+                    </v-sheet>
+
+                    <v-btn v-if="!overallBudget" color="primary" variant="outlined" rounded="pill"
+                        class="text-none px-6 font-weight-black" height="44" @click="openSetBudgetModal(true)">
+                        <Plus :size="18" class="mr-2" /> Limit
+                    </v-btn>
+                </v-col>
+            </v-row>
+
+            <!-- Premium Skeleton Loading State -->
+            <div v-if="loading">
+                <v-row class="mb-10">
+                    <v-col cols="12">
+                        <PremiumSkeleton type="hero" height="360" glass />
+                    </v-col>
+                </v-row>
+
+                <v-row class="mb-10">
+                    <v-col v-for="i in 4" :key="`summary-skel-${i}`" cols="12" sm="6" lg="3">
+                        <PremiumSkeleton type="stat-card" glass />
+                    </v-col>
+                </v-row>
+
+                <div class="mb-10">
+                    <div class="d-flex align-center ga-3 mb-6">
+                        <v-skeleton-loader type="avatar" size="44"></v-skeleton-loader>
+                        <v-skeleton-loader type="heading" width="200"></v-skeleton-loader>
+                    </div>
+                    <v-row>
+                        <v-col v-for="i in 3" :key="`cat-skel-${i}`" cols="12" sm="6" lg="4">
+                            <PremiumSkeleton type="category-card" glass />
+                        </v-col>
+                    </v-row>
+                </div>
+            </div>
+
+            <v-fade-transition v-else>
+                <div v-show="!loading">
+                    <!-- Overall Budget Hero Card (Midnight Variant) -->
+                    <BudgetHero 
+                        :overallBudget="overallBudget" 
+                        @edit="editBudget" 
+                        @set-limit="openSetBudgetModal(false)" 
+                    />
+
+                    <!-- AI Insights Section -->
+                    <BudgetAiInsights 
+                        :insights="insights" 
+                        :loading="loadingInsights" 
+                        @analyze="fetchInsights" 
+                    />
+
+                    <!-- Summary Grid & Alerts -->
+                    <BudgetSummaryCards 
+                        :totalIncome="totalIncome" 
+                        :totalSpent="totalSpent" 
+                        :overallBudget="overallBudget" 
+                        :alertGroups="alertGroups" 
+                        @edit="editBudget" 
+                        @open-details="openCategoryDetails" 
+                    />
+
+                    <!-- Category Intelligence -->
+                    <div
+                        class="mb-8 d-flex flex-column flex-sm-row justify-space-between align-start align-sm-center ga-4">
+                        <div>
+                            <h2 class="text-h6 font-weight-black mb-1">Category Intelligence</h2>
+                            <p class="text-subtitle-2 font-weight-bold opacity-60">Breakdown of your monthly activity
+                            </p>
+                        </div>
+
+                        <!-- Redesigned Tab Switcher (Segmented Control) -->
+                        <div class="glass-card pa-1 border rounded-pill d-flex"
+                            style="background: rgba(var(--v-theme-surface), 0.5)">
+                            <v-btn variant="flat" rounded="pill" height="36"
+                                class="text-none font-weight-black px-6 letter-spacing-1"
+                                :color="activeTab === 'expense' ? 'primary' : 'transparent'"
+                                :class="activeTab !== 'expense' ? 'text-disabled' : ''" @click="activeTab = 'expense'">
+                                Expense
+                            </v-btn>
+                            <v-btn variant="flat" rounded="pill" height="36"
+                                class="text-none font-weight-black px-6 letter-spacing-1"
+                                :color="activeTab === 'income' ? 'primary' : 'transparent'"
+                                :class="activeTab !== 'income' ? 'text-disabled' : ''" @click="activeTab = 'income'">
+                                Income
+                            </v-btn>
+                        </div>
+                    </div>
+
+                    <v-row v-if="activeGroups.length > 0">
+                        <v-col v-for="group in activeGroups" :key="group.parent.budget_id || group.parent.category"
+                            cols="12" sm="6" md="4" lg="3">
+                            <BudgetCategoryCard 
+                                :group="group" 
+                                :activeTab="activeTab" 
+                                @edit="editBudget" 
+                                @open-details="openCategoryDetails" 
+                            />
+                        </v-col>
+                    </v-row>
+
+                    <!-- Inactive Groups Section -->
+                    <div v-if="inactiveGroups.length > 0" class="mt-8">
+                        <div class="d-flex align-center ga-3 mb-4">
+                            <Moon color="rgb(var(--v-theme-primary))" opacity="0.6" :size="20" />
+                            <h3 class="text-h6 font-weight-black opacity-60">Inactive Categories</h3>
+                        </div>
+                        <v-row>
+                            <v-col v-for="group in inactiveGroups" :key="group.parent.budget_id || group.parent.category" cols="12" sm="6" lg="4">
+                                <BudgetCategoryCard 
+                                    :group="group" 
+                                    :activeTab="activeTab" 
+                                    isInactive 
+                                    @edit="editBudget" 
+                                />
+                            </v-col>
+                        </v-row>
+                    </div>
+
+                    <v-row v-if="activeGroups.length === 0 && inactiveGroups.length === 0" class="justify-center py-16">
+                        <v-col cols="12" sm="8" md="6" class="text-center">
+                            <v-avatar size="100" color="surface-variant" variant="tonal" class="mb-6 elevation-2">
+                                <Target :size="48" class="opacity-30" />
+                            </v-avatar>
+                            <h3 class="text-h5 font-weight-black mb-2">No activity detected</h3>
+                            <p class="text-subtitle-1 opacity-60 mb-8 font-weight-medium">Start by setting a budget or
+                                recording transactions to see analysis.</p>
+                            <v-btn color="primary" rounded="pill" size="large" variant="elevated"
+                                class="text-none px-10 elevation-4 btn-primary-glow font-weight-black"
+                                @click="openSetBudgetModal(false)">
+                                Set Category Budget
+                            </v-btn>
+                        </v-col>
+                    </v-row>
+                </div>
+            </v-fade-transition>
+        </v-container>
+
+        <!-- Budget Modal -->
+        <SetBudgetDialog 
+            v-model="showModal" 
+            :newBudget="newBudget" 
+            :categories="categories" 
+            @save="saveBudget" 
+            @close="showModal = false" 
+        />
+        <CategoryDetailsModal v-if="showDetailsModal" :isOpen="showDetailsModal" :category="selectedCategoryForDetails"
+            :budget="selectedCategoryBudget" :month="selectedDate.getMonth() + 1" :year="selectedDate.getFullYear()"
+            @close="showDetailsModal = false" />
+    </MainLayout>
+</template>
+
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
-import MainLayout from '@/layouts/MainLayout.vue'
-import PremiumSkeleton from '@/components/common/PremiumSkeleton.vue'
-import { financeApi } from '@/api/client'
-import { useNotificationStore } from '@/stores/notification'
-import { useAuthStore } from '@/stores/auth'
 import {
     ChevronLeft,
     ChevronRight,
-    Plus,
     Moon,
+    Plus,
     Target
 } from 'lucide-vue-next'
-import CategoryDetailsModal from '@/components/budgets/CategoryDetailsModal.vue'
-import BudgetSummaryCards from '@/components/budgets/BudgetSummaryCards.vue'
-import { useBudgetStore } from '@/stores/finance/budgets'
-import { useFinanceStore } from '@/stores/finance'
+import { computed, onMounted, ref, watch } from 'vue'
 
-// Sub-components
-import BudgetHero from '@/components/budgets/BudgetHero.vue'
+import { financeApi } from '@/api/client'
 import BudgetAiInsights from '@/components/budgets/BudgetAiInsights.vue'
 import BudgetCategoryCard from '@/components/budgets/BudgetCategoryCard.vue'
+import BudgetHero from '@/components/budgets/BudgetHero.vue'
+import BudgetSummaryCards from '@/components/budgets/BudgetSummaryCards.vue'
+import CategoryDetailsModal from '@/components/budgets/CategoryDetailsModal.vue'
 import SetBudgetDialog from '@/components/budgets/SetBudgetDialog.vue'
+import PremiumSkeleton from '@/components/common/PremiumSkeleton.vue'
+import MainLayout from '@/layouts/MainLayout.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useFinanceStore } from '@/stores/finance'
+import { useBudgetStore } from '@/stores/finance/budgets'
+import { useNotificationStore } from '@/stores/notification'
 
 const notify = useNotificationStore()
 const authStore = useAuthStore()
@@ -226,182 +401,6 @@ onMounted(() => {
     fetchData()
 })
 </script>
-
-<template>
-    <MainLayout>
-        <v-container fluid class="page-container dashboard-page">
-            <!-- Header -->
-            <v-row class="mb-10 align-center">
-                <v-col cols="12" md="6">
-                    <h1 class="text-h6 font-weight-black mb-1">Budgets & Activity</h1>
-                    <p class="text-subtitle-2 text-on-surface opacity-70 font-weight-bold">Personal finance intelligence
-                    </p>
-                </v-col>
-
-                <v-col cols="12" md="6" class="d-flex justify-md-end align-center ga-4">
-                    <!-- Month Selector (Refined Vuetify Style) -->
-                    <v-sheet rounded="pill" border class="d-flex align-center px-1" height="44">
-                        <v-btn icon variant="text" size="small" @click="changeMonth(-1)" color="primary">
-                            <ChevronLeft :size="18" />
-                        </v-btn>
-                        <v-btn variant="text" class="text-none font-weight-black px-2 mx-1" @click="resetToCurrent"
-                            min-width="120">
-                            {{ monthYearLabel }}
-                        </v-btn>
-                        <v-btn icon variant="text" size="small" @click="changeMonth(1)" color="primary">
-                            <ChevronRight :size="18" />
-                        </v-btn>
-                    </v-sheet>
-
-                    <v-btn v-if="!overallBudget" color="primary" variant="outlined" rounded="pill"
-                        class="text-none px-6 font-weight-black" height="44" @click="openSetBudgetModal(true)">
-                        <Plus :size="18" class="mr-2" /> Limit
-                    </v-btn>
-                </v-col>
-            </v-row>
-
-            <!-- Premium Skeleton Loading State -->
-            <div v-if="loading">
-                <v-row class="mb-10">
-                    <v-col cols="12">
-                        <PremiumSkeleton type="hero" height="360" glass />
-                    </v-col>
-                </v-row>
-
-                <v-row class="mb-10">
-                    <v-col v-for="i in 4" :key="`summary-skel-${i}`" cols="12" sm="6" lg="3">
-                        <PremiumSkeleton type="stat-card" glass />
-                    </v-col>
-                </v-row>
-
-                <div class="mb-10">
-                    <div class="d-flex align-center ga-3 mb-6">
-                        <v-skeleton-loader type="avatar" size="44"></v-skeleton-loader>
-                        <v-skeleton-loader type="heading" width="200"></v-skeleton-loader>
-                    </div>
-                    <v-row>
-                        <v-col v-for="i in 3" :key="`cat-skel-${i}`" cols="12" sm="6" lg="4">
-                            <PremiumSkeleton type="category-card" glass />
-                        </v-col>
-                    </v-row>
-                </div>
-            </div>
-
-            <v-fade-transition v-else>
-                <div v-show="!loading">
-                    <!-- Overall Budget Hero Card (Midnight Variant) -->
-                    <BudgetHero 
-                        :overallBudget="overallBudget" 
-                        @edit="editBudget" 
-                        @set-limit="openSetBudgetModal(false)" 
-                    />
-
-                    <!-- AI Insights Section -->
-                    <BudgetAiInsights 
-                        :insights="insights" 
-                        :loading="loadingInsights" 
-                        @analyze="fetchInsights" 
-                    />
-
-                    <!-- Summary Grid & Alerts -->
-                    <BudgetSummaryCards 
-                        :totalIncome="totalIncome" 
-                        :totalSpent="totalSpent" 
-                        :overallBudget="overallBudget" 
-                        :alertGroups="alertGroups" 
-                        @edit="editBudget" 
-                        @open-details="openCategoryDetails" 
-                    />
-
-                    <!-- Category Intelligence -->
-                    <div
-                        class="mb-8 d-flex flex-column flex-sm-row justify-space-between align-start align-sm-center ga-4">
-                        <div>
-                            <h2 class="text-h6 font-weight-black mb-1">Category Intelligence</h2>
-                            <p class="text-subtitle-2 font-weight-bold opacity-60">Breakdown of your monthly activity
-                            </p>
-                        </div>
-
-                        <!-- Redesigned Tab Switcher (Segmented Control) -->
-                        <div class="glass-card pa-1 border rounded-pill d-flex"
-                            style="background: rgba(var(--v-theme-surface), 0.5)">
-                            <v-btn variant="flat" rounded="pill" height="36"
-                                class="text-none font-weight-black px-6 letter-spacing-1"
-                                :color="activeTab === 'expense' ? 'primary' : 'transparent'"
-                                :class="activeTab !== 'expense' ? 'text-disabled' : ''" @click="activeTab = 'expense'">
-                                Expense
-                            </v-btn>
-                            <v-btn variant="flat" rounded="pill" height="36"
-                                class="text-none font-weight-black px-6 letter-spacing-1"
-                                :color="activeTab === 'income' ? 'primary' : 'transparent'"
-                                :class="activeTab !== 'income' ? 'text-disabled' : ''" @click="activeTab = 'income'">
-                                Income
-                            </v-btn>
-                        </div>
-                    </div>
-
-                    <v-row v-if="activeGroups.length > 0">
-                        <v-col v-for="group in activeGroups" :key="group.parent.budget_id || group.parent.category"
-                            cols="12" sm="6" md="4" lg="3">
-                            <BudgetCategoryCard 
-                                :group="group" 
-                                :activeTab="activeTab" 
-                                @edit="editBudget" 
-                                @open-details="openCategoryDetails" 
-                            />
-                        </v-col>
-                    </v-row>
-
-                    <!-- Inactive Groups Section -->
-                    <div v-if="inactiveGroups.length > 0" class="mt-8">
-                        <div class="d-flex align-center ga-3 mb-4">
-                            <Moon color="rgb(var(--v-theme-primary))" opacity="0.6" :size="20" />
-                            <h3 class="text-h6 font-weight-black opacity-60">Inactive Categories</h3>
-                        </div>
-                        <v-row>
-                            <v-col v-for="group in inactiveGroups" :key="group.parent.budget_id || group.parent.category" cols="12" sm="6" lg="4">
-                                <BudgetCategoryCard 
-                                    :group="group" 
-                                    :activeTab="activeTab" 
-                                    isInactive 
-                                    @edit="editBudget" 
-                                />
-                            </v-col>
-                        </v-row>
-                    </div>
-
-                    <v-row v-if="activeGroups.length === 0 && inactiveGroups.length === 0" class="justify-center py-16">
-                        <v-col cols="12" sm="8" md="6" class="text-center">
-                            <v-avatar size="100" color="surface-variant" variant="tonal" class="mb-6 elevation-2">
-                                <Target :size="48" class="opacity-30" />
-                            </v-avatar>
-                            <h3 class="text-h5 font-weight-black mb-2">No activity detected</h3>
-                            <p class="text-subtitle-1 opacity-60 mb-8 font-weight-medium">Start by setting a budget or
-                                recording transactions to see analysis.</p>
-                            <v-btn color="primary" rounded="pill" size="large" variant="elevated"
-                                class="text-none px-10 elevation-4 btn-primary-glow font-weight-black"
-                                @click="openSetBudgetModal(false)">
-                                Set Category Budget
-                            </v-btn>
-                        </v-col>
-                    </v-row>
-                </div>
-            </v-fade-transition>
-        </v-container>
-
-        <!-- Budget Modal -->
-        <SetBudgetDialog 
-            v-model="showModal" 
-            :newBudget="newBudget" 
-            :categories="categories" 
-            @save="saveBudget" 
-            @close="showModal = false" 
-        />
-        <CategoryDetailsModal v-if="showDetailsModal" :isOpen="showDetailsModal" :category="selectedCategoryForDetails"
-            :budget="selectedCategoryBudget" :month="selectedDate.getMonth() + 1" :year="selectedDate.getFullYear()"
-            @close="showDetailsModal = false" />
-    </MainLayout>
-</template>
 
 <style scoped>
 .pulse-glow {

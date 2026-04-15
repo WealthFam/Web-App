@@ -1,35 +1,3 @@
-<script setup lang="ts">
-import { computed } from 'vue'
-import { Pencil, Flame, PieChart } from 'lucide-vue-next'
-import { useCurrency } from '@/composables/useCurrency'
-
-const props = defineProps<{
-  group: any
-  activeTab: 'expense' | 'income'
-  isInactive?: boolean
-}>()
-
-const emit = defineEmits<{
-  (e: 'edit', budget: any): void
-  (e: 'open-details', category: string, budget: any): void
-}>()
-
-const { formatAmount } = useCurrency()
-
-function getBudgetHealthClass(percentage: number) {
-  if (percentage > 90) return 'health-danger'
-  if (percentage > 70) return 'health-warning'
-  return 'health-success'
-}
-
-const iconColor = computed(() => {
-  // Simple heuristic for icon colors if not provided
-  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
-  const hash = props.group.parent.category.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)
-  return colors[hash % colors.length]
-})
-</script>
-
 <template>
   <v-card 
     :class="['premium-glass-card h-100 d-flex flex-column', { 'opacity-70': isInactive }]" 
@@ -174,6 +142,39 @@ const iconColor = computed(() => {
   </v-card>
 </template>
 
+<script setup lang="ts">
+import { Flame, Pencil, PieChart } from 'lucide-vue-next'
+import { computed } from 'vue'
+
+import { useCurrency } from '@/composables/useCurrency'
+
+const props = defineProps<{
+  group: any
+  activeTab: 'expense' | 'income'
+  isInactive?: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'edit', budget: any): void
+  (e: 'open-details', category: string, budget: any): void
+}>()
+
+const { formatAmount } = useCurrency()
+
+function getBudgetHealthClass(percentage: number) {
+  if (percentage > 90) return 'health-danger'
+  if (percentage > 70) return 'health-warning'
+  return 'health-success'
+}
+
+const iconColor = computed(() => {
+  // Simple heuristic for icon colors if not provided
+  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+  const hash = props.group.parent.category.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)
+  return colors[hash % colors.length]
+})
+</script>
+
 <style scoped>
 .relative-pos { position: relative; }
 .z-2 { z-index: 2; }
@@ -277,7 +278,7 @@ const iconColor = computed(() => {
 
 .subcategory-row:hover {
   background: rgba(var(--v-theme-on-surface), 0.05);
-  transform: translateX(4px);
+  padding-left: 16px !important;
   border-color: rgba(var(--v-theme-primary), 0.2);
 }
 
