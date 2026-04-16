@@ -62,7 +62,9 @@ export const useRulesStore = defineStore('rules', () => {
         error.value = null
         try {
             const res = await financeApi.getRules()
-            rules.value = res.data
+            // Standard #67 requires pagination envelope {"data": [...], "total": N}
+            // financeApi.getRules() returns CategoryRulePagination
+            rules.value = res.data.data
         } catch (e: any) {
             console.error("Failed to fetch rules", e)
             error.value = e.message || "Failed to load rules"

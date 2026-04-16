@@ -603,34 +603,34 @@
 
 <script setup lang="ts">
 import {
-    Search,
-    Plus,
-    Pencil,
-    Trash2,
-    Zap,
-    Filter,
-    X,
-    Check,
     AlertCircle,
-    EyeOff,
-    Sparkles,
-    FileText,
-    Download,
-    Upload,
-    Folder,
-    ArrowUp,
     ArrowDown,
+    ArrowUp,
+    Check,
+    Copy,
     CreditCard,
+    Download,
+    EyeOff,
+    FileText,
+    Filter,
+    Folder,
+    Pencil,
+    Plus,
+    Search,
     Shuffle,
-    Copy
+    Sparkles,
+    Trash2,
+    Upload,
+    X,
+    Zap
 } from 'lucide-vue-next'
 import { ref, onMounted } from 'vue'
 
-import { useRulesStore, type Rule, type RuleSuggestion } from '@/stores/finance/rules'
+import { financeApi } from '@/api/client'
 import { useCategoriesStore } from '@/stores/finance/categories'
+import { useRulesStore, type Rule, type RuleSuggestion } from '@/stores/finance/rules'
 import { useFinanceStore } from '@/stores/finance'
 import { useNotificationStore } from '@/stores/notification'
-import { financeApi } from '@/api/client'
 
 const rulesStore = useRulesStore()
 const categoriesStore = useCategoriesStore()
