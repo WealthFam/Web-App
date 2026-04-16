@@ -141,7 +141,7 @@
                     <h2 class="text-h6 font-weight-black line-height-1">Active Rules</h2>
                     <v-chip size="x-small" color="primary" variant="flat"
                         class="font-weight-black letter-spacing-1 elevation-1">
-                        {{ rulesStore.rules.length }}
+                        {{ rulesStore.totalRules }}
                     </v-chip>
                 </div>
                 <p class="text-caption font-weight-bold opacity-60">Custom classification and categorization logic</p>
@@ -296,6 +296,45 @@
                 </v-card>
             </v-col>
         </v-row>
+
+        <!-- Unified Pagination Footer (Triage Standard) -->
+        <v-divider class="border-opacity-10 mt-8"></v-divider>
+        <div v-if="rulesStore.totalRules > 0" class="d-flex align-center justify-end py-3 px-4 triage-footer">
+            <div class="d-flex align-center mr-8">
+                <span class="text-caption text-medium-emphasis mr-2">Rows per page:</span>
+                <v-menu>
+                    <template v-slot:activator="{ props }">
+                        <v-btn v-bind="props" variant="text" size="small" density="compact"
+                            class="text-caption font-weight-black px-1 no-hover-effect">
+                            {{ rulesStore.pageSize }}
+                            <ChevronDown :size="14" class="ml-1 opacity-60" />
+                        </v-btn>
+                    </template>
+                    <v-list density="compact" class="rounded-lg border" elevation="2">
+                        <v-list-item v-for="size in [10, 20, 50, 100]" :key="size"
+                            @click="handlePageSizeChange(size)" :active="rulesStore.pageSize === size" color="primary">
+                            <v-list-item-title class="text-caption font-weight-bold">{{ size }}</v-list-item-title>
+                        </v-list-item>
+                    </v-list>
+                </v-menu>
+            </div>
+            
+            <div class="text-caption font-weight-bold text-medium-emphasis mr-6">
+                {{ (rulesStore.currentPage - 1) * rulesStore.pageSize + 1 }}-{{ Math.min(rulesStore.currentPage * rulesStore.pageSize, rulesStore.totalRules) }} of {{ rulesStore.totalRules }}
+            </div>
+
+            <div class="d-flex align-center gap-1">
+                <v-btn icon variant="text" size="small" :disabled="rulesStore.currentPage === 1" 
+                    @click="prevPage">
+                    <ChevronLeft :size="18" />
+                </v-btn>
+                <v-btn icon variant="text" size="small" 
+                    :disabled="rulesStore.currentPage * rulesStore.pageSize >= rulesStore.totalRules"
+                    @click="nextPage">
+                    <ChevronRight :size="18" />
+                </v-btn>
+            </div>
+        </div>
 
         <!-- Add/Edit Rule Modal -->
         <v-dialog v-model="showRuleModal" max-width="500px" persistent>
@@ -622,9 +661,12 @@ import {
     Trash2,
     Upload,
     X,
-    Zap
+    Zap,
+    ChevronLeft,
+    ChevronRight,
+    ChevronDown
 } from 'lucide-vue-next'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 
 import { financeApi } from '@/api/client'
 import { useCategoriesStore } from '@/stores/finance/categories'
@@ -636,6 +678,24 @@ const rulesStore = useRulesStore()
 const categoriesStore = useCategoriesStore()
 const financeStore = useFinanceStore()
 const notify = useNotificationStore()
+
+// Pagination Helpers
+const handlePageSizeChange = (size: number) => {
+    rulesStore.pageSize = size
+    rulesStore.fetchRules(1)
+}
+
+const nextPage = () => {
+    if (rulesStore.currentPage * rulesStore.pageSize < rulesStore.totalRules) {
+        rulesStore.fetchRules(rulesStore.currentPage + 1)
+    }
+}
+
+const prevPage = () => {
+    if (rulesStore.currentPage > 1) {
+        rulesStore.fetchRules(rulesStore.currentPage - 1)
+    }
+}
 
 // Local UI State (Modals)
 const showRuleModal = ref(false)
@@ -658,10 +718,17 @@ const newRule = ref({
 })
 
 onMounted(() => {
-    rulesStore.fetchRules()
+    rulesStore.fetchRules(1)
     rulesStore.fetchSuggestions()
     if (categoriesStore.categories.length === 0) {
         categoriesStore.fetchCategories()
+    }
+})
+
+// Reset pagination on search
+watch(() => rulesStore.searchQuery, () => {
+    if (rulesStore.currentPage !== 1) {
+        rulesStore.fetchRules(1)
     }
 })
 
@@ -947,5 +1014,17 @@ defineExpose({
 .tab-item {
     font-size: 0.9rem !important;
     letter-spacing: 0.5px;
+}
+
+.triage-footer {
+    background: rgba(var(--v-theme-on-surface), 0.01);
+}
+
+.no-hover-effect:hover {
+    background: rgba(var(--v-theme-on-surface), 0.05) !important;
+}
+
+.gap-1 {
+    gap: 4px;
 }
 </style>

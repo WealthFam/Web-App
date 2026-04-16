@@ -37,6 +37,12 @@ export const useRulesStore = defineStore('rules', () => {
     const matchingPreview = ref<any[]>([])
     const previewLoading = ref(false)
     const overrideExisting = ref(false)
+    
+    // Pagination State
+    const currentPage = ref(1)
+    const totalRules = ref(0)
+    const pageSize = ref(50)
+    
     const previewPage = ref(1)
     const previewLimit = 5
 
@@ -57,14 +63,18 @@ export const useRulesStore = defineStore('rules', () => {
     const emptyRulesMsg = computed(() => searchQuery.value ? 'No rules match your search.' : 'No rules found. Define rules to automate categorization.')
 
     // Actions
-    async function fetchRules() {
+    async function fetchRules(page: number = 1) {
         loading.value = true
         error.value = null
+        currentPage.value = page
+        
         try {
-            const res = await financeApi.getRules()
+            const skip = (page - 1) * pageSize.value
+            const res = await financeApi.getRules({ skip, limit: pageSize.value })
+            
             // Standard #67 requires pagination envelope {"data": [...], "total": N}
-            // financeApi.getRules() returns CategoryRulePagination
             rules.value = res.data.data
+            totalRules.value = res.data.total
         } catch (e: any) {
             console.error("Failed to fetch rules", e)
             error.value = e.message || "Failed to load rules"
@@ -87,7 +97,7 @@ export const useRulesStore = defineStore('rules', () => {
         try {
             await financeApi.createRule(data)
             notify.success("Rule created")
-            await fetchRules()
+            await fetchRules(currentPage.value)
             return true
         } catch (e: any) {
             console.error("Failed to create rule", e)
@@ -104,7 +114,7 @@ export const useRulesStore = defineStore('rules', () => {
         try {
             await financeApi.updateRule(id, data)
             notify.success("Rule updated")
-            await fetchRules()
+            await fetchRules(currentPage.value)
             return true
         } catch (e: any) {
             console.error("Failed to update rule", e)
@@ -121,7 +131,7 @@ export const useRulesStore = defineStore('rules', () => {
         try {
             await financeApi.deleteRule(id)
             notify.success("Rule deleted")
-            await fetchRules()
+            await fetchRules(currentPage.value)
             return true
         } catch (e: any) {
             console.error("Failed to delete rule", e)
@@ -165,11 +175,15 @@ export const useRulesStore = defineStore('rules', () => {
         loading.value = true
         let totalAffected = 0
         try {
-            for (const rule of rules.value) {
+            // Hardened: Fetch ALL rules first for bulk apply (ignore pagination limit)
+            const allRulesRes = await financeApi.getRules({ skip: 0, limit: 1000 })
+            const allRules = allRulesRes.data.data
+            
+            for (const rule of allRules) {
                 const res = await financeApi.applyRuleRetrospectively(rule.id, overrideExisting.value)
                 totalAffected += res.data.affected || 0
             }
-            notify.success(`Bulk Apply Complete: Updated ${totalAffected} transactions across all rules.`)
+            notify.success(`Bulk Apply Complete: Updated ${totalAffected} transactions across all ${allRules.length} rules.`)
             return totalAffected
         } catch (e: any) {
             console.error("Failed bulk apply", e)
@@ -256,6 +270,9 @@ export const useRulesStore = defineStore('rules', () => {
         matchingPreview,
         previewLoading,
         overrideExisting,
+        currentPage,
+        totalRules,
+        pageSize,
         previewPage,
         previewLimit,
         exportRules,
