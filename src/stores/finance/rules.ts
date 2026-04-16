@@ -13,6 +13,8 @@ export interface Rule {
     is_transfer: boolean
     to_account_id?: string
     exclude_from_reports?: boolean
+    is_valid?: boolean
+    validation_error?: string
 }
 
 export interface RuleSuggestion {

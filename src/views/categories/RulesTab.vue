@@ -209,11 +209,19 @@
 
                             <div class="text-right shrink-0 ml-2">
                                 <span
-                                    class="text-tiny font-weight-black opacity-40 text-uppercase d-block mb-1">Category</span>
-                                <v-chip density="compact" size="small" variant="flat" color="surface"
-                                    class="font-weight-black border elevation-1" label>
+                                    class="text-tiny font-weight-black opacity-40 text-uppercase d-block mb-1">Status</span>
+                                <v-chip v-if="rule.is_valid === false" density="compact" size="small" variant="flat"
+                                    color="error" class="font-weight-black border elevation-1 mb-1" label>
+                                    <AlertCircle :size="10" class="mr-1" /> Needs Repair
+                                    <v-tooltip activator="parent" location="top">
+                                        {{ rule.validation_error || 'Rule is malformed or invalid.' }}
+                                    </v-tooltip>
+                                </v-chip>
+                                <v-chip v-else density="compact" size="small" variant="flat" color="surface"
+                                    class="font-weight-black border elevation-1 mb-1" label>
                                     {{ categoriesStore.getCategoryDisplay(rule.category) }}
                                 </v-chip>
+                                
                                 <v-chip v-if="rule.is_transfer" density="compact" size="small" variant="flat"
                                     color="secondary" class="font-weight-black border elevation-1 ml-1" label>
                                     <Shuffle :size="10" class="mr-1" /> Transfer
