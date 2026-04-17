@@ -9,6 +9,8 @@
 [![Docker Hub](https://img.shields.io/docker/v/wglabz/wealthfam-webapp?logo=docker&style=for-the-badge&color=0db7ed)](https://hub.docker.com/r/wglabz/wealthfam-webapp)
 [![Docs](https://img.shields.io/badge/Docs-Technical_Hub-e11d48?style=for-the-badge)](https://wealthfam.github.io/docs)
 
+<img src="public/logo.png" width="128" height="128" />
+
 **The responsive, high-performance interface for the WealthFam ecosystem.**  
 *Built for financial clarity with Material 3 aesthetics and real-time analytics.*
 
