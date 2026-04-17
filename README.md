@@ -2,10 +2,10 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/Version-2.2.15-4338ca?style=for-the-badge)](https://github.com/WealthFam/frontend)
+[![Version](https://img.shields.io/badge/Version-2.2.15-4338ca?style=for-the-badge)](https://github.com/WealthFam/Frontend)
 [![Framework](https://img.shields.io/badge/Vue.js-3.x-42b883?style=for-the-badge&logo=vue.js)](https://vuejs.org/)
 [![Design](https://img.shields.io/badge/Design-Material_3-7c3aed?style=for-the-badge)](https://m3.material.io/)
-[![Build Status](https://github.com/WealthFam/frontend/actions/workflows/docker-build.yml/badge.svg)](https://github.com/WealthFam/frontend/actions)
+[![Build Status](https://github.com/WealthFam/Frontend/actions/workflows/docker-build.yml/badge.svg?branch=master)](https://github.com/WealthFam/Frontend/actions)
 [![Docker Hub](https://img.shields.io/docker/v/wglabz/wealthfam-webapp?logo=docker&style=for-the-badge&color=0db7ed)](https://hub.docker.com/r/wglabz/wealthfam-webapp)
 [![Docs](https://img.shields.io/badge/Docs-Technical_Hub-e11d48?style=for-the-badge)](https://wealthfam.github.io/docs)
 
