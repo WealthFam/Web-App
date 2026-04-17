@@ -5,8 +5,9 @@
 [![Version](https://img.shields.io/badge/Version-2.2.15-4338ca?style=for-the-badge)](https://github.com/WealthFam/frontend)
 [![Framework](https://img.shields.io/badge/Vue.js-3.x-42b883?style=for-the-badge&logo=vue.js)](https://vuejs.org/)
 [![Design](https://img.shields.io/badge/Design-Material_3-7c3aed?style=for-the-badge)](https://m3.material.io/)
-[![Status](https://img.shields.io/badge/Docs-Technical_Hub-4338ca?style=for-the-badge)](https://wealthfam.github.io/docs)
-[![Docker Hub](https://img.shields.io/badge/Docker_Hub-wglabz/wealthfam--webapp-blue?style=for-the-badge&logo=docker)](https://hub.docker.com/r/wglabz/wealthfam-webapp)
+[![Build Status](https://github.com/WealthFam/frontend/actions/workflows/docker-build.yml/badge.svg)](https://github.com/WealthFam/frontend/actions)
+[![Docker Hub](https://img.shields.io/docker/v/wglabz/wealthfam-webapp?logo=docker&style=for-the-badge&color=0db7ed)](https://hub.docker.com/r/wglabz/wealthfam-webapp)
+[![Docs](https://img.shields.io/badge/Docs-Technical_Hub-e11d48?style=for-the-badge)](https://wealthfam.github.io/docs)
 
 **The responsive, high-performance interface for the WealthFam ecosystem.**  
 *Built for financial clarity with Material 3 aesthetics and real-time analytics.*
@@ -24,7 +25,7 @@ The WealthFam Frontend is a modern web application built for financial visualiza
 ## 🛠️ Technical Stack at a Glance
 
 For a detailed breakdown of our technical choices, see:  
-[**📖 Deep Dive: The WealthFam Stack**](../Docs/technical/stack.md)
+[**📖 Deep Dive: The WealthFam Stack**](https://wealthfam.github.io/docs/technical/stack)
 
 | Category | Technology |
 | :--- | :--- |
@@ -39,8 +40,8 @@ For a detailed breakdown of our technical choices, see:
 
 As a decoupled micro-frontend, it communicates exclusively with the Backend via standard REST protocols.
 
-- **[🏛️ System Overview](../Docs/technical/architecture/system_overview.md)**
-- **[✨ Product Features](../Docs/user/features.md)**
+- **[🏛️ System Overview](https://wealthfam.github.io/docs/technical/architecture/system_overview)**
+- **[✨ Product Features](https://wealthfam.github.io/docs/user/features)**
 
 ---
 
@@ -48,9 +49,9 @@ As a decoupled micro-frontend, it communicates exclusively with the Backend via 
 
 To run the frontend locally and begin drafting new UI modules:
 
-[**🛠️ Master Setup Guide**](../Docs/technical/getting_started.md)
+[**🛠️ Master Setup Guide**](https://wealthfam.github.io/docs/technical/getting_started)
 
 ---
 <div align="center">
-*Maintained by the WealthFam Frontend Engineering Team*
+*Made with ❤️ by WGLabz*
 </div>
