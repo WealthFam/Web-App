@@ -615,8 +615,9 @@ async function confirmAccountDelete() {
         notify.success("Account and related data removed")
         showAccountDeleteConfirm.value = false
         fetchData()
-    } catch (e) {
-        notify.error("Failed to delete account")
+    } catch (e: any) {
+        const errorMsg = e.response?.data?.detail || "Failed to delete account"
+        notify.error(errorMsg)
     } finally {
         isDeletingAccount.value = false
         accountToDelete.value = null
