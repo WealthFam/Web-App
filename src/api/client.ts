@@ -323,6 +323,8 @@ export const financeApi = {
     getPortfolioInsights: (userId?: string) => apiClient.post('/finance/loans/portfolio/insights', {}, { params: { user_id: userId } }),
     createLoan: (data: any) => apiClient.post('/finance/loans', data),
     recordLoanRepayment: (loanId: string, data: any) => apiClient.post(`/finance/loans/${loanId}/repayment`, data),
+    simulateLoanPrepayment: (loanId: string, data: { extra_monthly_payment: number, one_time_prepayment: number }) => 
+        apiClient.post(`/finance/loans/${loanId}/simulate`, data),
 
     // Merchant Aliases
     getAliases: () => apiClient.get('/ingestion/aliases'),
@@ -403,4 +405,5 @@ export const mobileApi = {
     testNotification: (id: string) => apiClient.post(`/mobile/devices/${id}/test-notification`),
     deleteDevice: (id: string) => apiClient.delete(`/mobile/devices/${id}`),
     getAlerts: () => apiClient.get<any[]>('/mobile/alerts'),
+    forensicParse: (content: string) => apiClient.post('/mobile/ai/forensic-parse', { content }),
 }

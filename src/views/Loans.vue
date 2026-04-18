@@ -380,11 +380,11 @@ const calculateEmi = () => {
 }
 
 const totalOutstanding = computed(() => {
-    return loans.value.reduce((sum, loan) => sum + (loan.outstanding_balance || 0), 0)
+    return loans.value.reduce((sum, loan) => sum + Number(loan.outstanding_balance || 0), 0)
 })
 
 const totalMonthlyEmi = computed(() => {
-    return loans.value.reduce((sum, loan) => sum + (loan.emi_amount || 0), 0)
+    return loans.value.reduce((sum, loan) => sum + Number(loan.emi_amount || 0), 0)
 })
 
 const formatCurrency = (amount: any) => formatAmount(amount)

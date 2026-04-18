@@ -82,13 +82,8 @@ body {
 }
 
 .dashboard-page {
-  background: linear-gradient(-45deg,
-      rgba(var(--v-theme-primary), 0.05),
-      rgba(var(--v-theme-secondary), 0.05),
-      rgba(var(--v-theme-background), 1),
-      rgba(var(--v-theme-primary), 0.02));
-  background-size: 400% 400%;
-  animation: meshGradient 20s ease infinite;
+  background: rgb(var(--v-theme-background));
+  position: relative;
   min-height: 100vh;
 }
 
