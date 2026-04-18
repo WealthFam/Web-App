@@ -88,7 +88,7 @@
                                         Amount</div>
                                 </div>
                                 <div class="text-h5 font-weight-black text-content">{{ formatCurrency(loan.emi_amount)
-                                }}</div>
+                                    }}</div>
                             </v-card>
                         </v-col>
                         <v-col cols="6" md="3">
@@ -103,7 +103,7 @@
                                         Next Due Date</div>
                                 </div>
                                 <div class="text-h5 font-weight-black text-content">{{ formatDate(loan.next_emi_date)
-                                }}</div>
+                                    }}</div>
                             </v-card>
                         </v-col>
                         <v-col cols="6" md="3">
@@ -136,7 +136,8 @@
                                     <Sparkles :size="24" class="text-primary" />
                                 </div>
                                 <div>
-                                    <h3 class="text-h5 font-weight-black text-content letter-spacing-negative-1 mb-1">Strategic AI Debt Shredder</h3>
+                                    <h3 class="text-h5 font-weight-black text-content letter-spacing-negative-1 mb-1">
+                                        Strategic AI Debt Shredder</h3>
                                     <p
                                         class="text-caption font-weight-bold text-medium-emphasis letter-spacing-1 text-uppercase">
                                         Advanced simulations to save interest & close your debt faster</p>
@@ -151,113 +152,165 @@
 
                         <!-- Scenarios Grid -->
                         <div v-if="simulations" class="pa-6 border-b">
-                             <h4 class="text-caption font-weight-black text-uppercase letter-spacing-2 text-primary mb-4">Strategic Simulations</h4>
-                             <v-row class="gap-y-4">
+                            <h4
+                                class="text-caption font-weight-black text-uppercase letter-spacing-2 text-primary mb-4">
+                                Strategic Simulations</h4>
+                            <v-row class="gap-y-4">
                                 <v-col v-for="scen in simulations.scenarios" :key="scen.name" cols="12" md="4">
-                                    <v-card class="premium-glass-card pa-5 h-100 hover-lift elevation-0" border="primary">
+                                    <v-card class="premium-glass-card pa-5 h-100 hover-lift elevation-0"
+                                        border="primary">
                                         <div class="d-flex align-center gap-2 mb-3">
                                             <div class="pa-2 bg-primary bg-opacity-10 rounded-lg">
                                                 <TrendingUp :size="20" class="text-primary" />
                                             </div>
                                             <div class="text-subtitle-2 font-weight-black">{{ scen.name }}</div>
                                         </div>
-                                        <div class="text-caption opacity-70 mb-5 line-height-1-4">{{ scen.description }}</div>
-                                        
+                                        <div class="text-caption opacity-70 mb-5 line-height-1-4">{{ scen.description }}
+                                        </div>
+
                                         <v-divider class="mb-5 opacity-5" />
-                                        
+
                                         <div class="d-flex flex-column gap-3">
                                             <div class="d-flex justify-space-between align-center">
-                                                <span class="text-caption font-weight-bold opacity-60">Interest Saved</span>
-                                                <span class="text-body-2 font-weight-black text-success">{{ formatCurrency(scen.interest_saved) }}</span>
+                                                <span class="text-caption font-weight-bold opacity-60">Interest
+                                                    Saved</span>
+                                                <span class="text-body-2 font-weight-black text-success">{{
+                                                    formatCurrency(scen.interest_saved) }}</span>
                                             </div>
                                             <div class="d-flex justify-space-between align-center">
-                                                <span class="text-caption font-weight-bold opacity-60">Months Saved</span>
-                                                <span class="text-body-2 font-weight-black text-primary">{{ scen.months_saved }} Months</span>
+                                                <span class="text-caption font-weight-bold opacity-60">Months
+                                                    Saved</span>
+                                                <span class="text-body-2 font-weight-black text-primary">{{
+                                                    scen.months_saved }} Months</span>
                                             </div>
-                                            <div class="d-flex justify-space-between align-center pt-2 border-t border-opacity-5">
-                                                <span class="text-caption font-weight-bold opacity-60">New Duration</span>
-                                                <span class="text-caption font-weight-black">{{ scen.months }} months</span>
+                                            <div
+                                                class="d-flex justify-space-between align-center pt-2 border-t border-opacity-5">
+                                                <span class="text-caption font-weight-bold opacity-60">New
+                                                    Duration</span>
+                                                <span class="text-caption font-weight-black">{{ scen.months }}
+                                                    months</span>
                                             </div>
                                         </div>
                                     </v-card>
                                 </v-col>
-                             </v-row>
+                            </v-row>
                         </div>
 
                         <!-- Interactive Simulator -->
                         <div class="pa-6 border-b">
-                            <h4 class="text-caption font-weight-black text-uppercase letter-spacing-2 text-secondary mb-6">Interactive Debt Shredder Simulator</h4>
+                            <h4
+                                class="text-caption font-weight-black text-uppercase letter-spacing-2 text-secondary mb-6">
+                                Interactive Debt Shredder Simulator</h4>
                             <v-row align="center">
                                 <v-col cols="12" md="6">
                                     <v-row>
                                         <v-col cols="12">
-                                            <v-label class="text-caption font-weight-black mb-1 opacity-60">Extra Monthly Payment (EMI Top-up)</v-label>
-                                            <v-slider v-model="customSimForm.extra_monthly_payment" :min="0" :max="loan.emi_amount" :step="1000" color="primary" hide-details class="mt-4">
+                                            <v-label class="text-caption font-weight-black mb-1 opacity-60">Extra
+                                                Monthly Payment (EMI Top-up)</v-label>
+                                            <v-slider v-model="customSimForm.extra_monthly_payment" :min="0"
+                                                :max="loan.emi_amount" :step="1000" color="primary" hide-details
+                                                class="mt-4">
                                                 <template v-slot:append>
-                                                    <v-text-field v-model.number="customSimForm.extra_monthly_payment" type="number" density="compact" hide-details variant="outlined" style="width: 120px" rounded="lg" bg-color="surface" prefix="₹" />
+                                                    <v-text-field v-model.number="customSimForm.extra_monthly_payment"
+                                                        type="number" density="compact" hide-details variant="outlined"
+                                                        style="width: 120px" rounded="lg" bg-color="surface"
+                                                        prefix="₹" />
                                                 </template>
                                             </v-slider>
                                         </v-col>
                                         <v-col cols="12">
-                                            <v-label class="text-caption font-weight-black mb-1 opacity-60">One-time Lumpsum Prepayment</v-label>
-                                            <v-slider v-model="customSimForm.one_time_prepayment" :min="0" :max="loan.outstanding_balance / 2" :step="5000" color="secondary" hide-details class="mt-4">
+                                            <v-label class="text-caption font-weight-black mb-1 opacity-60">One-time
+                                                Lumpsum Prepayment</v-label>
+                                            <v-slider v-model="customSimForm.one_time_prepayment" :min="0"
+                                                :max="loan.outstanding_balance / 2" :step="5000" color="secondary"
+                                                hide-details class="mt-4">
                                                 <template v-slot:append>
-                                                    <v-text-field v-model.number="customSimForm.one_time_prepayment" type="number" density="compact" hide-details variant="outlined" style="width: 120px" rounded="lg" bg-color="surface" prefix="₹" />
+                                                    <v-text-field v-model.number="customSimForm.one_time_prepayment"
+                                                        type="number" density="compact" hide-details variant="outlined"
+                                                        style="width: 120px" rounded="lg" bg-color="surface"
+                                                        prefix="₹" />
                                                 </template>
                                             </v-slider>
                                         </v-col>
                                     </v-row>
                                     <div class="mt-4">
-                                        <v-btn color="primary" block height="50" rounded="lg" @click="runCustomSimulation" :loading="customSimLoading">
+                                        <v-btn color="primary" block height="50" rounded="lg"
+                                            @click="runCustomSimulation" :loading="customSimLoading">
                                             Run Custom Simulation
                                         </v-btn>
                                     </div>
                                 </v-col>
                                 <v-col cols="12" md="6">
-                                    <v-card v-if="customSimResult" class="premium-glass-card pa-6 border-success border-opacity-25" elevation="0">
+                                    <v-card v-if="customSimResult"
+                                        class="premium-glass-card pa-6 border-success border-opacity-25" elevation="0">
                                         <div class="d-flex align-center gap-3 mb-6">
                                             <Target class="text-success" :size="32" />
                                             <div>
                                                 <div class="text-h5 font-weight-black">Impact Analysis</div>
-                                                <div class="text-caption font-weight-bold opacity-70">Strategic savings for your custom plan</div>
+                                                <div class="text-caption font-weight-bold opacity-70">Strategic savings
+                                                    for your custom plan</div>
                                             </div>
                                         </div>
-                                        
+
                                         <v-row class="mb-4">
                                             <v-col cols="6">
-                                                <div class="text-caption font-weight-bold opacity-60 text-uppercase letter-spacing-1">Interest Saved</div>
-                                                <div class="text-h4 font-weight-black text-success">{{ formatCurrency(customSimResult.interest_saved) }}</div>
+                                                <div
+                                                    class="text-caption font-weight-bold opacity-60 text-uppercase letter-spacing-1">
+                                                    Interest Saved
+                                                </div>
+                                                <div class="text-h4 font-weight-black text-success">{{
+                                                    formatCurrency(customSimResult.interest_saved) }}
+                                                </div>
                                             </v-col>
                                             <v-col cols="6">
-                                                <div class="text-caption font-weight-bold opacity-60 text-uppercase letter-spacing-1">Months Saved</div>
-                                                <div class="text-h4 font-weight-black text-primary">{{ customSimResult.months_saved }} <span class="text-caption">Months</span></div>
+                                                <div
+                                                    class="text-caption font-weight-bold opacity-60 text-uppercase letter-spacing-1">
+                                                    Months Saved</div>
+                                                <div class="text-h4 font-weight-black text-primary">{{
+                                                    customSimResult.months_saved }} <span
+                                                        class="text-caption">Months</span></div>
                                             </v-col>
                                         </v-row>
-                                        
-                                        <div class="pa-4 bg-success bg-opacity-10 rounded-xl border border-success border-opacity-10 mb-8">
+
+                                        <div
+                                            class="pa-4 bg-success bg-opacity-10 rounded-xl border border-success border-opacity-10 mb-8">
                                             <div class="d-flex justify-space-between text-caption font-weight-bold">
                                                 <span>New Total Interest</span>
-                                                <span class="font-weight-black text-body-2">{{ formatCurrency(customSimResult.new_total_interest) }}</span>
+                                                <span class="font-weight-black text-body-2">{{
+                                                    formatCurrency(customSimResult.new_total_interest)
+                                                    }}</span>
                                             </div>
-                                            <div class="d-flex justify-space-between text-caption font-weight-bold mt-2">
+                                            <div
+                                                class="d-flex justify-space-between text-caption font-weight-bold mt-2">
                                                 <span>Revised Duration</span>
-                                                <span class="font-weight-black text-body-2">{{ customSimResult.new_months }} months</span>
+                                                <span class="font-weight-black text-body-2">{{
+                                                    customSimResult.new_months }} months</span>
                                             </div>
                                         </div>
 
                                         <div class="mt-4">
-                                            <div class="text-caption font-weight-black text-uppercase opacity-40 mb-4 letter-spacing-1">Strategic Freedom Projection</div>
-                                            <div class="bg-surface rounded-xl pa-4 border overflow-hidden" style="height: 220px; position: relative;">
-                                                <Line v-if="simulationChartData" :data="simulationChartData as any" :options="simulationChartOptions as any" />
+                                            <div
+                                                class="text-caption font-weight-black text-uppercase opacity-40 mb-4 letter-spacing-1">
+                                                Strategic
+                                                Freedom Projection</div>
+                                            <div class="bg-surface rounded-xl pa-4 border overflow-hidden"
+                                                style="height: 220px; position: relative;">
+                                                <Line v-if="simulationChartData" :data="simulationChartData as any"
+                                                    :options="simulationChartOptions as any" />
                                             </div>
                                         </div>
                                     </v-card>
-                                    <div v-else class="pa-12 text-center border-dashed rounded-2xl d-flex flex-column align-center justify-center h-100">
-                                        <div class="primary-glow-box shadow-primary mb-6" style="width: 80px; height: 80px; background: rgba(var(--v-theme-primary), 0.15)">
+                                    <div v-else
+                                        class="pa-12 text-center border-dashed rounded-2xl d-flex flex-column align-center justify-center h-100">
+                                        <div class="primary-glow-box shadow-primary mb-6"
+                                            style="width: 80px; height: 80px; background: rgba(var(--v-theme-primary), 0.15)">
                                             <span style="font-size: 40px">🎯</span>
                                         </div>
-                                        <div class="text-subtitle-1 font-weight-black uppercase letter-spacing-1">Awaiting Simulation Inputs</div>
-                                        <p class="text-caption font-weight-bold max-width-200 mx-auto mt-2">Adjust prepayments to calculate your strategic interest savings</p>
+                                        <div class="text-subtitle-1 font-weight-black uppercase letter-spacing-1">
+                                            Awaiting Simulation Inputs</div>
+                                        <p class="text-caption font-weight-bold max-width-200 mx-auto mt-2">Adjust
+                                            prepayments to calculate your
+                                            strategic interest savings</p>
                                     </div>
                                 </v-col>
                             </v-row>
@@ -266,7 +319,8 @@
                         <div v-if="insights" class="pa-8 pt-6 border-b bg-primary bg-opacity-2">
                             <div class="d-flex align-center gap-3 mb-6">
                                 <Sparkles :size="20" class="text-primary" />
-                                <span class="text-caption font-weight-black text-uppercase letter-spacing-1">Deep Analysis Report</span>
+                                <span class="text-caption font-weight-black text-uppercase letter-spacing-1">Deep
+                                    Analysis Report</span>
                             </div>
                             <div class="markdown-body premium-markdown" v-html="renderedInsights"></div>
                         </div>
@@ -306,7 +360,8 @@
                                         class="text-caption font-weight-black text-medium-emphasis text-uppercase letter-spacing-1 mb-2">
                                         Total Interest Payable</div>
                                     <div class="text-h4 font-weight-black text-error"
-                                        style="font-feature-settings: 'tnum';">{{ formatCurrency(totalInterest) }}</div>
+                                        style="font-feature-settings: 'tnum';">{{
+                                        formatCurrency(totalInterest) }}</div>
                                 </div>
                             </v-card>
                         </v-col>
@@ -358,9 +413,10 @@
                                                 <td class="font-weight-bold text-caption opacity-70">{{
                                                     item.installment_no }}</td>
                                                 <td class="font-weight-bold text-caption">{{ formatDate(item.due_date)
-                                                    }}</td>
+                                                }}</td>
                                                 <td class="text-right font-weight-black text-body-2"
-                                                    style="font-feature-settings: 'tnum';">{{ formatCurrency(item.emi)
+                                                    style="font-feature-settings: 'tnum';">
+                                                    {{ formatCurrency(item.emi)
                                                     }}</td>
                                                 <td class="text-right font-weight-bold text-caption text-primary"
                                                     style="font-feature-settings: 'tnum';">{{
@@ -403,7 +459,7 @@
                                 <div class="text-overline font-weight-black text-primary mb-1 letter-spacing-2">RECORD
                                     PAYMENT</div>
                                 <h2 class="text-h5 font-weight-black text-content">EMI #{{ repaymentForm.installment_no
-                                }}</h2>
+                                    }}</h2>
                             </div>
                             <v-btn icon variant="text" @click="showRepaymentModal = false" density="comfortable"
                                 class="bg-surface-variant bg-opacity-10 opacity-70 hover:opacity-100">
@@ -469,7 +525,6 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { Pie, Bar, Line } from 'vue-chartjs'
 import { marked } from 'marked'
 import PremiumSkeleton from '@/components/common/PremiumSkeleton.vue'
-import Sparkline from '@/components/Sparkline.vue'
 import { ChevronLeft, Sparkles, X, ChevronDown, TrendingUp, Calendar, Activity, Landmark, Wallet, CalendarClock, Target } from 'lucide-vue-next'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement)
@@ -754,24 +809,24 @@ const runCustomSimulation = async () => {
 
 const simulationChartData = computed(() => {
     if (!customSimResult.value?.custom_schedule || !customSimResult.value?.standard_schedule) return null
-    
+
     const custom = customSimResult.value.custom_schedule
     const standard = customSimResult.value.standard_schedule
-    
+
     // Sample points for performance (capped at 50 points)
     const totalMax = Math.max(custom.length, standard.length)
     const step = Math.max(1, Math.ceil(totalMax / 50))
-    
+
     const labels = []
     const standardData = []
     const customData = []
-    
+
     for (let i = 0; i < totalMax; i += step) {
         labels.push(`Month ${i}`)
         standardData.push(i < standard.length ? standard[i].balance : 0)
         customData.push(i < custom.length ? custom[i].balance : 0)
     }
-    
+
     // Ensure final month is included
     if (totalMax % step !== 0) {
         labels.push(`Month ${totalMax}`)
