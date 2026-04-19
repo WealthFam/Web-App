@@ -245,12 +245,19 @@
                                             <div
                                                 class="text-body-2 font-weight-black text-content d-flex align-center gap-2">
                                                 {{ t.scheme_name }}
+                                                <v-chip size="x-small" :color="t.type === 'SELL' || t.type === 'REDEMPTION' ? 'error' : 'success'"
+                                                    variant="tonal" class="text-tiny px-2 font-weight-black">
+                                                    {{ t.type || 'BUY' }}
+                                                </v-chip>
                                                 <v-chip v-if="t.is_duplicate" size="x-small" color="warning"
                                                     variant="flat"
                                                     class="text-tiny px-2 font-weight-black">DUPLICATE</v-chip>
                                                 <v-chip v-if="t.is_synthesized" size="x-small" color="info"
                                                     variant="tonal"
-                                                    class="text-tiny px-2 font-weight-black">BALANCE</v-chip>
+                                                    class="text-tiny px-2 font-weight-black">STATEMENT SNAPSHOT</v-chip>
+                                            </div>
+                                            <div class="text-tiny opacity-60 font-weight-bold monospaced pb-1">
+                                                Folio: {{ t.folio_number || '---' }}
                                             </div>
                                             <div v-if="t.mapped_name && t.mapped_name !== t.scheme_name"
                                                 class="text-caption font-weight-bold"
@@ -297,18 +304,26 @@
         </v-expand-transition>
 
         <!-- Success Message -->
-        <v-dialog v-model="showSuccessDialog" persistent max-width="500">
+        <v-dialog v-model="showSuccessDialog" max-width="500">
             <v-card class="premium-glass-card text-center pa-8 overflow-hidden" rounded="xl">
                 <div class="icon-glow-box success mx-auto mb-6">
                     <CheckCircle :size="32" class="text-success" />
                 </div>
                 <h3 class="text-h4 font-weight-black mb-2">Import Successful</h3>
                 <p class="text-body-1 text-medium-emphasis mb-8">{{ uploadMessage }}</p>
-                <v-btn to="/mutual-funds" color="primary" block height="56" rounded="pill"
-                    class="font-weight-black shadow-primary">
-                    VIEW UPDATED PORTFOLIO
-                    <ArrowRight :size="18" class="ml-2" />
-                </v-btn>
+                
+                <div class="d-flex flex-column gap-3">
+                    <v-btn to="/mutual-funds" color="primary" block height="56" rounded="pill"
+                        class="font-weight-black shadow-primary" @click="showSuccessDialog = false">
+                        VIEW UPDATED PORTFOLIO
+                        <ArrowRight :size="18" class="ml-2" />
+                    </v-btn>
+                    
+                    <v-btn variant="text" block height="48" rounded="pill"
+                        class="font-weight-bold opacity-60" @click="showSuccessDialog = false">
+                        DISMISS
+                    </v-btn>
+                </div>
             </v-card>
         </v-dialog>
     </div>
