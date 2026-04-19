@@ -209,7 +209,8 @@
                         </div>
 
                         <!-- Name & Details -->
-                        <div>
+                        <div class="cursor-pointer hover-text-primary transition-all" 
+                            @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)">
                             <div class="font-weight-bold text-body-2 text-content">{{ item.scheme_name }}</div>
                             <div class="d-flex align-center gap-2 mt-1">
                                 <v-chip size="x-small" label class="font-weight-bold">{{ item.scheme_code }}</v-chip>
@@ -695,5 +696,17 @@ watch(portfolio, () => {
 .glass-input :deep(.v-field__outline__start),
 .glass-input :deep(.v-field__outline__end) {
     border-color: rgba(var(--v-border-color), 0.2);
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.transition-all {
+    transition: all 0.2s ease;
+}
+
+.hover-text-primary:hover {
+    color: rgb(var(--v-theme-primary)) !important;
 }
 </style>
