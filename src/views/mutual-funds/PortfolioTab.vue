@@ -87,9 +87,10 @@
                     </h4>
                     <div class="d-flex flex-column gap-3">
                         <div v-for="item in topGainers" :key="item.id"
-                            class="d-flex justify-space-between align-center py-2 border-b-dashed">
+                            class="d-flex justify-space-between align-center py-2 border-b-dashed cursor-pointer hover-bg-surface-variant px-2 rounded-lg transition-all"
+                            @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)">
                             <div class="d-flex flex-column" style="max-width: 70%;">
-                                <span class="text-body-2 font-weight-bold text-truncate">{{ item.scheme_name }}</span>
+                                <span class="text-body-2 font-weight-bold text-truncate hover-text-primary transition-all">{{ item.scheme_name }}</span>
                                 <span class="text-caption text-medium-emphasis">{{ item.scheme_code }}</span>
                             </div>
                             <div class="text-right">
@@ -110,9 +111,10 @@
                     </h4>
                     <div class="d-flex flex-column gap-3">
                         <div v-for="item in topLosers" :key="item.id"
-                            class="d-flex justify-space-between align-center py-2 border-b-dashed">
+                            class="d-flex justify-space-between align-center py-2 border-b-dashed cursor-pointer hover-bg-surface-variant px-2 rounded-lg transition-all"
+                            @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)">
                             <div class="d-flex flex-column" style="max-width: 70%;">
-                                <span class="text-body-2 font-weight-bold text-truncate">{{ item.scheme_name }}</span>
+                                <span class="text-body-2 font-weight-bold text-truncate hover-text-primary transition-all">{{ item.scheme_name }}</span>
                                 <span class="text-caption text-medium-emphasis">{{ item.scheme_code }}</span>
                             </div>
                             <div class="text-right">
