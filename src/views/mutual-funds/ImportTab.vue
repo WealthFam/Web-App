@@ -375,6 +375,7 @@ const itemsPerPage = ref(10)
 const currentPage = ref(1)
 
 const paginatedResults = computed(() => {
+    if (!Array.isArray(previewResults.value)) return []
     const start = (currentPage.value - 1) * itemsPerPage.value
     const end = start + itemsPerPage.value
     return previewResults.value.slice(start, end)

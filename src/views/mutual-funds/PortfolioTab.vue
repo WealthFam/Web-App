@@ -381,7 +381,7 @@
     </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { financeApi } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { useMutualFundStore } from '@/stores/finance/mutualFunds'
@@ -405,8 +405,16 @@ const authStore = useAuthStore()
 const { formatAmount } = useCurrency()
 
 // State - seed from store cache if available
-const portfolio = ref<any[]>(mfStore.portfolio || [])
-const isLoading = ref(mfStore.portfolio.length === 0)
+const portfolio = ref<any[]>([])
+const isLoading = ref(true)
+
+// Synchronize with store
+onMounted(() => {
+    if (Array.isArray(mfStore.portfolio) && mfStore.portfolio.length > 0) {
+        portfolio.value = mfStore.portfolio
+        isLoading.value = false
+    }
+})
 const analytics = ref<any>(mfStore.analytics)
 const aiAnalysis = ref(mfStore.aiAnalysis || '')
 const isAnalyzing = ref(false)
@@ -434,7 +442,7 @@ const selectedHolding = ref<any>(null)
 // --- Computed ---
 
 const portfolioStats = computed(() => {
-    if (!portfolio.value.length) return { invested: 0, current: 0, pl: 0, plPercent: 0 }
+    if (!Array.isArray(portfolio.value) || !portfolio.value.length) return { invested: 0, current: 0, pl: 0, plPercent: 0 }
     const totalInvested = portfolio.value.reduce((sum, item) => sum + (Number(item.invested_value) || 0), 0)
     const totalCurrent = portfolio.value.reduce((sum, item) => sum + (Number(item.current_value) || 0), 0)
     const totalPL = totalCurrent - totalInvested
@@ -448,6 +456,7 @@ const portfolioStats = computed(() => {
 })
 
 const sortedPortfolio = computed(() => {
+    if (!Array.isArray(portfolio.value)) return []
     // 1. Group items
     const groups: Record<string, any> = {}
     portfolio.value.forEach(item => {
@@ -506,10 +515,12 @@ const benchmarkHistory = ref<any[]>([])
 // Chart Data
 const allocationData = computed(() => {
     const data: Record<string, number> = {}
-    portfolio.value.forEach(item => {
-        const key = item.category || 'Other'
-        data[key] = (data[key] || 0) + (Number(item.current_value) || 0)
-    })
+    if (Array.isArray(portfolio.value)) {
+        portfolio.value.forEach(item => {
+            const key = item.category || 'Other'
+            data[key] = (data[key] || 0) + (Number(item.current_value) || 0)
+        })
+    }
     return data
 })
 
@@ -543,11 +554,15 @@ const benchmarkChartData = computed(() => {
 // --- Actions ---
 
 async function fetchPortfolio() {
-    if (portfolio.value.length === 0) isLoading.value = true
+    if (!Array.isArray(portfolio.value) || portfolio.value.length === 0) isLoading.value = true
     try {
         const memberId = authStore.selectedMemberId || undefined
         const response = await financeApi.getPortfolio(memberId)
-        portfolio.value = response.data || []
+        
+        // Handle both raw array and wrapped { data: [...] } responses
+        const rawData = response.data?.data || response.data
+        portfolio.value = Array.isArray(rawData) ? rawData : []
+        
         mfStore.portfolio = portfolio.value // Persist
     } catch (err) {
         console.error('Failed to fetch portfolio', err)
@@ -564,10 +579,11 @@ async function fetchAnalytics() {
             financeApi.getAnalytics(memberId),
             financeApi.getPerformanceTimeline('1y', '1w', memberId)
         ])
-        analytics.value = analyticsRes.data
-        mfStore.analytics = analyticsRes.data // Persist
+        
+        analytics.value = analyticsRes.data?.data || analyticsRes.data
+        mfStore.analytics = analytics.value // Persist
 
-        const perfData = perfRes.data || {}
+        const perfData = perfRes.data?.data || perfRes.data || {}
         if (perfData.timeline && Array.isArray(perfData.timeline)) {
             performanceHistory.value = perfData.timeline
             benchmarkHistory.value = perfData.benchmark || []
@@ -630,7 +646,7 @@ watch(() => props.active, async (isActive) => {
 
 const emit = defineEmits(['update:count'])
 watch(portfolio, () => {
-    emit('update:count', portfolio.value.length)
+    emit('update:count', Array.isArray(portfolio.value) ? portfolio.value.length : 0)
 })
 </script>
 
