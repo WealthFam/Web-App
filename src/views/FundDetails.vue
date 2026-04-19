@@ -14,6 +14,10 @@ import { useAuthStore } from '@/stores/auth'
 import InvestModal from './mutual-funds/modals/InvestModal.vue'
 import RedeemModal from './mutual-funds/modals/RedeemModal.vue'
 import LinkGoalModal from './mutual-funds/modals/LinkGoalModal.vue'
+import DeleteHoldingDeepDiveModal from './mutual-funds/modals/DeleteHoldingDeepDiveModal.vue'
+import DeleteTransactionModal from './mutual-funds/modals/DeleteTransactionModal.vue'
+import EditTransactionModal from './mutual-funds/modals/EditTransactionModal.vue'
+import { Trash2, Edit } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,9 +32,15 @@ const isLoading = ref(true)
 // Modals
 const showInvestModal = ref(false)
 const showRedeemModal = ref(false)
-const showDeleteConfirm = ref(false)
 const showUserModal = ref(false)
 const showGoalModal = ref(false)
+
+// New Management Modals
+const showDeepDiveModal = ref(false)
+const showEditTxnModal = ref(false)
+const showDeleteTxnModal = ref(false)
+const activeTransaction = ref<any>(null)
+const isManagementLoading = ref(false)
 const benchmarkData = ref<any[]>([])
 
 // Family Members for Ownership
@@ -94,13 +104,74 @@ async function updateOwner(userId: string | null) {
 }
 
 async function deleteHolding() {
+    isManagementLoading.value = true
     try {
         await financeApi.deleteHolding(holdingId)
-        notify.success("Holding removed")
+        notify.success("Holding removed permanently")
         router.push('/mutual-funds')
     } catch (e) {
         notify.error("Failed to delete holding")
+    } finally {
+        isManagementLoading.value = false
+        showDeepDiveModal.value = false
     }
+}
+
+async function handleBulkDelete(txnIds: string[]) {
+    isManagementLoading.value = true
+    try {
+        await financeApi.bulkDeleteFundTransactions(txnIds)
+        notify.success(`Removed ${txnIds.length} transactions`)
+        refreshAll()
+    } catch (e) {
+        notify.error("Failed to delete transactions")
+    } finally {
+        isManagementLoading.value = false
+        showDeepDiveModal.value = false
+    }
+}
+
+async function handleEditTransaction(payload: { id: string, data: any }) {
+    isManagementLoading.value = true
+    try {
+        await financeApi.editFundTransaction(payload.id, payload.data)
+        notify.success("Transaction updated")
+        refreshAll()
+    } catch (e) {
+        notify.error("Failed to update transaction")
+    } finally {
+        isManagementLoading.value = false
+        showEditTxnModal.value = false
+    }
+}
+
+async function handleSingleDelete(txnId: string) {
+    isManagementLoading.value = true
+    try {
+        await financeApi.bulkDeleteFundTransactions([txnId])
+        notify.success("Transaction removed")
+        refreshAll()
+    } catch (e) {
+        notify.error("Failed to delete transaction")
+    } finally {
+        isManagementLoading.value = false
+        showDeleteTxnModal.value = false
+    }
+}
+
+function refreshAll() {
+    fetchHoldingDetails()
+    fetchPerformanceTimeline()
+}
+
+function openEditTxn(txn: any) {
+    activeTransaction.value = txn
+    showEditTxnModal.value = true
+}
+
+function openDeleteTxn(txn: any) {
+    activeTransaction.value = txn
+    showDeleteTxnModal.value = true
 }
 
 async function fetchPerformanceTimeline() {
@@ -184,9 +255,8 @@ function isImageUrl(url: string) {
                     </div>
 
                     <div class="d-flex align-center gap-2">
-                        <v-btn color="error" variant="tonal" class="font-weight-bold" @click="showDeleteConfirm = true"
-                            v-if="!holding.is_aggregate">
-                            Remove
+                        <v-btn color="error" variant="tonal" class="font-weight-bold" @click="showDeepDiveModal = true">
+                            Remove Records
                         </v-btn>
                         <v-btn color="primary" variant="tonal" class="font-weight-bold px-6"
                             @click="showRedeemModal = true">
@@ -285,6 +355,8 @@ function isImageUrl(url: string) {
                                             <th
                                                 class="text-right text-caption font-weight-bold text-medium-emphasis text-uppercase">
                                                 Amount</th>
+                                            <th class="text-right text-caption font-weight-bold text-medium-emphasis text-uppercase">
+                                                Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -302,6 +374,16 @@ function isImageUrl(url: string) {
                                             }}</td>
                                             <td class="text-right font-weight-black text-body-2">{{
                                                 formatAmount(t.amount) }}</td>
+                                            <td class="text-right">
+                                                <div class="d-flex justify-end gap-1">
+                                                    <v-btn icon variant="text" size="x-small" color="primary" @click="openEditTxn(t)">
+                                                        <Edit :size="14" />
+                                                    </v-btn>
+                                                    <v-btn icon variant="text" size="x-small" color="error" @click="openDeleteTxn(t)">
+                                                        <Trash2 :size="14" />
+                                                    </v-btn>
+                                                </div>
+                                            </td>
                                         </tr>
                                         <tr v-if="!transactions.length">
                                             <td colspan="5"
@@ -476,27 +558,28 @@ function isImageUrl(url: string) {
             </v-card>
         </v-dialog>
 
-        <!-- Delete Confirmation -->
-        <v-dialog v-model="showDeleteConfirm" max-width="400">
-            <v-card class="rounded-xl pa-4">
-                <div class="d-flex flex-column align-center text-center">
-                    <div class="text-error bg-error-light p-4 rounded-circle mb-4">
-                        <AlertCircle :size="32" />
-                    </div>
-                    <h3 class="text-h6 font-weight-black mb-2">Delete Holding?</h3>
-                    <p class="text-body-2 text-medium-emphasis mb-6">
-                        Are you sure you want to remove <strong>{{ holding?.scheme_name }}</strong>? This action cannot
-                        be
-                        undone.
-                    </p>
-                    <div class="d-flex w-100 gap-3">
-                        <v-btn block variant="tonal" class="flex-1 font-weight-bold"
-                            @click="showDeleteConfirm = false">Cancel</v-btn>
-                        <v-btn block color="error" class="flex-1 font-weight-bold" @click="deleteHolding">Delete</v-btn>
-                    </div>
-                </div>
-            </v-card>
-        </v-dialog>
+        <!-- Management Modals -->
+        <DeleteHoldingDeepDiveModal 
+            v-model="showDeepDiveModal" 
+            :holding="holding" 
+            :loading="isManagementLoading"
+            @delete-holding="deleteHolding"
+            @delete-transactions="handleBulkDelete"
+        />
+
+        <EditTransactionModal
+            v-model="showEditTxnModal"
+            :transaction="activeTransaction"
+            :loading="isManagementLoading"
+            @save="handleEditTransaction"
+        />
+
+        <DeleteTransactionModal
+            v-model="showDeleteTxnModal"
+            :transaction="activeTransaction"
+            :loading="isManagementLoading"
+            @confirm="handleSingleDelete"
+        />
 
         <!-- Modals -->
         <InvestModal v-model="showInvestModal" :fund="holding" @success="fetchHoldingDetails" />

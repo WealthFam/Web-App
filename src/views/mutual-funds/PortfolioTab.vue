@@ -280,6 +280,11 @@
                                 {{ item.goal_id ? 'Update Goal Link' : 'Link to Goal' }}
                             </v-tooltip>
                         </v-btn>
+                        <v-btn icon variant="text" density="compact" color="error"
+                            @click="openDeleteModal(item)">
+                            <Trash2 :size="18" />
+                            <v-tooltip activator="parent" location="top">Remove Records</v-tooltip>
+                        </v-btn>
                     </div>
                 </template>
 
@@ -317,6 +322,10 @@
                                                     <v-btn icon density="compact" variant="text" size="x-small"
                                                         color="primary" :to="`/mutual-funds/${child.id}`">
                                                         <EyeIconMain :size="12" />
+                                                    </v-btn>
+                                                    <v-btn icon density="compact" variant="text" size="x-small"
+                                                        color="error" @click="openDeleteModal(child)">
+                                                        <Trash2 :size="12" />
                                                     </v-btn>
                                                 </div>
                                             </div>
@@ -378,6 +387,14 @@
         </v-card>
         <!-- Modals -->
         <LinkGoalModal v-model="showLinkGoalModal" :holding="selectedHolding" @saved="fetchPortfolio" />
+        
+        <DeleteHoldingDeepDiveModal 
+            v-model="showDeleteModal" 
+            :holding="selectedHolding" 
+            :loading="isManagementLoading"
+            @delete-holding="handleDeleteHolding"
+            @delete-transactions="handleBulkDelete"
+        />
     </div>
 </template>
 <script setup lang="ts">
@@ -392,9 +409,12 @@ import DonutChart from '@/components/DonutChart.vue'
 import FundPerformanceChart from './components/FundPerformanceChart.vue'
 import Sparkline from '@/components/Sparkline.vue'
 import LinkGoalModal from './modals/LinkGoalModal.vue'
+import DeleteHoldingDeepDiveModal from './modals/DeleteHoldingDeepDiveModal.vue'
 import PremiumSkeleton from '@/components/common/PremiumSkeleton.vue'
 import { marked } from 'marked'
 import { useCurrency } from '@/composables/useCurrency'
+import { useNotificationStore } from '@/stores/notification'
+import { Trash2 } from 'lucide-vue-next'
 
 const props = defineProps<{
     active: boolean
@@ -403,6 +423,7 @@ const props = defineProps<{
 const mfStore = useMutualFundStore()
 const authStore = useAuthStore()
 const { formatAmount } = useCurrency()
+const notify = useNotificationStore()
 
 // State - seed from store cache if available
 const portfolio = ref<any[]>([])
@@ -437,6 +458,8 @@ const headers = [
 
 // Modals
 const showLinkGoalModal = ref(false)
+const showDeleteModal = ref(false)
+const isManagementLoading = ref(false)
 const selectedHolding = ref<any>(null)
 
 // --- Computed ---
@@ -609,6 +632,41 @@ async function generateAIAnalysis() {
         aiAnalysis.value = res.data.insights
         mfStore.aiAnalysis = aiAnalysis.value // Persist
     } catch (e) { console.error(e) } finally { isAnalyzing.value = false }
+}
+
+function openDeleteModal(holding: any) {
+    selectedHolding.value = holding
+    showDeleteModal.value = true
+}
+
+async function handleDeleteHolding(holdingId: string) {
+    isManagementLoading.value = true
+    try {
+        await financeApi.deleteHolding(holdingId)
+        notify.success("Folio removed permanently")
+        await fetchPortfolio()
+        fetchAnalytics()
+    } catch (e) {
+        notify.error("Failed to remove folio")
+    } finally {
+        isManagementLoading.value = false
+        showDeleteModal.value = false
+    }
+}
+
+async function handleBulkDelete(txnIds: string[]) {
+    isManagementLoading.value = true
+    try {
+        await financeApi.bulkDeleteFundTransactions(txnIds)
+        notify.success(`Removed ${txnIds.length} transactions`)
+        await fetchPortfolio()
+        fetchAnalytics()
+    } catch (e) {
+        notify.error("Failed to remove transactions")
+    } finally {
+        isManagementLoading.value = false
+        showDeleteModal.value = false
+    }
 }
 
 function toggleGroup(id: string) {
