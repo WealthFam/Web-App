@@ -140,11 +140,18 @@
                         <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">1 Year</v-chip>
                     </div>
                     <div style="height: 350px;">
-                        <FundPerformanceChart v-if="lineChartData.length" :data="lineChartData"
-                            :benchmark="benchmarkChartData" :height="350" />
-                        <div v-else class="d-flex align-center justify-center h-100 text-medium-emphasis">
-                            No performance history available
+                        <div v-if="isTimelineLoading" class="d-flex align-center justify-center h-100 flex-column animate-fade-in">
+                            <v-progress-circular indeterminate color="primary" size="48" width="3" />
+                            <div class="text-caption mt-4 font-weight-bold opacity-40">Calculating Growth...</div>
                         </div>
+                        
+                        <template v-else>
+                            <FundPerformanceChart v-if="lineChartData.length" :data="lineChartData"
+                                :benchmark="benchmarkChartData" :height="350" />
+                            <div v-else class="d-flex align-center justify-center h-100 text-medium-emphasis">
+                                No performance history available
+                            </div>
+                        </template>
                     </div>
                 </v-card>
             </v-col>
@@ -439,6 +446,7 @@ onMounted(() => {
 const analytics = ref<any>(mfStore.analytics)
 const aiAnalysis = ref(mfStore.aiAnalysis || '')
 const isAnalyzing = ref(false)
+const isTimelineLoading = ref(true)
 const performanceHistory = ref<any[]>([])
 const search = ref('')
 const expanded = ref<string[]>([])
@@ -596,6 +604,7 @@ async function fetchPortfolio() {
 
 async function fetchAnalytics() {
     if (portfolio.value.length === 0) return
+    isTimelineLoading.value = true
     try {
         const memberId = authStore.selectedMemberId || undefined
         const [analyticsRes, perfRes] = await Promise.all([
@@ -621,6 +630,8 @@ async function fetchAnalytics() {
         console.error(e)
         performanceHistory.value = []
         benchmarkHistory.value = []
+    } finally {
+        isTimelineLoading.value = false
     }
 }
 

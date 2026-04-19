@@ -41,6 +41,7 @@ const showEditTxnModal = ref(false)
 const showDeleteTxnModal = ref(false)
 const activeTransaction = ref<any>(null)
 const isManagementLoading = ref(false)
+const isTimelineLoading = ref(true)
 const benchmarkData = ref<any[]>([])
 
 // Family Members for Ownership
@@ -175,6 +176,7 @@ function openDeleteTxn(txn: any) {
 }
 
 async function fetchPerformanceTimeline() {
+    isTimelineLoading.value = true
     try {
         const isSchemeCode = /^\d+$/.test(holdingId) || route.query.type === 'aggregate'
         // For individual funds, we use the portfolio timeline API but filter for this specific item
@@ -186,6 +188,8 @@ async function fetchPerformanceTimeline() {
 
     } catch (e) {
         console.error("Failed to fetch timeline", e)
+    } finally {
+        isTimelineLoading.value = false
     }
 }
 
@@ -221,7 +225,7 @@ function isImageUrl(url: string) {
             <div class="mesh-blob blob-1"></div>
             <div class="mesh-blob blob-2"></div>
 
-            <div class="relative-pos z-10" v-if="!isLoading && holding">
+            <div class="relative-pos z-10" v-if="holding">
                 <!-- Header -->
                 <div class="d-flex flex-column flex-md-row justify-space-between align-md-center gap-4 mb-6">
                     <div class="d-flex align-center gap-4">
@@ -322,12 +326,19 @@ function isImageUrl(url: string) {
 
                             <!-- Chart Area -->
                             <div style="height: 380px;">
-                                <FundPerformanceChart v-if="chartData.length" :data="chartData" :markers="chartMarkers"
-                                    :benchmark="benchmarkData" />
-                                <div v-else
-                                    class="d-flex align-center justify-center h-100 text-medium-emphasis font-weight-bold">
-                                    No history available for simulation
+                                <div v-if="isTimelineLoading" class="d-flex align-center justify-center h-100 flex-column animate-fade-in">
+                                    <v-progress-circular indeterminate color="primary" size="48" width="3" />
+                                    <div class="text-caption mt-4 font-weight-bold opacity-40">Calculating Growth...</div>
                                 </div>
+                                
+                                <template v-else>
+                                    <FundPerformanceChart v-if="chartData.length" :data="chartData" :markers="chartMarkers"
+                                        :benchmark="benchmarkData" />
+                                    <div v-else
+                                        class="d-flex align-center justify-center h-100 text-medium-emphasis font-weight-bold">
+                                        No history available for simulation
+                                    </div>
+                                </template>
                             </div>
                         </v-card>
 
@@ -522,7 +533,7 @@ function isImageUrl(url: string) {
                 </v-row>
             </div>
 
-            <div v-if="isLoading" class="d-flex align-center justify-center h-screen-50">
+            <div v-if="isLoading && !holding" class="d-flex align-center justify-center h-screen-50">
                 <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
             </div>
         </v-container>

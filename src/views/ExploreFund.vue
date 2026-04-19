@@ -15,6 +15,7 @@ const notify = useNotificationStore()
 const schemeCode = route.params.id as string
 const fund = ref<any>(null)
 const isLoading = ref(true)
+const isChartLoading = ref(true)
 
 // Modal
 const showInvestModal = ref(false)
@@ -30,6 +31,7 @@ async function fetchFundInfo() {
         router.back()
     } finally {
         isLoading.value = false
+        isChartLoading.value = false
     }
 }
 
@@ -63,7 +65,7 @@ function getRiskColor(risk: string) {
             <div class="mesh-blob blob-1"></div>
             <div class="mesh-blob blob-2"></div>
 
-            <div class="relative-pos z-10" v-if="!isLoading && fund">
+            <div class="relative-pos z-10" v-if="fund">
                 <!-- Header -->
                 <div class="d-flex flex-column flex-md-row justify-space-between align-md-center gap-4 mb-8">
                     <div class="d-flex align-center gap-4">
@@ -114,12 +116,18 @@ function getRiskColor(risk: string) {
 
                             <!-- Chart Area -->
                             <div style="height: 400px;">
-                                <FundPerformanceChart v-if="chartData.length" :data="chartData" :markers="[]"
-                                    :benchmark="[]" />
-                                <div v-else
-                                    class="d-flex align-center justify-center h-100 text-medium-emphasis font-weight-bold">
-                                    No history available
+                                <div v-if="isChartLoading" class="d-flex align-center justify-center h-100 flex-column animate-fade-in">
+                                    <v-progress-circular indeterminate color="primary" size="48" width="3" />
+                                    <div class="text-caption mt-4 font-weight-bold opacity-40">Calculating Performance...</div>
                                 </div>
+                                <template v-else>
+                                    <FundPerformanceChart v-if="chartData.length" :data="chartData" :markers="[]"
+                                        :benchmark="[]" />
+                                    <div v-else
+                                        class="d-flex align-center justify-center h-100 text-medium-emphasis font-weight-bold">
+                                        No history available
+                                    </div>
+                                </template>
                             </div>
                         </v-card>
                     </v-col>
@@ -194,7 +202,7 @@ function getRiskColor(risk: string) {
                 </v-row>
             </div>
 
-            <div v-if="isLoading" class="d-flex align-center justify-center h-screen-50">
+            <div v-if="isLoading && !fund" class="d-flex align-center justify-center h-screen-50">
                 <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
             </div>
         </v-container>

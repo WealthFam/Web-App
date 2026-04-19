@@ -88,7 +88,16 @@
         </div>
 
         <!-- Search Results / Collections -->
-        <div v-if="searchResults.length > 0" class="results-grid animate-fade-in">
+        <div v-if="isSearching && searchResults.length === 0" class="d-flex flex-column align-center justify-center py-16 animate-fade-in">
+            <v-progress-circular indeterminate color="primary" size="64" width="4" class="mb-4">
+                <template v-slot:default>
+                    <Search :size="24" class="text-primary opacity-50" />
+                </template>
+            </v-progress-circular>
+            <div class="text-h6 font-weight-black opacity-40">Finding the best funds...</div>
+        </div>
+
+        <div v-else-if="searchResults.length > 0" class="results-grid animate-fade-in">
             <v-card v-for="fund in searchResults" :key="fund.schemeCode" class="premium-fund-card pa-5" rounded="xl"
                 @click="openFundDetails(fund.schemeCode)">
 
@@ -196,7 +205,7 @@ const notification = useNotificationStore()
 
 // State
 const searchQuery = ref('')
-const isSearching = ref(false)
+const isSearching = ref(true)
 const searchResults = ref<any[]>([])
 const trendingFunds = ref<any[]>([])
 const activeFilter = ref('All')
