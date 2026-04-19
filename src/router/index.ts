@@ -45,6 +45,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/mutual-funds/portfolio/analysis',
+      name: 'portfolio-analysis',
+      component: () => import('@/views/mutual-funds/PortfolioAiAnalysis.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/mutual-funds/explore/:id',
       name: 'explore-fund',
       component: () => import('@/views/ExploreFund.vue'),
