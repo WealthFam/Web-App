@@ -1,5 +1,5 @@
 <template>
-  <div class="sparkline-wrapper d-flex align-end justify-end position-relative"
+  <div class="sparkline-wrapper d-flex align-center justify-center position-relative"
     :style="{ width: props.width + 'px', height: (props.height + 25) + 'px' }">
     <div class="spark-tooltip px-2 py-1 text-caption font-weight-black rounded shadow-sm text-center"
       v-if="hoveredIndex !== null" :style="{ left: tooltipX + 'px', top: '0px', color: props.color }">
