@@ -357,12 +357,14 @@ import {
 import { useNotificationStore } from '@/stores/notification'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/dashboard'
+import { useMutualFundStore } from '@/stores/finance/mutualFunds'
 import { financeApi } from '@/api/client'
 
 const emit = defineEmits(['success'])
 const notify = useNotificationStore()
 const authStore = useAuthStore()
 const dashboardStore = useDashboardStore()
+const mfStore = useMutualFundStore()
 
 const importMode = ref<'pdf' | 'email'>('pdf')
 const selectedMemberId = ref<string | null>(authStore.selectedMemberId)
