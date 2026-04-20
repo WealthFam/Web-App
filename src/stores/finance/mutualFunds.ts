@@ -64,6 +64,15 @@ export const useMutualFundStore = defineStore('mutualFunds', () => {
         }
     }
 
+    function clearPortfolioCache() {
+        // Reset local state
+        portfolio.value = []
+        analytics.value = null
+        aiAnalysis.value = ''
+        
+        // localStorage is automatically updated by the useStorePersistence watchers
+    }
+
     return {
         isSyncing,
         syncStatus,
@@ -72,6 +81,7 @@ export const useMutualFundStore = defineStore('mutualFunds', () => {
         aiAnalysis,
         lastFetch,
         fetchSyncStatus,
-        triggerSync
+        triggerSync,
+        clearPortfolioCache
     }
 })

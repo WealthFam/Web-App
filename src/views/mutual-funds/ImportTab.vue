@@ -500,6 +500,10 @@ async function handleConfirm() {
 
 function finishImport() {
     showSuccessDialog.value = false
+    
+    // Clear local MF cache to force absolute fresh fetch on next navigation
+    mfStore.clearPortfolioCache()
+    
     // Refresh global dashboard in the background
     dashboardStore.fetchDashboardData()
     // Signal parent to switch to portfolio tab
