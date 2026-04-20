@@ -1,13 +1,15 @@
 <template>
     <div class="import-page-wrapper">
         <!-- Retrieval Instruction Note (Global Requirement) -->
-        <v-alert type="info" variant="tonal" class="mb-6 rounded-xl border-dashed border-opacity-30" border="start" density="comfortable">
+        <v-alert type="info" variant="tonal" class="mb-6 rounded-xl border-dashed border-opacity-30" border="start"
+            density="comfortable">
             <template v-slot:prepend>
                 <Info :size="20" class="mr-2 text-info" />
             </template>
             <div class="text-body-2 font-weight-bold">
-                Need your statement? Download your **Consolidated Account Statement (CAS)** from 
-                <a href="https://www.camsonline.com/Investors/Statements/Consolidated-Account-Statement" target="_blank" class="text-primary text-decoration-none border-b border-primary border-opacity-30 pb-0 hover-opacity-70">
+                Need your statement? Download your **Consolidated Account Statement (CAS)** from
+                <a href="https://www.camsonline.com/Investors/Statements/Consolidated-Account-Statement" target="_blank"
+                    class="text-primary text-decoration-none border-b border-primary border-opacity-30 pb-0 hover-opacity-70">
                     CAMS Online
                 </a>
                 to either upload directly or scan via your Inbox Intelligence.
@@ -17,8 +19,10 @@
         <!-- Main Card: Dashboard Standard Width -->
         <v-card class="premium-glass-card mb-8" rounded="xl" elevation="0" style="overflow: hidden;">
             <!-- Refined Integrated Tab Bar -->
-            <div class="card-tabs-header border-b border-white-10 rounded-t-xl" :class="importMode === 'pdf' ? 'bg-indigo-lighten-5' : 'bg-purple-lighten-5'">
-                <v-tabs v-model="importMode" :color="importMode === 'pdf' ? 'primary' : 'secondary'" align-tabs="start" height="64" :slider-color="importMode === 'pdf' ? 'primary' : 'secondary'">
+            <div class="card-tabs-header border-b border-white-10 rounded-t-xl"
+                :class="importMode === 'pdf' ? 'bg-indigo-lighten-5' : 'bg-purple-lighten-5'">
+                <v-tabs v-model="importMode" :color="importMode === 'pdf' ? 'primary' : 'secondary'" align-tabs="start"
+                    height="64" :slider-color="importMode === 'pdf' ? 'primary' : 'secondary'">
                     <v-tab value="pdf" class="premium-ribbon-tab">
                         <div class="d-flex align-center py-2">
                             <FileText :size="18" class="mr-3 opacity-70" />
@@ -46,7 +50,8 @@
                             {{ importMode === 'pdf' ? 'Consolidate via PDF' : 'Email Inbox Intelligence' }}
                         </h2>
                         <p class="text-body-2 text-medium-emphasis opacity-70 font-weight-medium">
-                            {{ importMode === 'pdf' ? `Upload your comprehensive portfolio statement to sync your entire history.`
+                            {{ importMode === 'pdf' ? `Upload your comprehensive portfolio statement to sync your entire
+                            history.`
                                 : `Scan your linked inbox to automatically detect and import new transactions.` }}
                         </p>
                     </div>
@@ -55,7 +60,8 @@
                 <v-row>
                     <!-- Column 1: Configuration -->
                     <v-col cols="12" md="5" class="d-flex flex-column">
-                        <div class="config-section pa-6 rounded-2xl border border-white-5 bg-white-2 shadow-inner h-100">
+                        <div
+                            class="config-section pa-6 rounded-2xl border border-white-5 bg-white-2 shadow-inner h-100">
                             <label class="text-overline font-weight-black mb-3 d-block letter-spacing-2"
                                 :class="importMode === 'pdf' ? 'text-primary' : 'text-secondary'">
                                 TARGET USER
@@ -65,15 +71,14 @@
                             <v-autocomplete v-model="selectedMemberId" :items="memberOptions" item-title="title"
                                 item-value="value" variant="outlined" density="comfortable" rounded="lg"
                                 bg-color="surface" :color="importMode === 'pdf' ? 'primary' : 'secondary'"
-                                class="mb-4 font-weight-bold" placeholder="Select Profile"
-                                persistent-placeholder>
+                                class="mb-4 font-weight-bold" placeholder="Select Profile" persistent-placeholder>
                                 <template v-slot:item="{ props, item }">
                                     <v-list-item v-bind="props" class="rounded-lg ma-1">
                                         <template v-slot:prepend>
                                             <v-avatar size="28" :color="importMode === 'pdf' ? 'primary' : 'secondary'"
                                                 variant="tonal" class="mr-2">
                                                 <span class="text-caption font-weight-black">{{ item.raw.initials
-                                                }}</span>
+                                                    }}</span>
                                             </v-avatar>
                                         </template>
                                     </v-list-item>
@@ -92,7 +97,8 @@
                                 :hint="importMode === 'pdf' ? 'Statement password for decryption' : 'Password for attachment decryption'"
                                 persistent-hint>
                                 <template v-slot:append-inner>
-                                    <v-icon :icon="showPan ? 'mdi-eye-off' : 'mdi-eye'" @click="showPan = !showPan" class="cursor-pointer" />
+                                    <v-icon :icon="showPan ? 'mdi-eye-off' : 'mdi-eye'" @click="showPan = !showPan"
+                                        class="cursor-pointer" />
                                     <v-tooltip activator="parent" location="top">Toggle visibility</v-tooltip>
                                 </template>
                             </v-text-field>
@@ -101,7 +107,8 @@
 
                     <!-- Column 2: Action Area (Synchronized) -->
                     <v-col cols="12" md="7" class="d-flex flex-column">
-                        <div v-if="importMode === 'pdf'" class="action-section d-flex flex-column justify-center h-100 pa-10 rounded-2xl border-2 border-primary border-opacity-30 border-dashed bg-primary-lighten-5 drop-zone-wrapper hover-lift"
+                        <div v-if="importMode === 'pdf'"
+                            class="action-section d-flex flex-column justify-center h-100 pa-10 rounded-2xl border-2 border-primary border-opacity-30 border-dashed bg-primary-lighten-5 drop-zone-wrapper hover-lift"
                             @click="fileInput?.click()">
 
                             <input type="file" ref="fileInput" class="d-none" accept=".pdf"
@@ -122,7 +129,8 @@
                             </div>
                         </div>
 
-                        <div v-else-if="importMode === 'email'" class="action-section d-flex flex-column justify-center h-100 pa-10 rounded-2xl border-2 border-secondary border-opacity-30 border-dashed bg-secondary-lighten-5 scan-zone-wrapper">
+                        <div v-else-if="importMode === 'email'"
+                            class="action-section d-flex flex-column justify-center h-100 pa-10 rounded-2xl border-2 border-secondary border-opacity-30 border-dashed bg-secondary-lighten-5 scan-zone-wrapper">
 
                             <div class="text-center mb-8">
                                 <div class="email-icon-container mx-auto mb-4">
@@ -133,14 +141,15 @@
                                     Automated Inbox Intelligence
                                 </h3>
                                 <p class="text-caption font-weight-bold opacity-60 mb-0">
-                                    Scanning inbox for: <span class="text-secondary opacity-100">{{ selectedMemberEmail }}</span>
+                                    Scanning inbox for: <span class="text-secondary opacity-100">{{ selectedMemberEmail
+                                        }}</span>
                                 </p>
                             </div>
 
-                            <v-autocomplete v-model="emailSyncPeriod" :items="periodOptions" item-title="title" item-value="value"
-                                variant="outlined" density="comfortable" rounded="lg" bg-color="surface"
-                                color="secondary"
-                                class="mb-0 font-weight-black shadow-sm" label="Scan Window">
+                            <v-autocomplete v-model="emailSyncPeriod" :items="periodOptions" item-title="title"
+                                item-value="value" variant="outlined" density="comfortable" rounded="lg"
+                                bg-color="surface" color="secondary" class="mb-0 font-weight-black shadow-sm"
+                                label="Scan Window">
                                 <template v-slot:item="{ props }">
                                     <v-list-item v-bind="props" class="rounded-lg ma-1">
                                         <template v-slot:prepend>
@@ -157,8 +166,8 @@
                 <v-row class="mt-6">
                     <v-col cols="12" class="d-flex justify-end">
                         <v-btn v-if="importMode === 'pdf'" color="primary" height="48" rounded="pill"
-                            class="font-weight-black px-10 shadow-primary" :loading="isProcessing"
-                            :disabled="!file" @click="handlePreview">
+                            class="font-weight-black px-10 shadow-primary" :loading="isProcessing" :disabled="!file"
+                            @click="handlePreview">
                             ANALYZE STATEMENT
                             <ArrowRight :size="18" class="ml-2" />
                         </v-btn>
@@ -184,7 +193,7 @@
                                 <Search :size="18" class="text-success" />
                             </div>
                             <div>
-                                <h3 class="text-h6 font-weight-black">Detected Intelligence</h3>
+                                <h3 class="text-h6 font-weight-black">Detected Transactions</h3>
                                 <p class="text-body-2 text-medium-emphasis font-weight-bold">
                                     {{previewResults.filter(t => t.selected).length}} of {{ previewResults.length }}
                                     items
@@ -196,7 +205,7 @@
                             height="48" class="px-8 font-weight-black hover-lift"
                             :class="importMode === 'pdf' ? 'shadow-primary' : 'shadow-secondary'"
                             @click="handleConfirm">
-                            CONFIRM STRATEGIC IMPORT
+                            CONFIRM IMPORT
                             <CheckCircle :size="18" class="ml-2" />
                         </v-btn>
                     </div>
@@ -234,8 +243,10 @@
                                                 :class="t.mapping_status === 'MAPPED' ? (t.is_duplicate ? 'text-warning' : 'text-success') : 'text-error'">
                                             </component>
                                             <v-tooltip activator="parent" location="top">
-                                                {{ t.mapping_status === 'MAPPED' ? (t.is_duplicate ? `Redundant (Already in Portfolio)` :
-                                                `Verified Match`) : `Unknown Asset (Manual Link Required)` }}
+                                                {{ t.mapping_status === 'MAPPED' ? (t.is_duplicate ? `Redundant (Already
+                                                in
+                                                Portfolio)` :
+                                                    `Verified Match`) : `Unknown Asset (Manual Link Required)` }}
                                             </v-tooltip>
                                         </div>
                                     </td>
@@ -245,7 +256,8 @@
                                             <div
                                                 class="text-body-2 font-weight-black text-content d-flex align-center gap-2">
                                                 {{ t.scheme_name }}
-                                                <v-chip size="x-small" :color="t.type === 'SELL' || t.type === 'REDEMPTION' ? 'error' : 'success'"
+                                                <v-chip size="x-small"
+                                                    :color="t.type === 'SELL' || t.type === 'REDEMPTION' ? 'error' : 'success'"
                                                     variant="tonal" class="text-tiny px-2 font-weight-black">
                                                     {{ t.type || 'BUY' }}
                                                 </v-chip>
@@ -253,8 +265,8 @@
                                                     variant="flat"
                                                     class="text-tiny px-2 font-weight-black">DUPLICATE</v-chip>
                                                 <v-chip v-if="t.is_synthesized" size="x-small" color="info"
-                                                    variant="tonal"
-                                                    class="text-tiny px-2 font-weight-black">STATEMENT SNAPSHOT</v-chip>
+                                                    variant="tonal" class="text-tiny px-2 font-weight-black">STATEMENT
+                                                    SNAPSHOT</v-chip>
                                             </div>
                                             <div class="text-tiny opacity-60 font-weight-bold monospaced pb-1">
                                                 Folio: {{ t.folio_number || '---' }}
@@ -283,17 +295,23 @@
                             <div class="d-flex align-center gap-6">
                                 <div class="d-flex align-center gap-3">
                                     <span class="text-caption font-weight-bold opacity-60">Rows per page:</span>
-                                    <v-select :model-value="itemsPerPage" :items="[5, 10, 25, 50]" 
-                                        variant="plain" density="compact" hide-details class="rows-select"
+                                    <v-select :model-value="itemsPerPage" :items="[5, 10, 25, 50]" variant="plain"
+                                        density="compact" hide-details class="rows-select"
                                         @update:model-value="itemsPerPage = $event" />
                                 </div>
-                                <span class="text-caption font-weight-black opacity-40">{{ (currentPage - 1) * itemsPerPage + 1 }}-{{ Math.min(currentPage * itemsPerPage, previewResults.length) }} of {{ previewResults.length }}</span>
+                                <span class="text-caption font-weight-black opacity-40">{{ (currentPage - 1) *
+                                    itemsPerPage + 1
+                                    }}-{{ Math.min(currentPage * itemsPerPage, previewResults.length) }} of {{
+                                        previewResults.length }}</span>
                             </div>
                             <div class="d-flex align-center gap-2">
-                                <v-btn icon variant="text" size="small" :disabled="currentPage === 1" @click="currentPage--">
+                                <v-btn icon variant="text" size="small" :disabled="currentPage === 1"
+                                    @click="currentPage--">
                                     <v-icon icon="mdi-chevron-left" />
                                 </v-btn>
-                                <v-btn icon variant="text" size="small" :disabled="currentPage * itemsPerPage >= previewResults.length" @click="currentPage++">
+                                <v-btn icon variant="text" size="small"
+                                    :disabled="currentPage * itemsPerPage >= previewResults.length"
+                                    @click="currentPage++">
                                     <v-icon icon="mdi-chevron-right" />
                                 </v-btn>
                             </div>
@@ -311,16 +329,16 @@
                 </div>
                 <h3 class="text-h4 font-weight-black mb-2">Import Successful</h3>
                 <p class="text-body-1 text-medium-emphasis mb-8">{{ uploadMessage }}</p>
-                
+
                 <div class="d-flex flex-column gap-3">
                     <v-btn to="/mutual-funds" color="primary" block height="56" rounded="pill"
                         class="font-weight-black shadow-primary" @click="showSuccessDialog = false">
                         VIEW UPDATED PORTFOLIO
                         <ArrowRight :size="18" class="ml-2" />
                     </v-btn>
-                    
-                    <v-btn variant="text" block height="48" rounded="pill"
-                        class="font-weight-bold opacity-60" @click="showSuccessDialog = false">
+
+                    <v-btn variant="text" block height="48" rounded="pill" class="font-weight-bold opacity-60"
+                        @click="showSuccessDialog = false">
                         DISMISS
                     </v-btn>
                 </div>
@@ -575,7 +593,8 @@ async function handleConfirm() {
     z-index: 1;
 }
 
-.drop-zone-wrapper, .scan-zone-wrapper {
+.drop-zone-wrapper,
+.scan-zone-wrapper {
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
@@ -661,6 +680,7 @@ async function handleConfirm() {
 .shadow-success {
     box-shadow: 0 4px 14px rgba(var(--v-theme-success), 0.25) !important;
 }
+
 .rows-select {
     width: 60px;
 }
