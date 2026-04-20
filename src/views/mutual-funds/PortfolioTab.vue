@@ -321,6 +321,10 @@ const { formatAmount } = useCurrency()
 const notify = useNotificationStore()
 
 // State
+const props = defineProps<{
+    active?: boolean
+}>()
+
 const portfolio = ref<any[]>([])
 const analytics = ref<any>(null)
 const isLoading = ref(true)
@@ -451,6 +455,14 @@ function getRandomColor(name: string) {
 onMounted(() => {
     fetchPortfolio()
     fetchAnalytics()
+})
+
+// Refresh data when tab becomes active
+watch(() => props.active, (isActive) => {
+    if (isActive) {
+        fetchPortfolio()
+        fetchAnalytics()
+    }
 })
 
 const emit = defineEmits(['update:count'])

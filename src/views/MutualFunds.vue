@@ -67,7 +67,7 @@ const activeTab = ref('portfolio')
 
                     <!-- IMPORT TAB -->
                     <v-window-item value="import">
-                        <ImportTab />
+                        <ImportTab @success="activeTab = 'portfolio'" />
                     </v-window-item>
                 </v-window>
             </div>

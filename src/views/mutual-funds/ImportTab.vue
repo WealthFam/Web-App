@@ -331,8 +331,8 @@
                 <p class="text-body-1 text-medium-emphasis mb-8">{{ uploadMessage }}</p>
 
                 <div class="d-flex flex-column gap-3">
-                    <v-btn to="/mutual-funds" color="primary" block height="56" rounded="pill"
-                        class="font-weight-black shadow-primary" @click="showSuccessDialog = false">
+                    <v-btn color="primary" block height="56" rounded="pill"
+                        class="font-weight-black shadow-primary" @click="finishImport">
                         VIEW UPDATED PORTFOLIO
                         <ArrowRight :size="18" class="ml-2" />
                     </v-btn>
@@ -356,10 +356,13 @@ import {
 
 import { useNotificationStore } from '@/stores/notification'
 import { useAuthStore } from '@/stores/auth'
+import { useDashboardStore } from '@/stores/dashboard'
 import { financeApi } from '@/api/client'
 
+const emit = defineEmits(['success'])
 const notify = useNotificationStore()
 const authStore = useAuthStore()
+const dashboardStore = useDashboardStore()
 
 const importMode = ref<'pdf' | 'email'>('pdf')
 const selectedMemberId = ref<string | null>(authStore.selectedMemberId)
@@ -490,11 +493,17 @@ async function handleConfirm() {
         showSuccessDialog.value = true
         previewResults.value = []
         notify.success('Portfolio synchronization complete')
-    } catch (err: any) {
-        notify.error('Strategic Import Failed')
     } finally {
         isProcessing.value = false
     }
+}
+
+function finishImport() {
+    showSuccessDialog.value = false
+    // Refresh global dashboard in the background
+    dashboardStore.fetchDashboardData()
+    // Signal parent to switch to portfolio tab
+    emit('success')
 }
 </script>
 
