@@ -291,6 +291,8 @@ export const financeApi = {
     triggerMutualFundSync: () => apiClient.post('/finance/mutual-funds/sync/refresh'),
     getMutualFundPortfolioInsights: (userId?: string, forceRefresh: boolean = false) => 
         apiClient.post('/finance/mutual-funds/portfolio/insights', {}, { params: { user_id: userId, force_refresh: forceRefresh } }),
+    getHoldingInsights: (id: string, forceRefresh: boolean = false) => 
+        apiClient.get(`/finance/mutual-funds/holdings/${id}/insights`, { params: { force_refresh: forceRefresh } }),
     getHoldingDetails: (id: string) => apiClient.get(`/finance/mutual-funds/holdings/${id}`),
     getSchemeDetails: (schemeCode: string) => apiClient.get(`/finance/mutual-funds/schemes/${schemeCode}/details`),
     getSchemeInfo: (schemeCode: string) => apiClient.get(`/finance/mutual-funds/schemes/${schemeCode}/info`),

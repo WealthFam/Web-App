@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { marked } from 'marked'
 import { useRoute, useRouter } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { financeApi } from '@/api/client'
@@ -8,7 +9,8 @@ import FundPerformanceChart from './mutual-funds/components/FundPerformanceChart
 import { useCurrency } from '@/composables/useCurrency'
 import {
     History, Shield, Edit2, ChevronLeft, Check, TrendingUp,
-    Target, Briefcase, Globe, Fingerprint, AlertCircle, Search
+    Target, Briefcase, Globe, Fingerprint, AlertCircle, Search,
+    Sparkles, Zap, RefreshCw, ZapOff
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import InvestModal from './mutual-funds/modals/InvestModal.vue'
@@ -42,6 +44,9 @@ const showDeleteTxnModal = ref(false)
 const activeTransaction = ref<any>(null)
 const isManagementLoading = ref(false)
 const isTimelineLoading = ref(true)
+const isAiLoading = ref(false)
+const aiInsights = ref<any>(null)
+const aiError = ref<string | null>(null)
 const benchmarkData = ref<any[]>([])
 
 // Family Members for Ownership
@@ -163,6 +168,22 @@ async function handleSingleDelete(txnId: string) {
 function refreshAll() {
     fetchHoldingDetails()
     fetchPerformanceTimeline()
+    fetchAiInsights()
+}
+
+async function fetchAiInsights(forceRefresh: boolean = false) {
+    isAiLoading.value = true
+    aiError.value = null
+    try {
+        const res = await financeApi.getHoldingInsights(holdingId, forceRefresh)
+        aiInsights.value = res.data?.insights
+        aiError.value = null
+    } catch (e: any) {
+        console.error("Failed to fetch AI insights", e)
+        aiError.value = e.response?.data?.detail || "AI Advisor is temporarily overwhelmed. Please try again later."
+    } finally {
+        isAiLoading.value = false
+    }
 }
 
 function openEditTxn(txn: any) {
@@ -193,9 +214,37 @@ async function fetchPerformanceTimeline() {
     }
 }
 
+const formattedSummary = computed(() => {
+    if (!aiInsights.value?.summary) return ''
+    return marked.parse(aiInsights.value.summary)
+})
+
+const getInsightColor = (type: string) => {
+    const t = (type || '').toLowerCase()
+    switch (t) {
+        case 'success': return 'rgba(var(--v-theme-success), 0.1)'
+        case 'warning': return 'rgba(var(--v-theme-warning), 0.1)'
+        case 'danger': 
+        case 'error': return 'rgba(var(--v-theme-error), 0.1)'
+        default: return 'rgba(var(--v-theme-primary), 0.05)'
+    }
+}
+
+const getInsightBorderColor = (type: string) => {
+    const t = (type || '').toLowerCase()
+    switch (t) {
+        case 'success': return 'rgba(var(--v-theme-success), 0.4)'
+        case 'warning': return 'rgba(var(--v-theme-warning), 0.4)'
+        case 'danger':
+        case 'error': return 'rgba(var(--v-theme-error), 0.4)'
+        default: return 'rgba(var(--v-theme-primary), 0.2)'
+    }
+}
+
 onMounted(() => {
     fetchHoldingDetails()
     fetchPerformanceTimeline()
+    fetchAiInsights()
 })
 
 function formatDate(dateStr: string) {
@@ -529,6 +578,83 @@ function isImageUrl(url: string) {
                                 </div>
                             </div>
                         </v-card>
+
+                        <!-- AI Advisor Insights -->
+                        <v-card class="premium-glass-card pa-0 mb-6 overflow-hidden" rounded="xl" v-if="holding">
+                            <div class="pa-6 pb-0">
+                                <div class="d-flex align-center justify-space-between mb-4">
+                                    <h3 class="text-subtitle-1 font-weight-black text-content d-flex align-center gap-2">
+                                        <Sparkles :size="20" class="text-primary" /> AI Advisor
+                                    </h3>
+                                    <v-btn icon variant="text" size="small" color="primary" @click="fetchAiInsights(true)" :loading="isAiLoading">
+                                        <RefreshCw :size="16" :class="{ 'animate-spin': isAiLoading }" />
+                                    </v-btn>
+                                </div>
+
+                                <!-- Loading State -->
+                                <div v-if="isAiLoading" class="py-8 d-flex flex-column align-center justify-center">
+                                    <v-progress-circular indeterminate color="primary" size="32" width="3" />
+                                    <div class="text-caption mt-4 font-weight-bold opacity-40">Synthesizing Brief...</div>
+                                </div>
+
+                                <!-- Error State -->
+                                <div v-else-if="aiError && !aiInsights" class="py-8 px-6 d-flex flex-column align-center text-center">
+                                    <div class="pa-4 rounded-circle bg-warning-light mb-4">
+                                        <ZapOff :size="28" class="text-warning" />
+                                    </div>
+                                    <div class="text-body-2 font-weight-bold text-content mb-2">Advisor Overwhelmed</div>
+                                    <div class="text-caption opacity-60 mb-4">{{ aiError }}</div>
+                                    <v-btn variant="tonal" size="small" color="primary" rounded="pill" @click="fetchAiInsights(true)">
+                                        Retry Analysis
+                                    </v-btn>
+                                </div>
+
+                                <template v-else-if="aiInsights">
+                                    <!-- Highlights Grid -->
+                                    <div class="d-flex flex-column gap-3 mb-6">
+                                        <div
+                                            v-for="insight in aiInsights.highlights"
+                                            :key="insight.id"
+                                            class="pa-4 rounded-xl border transition-all hover-translate-x"
+                                            :style="{
+                                                background: getInsightColor(insight.type),
+                                                borderColor: getInsightBorderColor(insight.type)
+                                            }"
+                                        >
+                                            <div class="d-flex gap-3 align-start">
+                                                <span class="text-h6">{{ insight.icon }}</span>
+                                                <div>
+                                                    <div class="text-caption font-weight-black text-uppercase letter-spacing-1 mb-1">
+                                                        {{ insight.title }}
+                                                    </div>
+                                                    <div class="text-body-2 font-weight-medium line-height-tight opacity-80">
+                                                        {{ insight.content }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Summary Content -->
+                                    <div class="pa-6 pt-0 mf-ai-markdown" v-html="formattedSummary"></div>
+                                    
+                                    <!-- Suggestions Section -->
+                                    <div class="pa-6 pt-0" v-if="aiInsights.suggestions && aiInsights.suggestions.length">
+                                        <v-divider class="mb-4" opacity="5" />
+                                        <div class="text-overline font-weight-black text-primary mb-3">Tactical Moves</div>
+                                        <div class="d-flex flex-column gap-3">
+                                            <div v-for="suggestion in aiInsights.suggestions" :key="suggestion.id" class="d-flex gap-2">
+                                                <Zap :size="14" class="text-primary mt-1 flex-shrink-0" />
+                                                <div>
+                                                    <div class="text-caption font-weight-black text-content">{{ suggestion.title }}</div>
+                                                    <div class="text-caption font-weight-medium opacity-60">{{ suggestion.content }}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </v-card>
                     </v-col>
                 </v-row>
             </div>
@@ -656,5 +782,65 @@ function isImageUrl(url: string) {
 .bg-error-light {
     background: rgba(var(--v-theme-error), 0.1);
     padding: 1rem;
+}
+
+.text-gradient {
+    background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #6366f1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hover-translate-x:hover {
+    transform: translateX(4px);
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.letter-spacing-1 {
+    letter-spacing: 0.5px;
+}
+
+/* AI Markdown Styling */
+.mf-ai-markdown {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: rgba(var(--v-theme-on-surface), 0.8);
+}
+
+.mf-ai-markdown :deep(h3) {
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    font-weight: 900;
+    font-size: 0.85rem;
+    color: rgb(var(--v-theme-primary));
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mf-ai-markdown :deep(strong) {
+    color: rgb(var(--v-theme-primary));
+    font-weight: 900;
+}
+
+.mf-ai-markdown :deep(p) {
+    margin-bottom: 0.75rem;
+}
+
+.mf-ai-markdown :deep(ul) {
+    padding-left: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.mf-ai-markdown :deep(li) {
+    margin-bottom: 4px;
 }
 </style>
