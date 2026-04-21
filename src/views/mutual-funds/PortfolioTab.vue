@@ -10,56 +10,139 @@
             <template v-else>
                 <!-- Current Value -->
                 <v-col cols="12" md="4">
-                    <v-card class="premium-glass-card h-100 pa-10" rounded="24">
-                        <div class="d-flex align-center justify-space-between mb-2">
-                            <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Current Value</span>
-                            <div class="pa-2 rounded-lg bg-surface-variant-opacity">
-                                <TrendingUp v-if="portfolioStats.pl >= 0" :size="18" class="text-success" />
-                                <TrendingDown v-else :size="18" class="text-error" />
+                    <v-card 
+                        class="premium-glass-card h-100 pa-0 card-glow-transition d-flex flex-column" 
+                        :class="latestInsights.dayChange >= 0 ? 'hover-success-glow' : 'hover-error-glow'"
+                        rounded="24"
+                    >
+                        <div class="pa-8 pb-4">
+                            <div class="d-flex align-center justify-space-between mb-4">
+                                <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Current Value</span>
+                                <div class="pa-2 rounded-lg" :class="latestInsights.dayChange >= 0 ? 'bg-success-opacity' : 'bg-error-opacity'">
+                                    <TrendingUp v-if="latestInsights.dayChange >= 0" :size="18" class="text-success" />
+                                    <TrendingDown v-else :size="18" class="text-error" />
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-h4 font-weight-black text-content mb-1">
+                                    {{ formatAmount(portfolioStats.current) }}
+                                </div>
+                                <div class="d-flex align-center gap-2">
+                                    <span :class="latestInsights.dayChange >= 0 ? 'text-success' : 'text-error'" class="text-caption font-weight-bold">
+                                        {{ latestInsights.dayChange >= 0 ? '+' : '' }}{{ formatAmount(latestInsights.dayChange) }}
+                                        ({{ latestInsights.dayChangePercent.toFixed(2) }}%)
+                                    </span>
+                                    <span class="text-caption opacity-40 font-weight-bold uppercase">vs yesterday</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="text-h4 font-weight-black text-content mb-2">
-                            {{ formatAmount(portfolioStats.current) }}
+                        
+                        <v-spacer></v-spacer>
+
+                        <div class="mt-auto">
+                            <div class="px-8 d-flex align-center justify-space-between mb-2">
+                                <span class="text-[10px] font-weight-black opacity-50 uppercase tracking-tighter">7D Trend</span>
+                                <v-chip size="x-small" :color="portfolioStats.pl >= 0 ? 'success' : 'error'" variant="tonal" class="font-weight-black">
+                                    {{ Math.abs(portfolioStats.plPercent).toFixed(2) }}% Returns
+                                </v-chip>
+                            </div>
+                            <div class="px-2" style="height: 60px; margin-bottom: 8px;">
+                                <Sparkline 
+                                    v-if="cvSparkline.length > 1" 
+                                    :data="cvSparkline" 
+                                    :color="latestInsights.dayChange >= 0 ? '#10b981' : '#ef4444'" 
+                                    :height="40" 
+                                />
+                            </div>
                         </div>
-                        <v-chip size="small" :color="portfolioStats.pl >= 0 ? 'success' : 'error'" variant="tonal" class="font-weight-black mt-1">
-                            {{ portfolioStats.pl >= 0 ? '↑' : '↓' }} {{ Math.abs(portfolioStats.plPercent).toFixed(2) }}% Returns
-                        </v-chip>
                     </v-card>
                 </v-col>
 
                 <!-- Total Invested -->
                 <v-col cols="12" md="4">
-                    <v-card class="premium-glass-card h-100 pa-10" rounded="24">
-                        <div class="d-flex align-center justify-space-between mb-2">
-                            <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Invested Capital</span>
-                            <div class="pa-2 rounded-lg bg-surface-variant-opacity">
-                                <Clock :size="18" class="text-primary" />
+                    <v-card class="premium-glass-card h-100 pa-0 hover-primary-glow card-glow-transition d-flex flex-column" rounded="24">
+                        <div class="pa-8 pb-4">
+                            <div class="d-flex align-center justify-space-between mb-4">
+                                <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Invested Capital</span>
+                                <div class="pa-2 rounded-lg bg-primary-opacity">
+                                    <Clock :size="18" class="text-primary" />
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-h4 font-weight-black text-content mb-1">
+                                    {{ formatAmount(portfolioStats.invested) }}
+                                </div>
+                                <div class="d-flex align-center gap-2">
+                                    <span class="text-primary text-caption font-weight-bold">
+                                        {{ (portfolioStats.current / (portfolioStats.invested || 1)).toFixed(2) }}x
+                                    </span>
+                                    <span class="text-caption opacity-40 font-weight-bold uppercase">Growth factor</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="text-h4 font-weight-black text-content mb-2">
-                            {{ formatAmount(portfolioStats.invested) }}
-                        </div>
-                        <div class="text-caption font-weight-bold opacity-60">
-                            Distributed across {{ portfolio.length }} unique schemes
+
+                        <v-spacer></v-spacer>
+
+                        <div class="mt-auto">
+                            <div class="px-8 d-flex align-center justify-space-between mb-2">
+                                <span class="text-[10px] font-weight-black opacity-50 uppercase tracking-tighter">Accumulation Path</span>
+                                <span class="text-[10px] font-weight-bold opacity-60">{{ portfolio.length }} Schemes</span>
+                            </div>
+                            <div class="px-2" style="height: 60px; margin-bottom: 8px;">
+                                <Sparkline 
+                                    v-if="icSparkline.length > 1" 
+                                    :data="icSparkline" 
+                                    color="#3b82f6" 
+                                    :height="40" 
+                                />
+                            </div>
                         </div>
                     </v-card>
                 </v-col>
 
                 <!-- Overall P&L / XIRR -->
                 <v-col cols="12" md="4">
-                    <v-card class="premium-glass-card h-100 pa-10" rounded="24">
-                        <div class="d-flex align-center justify-space-between mb-2">
-                            <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Net Gain/Loss</span>
-                            <div class="pa-2 rounded-lg bg-surface-variant-opacity">
-                                <Target :size="18" class="text-secondary" />
+                    <v-card 
+                        class="premium-glass-card h-100 pa-0 card-glow-transition d-flex flex-column" 
+                        :class="portfolioStats.pl >= 0 ? 'hover-success-glow' : 'hover-error-glow'"
+                        rounded="24"
+                    >
+                        <div class="pa-8 pb-4">
+                            <div class="d-flex align-center justify-space-between mb-4">
+                                <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Net Gain/Loss</span>
+                                <div class="pa-2 rounded-lg" :class="portfolioStats.pl >= 0 ? 'bg-success-opacity' : 'bg-error-opacity'">
+                                    <Target :size="18" :class="portfolioStats.pl >= 0 ? 'text-success' : 'text-error'" />
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-h4 font-weight-black mb-1" :class="portfolioStats.pl >= 0 ? 'text-success' : 'text-error'">
+                                    {{ portfolioStats.pl >= 0 ? '+' : '' }}{{ formatAmount(portfolioStats.pl) }}
+                                </div>
+                                <div class="d-flex align-center gap-2">
+                                    <span :class="portfolioStats.pl >= 0 ? 'text-success' : 'text-error'" class="text-caption font-weight-bold" v-if="analytics?.xirr != null">
+                                        {{ analytics.xirr.toFixed(2) }}% Annualized
+                                    </span>
+                                    <span class="text-caption opacity-40 font-weight-bold uppercase" v-if="analytics?.xirr != null">XIRR Return</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="text-h4 font-weight-black" :class="portfolioStats.pl >= 0 ? 'text-success' : 'text-error'">
-                            {{ portfolioStats.pl >= 0 ? '+' : '' }}{{ formatAmount(portfolioStats.pl) }}
-                        </div>
-                        <div class="d-flex align-center gap-4 mt-1">
-                             <div class="text-caption font-weight-black opacity-70" v-if="analytics?.xirr != null">
-                                XIRR: <span :class="analytics.xirr >= 0 ? 'text-success' : 'text-error'">{{ analytics.xirr.toFixed(2) }}%</span>
+
+                        <v-spacer></v-spacer>
+
+                        <div class="mt-auto">
+                            <div class="px-8 d-flex align-center justify-space-between mb-2">
+                                <span class="text-[10px] font-weight-black opacity-50 uppercase tracking-tighter">Profit Velocity</span>
+                                <v-chip size="x-small" variant="tonal" :color="portfolioStats.pl >= 0 ? 'success' : 'error'" class="font-weight-black px-1">
+                                    {{ portfolioStats.pl >= 0 ? 'PROFIT' : 'LOSS' }}
+                                </v-chip>
+                            </div>
+                            <div class="px-2" style="height: 60px; margin-bottom: 8px;">
+                                <Sparkline 
+                                    v-if="ngSparkline.length > 1" 
+                                    :data="ngSparkline" 
+                                    :color="portfolioStats.pl >= 0 ? '#10b981' : '#ef4444'" 
+                                    :height="40" 
+                                />
                             </div>
                         </div>
                     </v-card>
@@ -458,6 +541,19 @@ const portfolioStats = computed(() => {
     return { invested, current, pl, plPercent: invested ? (pl / invested) * 100 : 0 }
 })
 
+const cvSparkline = computed(() => timelineData.value.map(d => d.value))
+const icSparkline = computed(() => timelineData.value.map(d => d.invested))
+const ngSparkline = computed(() => timelineData.value.map(d => d.value - d.invested))
+
+const latestInsights = computed(() => {
+    if (timelineData.value.length < 2) return { dayChange: 0, dayChangePercent: 0 }
+    const last = timelineData.value[timelineData.value.length - 1]
+    const prev = timelineData.value[timelineData.value.length - 2]
+    const dayChange = last.value - prev.value
+    const dayChangePercent = prev.value ? (dayChange / prev.value) * 100 : 0
+    return { dayChange, dayChangePercent }
+})
+
 const sortedPortfolio = computed(() => {
     if (!Array.isArray(portfolio.value)) return []
     const groups: Record<string, any[]> = {}
@@ -615,80 +711,37 @@ watch(portfolio, (val) => emit('update:count', val.length))
     border: 1px solid rgba(var(--v-border-color), 0.1) !important;
 }
 
-.hover-glow:hover {
+.card-glow-transition {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-success-glow:hover {
+    box-shadow: 0 0 30px rgba(var(--v-theme-success), 0.15) !important;
+    transform: translateY(-4px);
+    border-color: rgba(var(--v-theme-success), 0.3) !important;
+}
+
+.hover-error-glow:hover {
+    box-shadow: 0 0 30px rgba(var(--v-theme-error), 0.15) !important;
+    transform: translateY(-4px);
+    border-color: rgba(var(--v-theme-error), 0.3) !important;
+}
+
+.hover-primary-glow:hover {
     box-shadow: 0 0 30px rgba(var(--v-theme-primary), 0.15) !important;
-    transform: translateY(-2px);
+    transform: translateY(-4px);
     border-color: rgba(var(--v-theme-primary), 0.3) !important;
 }
 
-.analysis-status-pill {
-    background: rgba(var(--v-theme-primary), 0.1);
-    color: rgb(var(--v-theme-primary));
-    font-size: 0.7rem;
-    font-weight: 800;
-    padding: 4px 12px;
-    border-radius: 100px;
-    letter-spacing: 1px;
+.bg-success-opacity { background: rgba(var(--v-theme-success), 0.1); }
+.bg-error-opacity { background: rgba(var(--v-theme-error), 0.1); }
+.bg-primary-opacity { background: rgba(var(--v-theme-primary), 0.1); }
+
+.border-t-dashed {
+    border-top: 1px dashed rgba(var(--v-border-color), 0.15);
 }
 
-.profit-mini-row, .loss-mini-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 12px;
-    border-radius: 14px;
-    background: rgba(var(--v-theme-on-surface), 0.03);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.profit-mini-row:hover { background: rgba(var(--v-theme-success), 0.08); transform: translateX(4px); }
-.loss-mini-row:hover { background: rgba(var(--v-theme-error), 0.08); transform: translateX(4px); }
-
-.glass-input-rounded :deep(.v-field__outline) { display: none; }
-.glass-input-rounded {
-    background: rgba(var(--v-theme-on-surface), 0.05);
-    border-radius: 14px;
-}
-
-.premium-table-hardened :deep(thead th) {
-    font-weight: 800;
-    text-transform: uppercase;
-    font-size: 0.65rem;
-    color: rgba(var(--v-theme-on-surface), 0.5);
-    letter-spacing: 1px;
-    white-space: nowrap;
-}
-
-.premium-table-hardened :deep(.v-table__wrapper) {
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE 10+ */
-}
-
-.premium-table-hardened :deep(.v-table__wrapper::-webkit-scrollbar) {
-    display: none; /* Chrome/Safari */
-}
-
-.premium-table-hardened :deep(td) {
-    height: 60px !important;
-}
-
-.bg-surface-variant-opacity-10 {
-    background: rgba(var(--v-theme-on-surface), 0.05);
-}
-
-.hover-bg-opacity-5:hover {
-    background: rgba(var(--v-theme-on-surface), 0.08);
-}
-
-.hover-bg-opacity-5 {
-    transition: background 0.2s ease;
-}
-.allocation-progress {
-    background: rgba(var(--v-theme-surface), 0.1) !important;
-}
+.tracking-tighter { letter-spacing: -0.5px; }
 
 .allocation-glow {
     height: 100%;

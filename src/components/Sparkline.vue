@@ -1,6 +1,6 @@
 <template>
-  <div class="sparkline-wrapper d-flex align-center justify-center position-relative"
-    :style="{ width: props.width + 'px', height: (props.height + 25) + 'px' }">
+  <div ref="container" class="sparkline-wrapper d-flex align-center justify-center position-relative"
+    :style="{ width: '100%', height: (props.height + 25) + 'px' }">
     <div class="spark-tooltip px-2 py-1 text-caption font-weight-black rounded shadow-sm text-center"
       v-if="hoveredIndex !== null" :style="{ left: tooltipX + 'px', top: '0px', color: props.color }">
       <div v-if="props.labels && props.labels[hoveredIndex]" class="text-overline opacity-70 mb-n1"
@@ -8,8 +8,8 @@
       <div>{{ formatValue(props.data[hoveredIndex]) }}</div>
     </div>
 
-    <svg class="sparkline-svg" :width="props.width" :height="props.height"
-      :viewBox="`0 0 ${props.width} ${props.height}`" preserveAspectRatio="none" @mousemove="onMouseMove"
+    <svg class="sparkline-svg" :width="width" :height="props.height"
+      :viewBox="`0 0 ${width} ${props.height}`" preserveAspectRatio="none" @mousemove="onMouseMove"
       @mouseleave="hoveredIndex = null" style="overflow: visible; cursor: crosshair">
       <defs>
         <linearGradient :id="gradientId" x1="0" y1="0" x2="0" y2="1">
@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useCurrency } from '@/composables/useCurrency'
 
 const props = defineProps({
@@ -45,14 +45,31 @@ const props = defineProps({
   labels: { type: Array as () => string[], default: () => [] },
   color: { type: String, default: '#3b82f6' },
   height: { type: Number, default: 40 },
-  width: { type: Number, default: 120 }
 })
 
+const container = ref<HTMLElement | null>(null)
+const width = ref(120)
 const { formatAmount } = useCurrency()
 
 const hoveredIndex = ref<number | null>(null)
 const tooltipX = ref(0)
 const gradientId = `sparkline-gradient-${Math.random().toString(36).substr(2, 9)}`
+
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  if (container.value) {
+    width.value = container.value.clientWidth
+    resizeObserver = new ResizeObserver(entries => {
+      if (entries[0]) width.value = entries[0].contentRect.width
+    })
+    resizeObserver.observe(container.value)
+  }
+})
+
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+})
 
 const min = computed(() => Math.min(...props.data))
 const max = computed(() => Math.max(...props.data))
@@ -63,7 +80,7 @@ function formatValue(val: number) {
 
 function getPoint(index: number) {
   const range = max.value - min.value
-  const step = props.width / Math.max(1, props.data.length - 1)
+  const step = width.value / Math.max(1, props.data.length - 1)
   const x = index * step
   const y = range === 0 ? props.height / 2 : props.height - ((props.data[index] - min.value) / range) * props.height
   return { x, y }
@@ -94,7 +111,7 @@ const linePath = computed(() => {
 
 const areaPath = computed(() => {
   if (!linePath.value || props.data.length < 2) return ''
-  return linePath.value + ` L ${props.width},${props.height} L 0,${props.height} Z`
+  return linePath.value + ` L ${width.value},${props.height} L 0,${props.height} Z`
 })
 
 function onMouseMove(e: MouseEvent) {
@@ -107,7 +124,7 @@ function onMouseMove(e: MouseEvent) {
   hoveredIndex.value = safeIndex
   const containerRect = svg.parentElement!.getBoundingClientRect()
   const pointerXInContainer = e.clientX - containerRect.left
-  tooltipX.value = Math.max(0, Math.min(props.width - 40, pointerXInContainer - 20))
+  tooltipX.value = Math.max(0, Math.min(width.value - 40, pointerXInContainer - 20))
 }
 </script>
 
