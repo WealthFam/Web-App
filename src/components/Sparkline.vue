@@ -13,7 +13,7 @@
       @mouseleave="hoveredIndex = null" style="overflow: visible; cursor: crosshair">
       <defs>
         <linearGradient :id="gradientId" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" :stop-color="color" stop-opacity="0.35" />
+          <stop offset="0%" :stop-color="color" stop-opacity="0.3" />
           <stop offset="100%" :stop-color="color" stop-opacity="0" />
         </linearGradient>
       </defs>
@@ -21,16 +21,17 @@
       <!-- Area Fill -->
       <path :d="areaPath" :fill="`url(#${gradientId})`" />
 
-      <!-- Background Line -->
-      <path :d="linePath" fill="none" :stroke="color" stroke-width="2.5" stroke-linecap="round"
-        stroke-linejoin="round" />
+      <!-- Smooth Line -->
+      <path :d="linePath" fill="none" :stroke="color" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round" class="spark-path" />
 
       <!-- Hover Cursor Line -->
       <line v-if="hoveredIndex !== null" :x1="getPoint(hoveredIndex).x" y1="0" :x2="getPoint(hoveredIndex).x"
-        :y2="height" stroke="rgba(var(--v-theme-on-surface), 0.2)" stroke-width="1.5" stroke-dasharray="4,2" />
-      <!-- Hover Point Highlight -->
-      <circle v-if="hoveredIndex !== null" :cx="getPoint(hoveredIndex).x" :cy="getPoint(hoveredIndex).y" r="4"
-        :fill="color" stroke="rgba(var(--v-theme-surface), 1)" stroke-width="2" />
+        :y2="height" stroke="rgba(var(--v-theme-on-surface), 0.1)" stroke-width="1" />
+      
+      <!-- Hover Point -->
+      <circle v-if="hoveredIndex !== null" :cx="getPoint(hoveredIndex).x" :cy="getPoint(hoveredIndex).y" r="3"
+        :fill="color" stroke="white" stroke-width="2" />
     </svg>
   </div>
 </template>
@@ -64,22 +65,35 @@ function getPoint(index: number) {
   const range = max.value - min.value
   const step = props.width / Math.max(1, props.data.length - 1)
   const x = index * step
-
-  // If array has equal elements (flat trend) plot across the middle
   const y = range === 0 ? props.height / 2 : props.height - ((props.data[index] - min.value) / range) * props.height
   return { x, y }
 }
 
 const linePath = computed(() => {
   if (!props.data || props.data.length < 2) return ''
-  return props.data.map((_, i) => {
-    const p = getPoint(i)
-    return (i === 0 ? 'M' : 'L') + ` ${p.x},${p.y}`
-  }).join(' ')
+  
+  const points = props.data.map((_, i) => getPoint(i))
+  let path = `M ${points[0].x},${points[0].y}`
+  
+  const smoothing = 0.2
+  for (let i = 0; i < points.length - 1; i++) {
+    const curr = points[i]
+    const next = points[i + 1]
+    const prev = points[i - 1] || curr
+    const later = points[i + 2] || next
+    
+    const cp1x = curr.x + (next.x - prev.x) * smoothing
+    const cp1y = curr.y + (next.y - prev.y) * smoothing
+    const cp2x = next.x - (later.x - curr.x) * smoothing
+    const cp2y = next.y - (later.y - curr.y) * smoothing
+    
+    path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${next.x},${next.y}`
+  }
+  return path
 })
 
 const areaPath = computed(() => {
-  if (!linePath.value) return ''
+  if (!linePath.value || props.data.length < 2) return ''
   return linePath.value + ` L ${props.width},${props.height} L 0,${props.height} Z`
 })
 
@@ -88,13 +102,9 @@ function onMouseMove(e: MouseEvent) {
   const rect = svg.getBoundingClientRect()
   const x = e.clientX - rect.left
   const step = rect.width / Math.max(1, props.data.length - 1)
-
-  // Snap to nearest data index strictly bounded
   const index = Math.round(x / step)
   const safeIndex = Math.max(0, Math.min(props.data.length - 1, index))
   hoveredIndex.value = safeIndex
-
-  // Handle Tooltip Placement (bounding to edge)
   const containerRect = svg.parentElement!.getBoundingClientRect()
   const pointerXInContainer = e.clientX - containerRect.left
   tooltipX.value = Math.max(0, Math.min(props.width - 40, pointerXInContainer - 20))
@@ -104,14 +114,15 @@ function onMouseMove(e: MouseEvent) {
 <style scoped>
 .sparkline-wrapper {
   overflow: visible;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
-.sparkline-svg {
-  display: block;
-  z-index: 1;
+.spark-path {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: spark-draw 1.5s ease-out forwards;
 }
-
+@keyframes spark-draw {
+  to { stroke-dashoffset: 0; }
+}
 .spark-tooltip {
   position: absolute;
   background: rgba(var(--v-theme-surface), 0.95);
@@ -124,16 +135,8 @@ function onMouseMove(e: MouseEvent) {
   white-space: nowrap;
   animation: fade-pop 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 @keyframes fade-pop {
-  from {
-    opacity: 0;
-    transform: translateY(4px) scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>

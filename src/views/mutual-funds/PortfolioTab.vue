@@ -1,7 +1,7 @@
 <template>
     <div>
         <!-- Portfolio Header Summary -->
-        <v-row class="mb-6">
+        <v-row class="mb-12">
             <template v-if="isLoading">
                 <v-col cols="12" md="4" v-for="i in 3" :key="`skel-card-${i}`">
                     <PremiumSkeleton type="stat-card" glass />
@@ -10,7 +10,7 @@
             <template v-else>
                 <!-- Current Value -->
                 <v-col cols="12" md="4">
-                    <v-card class="premium-glass-card h-100 pa-6" rounded="xl">
+                    <v-card class="premium-glass-card h-100 pa-10" rounded="24">
                         <div class="d-flex align-center justify-space-between mb-2">
                             <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Current Value</span>
                             <div class="pa-2 rounded-lg bg-surface-variant-opacity">
@@ -29,7 +29,7 @@
 
                 <!-- Total Invested -->
                 <v-col cols="12" md="4">
-                    <v-card class="premium-glass-card h-100 pa-6" rounded="xl">
+                    <v-card class="premium-glass-card h-100 pa-10" rounded="24">
                         <div class="d-flex align-center justify-space-between mb-2">
                             <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Invested Capital</span>
                             <div class="pa-2 rounded-lg bg-surface-variant-opacity">
@@ -47,7 +47,7 @@
 
                 <!-- Overall P&L / XIRR -->
                 <v-col cols="12" md="4">
-                    <v-card class="premium-glass-card h-100 pa-6" rounded="xl">
+                    <v-card class="premium-glass-card h-100 pa-10" rounded="24">
                         <div class="d-flex align-center justify-space-between mb-2">
                             <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Net Gain/Loss</span>
                             <div class="pa-2 rounded-lg bg-surface-variant-opacity">
@@ -67,10 +67,100 @@
             </template>
         </v-row>
 
-        <!-- Insights & Advisor Access Row -->
-        <v-row class="mb-8">
+        <!-- Portfolio Performance Chart (Restored) -->
+        <v-row class="mb-12">
+            <v-col cols="12">
+                <v-card class="premium-glass-card pa-10 overflow-hidden" rounded="32">
+                    <div class="d-flex align-center justify-space-between mb-6">
+                        <div>
+                            <h3 class="text-subtitle-1 font-weight-black text-content d-flex align-center gap-2">
+                                <Activity :size="20" class="text-primary" /> Performance Architecture
+                            </h3>
+                            <p class="text-caption opacity-60">Historical net value vs. invested capital trend</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <v-chip size="small" variant="tonal" color="primary" class="font-weight-black">1 YEAR</v-chip>
+                        </div>
+                    </div>
+
+                    <div style="height: 320px; position: relative;">
+                        <div v-if="isTimelineLoading" class="fill-height d-flex align-center justify-center">
+                            <v-progress-circular indeterminate color="primary" />
+                        </div>
+                        <FundPerformanceChart 
+                            v-else-if="timelineData.length"
+                            :data="timelineData"
+                            :benchmark="benchmarkData"
+                            :height="320"
+                            valueLabel="Portfolio Value"
+                            investedLabel="Net Invested"
+                        />
+                        <div v-else class="fill-height d-flex flex-column align-center justify-center opacity-40">
+                            <div class="pa-4 rounded-circle bg-surface-variant mb-4">
+                                <TrendingUp :size="32" />
+                            </div>
+                            <div class="text-body-2 font-weight-bold">Awaiting historical data synchronization...</div>
+                        </div>
+                    </div>
+                </v-card>
+            </v-col>
+        </v-row>
+
+        <!-- Category & Asset Allocation (Donut Charts) -->
+        <v-row class="mb-12" v-if="analytics">
+            <v-col cols="12" md="6">
+                <v-card class="premium-glass-card pa-10 h-100 rounded-32" elevation="0">
+                    <div class="d-flex align-center justify-space-between mb-10">
+                        <div>
+                            <h3 class="text-h6 font-weight-black text-content uppercase letter-spacing-1">Category Exposure</h3>
+                            <p class="text-caption opacity-60">Portfolio diversification by scheme type</p>
+                        </div>
+                        <v-avatar color="primary-lighten" size="44">
+                            <Target :size="24" class="text-primary" />
+                        </v-avatar>
+                    </div>
+
+                    <div class="px-4">
+                        <PortfolioDonutChart 
+                            :data="categoryData" 
+                            label="Type" 
+                            :size="260" 
+                            :strokeWidth="18"
+                            showLegend
+                        />
+                    </div>
+                </v-card>
+            </v-col>
+
+            <v-col cols="12" md="6">
+                <v-card class="premium-glass-card pa-10 h-100 rounded-32" elevation="0">
+                    <div class="d-flex align-center justify-space-between mb-10">
+                        <div>
+                            <h3 class="text-h6 font-weight-black text-content uppercase letter-spacing-1">Asset Allocation</h3>
+                            <p class="text-caption opacity-60">Broad asset class distribution</p>
+                        </div>
+                        <v-avatar color="secondary-lighten" size="44">
+                            <Briefcase :size="24" class="text-secondary" />
+                        </v-avatar>
+                    </div>
+                    
+                    <div class="px-4">
+                        <PortfolioDonutChart 
+                            :data="assetData" 
+                            label="Assets" 
+                            :size="260" 
+                            :strokeWidth="18"
+                            showLegend
+                        />
+                    </div>
+                </v-card>
+            </v-col>
+        </v-row>
+
+        <!-- Insights Row -->
+        <v-row class="mb-12">
             <!-- AI Advisor CTA -->
-            <v-col cols="12" md="5">
+            <v-col cols="12" md="6">
                 <v-card class="premium-glass-card h-100 rounded-24 transition-all hover-glow border-primary-glow" @click="router.push({ name: 'portfolio-analysis' })" style="cursor: pointer">
                     <v-card-text class="pa-8 d-flex flex-column h-100">
                         <div class="d-flex align-center justify-space-between mb-6">
@@ -94,8 +184,8 @@
             </v-col>
 
             <!-- Top Performance Snapshot -->
-            <v-col cols="12" md="7">
-                <v-card class="premium-glass-card h-100 pa-6 rounded-24" elevation="0">
+            <v-col cols="12" md="6">
+                <v-card class="premium-glass-card h-100 pa-8 rounded-24" elevation="0">
                     <div class="d-flex align-center justify-space-between mb-6">
                         <h3 class="text-subtitle-1 font-weight-black text-content uppercase letter-spacing-1">Market Velocity</h3>
                         <v-chip size="x-small" variant="tonal" class="font-weight-black">Top Movers</v-chip>
@@ -103,13 +193,14 @@
                     
                     <v-row>
                         <v-col cols="12" sm="6">
-                            <h4 class="text-caption font-weight-black text-success mb-3 uppercase letter-spacing-1">Top Gainers</h4>
+                            <h4 class="text-caption font-weight-black text-success mb-3 uppercase letter-spacing-1 d-flex align-center gap-1">
+                                <TrendingUp :size="14" /> Gainers
+                            </h4>
                             <div class="d-flex flex-column gap-3">
                                 <div v-for="item in topGainers" :key="item.id" class="profit-mini-row" @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)">
                                     <div class="text-truncate text-body-2 font-weight-bold pr-2" style="max-width: 140px">{{ item.scheme_name }}</div>
                                     <div class="text-right flex-shrink-0">
                                         <div class="text-success font-weight-black text-body-2">+{{ formatAmount(item.profit_loss) }}</div>
-                                        <div class="text-[10px] text-success font-weight-bold">{{ ((item.profit_loss / (item.invested_value || 1)) * 100).toFixed(2) }}%</div>
                                     </div>
                                 </div>
                                 <div v-if="!topGainers.length" class="text-caption opacity-40 py-4 text-center border-dashed rounded-lg">No growth data</div>
@@ -117,13 +208,14 @@
                         </v-col>
 
                         <v-col cols="12" sm="6">
-                            <h4 class="text-caption font-weight-black text-error mb-3 uppercase letter-spacing-1">Primary Losers</h4>
+                            <h4 class="text-caption font-weight-black text-error mb-3 uppercase letter-spacing-1 d-flex align-center gap-1">
+                                <TrendingDown :size="14" /> Losers
+                            </h4>
                             <div class="d-flex flex-column gap-3">
                                 <div v-for="item in topLosers" :key="item.id" class="loss-mini-row" @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)">
                                     <div class="text-truncate text-body-2 font-weight-bold pr-2" style="max-width: 140px">{{ item.scheme_name }}</div>
                                     <div class="text-right flex-shrink-0">
                                         <div class="text-error font-weight-black text-body-2">{{ formatAmount(item.profit_loss) }}</div>
-                                        <div class="text-[10px] text-error font-weight-bold">{{ ((item.profit_loss / (item.invested_value || 1)) * 100).toFixed(2) }}%</div>
                                     </div>
                                 </div>
                                 <div v-if="!topLosers.length" class="text-caption opacity-40 py-4 text-center border-dashed rounded-lg">All funds positive</div>
@@ -301,7 +393,11 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { TrendingUp, TrendingDown, Clock, Search, Target, Sparkles, ExternalLink, Eye as EyeIconMain, ChevronDown, ChevronRight, Trash2 } from 'lucide-vue-next'
+import { 
+    TrendingUp, TrendingDown, Clock, Search, Target, Sparkles, 
+    ExternalLink, Eye as EyeIconMain, ChevronDown, ChevronRight, 
+    Trash2, ArrowUpRight, Activity, Briefcase, Shield, Zap
+} from 'lucide-vue-next'
 
 import { financeApi } from '@/api/client'
 import { useCurrency } from '@/composables/useCurrency'
@@ -313,6 +409,10 @@ import PremiumSkeleton from '@/components/common/PremiumSkeleton.vue'
 import Sparkline from '@/components/Sparkline.vue'
 import LinkGoalModal from './modals/LinkGoalModal.vue'
 import DeleteHoldingDeepDiveModal from './modals/DeleteHoldingDeepDiveModal.vue'
+import FundPerformanceChart from './components/FundPerformanceChart.vue'
+import PortfolioDonutChart from './components/PortfolioDonutChart.vue'
+
+const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
 
 const router = useRouter()
 const mfStore = useMutualFundStore()
@@ -327,7 +427,10 @@ const props = defineProps<{
 
 const portfolio = ref<any[]>([])
 const analytics = ref<any>(null)
+const timelineData = ref<any[]>([])
+const benchmarkData = ref<any[]>([])
 const isLoading = ref(true)
+const isTimelineLoading = ref(true)
 const search = ref('')
 const expanded = ref<string[]>([])
 const selectedHolding = ref<any>(null)
@@ -398,6 +501,22 @@ const sortedPortfolio = computed(() => {
 const topGainers = computed(() => sortedPortfolio.value.filter(i => i.profit_loss > 0).sort((a,b) => b.profit_loss - a.profit_loss).slice(0, 3))
 const topLosers = computed(() => sortedPortfolio.value.filter(i => i.profit_loss < 0).sort((a,b) => a.profit_loss - b.profit_loss).slice(0, 3))
 
+const categoryData = computed(() => {
+    if (!analytics.value?.category_allocation) return []
+    return Object.entries(analytics.value.category_allocation).map(([label, value]) => ({ 
+        label, 
+        value: Number(value) 
+    })).sort((a, b) => b.value - a.value)
+})
+
+const assetData = computed(() => {
+    if (!analytics.value?.asset_allocation) return []
+    return Object.entries(analytics.value.asset_allocation).map(([label, value]) => ({ 
+        label: label.charAt(0).toUpperCase() + label.slice(1), 
+        value: Number(value) 
+    })).filter(i => i.value > 0)
+})
+
 // Methods
 async function fetchPortfolio() {
     isLoading.value = true
@@ -415,6 +534,20 @@ async function fetchAnalytics() {
         analytics.value = res.data?.data || res.data
         mfStore.analytics = analytics.value
     } catch (e) { console.error(e) }
+}
+
+async function fetchPortfolioTimeline() {
+    isTimelineLoading.value = true
+    try {
+        // Fetch portfolio-wide timeline (no scheme_code/holding_id)
+        const res = await financeApi.getPerformanceTimeline('1y', '1d', authStore.selectedMemberId || undefined)
+        timelineData.value = res.data?.timeline || []
+        benchmarkData.value = res.data?.benchmark || []
+    } catch (e) {
+        console.error("Failed to fetch portfolio timeline", e)
+    } finally {
+        isTimelineLoading.value = false
+    }
 }
 
 function openDeleteModal(item: any) {
@@ -455,6 +588,7 @@ function getRandomColor(name: string) {
 onMounted(() => {
     fetchPortfolio()
     fetchAnalytics()
+    fetchPortfolioTimeline()
 })
 
 // Refresh data when tab becomes active
@@ -462,6 +596,7 @@ watch(() => props.active, (isActive) => {
     if (isActive) {
         fetchPortfolio()
         fetchAnalytics()
+        fetchPortfolioTimeline()
     }
 })
 
@@ -550,5 +685,15 @@ watch(portfolio, (val) => emit('update:count', val.length))
 
 .hover-bg-opacity-5 {
     transition: background 0.2s ease;
+}
+.allocation-progress {
+    background: rgba(var(--v-theme-surface), 0.1) !important;
+}
+
+.allocation-glow {
+    height: 100%;
+    background: inherit;
+    box-shadow: 0 0 10px rgba(var(--v-theme-primary), 0.3);
+    border-radius: 6px;
 }
 </style>

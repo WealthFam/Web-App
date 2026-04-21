@@ -1,562 +1,501 @@
 <template>
-    <div class="line-chart-container">
-        <svg :width="width" :height="height" :viewBox="`0 0 ${width} ${height}`">
-            <!-- Grid lines -->
-            <g class="grid">
-                <line v-for="i in 5" :key="`h-${i}`" :x1="padding.left" :y1="padding.top + (chartHeight / 4) * (i - 1)"
-                    :x2="width - padding.right" :y2="padding.top + (chartHeight / 4) * (i - 1)" stroke="currentColor"
-                    stroke-width="1" class="chart-grid-line" />
-            </g>
+  <div ref="container" class="line-chart-container" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave">
+    <svg :width="width" :height="height" :viewBox="`0 0 ${width} ${height}`" preserveAspectRatio="none">
+      <!-- Grid lines -->
+      <g class="grid">
+        <line v-for="i in 5" :key="`h-${i}`" :x1="padding.left" :y1="padding.top + (chartHeight / 4) * (i - 1)"
+          :x2="width - padding.right" :y2="padding.top + (chartHeight / 4) * (i - 1)" stroke="currentColor"
+          stroke-width="1" class="chart-grid-line" />
+      </g>
 
-            <!-- Gradient definition for area fill -->
-            <defs>
-                <linearGradient id="valueGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.15" />
-                    <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.01" />
-                </linearGradient>
-            </defs>
+      <!-- Gradient definition for area fill -->
+      <defs>
+        <linearGradient id="valueGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.2" />
+          <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.0" />
+        </linearGradient>
+        
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
 
-            <!-- Area fill (smooth) -->
-            <path v-if="paths.area" :d="paths.area" fill="url(#valueGradient)" stroke="none" />
+      <!-- Area fill (smooth) -->
+      <path v-if="paths.area" :d="paths.area" fill="url(#valueGradient)" stroke="none" class="animate-fade-in" />
 
-            <!-- Value line (smooth) -->
-            <path v-if="paths.value" :d="paths.value" fill="none" stroke="#3b82f6" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round" />
+      <!-- Value line (smooth) -->
+      <path v-if="paths.value" :d="paths.value" fill="none" stroke="#3b82f6" stroke-width="3"
+        stroke-linecap="round" stroke-linejoin="round" class="chart-line-value" filter="url(#glow)" />
 
-            <!-- Invested line (smooth dashed) -->
-            <path v-if="paths.invested" :d="paths.invested" fill="none" stroke="#94a3b8" stroke-width="0.5"
-                stroke-dasharray="5,5" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- Invested line (smooth dashed) -->
+      <path v-if="paths.invested" :d="paths.invested" fill="none" stroke="#94a3b8" stroke-width="1"
+        stroke-dasharray="6,4" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;" />
 
-            <!-- Benchmark line (smooth dotted) -->
-            <path v-if="paths.benchmark" :d="paths.benchmark" fill="none" stroke="#f59e0b" stroke-width="1.5"
-                stroke-dasharray="2,3" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6;" />
+      <!-- Benchmark line (smooth dotted) -->
+      <path v-if="paths.benchmark" :d="paths.benchmark" fill="none" stroke="#f59e0b" stroke-width="1.5"
+        stroke-dasharray="2,3" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4;" />
 
-            <!-- Hover columns (for easier tooltip triggering) -->
-            <g class="hover-columns">
-                <rect v-for="(_point, index) in dataPoints" :key="`hover-${index}`"
-                    :x="index === 0 ? padding.left : padding.left + xScale(index) - (chartWidth / (dataPoints.length - 1)) / 2"
-                    :y="padding.top" :width="chartWidth / (dataPoints.length - 1)" :height="chartHeight"
-                    fill="transparent" style="cursor: pointer;" @mouseenter="showTooltip(index, $event)"
-                    @mouseleave="hideTooltip" />
-            </g>
+      <!-- Vertical Tracking Line -->
+      <line v-if="hoveredIndex !== null" :x1="padding.left + xScale(hoveredIndex)" :y1="padding.top"
+        :x2="padding.left + xScale(hoveredIndex)" :y2="height - padding.bottom" 
+        stroke="rgba(var(--v-theme-primary), 0.3)" stroke-width="1" stroke-dasharray="4,4" />
 
-            <!-- Data points (visible circles) -->
-            <g class="data-points">
-                <circle v-for="(point, index) in dataPoints" :key="`point-${index}`" :cx="point.x" :cy="point.y"
-                    :r="tooltip.index === index ? 5 : 0" fill="white" stroke="#3b82f6" stroke-width="2"
-                    pointer-events="none" />
-            </g>
+      <!-- Data points (visible circles on hover) -->
+      <g v-if="hoveredIndex !== null" class="data-points">
+        <circle :cx="padding.left + xScale(hoveredIndex)" :cy="padding.top + yScale(data[hoveredIndex].value)"
+          r="6" fill="#3b82f6" stroke="white" stroke-width="2" pointer-events="none" />
+      </g>
 
-            <!-- Transaction Markers -->
-            <g v-if="markers" class="transaction-markers">
-                <g v-for="(marker, index) in markerPoints" :key="`marker-${index}`">
-                    <circle :cx="marker.x" :cy="marker.y" :r="6" :fill="marker.type === 'SELL' ? '#ef4444' : '#10b981'"
-                        :stroke="marker.type === 'SELL' ? '#dc2626' : '#059669'" stroke-width="2"
-                        class="transaction-marker" @mouseenter="showMarkerTooltip(index, $event)"
-                        @mouseleave="hideTooltip" />
-                    <text :x="marker.x" :y="marker.y + 1" text-anchor="middle" font-size="10" fill="white"
-                        font-weight="bold" pointer-events="none">
-                        {{ marker.type === 'SELL' ? '↓' : '↑' }}
-                    </text>
-                </g>
-            </g>
+      <!-- Transaction Markers -->
+      <g v-if="markers" class="transaction-markers">
+        <g v-for="(marker, index) in markerPoints" :key="`marker-${index}`" class="marker-group">
+          <circle :cx="marker.x" :cy="marker.y" :r="5" :fill="marker.type === 'SELL' ? '#ef4444' : '#10b981'"
+            class="transaction-marker" @mouseenter="showMarkerTooltip(index, $event)"
+            @mouseleave="hideTooltip" />
+        </g>
+      </g>
 
-            <!-- Y-axis labels -->
-            <g class="y-axis-labels">
-                <text v-for="(label, i) in yAxisLabels" :key="`y-${i}`" :x="padding.left - 10"
-                    :y="padding.top + (chartHeight / 4) * i + 4" text-anchor="end" class="axis-label">
-                    {{ label }}
-                </text>
-            </g>
+      <!-- Y-axis labels -->
+      <g class="y-axis-labels">
+        <text v-for="(label, i) in yAxisLabels" :key="`y-${i}`" :x="padding.left - 12"
+          :y="padding.top + (chartHeight / 4) * i + 4" text-anchor="end" class="axis-label">
+          {{ label }}
+        </text>
+      </g>
 
-            <!-- X-axis labels -->
-            <g class="x-axis-labels">
-                <text v-for="(label, i) in xAxisLabels" :key="`x-${i}`"
-                    :x="xAxisLabels.length > 1 ? padding.left + (chartWidth / (xAxisLabels.length - 1)) * i : padding.left + chartWidth / 2"
-                    :y="height - padding.bottom + 20" text-anchor="middle" class="axis-label">
-                    {{ label }}
-                </text>
-            </g>
-        </svg>
+      <!-- X-axis labels -->
+      <g class="x-axis-labels">
+        <text v-for="(label, i) in xAxisLabels" :key="`x-${i}`"
+          :x="xAxisLabels.length > 1 ? padding.left + (chartWidth / (xAxisLabels.length - 1)) * i : padding.left + chartWidth / 2"
+          :y="height - padding.bottom + 24" text-anchor="middle" class="axis-label">
+          {{ label }}
+        </text>
+      </g>
+    </svg>
 
-        <!-- Legend -->
-        <div v-if="!hideLegend" class="chart-legend">
-            <div class="legend-item">
-                <div class="legend-line" style="background: #3b82f6;"></div>
-                <span>{{ props.valueLabel || 'Portfolio Value' }}</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-line dashed" style="background: #94a3b8;"></div>
-                <span>{{ props.investedLabel || 'Invested Amount' }}</span>
-            </div>
-            <div v-if="props.benchmark && props.benchmark.length > 0" class="legend-item">
-                <div class="legend-line dotted" style="background: #f59e0b;"></div>
-                <span>Nifty 50 (Simulated)</span>
-            </div>
-        </div>
-
-        <!-- Tooltip -->
-        <div v-if="tooltip.visible" class="chart-tooltip" :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }">
-            <div class="tooltip-date">{{ tooltip.date }}</div>
-            <div class="tooltip-row">
-                <span>{{ props.valueLabel || 'Value' }}:</span>
-                <strong>{{ formatAmount(tooltip.value) }}</strong>
-            </div>
-            <div class="tooltip-row">
-                <span>{{ props.investedLabel || 'Invested' }}:</span>
-                <strong>{{ formatAmount(tooltip.invested) }}</strong>
-            </div>
-            <div class="tooltip-row gain" :class="tooltip.gain >= 0 ? 'positive' : 'negative'">
-                <span>P/L:</span>
-                <strong>{{ tooltip.gain >= 0 ? '+' : '' }}{{ formatAmount(tooltip.gain) }}</strong>
-            </div>
-            <div v-if="tooltip.benchmark" class="tooltip-row benchmark">
-                <span>Nifty 50:</span>
-                <strong>{{ formatAmount(tooltip.benchmark) }}</strong>
-            </div>
-            <div v-if="tooltip.transaction" class="tooltip-row transaction">
-                <span>{{ tooltip.transaction.type }}:</span>
-                <strong>{{ formatAmount(tooltip.transaction.amount) }}</strong>
-            </div>
-            <div v-if="tooltip.transaction" class="tooltip-row">
-                <span>Units:</span>
-                <strong>{{ tooltip.transaction.units.toFixed(3) }}</strong>
-            </div>
-        </div>
+    <!-- Legend -->
+    <div v-if="!hideLegend" class="chart-legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #3b82f6;"></div>
+        <span>{{ props.valueLabel || 'Portfolio Value' }}</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot dashed" style="background: #94a3b8;"></div>
+        <span>{{ props.investedLabel || 'Invested' }}</span>
+      </div>
+      <div v-if="props.benchmark && props.benchmark.length > 0" class="legend-item">
+        <div class="legend-dot dotted" style="background: #f59e0b;"></div>
+        <span>Nifty 50</span>
+      </div>
     </div>
+
+    <!-- Enhanced Tooltip -->
+    <div v-if="tooltip.visible" class="chart-tooltip" 
+      :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px', transform: tooltip.flipped ? 'translateX(-100%)' : 'none' }">
+      <div class="tooltip-header">
+        <span class="tooltip-date">{{ tooltip.date }}</span>
+        <div v-if="tooltip.transaction" class="transaction-badge" :class="tooltip.transaction.type.toLowerCase()">
+          {{ tooltip.transaction.type }}
+        </div>
+      </div>
+      
+      <div class="tooltip-content">
+        <div class="tooltip-stat">
+          <span class="stat-label">{{ props.valueLabel || 'Value' }}</span>
+          <span class="stat-value">{{ formatAmount(tooltip.value) }}</span>
+        </div>
+        <div class="tooltip-stat">
+          <span class="stat-label">Invested</span>
+          <span class="stat-value">{{ formatAmount(tooltip.invested) }}</span>
+        </div>
+        <div class="tooltip-divider"></div>
+        <div class="tooltip-stat pnl" :class="tooltip.gain >= 0 ? 'positive' : 'negative'">
+          <span class="stat-label">P&L</span>
+          <span class="stat-value font-weight-black">
+            {{ tooltip.gain >= 0 ? '+' : '' }}{{ formatAmount(tooltip.gain) }}
+            <span class="text-[10px]">({{ ((tooltip.gain / (tooltip.invested || 1)) * 100).toFixed(2) }}%)</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 
 const props = defineProps<{
-    data: Array<{ date: string; value: number; invested: number }>
-    benchmark?: Array<{ date: string; value: number }>
-    markers?: Array<{ date: string; type: 'BUY' | 'SELL' | 'SIP'; amount: number; units: number }>
-    height?: number
-    hideLegend?: boolean
-    yMin?: 'zero' | 'auto'
-    valueLabel?: string
-    investedLabel?: string
+  data: Array<{ date: string; value: number; invested: number }>
+  benchmark?: Array<{ date: string; value: number }>
+  markers?: Array<{ date: string; type: 'BUY' | 'SELL' | 'SIP'; amount: number; units: number }>
+  height?: number
+  hideLegend?: boolean
+  yMin?: 'zero' | 'auto'
+  valueLabel?: string
+  investedLabel?: string
 }>()
 
-const width = 800
+const container = ref<HTMLElement | null>(null)
+const width = ref(800)
 const height = props.height || 300
-const padding = { top: 20, right: 20, bottom: 40, left: 60 }
+const padding = { top: 20, right: 30, bottom: 40, left: 65 }
 
-const chartWidth = width - padding.left - padding.right
+const chartWidth = computed(() => width.value - padding.left - padding.right)
 const chartHeight = height - padding.top - padding.bottom
 
+const hoveredIndex = ref<number | null>(null)
 const tooltip = ref({
-    visible: false,
-    index: -1,
-    x: 0,
-    y: 0,
-    date: '',
-    value: 0,
-    invested: 0,
-    gain: 0,
-    benchmark: 0,
-    transaction: null as { type: string; amount: number; units: number } | null
+  visible: false,
+  x: 0,
+  y: 0,
+  flipped: false,
+  date: '',
+  value: 0,
+  invested: 0,
+  gain: 0,
+  benchmark: 0,
+  transaction: null as any
 })
 
-// Calculate scales
+// Resize observation
+let resizeObserver: ResizeObserver | null = null
+onMounted(() => {
+  if (container.value) {
+    width.value = container.value.clientWidth
+    resizeObserver = new ResizeObserver(entries => {
+      if (entries[0]) width.value = entries[0].contentRect.width
+    })
+    resizeObserver.observe(container.value)
+  }
+})
+
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+})
+
+// Scales
 const maxValue = computed(() => {
-    if (!props.data || props.data.length === 0) return 100
-
-    let max = Math.max(...props.data.map(d => Math.max(d.value, d.invested)))
-
-    if (props.benchmark && props.benchmark.length > 0) {
-        const bMax = Math.max(...props.benchmark.map(b => b.value))
-        max = Math.max(max, bMax)
-    }
-
-    return max
+  if (!props.data || props.data.length === 0) return 100
+  let max = Math.max(...props.data.map(d => Math.max(d.value, d.invested)))
+  if (props.benchmark?.length) {
+    max = Math.max(max, ...props.benchmark.map(b => b.value))
+  }
+  return max * 1.05 // 5% padding top
 })
 
 const minValue = computed(() => {
-    if (props.yMin === 'auto' && props.data && props.data.length > 0) {
-        let min = Math.min(...props.data.map(d => Math.min(d.value, d.invested || d.value)))
-        if (props.benchmark && props.benchmark.length > 0) {
-            const bMin = Math.min(...props.benchmark.map(b => b.value))
-            min = Math.min(min, bMin)
-        }
-        // Add some padding below so line isn't waiting on the axis
-        return Math.max(0, min * 0.95)
+  if (props.yMin === 'auto' && props.data?.length) {
+    let min = Math.min(...props.data.map(d => Math.min(d.value, d.invested)))
+    if (props.benchmark?.length) {
+      min = Math.min(min, ...props.benchmark.map(b => b.value))
     }
-    return 0
+    return Math.max(0, min * 0.95)
+  }
+  return 0
 })
 
 const yScale = (value: number) => {
-    const range = maxValue.value - minValue.value
-    if (range === 0) return chartHeight / 2
-    return chartHeight - ((value - minValue.value) / range) * chartHeight
+  const range = maxValue.value - minValue.value
+  return chartHeight - ((value - minValue.value) / (range || 1)) * chartHeight
 }
 
 const xScale = (index: number) => {
-    if (props.data.length <= 1) return chartWidth / 2
-    return (index / (props.data.length - 1)) * chartWidth
+  if (props.data.length <= 1) return chartWidth.value / 2
+  return (index / (props.data.length - 1)) * chartWidth.value
 }
 
-// Helper to generate smooth SVG path (Cubic Bezier)
-const getPathData = (dataPoints: { x: number; y: number }[]) => {
-    if (dataPoints.length === 0) return ''
-    if (dataPoints.length === 1) return `M ${dataPoints[0].x},${dataPoints[0].y}`
-
-    let path = `M ${dataPoints[0].x},${dataPoints[0].y}`
-
-    // Smoothing factor
-    const smoothing = 0.2
-
-    for (let i = 0; i < dataPoints.length - 1; i++) {
-        const curr = dataPoints[i]
-        const next = dataPoints[i + 1]
-
-        // Control point calculation
-        const prev = dataPoints[i - 1] || curr
-        const nextNext = dataPoints[i + 2] || next
-
-        const cp1x = curr.x + (next.x - prev.x) * smoothing
-        const cp1y = curr.y + (next.y - prev.y) * smoothing
-        const cp2x = next.x - (nextNext.x - curr.x) * smoothing
-        const cp2y = next.y - (nextNext.y - curr.y) * smoothing
-
-        path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${next.x},${next.y}`
-    }
-
-    return path
+// Path Generation with Bezier Smoothing
+const getPathData = (points: { x: number; y: number }[]) => {
+  if (points.length < 2) return ''
+  let path = `M ${points[0].x},${points[0].y}`
+  const smoothing = 0.15
+  
+  for (let i = 0; i < points.length - 1; i++) {
+    const curr = points[i]
+    const next = points[i + 1]
+    const prev = points[i - 1] || curr
+    const later = points[i + 2] || next
+    
+    const cp1x = curr.x + (next.x - prev.x) * smoothing
+    const cp1y = curr.y + (next.y - prev.y) * smoothing
+    const cp2x = next.x - (later.x - curr.x) * smoothing
+    const cp2y = next.y - (later.y - curr.y) * smoothing
+    
+    path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${next.x},${next.y}`
+  }
+  return path
 }
 
-// Generate path strings
 const paths = computed(() => {
-    if (!props.data || props.data.length === 0) {
-        return { value: '', invested: '', area: '', benchmark: '' }
-    }
+  if (!props.data.length) return { value: '', invested: '', area: '', benchmark: '' }
 
-    const valuePoints = props.data.map((d, i) => ({
-        x: padding.left + xScale(i),
-        y: padding.top + yScale(d.value)
+  const vPoints = props.data.map((d, i) => ({
+    x: padding.left + xScale(i),
+    y: padding.top + yScale(d.value)
+  }))
+
+  const iPoints = props.data.map((d, i) => ({
+    x: padding.left + xScale(i),
+    y: padding.top + yScale(d.invested)
+  }))
+
+  const vPath = getPathData(vPoints)
+  const iPath = getPathData(iPoints)
+
+  let aPath = ''
+  if (vPoints.length) {
+    aPath = `${vPath} L ${vPoints[vPoints.length - 1].x},${height - padding.bottom} L ${padding.left},${height - padding.bottom} Z`
+  }
+
+  let bPath = ''
+  if (props.benchmark?.length) {
+    const bPoints = props.benchmark.map((b, i) => ({
+      x: padding.left + xScale(i),
+      y: padding.top + yScale(b.value)
     }))
+    bPath = getPathData(bPoints)
+  }
 
-    const investedPoints = props.data.map((d, i) => ({
-        x: padding.left + xScale(i),
-        y: padding.top + yScale(d.invested)
-    }))
-
-    const valuePath = getPathData(valuePoints)
-
-    // Create area path by closing the value path to the bottom axis
-    let areaPath = ''
-    if (valuePoints.length > 0) {
-        areaPath = valuePath +
-            ` L ${padding.left + xScale(valuePoints.length - 1)},${height - padding.bottom}` +
-            ` L ${padding.left},${height - padding.bottom} Z`
-    }
-
-    // Benchmark path
-    let benchmarkPath = ''
-    if (props.benchmark && props.benchmark.length > 0) {
-        const benchmarkPoints = props.benchmark.map((b, i) => ({
-            x: padding.left + xScale(i),
-            y: padding.top + yScale(b.value)
-        }))
-        benchmarkPath = getPathData(benchmarkPoints)
-    }
-
-    return {
-        value: valuePath,
-        invested: getPathData(investedPoints),
-        area: areaPath,
-        benchmark: benchmarkPath
-    }
+  return { value: vPath, invested: iPath, area: aPath, benchmark: bPath }
 })
 
-// Data points for interaction
-const dataPoints = computed(() => {
-    if (!props.data) return []
-    return props.data.map((d, i) => ({
-        x: padding.left + xScale(i),
-        y: padding.top + yScale(d.value)
-    }))
-})
+// Interaction Handlers
+const handleMouseMove = (e: MouseEvent) => {
+  if (!container.value || !props.data.length) return
+  const rect = container.value.getBoundingClientRect()
+  const x = e.clientX - rect.left - padding.left
+  
+  const index = Math.max(0, Math.min(props.data.length - 1, 
+    Math.round((x / chartWidth.value) * (props.data.length - 1))
+  ))
+  
+  hoveredIndex.value = index
+  updateTooltip(index, e, rect)
+}
 
-// Axis labels
+const handleMouseLeave = () => {
+  hoveredIndex.value = null
+  tooltip.value.visible = false
+}
+
+const updateTooltip = (index: number, e: MouseEvent, rect: DOMRect) => {
+  const d = props.data[index]
+  const tx = props.markers?.find(m => m.date === d.date)
+  
+  let txX = e.clientX - rect.left + 20
+  let flipped = false
+  if (txX + 220 > rect.width) {
+    txX = e.clientX - rect.left - 20
+    flipped = true
+  }
+
+  tooltip.value = {
+    visible: true,
+    x: txX,
+    y: e.clientY - rect.top - 80,
+    flipped,
+    date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    value: d.value,
+    invested: d.invested,
+    gain: d.value - d.invested,
+    benchmark: props.benchmark?.[index]?.value || 0,
+    transaction: tx
+  }
+}
+
+// Axis Helpers
+const formatAmount = (v: number) => {
+  if (v >= 10000000) return `₹${(v / 10000000).toFixed(2)}Cr`
+  if (v >= 100000) return `₹${(v / 100000).toFixed(2)}L`
+  if (v >= 1000) return `₹${(v / 1000).toFixed(1)}K`
+  return `₹${v.toFixed(0)}`
+}
+
 const yAxisLabels = computed(() => {
-    const range = maxValue.value - minValue.value
-    const step = range / 4
-    return Array.from({ length: 5 }, (_, i) => {
-        const value = maxValue.value - (step * i)
-        return formatAmount(value)
-    })
+  const range = maxValue.value - minValue.value
+  return Array.from({ length: 5 }, (_, i) => formatAmount(maxValue.value - (range / 4) * i))
 })
 
 const xAxisLabels = computed(() => {
-    if (!props.data || props.data.length === 0) return []
-
-    // Determine the total time span in days
-    const firstDate = new Date(props.data[0].date)
-    const lastDate = new Date(props.data[props.data.length - 1].date)
-    const daysSpan = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)
-
-    // For 800px width, ~6-8 labels is usually good
-    const targetLabelCount = 6
-    const step = Math.max(1, Math.floor(props.data.length / targetLabelCount))
-    const labels: string[] = []
-
-    props.data.forEach((d, i) => {
-        // Show label for first, last, and every Nth point if it fits
-        if (i === 0 || i === props.data.length - 1 || i % step === 0) {
-            const date = new Date(d.date)
-
-            if (daysSpan <= 95) { // ~3 months or less
-                labels.push(date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }))
-            } else if (daysSpan <= 366) { // ~1 year or less
-                labels.push(date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }))
-            } else { // 'All' or long periods
-                labels.push(date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }))
-            }
-        } else {
-            labels.push('')
-        }
-    })
-
-    // Final check for label overlap (very basic)
-    // If the last label is too close to the previous non-empty label, hide the previous one
-    let lastLabelIndex = -1
-    for (let i = labels.length - 1; i >= 0; i--) {
-        if (labels[i]) {
-            if (lastLabelIndex !== -1 && (lastLabelIndex - i) < (step / 2)) {
-                labels[i] = '' // Too crowded
-            } else {
-                lastLabelIndex = i
-            }
-        }
+  if (props.data.length < 2) return []
+  const step = Math.ceil(props.data.length / 5)
+  return props.data.map((d, i) => {
+    if (i === 0 || i === props.data.length - 1 || i % step === 0) {
+      const date = new Date(d.date)
+      return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
     }
-
-    return labels
+    return ''
+  })
 })
 
-function formatAmount(value: number): string {
-    if (value === undefined || value === null || isNaN(value)) return '₹0'
-    if (value >= 10000000) return `₹${(value / 10000000).toFixed(2)}Cr`
-    if (value >= 100000) return `₹${(value / 100000).toFixed(2)}L`
-    if (value >= 1000) return `₹${(value / 1000).toFixed(1)}K`
-    return `₹${value.toFixed(2)}`
-}
-
-function showTooltip(index: number, event: MouseEvent) {
-    const dataPoint = props.data[index]
-    const container = (event.currentTarget as HTMLElement).closest('.line-chart-container')
-    const rect = container?.getBoundingClientRect()
-
-    if (!rect) return
-
-    // Calculate position relative to container
-    let x = event.clientX - rect.left + 15
-    let y = event.clientY - rect.top - 120
-
-    // Prevent overflow
-    if (x + 200 > rect.width) x = event.clientX - rect.left - 180
-    if (y < 0) y = event.clientY - rect.top + 20
-
-    tooltip.value = {
-        visible: true,
-        index: index,
-        x: x,
-        y: y,
-        date: new Date(dataPoint.date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        }),
-        value: dataPoint.value,
-        invested: dataPoint.invested,
-        gain: dataPoint.value - dataPoint.invested,
-        benchmark: props.benchmark ? props.benchmark[index]?.value : 0,
-        transaction: null
-    }
-}
-
-function hideTooltip() {
-    tooltip.value.visible = false
-    tooltip.value.index = -1
-}
-
-// Calculate marker positions
 const markerPoints = computed(() => {
-    if (!props.markers || !props.data) return []
-
-    return props.markers.map(marker => {
-        // Find the index in data that matches this marker's date
-        const dataIndex = props.data.findIndex(d => d.date === marker.date)
-        if (dataIndex === -1) return null
-
-        return {
-            x: padding.left + xScale(dataIndex),
-            y: padding.top + yScale(props.data[dataIndex].value),
-            type: marker.type,
-            amount: marker.amount,
-            units: marker.units,
-            date: marker.date
-        }
-    }).filter(m => m !== null)
+  if (!props.markers || !props.data.length) return []
+  return props.markers.map(m => {
+    const idx = props.data.findIndex(d => d.date === m.date)
+    if (idx === -1) return null
+    return {
+      x: padding.left + xScale(idx),
+      y: padding.top + yScale(props.data[idx].value),
+      type: m.type
+    }
+  }).filter(Boolean) as any[]
 })
 
-function showMarkerTooltip(index: number, event: MouseEvent) {
-    const marker = markerPoints.value[index]
-    if (!marker) return
-
-    const dataIndex = props.data.findIndex(d => d.date === marker.date)
-    const dataPoint = props.data[dataIndex]
-    const container = (event.currentTarget as HTMLElement).closest('.line-chart-container')
-    const rect = container?.getBoundingClientRect()
-
-    if (!rect) return
-
-    let x = event.clientX - rect.left + 15
-    let y = event.clientY - rect.top - 140
-
-    if (x + 200 > rect.width) x = event.clientX - rect.left - 180
-    if (y < 0) y = event.clientY - rect.top + 20
-
-    tooltip.value = {
-        visible: true,
-        index: dataIndex,
-        x: x,
-        y: y,
-        date: new Date(marker.date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        }),
-        value: dataPoint.value,
-        invested: dataPoint.invested,
-        gain: dataPoint.value - dataPoint.invested,
-        benchmark: props.benchmark ? props.benchmark[dataIndex]?.value : 0,
-        transaction: {
-            type: marker.type,
-            amount: marker.amount,
-            units: marker.units
-        }
-    }
+const showMarkerTooltip = (idx: number, e: MouseEvent) => {
+  const m = markerPoints.value[idx]
+  const dataIdx = props.data.findIndex(d => d.date === props.markers![idx].date)
+  if (container.value) updateTooltip(dataIdx, e, container.value.getBoundingClientRect())
 }
+
+const hideTooltip = () => { tooltip.value.visible = false }
+
 </script>
 
 <style scoped>
 .line-chart-container {
-    position: relative;
-    width: 100%;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding-bottom: 20px;
 }
 
 svg {
-    width: 100%;
-    height: auto;
-}
-
-.axis-label {
-    font-size: 11px;
-    fill: currentColor;
-    opacity: 0.6;
-    font-weight: 500;
-}
-
-.hover-point {
-    cursor: pointer;
-    transition: r 0.2s;
-}
-
-.hover-point:hover {
-    r: 5;
-}
-
-.chart-legend {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    margin-top: 1rem;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    color: rgb(var(--v-theme-on-surface));
-    opacity: 0.8;
-}
-
-.legend-line {
-    width: 24px;
-    height: 3px;
-    border-radius: 2px;
-}
-
-.legend-line.dashed {
-    background: repeating-linear-gradient(to right,
-            #94a3b8 0,
-            #94a3b8 5px,
-            transparent 5px,
-            transparent 10px);
-}
-
-.chart-tooltip {
-    position: absolute;
-    background: rgb(var(--v-theme-surface));
-    border: 1px solid rgba(var(--v-border-color), 0.12);
-    border-radius: 12px;
-    padding: 0.75rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(8px);
-    pointer-events: none;
-    z-index: 9999;
-    min-width: 160px;
-    color: rgb(var(--v-theme-on-surface));
-}
-
-.tooltip-date {
-    font-size: 0.75rem;
-    color: #64748b;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-}
-
-.tooltip-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.875rem;
-    margin-bottom: 0.25rem;
-}
-
-.tooltip-row span {
-    color: #64748b;
-}
-
-.tooltip-row.gain.positive strong {
-    color: #10b981;
-}
-
-.tooltip-row.gain.negative strong {
-    color: #ef4444;
-}
-
-.tooltip-row.transaction {
-    border-top: 1px solid rgba(var(--v-border-color), 0.12);
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
-    font-weight: 600;
-}
-
-.transaction-marker {
-    cursor: pointer;
-    transition: r 0.2s, opacity 0.2s;
-}
-
-.transaction-marker:hover {
-    r: 8;
-    opacity: 0.8;
+  display: block;
+  overflow: visible;
 }
 
 .chart-grid-line {
-    color: rgba(var(--v-border-color), 0.1);
+  color: rgba(var(--v-theme-on-surface), 0.05);
+}
+
+.axis-label {
+  font-size: 10px;
+  fill: currentColor;
+  opacity: 0.4;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.chart-line-value {
+  stroke-dasharray: 2000;
+  stroke-dashoffset: 2000;
+  animation: draw 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 1.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.6;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legend-dot.dashed { border-radius: 2px; height: 3px; width: 12px; }
+.legend-dot.dotted { border-radius: 50%; width: 6px; height: 6px; border: 1.5px dotted currentColor; background: transparent !important; }
+
+.chart-tooltip {
+  position: absolute;
+  background: rgba(var(--v-theme-surface), 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(var(--v-border-color), 0.15);
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 100;
+  min-width: 200px;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.tooltip-date {
+  font-size: 0.7rem;
+  font-weight: 800;
+  opacity: 0.5;
+  text-transform: uppercase;
+}
+
+.transaction-badge {
+  font-size: 9px;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(var(--v-theme-primary), 0.1);
+  color: rgb(var(--v-theme-primary));
+}
+
+.transaction-badge.buy { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.transaction-badge.sell { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+.tooltip-stat {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+.stat-value {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tooltip-divider {
+  height: 1px;
+  background: rgba(var(--v-border-color), 0.1);
+  margin: 0.5rem 0;
+}
+
+.pnl.positive .stat-value { color: #10b981; }
+.pnl.negative .stat-value { color: #ef4444; }
+
+.transaction-marker {
+  cursor: pointer;
+  transition: transform 0.2s;
+  transform-origin: center;
+}
+
+.transaction-marker:hover {
+  transform: scale(1.5);
 }
 </style>
