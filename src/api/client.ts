@@ -307,6 +307,13 @@ export const financeApi = {
     bulkDeleteFundTransactions: (ids: string[]) => apiClient.post('/finance/mutual-funds/transactions/bulk-delete', { transaction_ids: ids }),
     delete: (url: string) => apiClient.delete(url), // Generic delete helper or specific method
     deleteHolding: (id: string) => apiClient.delete(`/finance/mutual-funds/holdings/${id}`),
+    
+    // Benchmark Rules
+    getBenchmarkRules: () => apiClient.get('/finance/mutual-funds/benchmarks/rules'),
+    saveBenchmarkRule: (data: any, ruleId?: string) => 
+        apiClient.post('/finance/mutual-funds/benchmarks/rules', data, { params: { rule_id: ruleId } }),
+    deleteBenchmarkRule: (id: string) => apiClient.delete(`/finance/mutual-funds/benchmarks/rules/${id}`),
+    syncBenchmarks: () => apiClient.post('/finance/mutual-funds/benchmarks/rules/sync'),
     importCAS: (formData: FormData) => apiClient.post('/finance/mutual-funds/import-cas', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     }),

@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { Doughnut } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -123,7 +123,7 @@ const chartOptions = computed<ChartOptions<'doughnut'>>(() => ({
       }
     }
   },
-  onHover: (event, elements) => {
+  onHover: (_event, elements) => {
     if (elements.length > 0) {
       hoveredIndex.value = elements[0].index
     } else {

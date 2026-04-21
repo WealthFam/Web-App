@@ -32,9 +32,11 @@
       <path v-if="paths.invested" :d="paths.invested" fill="none" stroke="#94a3b8" stroke-width="1"
         stroke-dasharray="6,4" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;" />
 
-      <!-- Benchmark line (smooth dotted) -->
-      <path v-if="paths.benchmark" :d="paths.benchmark" fill="none" stroke="#f59e0b" stroke-width="1.5"
-        stroke-dasharray="2,3" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4;" />
+            <!-- Benchmark lines (dynamic) -->
+      <path v-for="(bm, idx) in benchmarkPaths" :key="`bm-${idx}`"
+        :d="bm.path" fill="none" :stroke="bm.styling?.color || '#94a3b8'" :stroke-width="1.5"
+        :stroke-dasharray="bm.styling?.dashArray" stroke-linecap="round" stroke-linejoin="round"
+        style="opacity: 0.6;" />
 
       <!-- Vertical Tracking Line -->
       <line v-if="hoveredIndex !== null" :x1="padding.left + xScale(hoveredIndex)" :y1="padding.top"
@@ -47,12 +49,28 @@
           r="6" fill="#3b82f6" stroke="white" stroke-width="2" pointer-events="none" />
       </g>
 
-      <!-- Transaction Markers -->
+      <!-- Premium Transaction Markers -->
       <g v-if="markers" class="transaction-markers">
-        <g v-for="(marker, index) in markerPoints" :key="`marker-${index}`" class="marker-group">
-          <circle :cx="marker.x" :cy="marker.y" :r="5" :fill="marker.type === 'SELL' ? '#ef4444' : '#10b981'"
-            class="transaction-marker" @mouseenter="showMarkerTooltip(index, $event)"
-            @mouseleave="hideTooltip" />
+        <g v-for="(marker, index) in markerPoints" :key="`marker-${index}`" 
+           class="marker-group" :class="{ 'marker-buy': marker.type !== 'SELL', 'marker-sell': marker.type === 'SELL' }">
+          
+          <!-- Outer Pulse Effect -->
+          <circle :cx="marker.x" :cy="marker.y" :r="12" class="marker-pulse" />
+          
+          <!-- Main Dot -->
+          <circle :cx="marker.x" :cy="marker.y" :r="9" class="marker-base" />
+          
+          <!-- Arrow Icon (Up for Buy, Down for Sell) -->
+          <g transform="translate(-4, -4)" pointer-events="none">
+             <path v-if="marker.type !== 'SELL'" 
+                   :transform="`translate(${marker.x}, ${marker.y})`"
+                   d="M 4,1 L 7,4 L 5.5,4 L 5.5,7 L 2.5,7 L 2.5,4 L 1,4 Z" 
+                   fill="white" stroke="white" stroke-width="0.5" />
+             <path v-else 
+                   :transform="`translate(${marker.x}, ${marker.y})`"
+                   d="M 4,7 L 1,4 L 2.5,4 L 2.5,1 L 5.5,1 L 5.5,4 L 7,4 Z" 
+                   fill="white" stroke="white" stroke-width="0.5" />
+          </g>
         </g>
       </g>
 
@@ -76,17 +94,23 @@
 
     <!-- Legend -->
     <div v-if="!hideLegend" class="chart-legend">
-      <div class="legend-item">
+      <div class="legend-item" @click="$emit('toggle-invested')">
         <div class="legend-dot" style="background: #3b82f6;"></div>
         <span>{{ props.valueLabel || 'Portfolio Value' }}</span>
       </div>
-      <div class="legend-item">
+      <div class="legend-item" @click="$emit('toggle-invested')">
         <div class="legend-dot dashed" style="background: #94a3b8;"></div>
         <span>{{ props.investedLabel || 'Invested' }}</span>
       </div>
-      <div v-if="props.benchmark && props.benchmark.length > 0" class="legend-item">
-        <div class="legend-dot dotted" style="background: #f59e0b;"></div>
-        <span>Nifty 50</span>
+      <div v-if="benchmarkDataList.length > 0" v-for="(bm, idx) in benchmarkDataList" :key="`leg-bm-${idx}`" 
+        class="legend-item pointer" @click="$emit('toggle-benchmark', bm.symbol)">
+        <div class="legend-dot" :style="{ 
+          background: bm.styling?.color || '#f59e0b',
+          border: bm.styling?.style === 'dotted' ? `1.5px dotted ${bm.styling.color}` : 'none',
+          borderRadius: bm.styling?.style === 'dashed' ? '2px' : '50%',
+          opacity: isBenchmarkVisible(bm.symbol) ? 1 : 0.3
+        }" :class="{ dashed: bm.styling?.style === 'dashed', dotted: bm.styling?.style === 'dotted' }"></div>
+        <span :class="{ 'opacity-30': !isBenchmarkVisible(bm.symbol) }">{{ bm.label }}</span>
       </div>
     </div>
 
@@ -96,7 +120,7 @@
       <div class="tooltip-header">
         <span class="tooltip-date">{{ tooltip.date }}</span>
         <div v-if="tooltip.transaction" class="transaction-badge" :class="tooltip.transaction.type.toLowerCase()">
-          {{ tooltip.transaction.type }}
+          {{ tooltip.transaction.type }} {{ formatAmount(tooltip.transaction.amount) }} ({{ Number(tooltip.transaction.units).toFixed(3) }} units)
         </div>
       </div>
       
@@ -109,7 +133,7 @@
           <span class="stat-label">Invested</span>
           <span class="stat-value">{{ formatAmount(tooltip.invested) }}</span>
         </div>
-        <div class="tooltip-divider"></div>
+                <div class="tooltip-divider"></div>
         <div class="tooltip-stat pnl" :class="tooltip.gain >= 0 ? 'positive' : 'negative'">
           <span class="stat-label">P&L</span>
           <span class="stat-value font-weight-black">
@@ -117,17 +141,32 @@
             <span class="text-[10px]">({{ ((tooltip.gain / (tooltip.invested || 1)) * 100).toFixed(2) }}%)</span>
           </span>
         </div>
+
+        <!-- Benchmark Values in Tooltip -->
+        <template v-for="(bm, idx) in tooltip.benchmarks" :key="`tt-bm-${idx}`">
+          <div class="tooltip-divider border-dashed opacity-30"></div>
+          <div class="tooltip-stat">
+            <span class="stat-label text-[10px]">{{ bm.label }}</span>
+            <span class="stat-value text-[11px]">{{ formatAmount(bm.value) }}</span>
+          </div>
+        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps<{
   data: Array<{ date: string; value: number; invested: number }>
   benchmark?: Array<{ date: string; value: number }>
+  benchmarks?: Array<{ 
+    label: string; 
+    symbol: string; 
+    data: Array<{ date: string; value: number }>;
+    styling?: { color: string; style: string; dashArray: string }
+  }>
   markers?: Array<{ date: string; type: 'BUY' | 'SELL' | 'SIP'; amount: number; units: number }>
   height?: number
   hideLegend?: boolean
@@ -135,6 +174,8 @@ const props = defineProps<{
   valueLabel?: string
   investedLabel?: string
 }>()
+
+const emit = defineEmits(['toggle-benchmark', 'toggle-invested'])
 
 const container = ref<HTMLElement | null>(null)
 const width = ref(800)
@@ -154,7 +195,7 @@ const tooltip = ref({
   value: 0,
   invested: 0,
   gain: 0,
-  benchmark: 0,
+  benchmarks: [] as Array<{ label: string; value: number }>,
   transaction: null as any
 })
 
@@ -248,16 +289,37 @@ const paths = computed(() => {
     aPath = `${vPath} L ${vPoints[vPoints.length - 1].x},${height - padding.bottom} L ${padding.left},${height - padding.bottom} Z`
   }
 
-  let bPath = ''
-  if (props.benchmark?.length) {
-    const bPoints = props.benchmark.map((b, i) => ({
+    return { value: vPath, invested: iPath, area: aPath }
+})
+
+const benchmarkDataList = computed(() => {
+  const list = []
+  if (props.benchmarks?.length) {
+    list.push(...props.benchmarks)
+  } else if (props.benchmark?.length) {
+    list.push({
+      label: 'Nifty 50',
+      symbol: 'LEGACY',
+      data: props.benchmark,
+      styling: { color: '#f59e0b', style: 'dotted', dashArray: '2,3' }
+    })
+  }
+  return list
+})
+
+const benchmarkPaths = computed(() => {
+  return benchmarkDataList.value.map(bm => {
+    if (!bm.data.length) return { path: "", styling: bm.styling }
+    const bPoints = bm.data.map((b, i) => ({
       x: padding.left + xScale(i),
       y: padding.top + yScale(b.value)
     }))
-    bPath = getPathData(bPoints)
-  }
-
-  return { value: vPath, invested: iPath, area: aPath, benchmark: bPath }
+    return {
+      label: bm.label,
+      path: getPathData(bPoints),
+      styling: bm.styling || { color: '#607D8B', style: 'dashed', dashArray: '5,5' }
+    }
+  })
 })
 
 // Interaction Handlers
@@ -281,7 +343,7 @@ const handleMouseLeave = () => {
 
 const updateTooltip = (index: number, e: MouseEvent, rect: DOMRect) => {
   const d = props.data[index]
-  const tx = props.markers?.find(m => m.date === d.date)
+  const tx = props.markers?.find(m => m.date.substring(0, 10) === d.date.substring(0, 10))
   
   let txX = e.clientX - rect.left + 20
   let flipped = false
@@ -299,7 +361,7 @@ const updateTooltip = (index: number, e: MouseEvent, rect: DOMRect) => {
     value: d.value,
     invested: d.invested,
     gain: d.value - d.invested,
-    benchmark: props.benchmark?.[index]?.value || 0,
+    benchmarks: benchmarkDataList.value.map(bm => ({ label: bm.label, value: bm.data[index]?.value || 0 })),
     transaction: tx
   }
 }
@@ -332,23 +394,25 @@ const xAxisLabels = computed(() => {
 const markerPoints = computed(() => {
   if (!props.markers || !props.data.length) return []
   return props.markers.map(m => {
-    const idx = props.data.findIndex(d => d.date === m.date)
+    // Robust date matching (normalize to YYYY-MM-DD)
+    const mDate = m.date.substring(0, 10)
+    const idx = props.data.findIndex(d => d.date.substring(0, 10) === mDate)
     if (idx === -1) return null
     return {
       x: padding.left + xScale(idx),
       y: padding.top + yScale(props.data[idx].value),
-      type: m.type
+      type: m.type,
+      amount: m.amount
     }
   }).filter(Boolean) as any[]
 })
-
-const showMarkerTooltip = (idx: number, e: MouseEvent) => {
-  const m = markerPoints.value[idx]
-  const dataIdx = props.data.findIndex(d => d.date === props.markers![idx].date)
-  if (container.value) updateTooltip(dataIdx, e, container.value.getBoundingClientRect())
+const isBenchmarkVisible = (symbol: string) => {
+  // If we are getting the filtered list, and current bm is in it, it's visible.
+  // This helper is mainly for the legend styling.
+  return benchmarkDataList.value.some(b => b.symbol === symbol)
 }
 
-const hideTooltip = () => { tooltip.value.visible = false }
+
 
 </script>
 
@@ -489,13 +553,43 @@ svg {
 .pnl.positive .stat-value { color: #10b981; }
 .pnl.negative .stat-value { color: #ef4444; }
 
-.transaction-marker {
+.marker-group {
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-box: fill-box;
   transform-origin: center;
 }
 
-.transaction-marker:hover {
-  transform: scale(1.5);
+.marker-base {
+  stroke: white;
+  stroke-width: 2;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.marker-buy .marker-base { fill: #10b981; }
+.marker-sell .marker-base { fill: #ef4444; }
+
+.marker-pulse {
+  fill: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.marker-buy .marker-pulse { color: #10b981; }
+.marker-sell .marker-pulse { color: #ef4444; }
+
+.marker-group:hover .marker-pulse {
+  animation: pulse-ring 1.2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+.marker-group:hover .marker-base {
+  transform: scale(1.2);
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.3); opacity: 0.8; }
+  80%, 100% { transform: scale(1.5); opacity: 0; }
 }
 </style>

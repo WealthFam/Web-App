@@ -47,7 +47,13 @@ const isTimelineLoading = ref(true)
 const isAiLoading = ref(false)
 const aiInsights = ref<any>(null)
 const aiError = ref<string | null>(null)
-const benchmarkData = ref<any[]>([])
+const benchmarkData = ref<any[]>([]);
+const benchmarksData = ref<any[]>([])
+const selectedBenchmarkSymbols = ref<string[]>(['120716']) // Default to Nifty 50
+
+const filteredBenchmarksData = computed(() => {
+    return benchmarksData.value.filter(bm => selectedBenchmarkSymbols.value.includes(bm.symbol))
+})
 
 // Family Members for Ownership
 const familyMembers = computed(() => authStore.familyMembers || [])
@@ -201,11 +207,17 @@ async function fetchPerformanceTimeline() {
     try {
         const isSchemeCode = /^\d+$/.test(holdingId) || route.query.type === 'aggregate'
         // For individual funds, we use the portfolio timeline API but filter for this specific item
-        const res = await financeApi.getPerformanceTimeline('1y', '1d', undefined, isSchemeCode ? holdingId : undefined, isSchemeCode ? undefined : holdingId)
+        const res = await financeApi.getPerformanceTimeline('all', '1d', undefined, isSchemeCode ? holdingId : undefined, isSchemeCode ? undefined : holdingId)
 
         // Store full timeline for chart (Value, Invested) AND Benchmark
         timelineData.value = res.data?.timeline || []
         benchmarkData.value = res.data?.benchmark || []
+        benchmarksData.value = res.data?.benchmarks || []
+
+        // Auto-select category benchmark instead of Nifty 50 if available
+        if (res.data?.category_benchmark_symbol) {
+            selectedBenchmarkSymbols.value = [res.data.category_benchmark_symbol]
+        }
 
     } catch (e) {
         console.error("Failed to fetch timeline", e)
@@ -224,7 +236,7 @@ const getInsightColor = (type: string) => {
     switch (t) {
         case 'success': return 'rgba(var(--v-theme-success), 0.1)'
         case 'warning': return 'rgba(var(--v-theme-warning), 0.1)'
-        case 'danger': 
+        case 'danger':
         case 'error': return 'rgba(var(--v-theme-error), 0.1)'
         default: return 'rgba(var(--v-theme-primary), 0.05)'
     }
@@ -375,14 +387,53 @@ function isImageUrl(url: string) {
 
                             <!-- Chart Area -->
                             <div style="height: 380px;">
-                                <div v-if="isTimelineLoading" class="d-flex align-center justify-center h-100 flex-column animate-fade-in">
+                                <div v-if="isTimelineLoading"
+                                    class="d-flex align-center justify-center h-100 flex-column animate-fade-in">
                                     <v-progress-circular indeterminate color="primary" size="48" width="3" />
-                                    <div class="text-caption mt-4 font-weight-bold opacity-40">Calculating Growth...</div>
+                                    <div class="text-caption mt-4 font-weight-bold opacity-40">Calculating Growth...
+                                    </div>
                                 </div>
-                                
+
                                 <template v-else>
-                                    <FundPerformanceChart v-if="chartData.length" :data="chartData" :markers="chartMarkers"
-                                        :benchmark="benchmarkData" />
+                                    <div class="px-6 pt-4 d-flex align-center justify-end">
+                                        <v-menu :close-on-content-click="false" location="bottom end" offset="8">
+                                            <template v-slot:activator="{ props }">
+                                                <v-btn v-bind="props" variant="tonal" size="small" rounded="lg"
+                                                    class="text-caption font-weight-black" color="primary"
+                                                    prepend-icon="mdi-chart-line">
+                                                    BENCHMARKS ({{ selectedBenchmarkSymbols.length }})
+                                                </v-btn>
+                                            </template>
+                                            <v-list class="premium-glass-card border" min-width="220">
+                                                <v-list-subheader
+                                                    class="text-overline font-weight-black opacity-60">SELECT
+                                                    INDICES</v-list-subheader>
+                                                <v-list-item v-for="bm in benchmarksData" :key="bm.symbol"
+                                                    density="compact"
+                                                    @click="selectedBenchmarkSymbols.includes(bm.symbol) ? selectedBenchmarkSymbols = selectedBenchmarkSymbols.filter(s => s !== bm.symbol) : selectedBenchmarkSymbols.push(bm.symbol)">
+                                                    <template v-slot:prepend>
+                                                        <v-checkbox-btn v-model="selectedBenchmarkSymbols"
+                                                            :value="bm.symbol" color="primary" />
+                                                    </template>
+                                                    <v-list-item-title class="text-caption font-weight-bold">{{ bm.label
+                                                        }}</v-list-item-title>
+                                                    <template v-slot:append>
+                                                        <div class="legend-dot-mini"
+                                                            :style="{ background: bm.styling?.color }"></div>
+                                                    </template>
+                                                </v-list-item>
+                                            </v-list>
+                                        </v-menu>
+                                    </div>
+
+                                    <FundPerformanceChart v-if="chartData.length" :data="chartData"
+                                        :markers="chartMarkers" :benchmarks="filteredBenchmarksData" @toggle-benchmark="(symbol) => {
+                                            if (selectedBenchmarkSymbols.includes(symbol)) {
+                                                selectedBenchmarkSymbols = selectedBenchmarkSymbols.filter(s => s !== symbol)
+                                            } else {
+                                                selectedBenchmarkSymbols.push(symbol)
+                                            }
+                                        }" />
                                     <div v-else
                                         class="d-flex align-center justify-center h-100 text-medium-emphasis font-weight-bold">
                                         No history available for simulation
@@ -415,7 +466,8 @@ function isImageUrl(url: string) {
                                             <th
                                                 class="text-right text-caption font-weight-bold text-medium-emphasis text-uppercase">
                                                 Amount</th>
-                                            <th class="text-right text-caption font-weight-bold text-medium-emphasis text-uppercase">
+                                            <th
+                                                class="text-right text-caption font-weight-bold text-medium-emphasis text-uppercase">
                                                 Actions</th>
                                         </tr>
                                     </thead>
@@ -431,15 +483,17 @@ function isImageUrl(url: string) {
                                             <td class="text-right font-weight-medium text-body-2">{{
                                                 Number(t.units).toFixed(3) }}</td>
                                             <td class="text-right font-weight-medium text-body-2">{{ formatAmount(t.nav)
-                                            }}</td>
+                                                }}</td>
                                             <td class="text-right font-weight-black text-body-2">{{
                                                 formatAmount(t.amount) }}</td>
                                             <td class="text-right">
                                                 <div class="d-flex justify-end gap-1">
-                                                    <v-btn icon variant="text" size="x-small" color="primary" @click="openEditTxn(t)">
+                                                    <v-btn icon variant="text" size="x-small" color="primary"
+                                                        @click="openEditTxn(t)">
                                                         <Edit :size="14" />
                                                     </v-btn>
-                                                    <v-btn icon variant="text" size="x-small" color="error" @click="openDeleteTxn(t)">
+                                                    <v-btn icon variant="text" size="x-small" color="error"
+                                                        @click="openDeleteTxn(t)">
                                                         <Trash2 :size="14" />
                                                     </v-btn>
                                                 </div>
@@ -479,7 +533,7 @@ function isImageUrl(url: string) {
                                     </v-avatar>
                                     <div>
                                         <div class="text-subtitle-1 font-weight-black text-content">{{ holding.goal.name
-                                            }}</div>
+                                        }}</div>
                                         <div class="text-caption font-weight-bold opacity-60">TARGET: {{
                                             formatAmount(holding.goal.target_amount) }}</div>
                                     </div>
@@ -522,7 +576,7 @@ function isImageUrl(url: string) {
                                 <v-avatar color="primary" size="48" variant="tonal" rounded="lg">
                                     <img v-if="isImageUrl(holding.user_avatar)" :src="holding.user_avatar" alt="User" />
                                     <span v-else class="text-h6 font-weight-bold">{{ holding.user_name?.charAt(0)
-                                        }}</span>
+                                    }}</span>
                                 </v-avatar>
                                 <div>
                                     <div class="text-subtitle-1 font-weight-black text-content">{{ holding.user_name ||
@@ -574,7 +628,7 @@ function isImageUrl(url: string) {
                                     <span class="text-caption font-weight-bold text-medium-emphasis">Current
                                         Units</span>
                                     <span class="text-caption font-weight-bold text-content">{{ holding.units.toFixed(3)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </div>
                         </v-card>
@@ -583,10 +637,12 @@ function isImageUrl(url: string) {
                         <v-card class="premium-glass-card pa-0 mb-6 overflow-hidden" rounded="xl" v-if="holding">
                             <div class="pa-6 pb-0">
                                 <div class="d-flex align-center justify-space-between mb-4">
-                                    <h3 class="text-subtitle-1 font-weight-black text-content d-flex align-center gap-2">
+                                    <h3
+                                        class="text-subtitle-1 font-weight-black text-content d-flex align-center gap-2">
                                         <Sparkles :size="20" class="text-primary" /> AI Advisor
                                     </h3>
-                                    <v-btn icon variant="text" size="small" color="primary" @click="fetchAiInsights(true)" :loading="isAiLoading">
+                                    <v-btn icon variant="text" size="small" color="primary"
+                                        @click="fetchAiInsights(true)" :loading="isAiLoading">
                                         <RefreshCw :size="16" :class="{ 'animate-spin': isAiLoading }" />
                                     </v-btn>
                                 </div>
@@ -594,17 +650,21 @@ function isImageUrl(url: string) {
                                 <!-- Loading State -->
                                 <div v-if="isAiLoading" class="py-8 d-flex flex-column align-center justify-center">
                                     <v-progress-circular indeterminate color="primary" size="32" width="3" />
-                                    <div class="text-caption mt-4 font-weight-bold opacity-40">Synthesizing Brief...</div>
+                                    <div class="text-caption mt-4 font-weight-bold opacity-40">Synthesizing Brief...
+                                    </div>
                                 </div>
 
                                 <!-- Error State -->
-                                <div v-else-if="aiError && !aiInsights" class="py-8 px-6 d-flex flex-column align-center text-center">
+                                <div v-else-if="aiError && !aiInsights"
+                                    class="py-8 px-6 d-flex flex-column align-center text-center">
                                     <div class="pa-4 rounded-circle bg-warning-light mb-4">
                                         <ZapOff :size="28" class="text-warning" />
                                     </div>
-                                    <div class="text-body-2 font-weight-bold text-content mb-2">Advisor Overwhelmed</div>
+                                    <div class="text-body-2 font-weight-bold text-content mb-2">Advisor Overwhelmed
+                                    </div>
                                     <div class="text-caption opacity-60 mb-4">{{ aiError }}</div>
-                                    <v-btn variant="tonal" size="small" color="primary" rounded="pill" @click="fetchAiInsights(true)">
+                                    <v-btn variant="tonal" size="small" color="primary" rounded="pill"
+                                        @click="fetchAiInsights(true)">
                                         Retry Analysis
                                     </v-btn>
                                 </div>
@@ -612,22 +672,20 @@ function isImageUrl(url: string) {
                                 <template v-else-if="aiInsights">
                                     <!-- Highlights Grid -->
                                     <div class="d-flex flex-column gap-3 mb-6">
-                                        <div
-                                            v-for="insight in aiInsights.highlights"
-                                            :key="insight.id"
-                                            class="pa-4 rounded-xl border transition-all hover-translate-x"
-                                            :style="{
+                                        <div v-for="insight in aiInsights.highlights" :key="insight.id"
+                                            class="pa-4 rounded-xl border transition-all hover-translate-x" :style="{
                                                 background: getInsightColor(insight.type),
                                                 borderColor: getInsightBorderColor(insight.type)
-                                            }"
-                                        >
+                                            }">
                                             <div class="d-flex gap-3 align-start">
                                                 <span class="text-h6">{{ insight.icon }}</span>
                                                 <div>
-                                                    <div class="text-caption font-weight-black text-uppercase letter-spacing-1 mb-1">
+                                                    <div
+                                                        class="text-caption font-weight-black text-uppercase letter-spacing-1 mb-1">
                                                         {{ insight.title }}
                                                     </div>
-                                                    <div class="text-body-2 font-weight-medium line-height-tight opacity-80">
+                                                    <div
+                                                        class="text-body-2 font-weight-medium line-height-tight opacity-80">
                                                         {{ insight.content }}
                                                     </div>
                                                 </div>
@@ -637,17 +695,22 @@ function isImageUrl(url: string) {
 
                                     <!-- Summary Content -->
                                     <div class="pa-6 pt-0 mf-ai-markdown" v-html="formattedSummary"></div>
-                                    
+
                                     <!-- Suggestions Section -->
-                                    <div class="pa-6 pt-0" v-if="aiInsights.suggestions && aiInsights.suggestions.length">
+                                    <div class="pa-6 pt-0"
+                                        v-if="aiInsights.suggestions && aiInsights.suggestions.length">
                                         <v-divider class="mb-4" opacity="5" />
-                                        <div class="text-overline font-weight-black text-primary mb-3">Tactical Moves</div>
+                                        <div class="text-overline font-weight-black text-primary mb-3">Tactical Moves
+                                        </div>
                                         <div class="d-flex flex-column gap-3">
-                                            <div v-for="suggestion in aiInsights.suggestions" :key="suggestion.id" class="d-flex gap-2">
+                                            <div v-for="suggestion in aiInsights.suggestions" :key="suggestion.id"
+                                                class="d-flex gap-2">
                                                 <Zap :size="14" class="text-primary mt-1 flex-shrink-0" />
                                                 <div>
-                                                    <div class="text-caption font-weight-black text-content">{{ suggestion.title }}</div>
-                                                    <div class="text-caption font-weight-medium opacity-60">{{ suggestion.content }}</div>
+                                                    <div class="text-caption font-weight-black text-content">{{
+                                                        suggestion.title }}</div>
+                                                    <div class="text-caption font-weight-medium opacity-60">{{
+                                                        suggestion.content }}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -696,27 +759,14 @@ function isImageUrl(url: string) {
         </v-dialog>
 
         <!-- Management Modals -->
-        <DeleteHoldingDeepDiveModal 
-            v-model="showDeepDiveModal" 
-            :holding="holding" 
-            :loading="isManagementLoading"
-            @delete-holding="deleteHolding"
-            @delete-transactions="handleBulkDelete"
-        />
+        <DeleteHoldingDeepDiveModal v-model="showDeepDiveModal" :holding="holding" :loading="isManagementLoading"
+            @delete-holding="deleteHolding" @delete-transactions="handleBulkDelete" />
 
-        <EditTransactionModal
-            v-model="showEditTxnModal"
-            :transaction="activeTransaction"
-            :loading="isManagementLoading"
-            @save="handleEditTransaction"
-        />
+        <EditTransactionModal v-model="showEditTxnModal" :transaction="activeTransaction" :loading="isManagementLoading"
+            @save="handleEditTransaction" />
 
-        <DeleteTransactionModal
-            v-model="showDeleteTxnModal"
-            :transaction="activeTransaction"
-            :loading="isManagementLoading"
-            @confirm="handleSingleDelete"
-        />
+        <DeleteTransactionModal v-model="showDeleteTxnModal" :transaction="activeTransaction"
+            :loading="isManagementLoading" @confirm="handleSingleDelete" />
 
         <!-- Modals -->
         <InvestModal v-model="showInvestModal" :fund="holding" @success="fetchHoldingDetails" />
@@ -799,8 +849,13 @@ function isImageUrl(url: string) {
 }
 
 @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .letter-spacing-1 {
@@ -815,15 +870,22 @@ function isImageUrl(url: string) {
 }
 
 .mf-ai-markdown :deep(h3) {
+    font-size: 0.95rem;
+    font-weight: 800;
     margin-top: 1.25rem;
     margin-bottom: 0.5rem;
-    font-weight: 900;
-    font-size: 0.85rem;
-    color: rgb(var(--v-theme-primary));
+    color: rgb(var(--v-theme-on-surface));
     text-transform: uppercase;
     display: flex;
     align-items: center;
     gap: 6px;
+}
+
+.legend-dot-mini {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-left: 8px;
 }
 
 .mf-ai-markdown :deep(strong) {

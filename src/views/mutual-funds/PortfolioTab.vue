@@ -163,6 +163,24 @@
                         </div>
                         <div class="d-flex gap-2">
                             <v-chip size="small" variant="tonal" color="primary" class="font-weight-black">1 YEAR</v-chip>
+                            <v-menu :close-on-content-click="false" location="bottom end">
+                                <template v-slot:activator="{ props }">
+                                    <v-btn v-bind="props" size="small" variant="tonal" color="primary" class="font-weight-black">
+                                        <TrendingUp :size="14" class="mr-2" /> BENCHMARKS
+                                    </v-btn>
+                                </template>
+                                <v-list density="compact" class="pa-2" width="220" rounded="xl">
+                                    <v-list-item v-for="bm in benchmarksData" :key="bm.symbol" density="compact" rounded="lg" class="mb-1">
+                                        <template v-slot:prepend>
+                                            <div class="mr-3" :style="{ width: '12px', height: '12px', borderRadius: '3px', background: bm.styling?.color }"></div>
+                                        </template>
+                                        <v-list-item-title class="text-caption font-weight-bold">{{ bm.label }}</v-list-item-title>
+                                        <template v-slot:append>
+                                            <v-checkbox-btn v-model="selectedBenchmarkSymbols" :value="bm.symbol" density="compact" color="primary"></v-checkbox-btn>
+                                        </template>
+                                    </v-list-item>
+                                </v-list>
+                            </v-menu>
                         </div>
                     </div>
 
@@ -173,10 +191,17 @@
                         <FundPerformanceChart 
                             v-else-if="timelineData.length"
                             :data="timelineData"
-                            :benchmark="benchmarkData"
+                            :benchmarks="filteredBenchmarksData"
                             :height="320"
                             valueLabel="Portfolio Value"
                             investedLabel="Net Invested"
+                            @toggle-benchmark="(symbol) => {
+                                if (selectedBenchmarkSymbols.includes(symbol)) {
+                                    selectedBenchmarkSymbols = selectedBenchmarkSymbols.filter(s => s !== symbol)
+                                } else {
+                                    selectedBenchmarkSymbols.push(symbol)
+                                }
+                            }"
                         />
                         <div v-else class="fill-height d-flex flex-column align-center justify-center opacity-40">
                             <div class="pa-4 rounded-circle bg-surface-variant mb-4">
@@ -479,7 +504,7 @@ import { useRouter } from 'vue-router'
 import { 
     TrendingUp, TrendingDown, Clock, Search, Target, Sparkles, 
     ExternalLink, Eye as EyeIconMain, ChevronDown, ChevronRight, 
-    Trash2, ArrowUpRight, Activity, Briefcase, Shield, Zap
+    Trash2, Activity, Briefcase
 } from 'lucide-vue-next'
 
 import { financeApi } from '@/api/client'
@@ -495,7 +520,7 @@ import DeleteHoldingDeepDiveModal from './modals/DeleteHoldingDeepDiveModal.vue'
 import FundPerformanceChart from './components/FundPerformanceChart.vue'
 import PortfolioDonutChart from './components/PortfolioDonutChart.vue'
 
-const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
+
 
 const router = useRouter()
 const mfStore = useMutualFundStore()
@@ -511,7 +536,7 @@ const props = defineProps<{
 const portfolio = ref<any[]>([])
 const analytics = ref<any>(null)
 const timelineData = ref<any[]>([])
-const benchmarkData = ref<any[]>([])
+const benchmarkData = ref<any[]>([]); const benchmarksData = ref<any[]>([]); const selectedBenchmarkSymbols = ref<string[]>([])
 const isLoading = ref(true)
 const isTimelineLoading = ref(true)
 const search = ref('')
@@ -613,6 +638,11 @@ const assetData = computed(() => {
     })).filter(i => i.value > 0)
 })
 
+
+const filteredBenchmarksData = computed(() => {
+    return benchmarksData.value.filter(bm => selectedBenchmarkSymbols.value.includes(bm.symbol))
+})
+
 // Methods
 async function fetchPortfolio() {
     isLoading.value = true
@@ -639,6 +669,12 @@ async function fetchPortfolioTimeline() {
         const res = await financeApi.getPerformanceTimeline('1y', '1d', authStore.selectedMemberId || undefined)
         timelineData.value = res.data?.timeline || []
         benchmarkData.value = res.data?.benchmark || []
+        benchmarksData.value = res.data?.benchmarks || []; 
+        if (selectedBenchmarkSymbols.value.length === 0 && benchmarksData.value.length > 0) {
+            // Default to Nifty 50 if available, else first standard
+            const nifty = benchmarksData.value.find(b => b.symbol === '120716');
+            selectedBenchmarkSymbols.value = nifty ? [nifty.symbol] : [benchmarksData.value[0].symbol];
+        }
     } catch (e) {
         console.error("Failed to fetch portfolio timeline", e)
     } finally {
