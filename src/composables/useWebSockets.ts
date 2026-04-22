@@ -49,7 +49,7 @@ export function useWebSockets() {
             }
         };
 
-        socket.onclose = (event) => {
+        socket.onclose = (_event) => {
             activityStore.setConnected(false);
             if (!reconnectTimer) {
                 reconnectTimer = setTimeout(() => {

@@ -908,7 +908,7 @@ async function hardRefreshTimeline() {
     isTimelineRefreshing.value = true
     try {
         await mfStore.hardRefreshPortfolio()
-        await fetchTimeline()
+        await fetchPortfolioTimeline()
     } catch (e) {
         console.error("Manual refresh failed:", e)
     } finally {
