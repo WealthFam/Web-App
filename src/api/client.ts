@@ -285,7 +285,7 @@ export const financeApi = {
     searchFunds: (query?: string, category?: string, amc?: string, limit: number = 20, offset: number = 0, sortBy: string = 'relevance') =>
         apiClient.get('/finance/mutual-funds/search', { params: { q: query, category, amc, limit, offset, sort_by: sortBy } }),
 
-    getMarketIndices: () => apiClient.get('/finance/mutual-funds/indices'),
+    getMarketIndices: (period: string = '1d') => apiClient.get('/finance/mutual-funds/indices', { params: { period } }),
     getPortfolio: (userId?: string) => apiClient.get('/finance/mutual-funds/portfolio', { params: { user_id: userId } }),
     getMutualFundSyncStatus: () => apiClient.get('/finance/mutual-funds/sync/status'),
     triggerMutualFundSync: () => apiClient.post('/finance/mutual-funds/sync/refresh'),

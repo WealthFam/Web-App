@@ -34,7 +34,7 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.01em;
-  overflow-x: hidden;
+  overflow-x: hidden !important;
 }
 
 .text-h1,
@@ -53,22 +53,22 @@ body {
 /* Base Components - REMOVED (Use Vuetify) */
 /* .container, .btn, .btn-primary, .btn-outline, .btn-text, .form-*, .btn-icon, .modal-* removed */
 
-/* Global Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
+/* Global Scrollbar Hiding (Premium Dashboard Standards) */
+/* This ensures a seamless "grid" experience without distracting scrollbars */
+html, body, .hide-scrollbars, .no-scrollbar {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+::-webkit-scrollbar, .hide-scrollbars::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
+    width: 0px !important;
+    height: 0px !important;
+    display: none !important;
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(var(--v-theme-on-surface), 0.2);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--v-theme-on-surface), 0.3);
+* {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
 }
 
 /* Glass Effect & Mesh Gradient */
@@ -261,4 +261,8 @@ body {
 
 .bg-surface-variant-opacity {
   background: rgba(var(--v-theme-on-surface), 0.03);
+}
+
+.force-no-x-scroll {
+    overflow-x: hidden !important;
 }

@@ -1,11 +1,13 @@
 <template>
   <div ref="container" class="sparkline-wrapper d-flex align-center justify-center position-relative"
     :style="{ width: '100%', height: (props.height + 25) + 'px' }">
-    <div class="spark-tooltip px-2 py-1 text-caption font-weight-black rounded shadow-sm text-center"
+    <div class="spark-tooltip px-2 py-1 text-[10px] font-weight-black rounded shadow-sm text-center"
       v-if="hoveredIndex !== null" :style="{ left: tooltipX + 'px', top: '0px', color: props.color }">
-      <div v-if="props.labels && props.labels[hoveredIndex]" class="text-overline opacity-70 mb-n1"
-        style="font-size: 0.6rem;">{{ props.labels[hoveredIndex] }}</div>
-      <div>{{ formatValue(props.data[hoveredIndex]) }}</div>
+      <div class="d-flex align-center gap-1">
+        <span v-if="props.labels && props.labels[hoveredIndex]" class="text-medium-emphasis">{{ props.labels[hoveredIndex] }}</span>
+        <span v-if="props.labels && props.labels[hoveredIndex]" class="mx-1 opacity-30">|</span>
+        <span>{{ formatValue(props.data[hoveredIndex]) }}</span>
+      </div>
     </div>
 
     <svg class="sparkline-svg" :width="width" :height="props.height"
@@ -16,21 +18,30 @@
           <stop offset="0%" :stop-color="color" stop-opacity="0.3" />
           <stop offset="100%" :stop-color="color" stop-opacity="0" />
         </linearGradient>
+        
+        <filter v-if="glow" :id="`${gradientId}-glow`" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.4 0" result="glow" />
+            <feMerge>
+                <feMergeNode in="glow" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
       </defs>
 
       <!-- Area Fill -->
-      <path :d="areaPath" :fill="`url(#${gradientId})`" />
+      <path v-if="data.length > 1" :d="areaPath" :fill="`url(#${gradientId})`" />
 
       <!-- Smooth Line -->
-      <path :d="linePath" fill="none" :stroke="color" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round" class="spark-path" />
+      <path v-if="data.length > 1" :d="linePath" fill="none" :stroke="color" :stroke-width="strokeWidth" stroke-linecap="round"
+        stroke-linejoin="round" class="spark-path" :filter="glow ? `url(#${gradientId}-glow)` : ''" />
 
       <!-- Hover Cursor Line -->
-      <line v-if="hoveredIndex !== null" :x1="getPoint(hoveredIndex).x" y1="0" :x2="getPoint(hoveredIndex).x"
+      <line v-if="hoveredIndex !== null && data.length > 1" :x1="getPoint(hoveredIndex).x" y1="0" :x2="getPoint(hoveredIndex).x"
         :y2="height" stroke="rgba(var(--v-theme-on-surface), 0.1)" stroke-width="1" />
       
       <!-- Hover Point -->
-      <circle v-if="hoveredIndex !== null" :cx="getPoint(hoveredIndex).x" :cy="getPoint(hoveredIndex).y" r="3"
+      <circle v-if="hoveredIndex !== null && data.length > 1" :cx="getPoint(hoveredIndex).x" :cy="getPoint(hoveredIndex).y" r="4"
         :fill="color" stroke="white" stroke-width="2" />
     </svg>
   </div>
@@ -40,11 +51,25 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useCurrency } from '@/composables/useCurrency'
 
-const props = defineProps({
-  data: { type: Array as () => number[], required: true },
-  labels: { type: Array as () => string[], default: () => [] },
-  color: { type: String, default: '#3b82f6' },
-  height: { type: Number, default: 40 },
+interface Props {
+  data: number[]
+  labels?: string[]
+  color?: string
+  height?: number
+  glow?: boolean
+  strokeWidth?: number
+  smooth?: boolean
+  isCurrency?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  labels: () => [],
+  color: '#3b82f6',
+  height: 40,
+  glow: false,
+  strokeWidth: 2,
+  smooth: true,
+  isCurrency: true
 })
 
 const container = ref<HTMLElement | null>(null)
@@ -53,7 +78,7 @@ const { formatAmount } = useCurrency()
 
 const hoveredIndex = ref<number | null>(null)
 const tooltipX = ref(0)
-const gradientId = `sparkline-gradient-${Math.random().toString(36).substr(2, 9)}`
+const gradientId = `sparkline-gradient-${Math.random().toString(36).substring(2, 11)}`
 
 let resizeObserver: ResizeObserver | null = null
 
@@ -71,18 +96,31 @@ onUnmounted(() => {
   resizeObserver?.disconnect()
 })
 
-const min = computed(() => Math.min(...props.data))
-const max = computed(() => Math.max(...props.data))
+const min = computed(() => {
+    const vals = props.data.filter(v => v !== null && !isNaN(v))
+    return vals.length ? Math.min(...vals) : 0
+})
+const max = computed(() => {
+    const vals = props.data.filter(v => v !== null && !isNaN(v))
+    return vals.length ? Math.max(...vals) : 1
+})
 
 function formatValue(val: number) {
+  if (!props.isCurrency) {
+    return new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(val)
+  }
   return formatAmount(val, 'INR', true)
 }
 
 function getPoint(index: number) {
-  const range = max.value - min.value
+  if (!props.data.length) return { x: 0, y: 0 }
+  const range = (max.value - min.value) || 1
   const step = width.value / Math.max(1, props.data.length - 1)
   const x = index * step
-  const y = range === 0 ? props.height / 2 : props.height - ((props.data[index] - min.value) / range) * props.height
+  const y = props.height - ((props.data[index] - min.value) / range) * props.height
   return { x, y }
 }
 
@@ -92,6 +130,13 @@ const linePath = computed(() => {
   const points = props.data.map((_, i) => getPoint(i))
   let path = `M ${points[0].x},${points[0].y}`
   
+  if (!props.smooth) {
+      for (let i = 1; i < points.length; i++) {
+        path += ` L ${points[i].x},${points[i].y}`
+      }
+      return path
+  }
+
   const smoothing = 0.2
   for (let i = 0; i < points.length - 1; i++) {
     const curr = points[i]
@@ -115,6 +160,7 @@ const areaPath = computed(() => {
 })
 
 function onMouseMove(e: MouseEvent) {
+  if (!props.data.length) return
   const svg = e.currentTarget as SVGSVGElement
   const rect = svg.getBoundingClientRect()
   const x = e.clientX - rect.left
@@ -133,12 +179,7 @@ function onMouseMove(e: MouseEvent) {
   overflow: visible;
 }
 .spark-path {
-  stroke-dasharray: 200;
-  stroke-dashoffset: 200;
-  animation: spark-draw 1.5s ease-out forwards;
-}
-@keyframes spark-draw {
-  to { stroke-dashoffset: 0; }
+  transition: stroke 0.3s ease;
 }
 .spark-tooltip {
   position: absolute;

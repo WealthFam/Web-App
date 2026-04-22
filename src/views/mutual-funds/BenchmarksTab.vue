@@ -75,16 +75,17 @@
                 </template>
 
                 <template v-slot:item.styling_color="{ item }">
-                    <div class="d-flex align-center gap-2">
-                        <div 
-                            class="style-preview" 
-                            :style="{ 
-                                background: item.styling_color,
-                                borderStyle: item.styling_style === 'solid' ? 'solid' : 'dashed'
-                            }"
-                        ></div>
-                        <span class="text-caption text-mono">{{ item.styling_color }}</span>
-                        <v-chip v-if="item.styling_style !== 'solid'" size="x-small" variant="tonal">{{ item.styling_style }}</v-chip>
+                    <div class="d-flex align-center gap-3">
+                        <div class="style-visualization">
+                            <svg width="40" height="4">
+                                <line x1="0" y1="2" x2="40" y2="2" 
+                                    :stroke="item.styling_color" 
+                                    :stroke-width="2"
+                                    :stroke-dasharray="item.styling_style === 'solid' ? '0' : (item.styling_dash_array || '4,2')"
+                                />
+                            </svg>
+                        </div>
+                        <span class="text-caption font-weight-bold text-mono opacity-60">{{ item.styling_color }}</span>
                     </div>
                 </template>
 
@@ -156,14 +157,29 @@
                             <div class="text-subtitle-2 font-weight-bold mb-2 opacity-70">Target Benchmark (Proxy Fund)</div>
                         </v-col>
 
+                        <v-col cols="12">
+                            <v-select
+                                v-model="selectedCommonBenchmark"
+                                :items="commonBenchmarks"
+                                item-title="label"
+                                item-value="symbol"
+                                label="Standard Benchmark"
+                                placeholder="Select a common index..."
+                                variant="outlined"
+                                density="comfortable"
+                                @update:model-value="onBenchmarkSelect"
+                            ></v-select>
+                        </v-col>
+
                         <v-col cols="12" md="4">
                             <v-text-field
                                 v-model="ruleForm.benchmark_symbol"
-                                label="MFAPI Scheme Code"
+                                label="Scheme Code"
                                 placeholder="120716"
                                 variant="outlined"
                                 density="comfortable"
                                 required
+                                :readonly="selectedCommonBenchmark !== 'custom'"
                             ></v-text-field>
                         </v-col>
                         <v-col cols="12" md="8">
@@ -174,6 +190,7 @@
                                 variant="outlined"
                                 density="comfortable"
                                 required
+                                :readonly="selectedCommonBenchmark !== 'custom'"
                             ></v-text-field>
                         </v-col>
 
@@ -257,6 +274,26 @@ const defaultRule = {
 
 const ruleForm = ref({ ...defaultRule })
 const editedId = ref<string | null>(null)
+const selectedCommonBenchmark = ref('custom')
+
+const commonBenchmarks = [
+    { label: 'Nifty 50 TRI', symbol: '120716' },
+    { label: 'Nifty Next 50 TRI', symbol: '147704' },
+    { label: 'Nifty Midcap 150 TRI', symbol: '147980' },
+    { label: 'Nifty Smallcap 250 TRI', symbol: '148093' },
+    { label: 'Nifty 500 TRI', symbol: '147734' },
+    { label: 'BSE Sensex TRI', symbol: '147915' },
+    { label: 'Custom / Other', symbol: 'custom' }
+]
+
+const onBenchmarkSelect = (val: string) => {
+    if (val === 'custom') return
+    const found = commonBenchmarks.find(b => b.symbol === val)
+    if (found) {
+        ruleForm.value.benchmark_symbol = found.symbol
+        ruleForm.value.benchmark_label = found.label
+    }
+}
 
 // Methods
 const fetchRules = async () => {
@@ -275,6 +312,7 @@ const openAddDialog = () => {
     editMode.value = false
     ruleForm.value = { ...defaultRule }
     editedId.value = null
+    selectedCommonBenchmark.value = 'custom'
     dialog.value = true
 }
 
@@ -282,6 +320,10 @@ const openEditDialog = (rule: any) => {
     editMode.value = true
     ruleForm.value = { ...rule }
     editedId.value = rule.id
+    
+    const isCommon = commonBenchmarks.find(b => b.symbol === rule.benchmark_symbol)
+    selectedCommonBenchmark.value = isCommon ? rule.benchmark_symbol : 'custom'
+    
     dialog.value = true
 }
 
@@ -323,11 +365,13 @@ onMounted(fetchRules)
 </script>
 
 <style scoped>
-.style-preview {
-    width: 24px;
-    height: 12px;
-    border-radius: 6px;
-    border: 2px solid transparent;
+.style-visualization {
+    background: rgba(var(--v-theme-on-surface), 0.05);
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(var(--v-border-color), 0.05);
 }
 
 .text-mono {

@@ -31,10 +31,7 @@
             <div class="item-meta">
               <span class="item-name text-truncate">{{ item.label }}</span>
               <div class="item-details">
-                <span class="item-percent">{{ item.value }}%</span>
-                <div class="mini-track">
-                  <div class="mini-fill" :style="{ width: item.value + '%', background: colors[index % colors.length] }"></div>
-                </div>
+                <span class="item-percent">{{ item.value.toFixed(1) }}%</span>
               </div>
             </div>
           </div>
@@ -240,23 +237,9 @@ function resetActive() {
 }
 
 .item-percent {
-  font-size: 12px;
-  font-weight: 900;
-  min-width: 32px;
-}
-
-.mini-track {
-  height: 3px;
-  background: rgba(var(--v-theme-on-surface), 0.05);
-  border-radius: 2px;
-  flex-grow: 1;
-  overflow: hidden;
-}
-
-.mini-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 1s ease-in-out;
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.9;
 }
 
 @media (max-width: 960px) {
