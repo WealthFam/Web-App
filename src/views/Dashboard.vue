@@ -116,12 +116,20 @@
                             </div>
                             <div class="text-h4 font-weight-black text-success mb-1">{{
                                 formatAmount(mfPortfolio.current) }}</div>
-                            <div class="d-flex align-center text-caption font-weight-bold"
-                                :class="mfPortfolio.pl >= 0 ? 'text-success' : 'text-error'">
-                                <TrendingUp v-if="mfPortfolio.pl >= 0" :size="14" class="mr-1" />
-                                <TrendingDown v-else :size="14" class="mr-1" />
-                                {{ mfPortfolio.pl >= 0 ? '+' : '' }}{{ formatAmount(mfPortfolio.pl) }} ({{
-                                    Number(mfPortfolio.plPercent || 0).toFixed(1) }}%)
+                            <div class="d-flex justify-space-between align-center mt-1">
+                                <div class="d-flex align-center text-caption font-weight-bold"
+                                    :class="mfPortfolio.pl >= 0 ? 'text-success' : 'text-error'">
+                                    <TrendingUp v-if="mfPortfolio.pl >= 0" :size="14" class="mr-1" />
+                                    <TrendingDown v-else :size="14" class="mr-1" />
+                                    {{ mfPortfolio.pl >= 0 ? '+' : '' }}{{ formatAmount(mfPortfolio.pl) }} ({{
+                                        Number(mfPortfolio.plPercent || 0).toFixed(1) }}%)
+                                </div>
+                                <div class="d-flex align-center text-caption font-weight-black opacity-80"
+                                    :class="mfPortfolio.dayChange >= 0 ? 'text-success' : 'text-error'">
+                                    <span class="mr-1 text-on-surface opacity-40 uppercase">Day:</span>
+                                    {{ mfPortfolio.dayChange >= 0 ? '+' : '' }}{{ formatAmount(mfPortfolio.dayChange) }}
+                                    ({{ Number(mfPortfolio.dayChangePercent || 0).toFixed(1) }}%)
+                                </div>
                             </div>
                         </v-card>
                     </v-hover>
@@ -426,7 +434,7 @@ const { formatAmount } = useCurrency()
 
 // --- State & Computed ---
 const metrics = computed(() => dashboardStore.metrics)
-const mfPortfolio = computed(() => dashboardStore.mfPortfolio || { current: 0, invested: 0, pl: 0, plPercent: 0, xirr: 0, loading: true })
+const mfPortfolio = computed(() => dashboardStore.mfPortfolio || { current: 0, invested: 0, pl: 0, plPercent: 0, xirr: 0, dayChange: 0, dayChangePercent: 0, loading: true })
 const netWorthTrend = computed(() => dashboardStore.netWorthTrend || [])
 const netWorthLabels = computed(() => dashboardStore.netWorthLabels || [])
 const sixMonthSpendingTrend = computed(() => dashboardStore.sixMonthSpendingTrend || [])
@@ -653,6 +661,10 @@ watch(() => auth.selectedMemberId, async () => {
 
 .spin-sync {
     animation: rotate 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.text-tiny {
+    font-size: 0.65rem;
 }
 
 .letter-spacing-1 {
