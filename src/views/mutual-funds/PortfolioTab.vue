@@ -220,12 +220,51 @@
                             </h3>
                             <p class="text-caption opacity-60">Historical net value vs. invested capital trend</p>
                         </div>
-                        <div class="d-flex align-center gap-4">
-                            <v-btn size="x-small" variant="tonal" color="primary" class="font-weight-black px-4"
-                                @click="hardRefreshTimeline" :loading="isTimelineRefreshing">
-                                <RefreshCcw :size="12" class="mr-1" /> RECALCULATE TRENDS
+                <div class="d-flex align-center gap-4">
+                    <!-- Sync Status Indicator -->
+                    <div v-if="mfStore.syncStatus" class="d-flex align-center gap-2 px-3 py-1 rounded-pill bg-surface-variant-opacity-10 border border-white-10">
+                        <div class="status-dot" :class="mfStore.isSyncing ? 'status-syncing' : (mfStore.syncStatus.status === 'completed' ? 'status-online' : 'status-error')"></div>
+                        <span class="text-[10px] font-weight-black opacity-60 uppercase letter-spacing-1">
+                            {{ mfStore.isSyncing ? 'Syncing NAVs...' : (mfStore.syncStatus.status === 'completed' ? 'NAVs Current' : 'Sync Error') }}
+                        </span>
+                        <span v-if="!mfStore.isSyncing && mfStore.syncStatus.completed_at" class="text-[9px] opacity-40 font-weight-bold">
+                            {{ formatDateShort(mfStore.syncStatus.completed_at) }}
+                        </span>
+                    </div>
+
+                    <v-btn size="x-small" variant="tonal" color="primary" class="font-weight-black px-4"
+                        @click="hardRefreshTimeline" :loading="isTimelineRefreshing">
+                        <RefreshCcw :size="12" class="mr-1" /> RECALCULATE TRENDS
+                    </v-btn>
+                    
+                    <v-menu location="bottom end">
+                        <template v-slot:activator="{ props }">
+                            <v-btn v-bind="props" icon size="small" variant="tonal" color="primary">
+                                <Settings :size="16" />
                             </v-btn>
-                            <div class="d-flex gap-2">
+                        </template>
+                        <v-list density="compact" rounded="xl" class="pa-2" width="240">
+                            <v-list-item @click="mfStore.triggerSync" :disabled="mfStore.isSyncing" rounded="lg" class="mb-1">
+                                <template v-slot:prepend><RefreshCcw :size="14" class="mr-3" /></template>
+                                <v-list-item-title class="text-caption font-weight-bold">Sync Latest NAVs</v-list-item-title>
+                            </v-list-item>
+                            
+                            <v-divider class="my-2 opacity-10"></v-divider>
+                            
+                            <v-list-item @click="handleRebuildHoldings" rounded="lg" class="mb-1" :loading="isRebuilding">
+                                <template v-slot:prepend><Activity :size="14" class="mr-3 text-warning" /></template>
+                                <v-list-item-title class="text-caption font-weight-bold">Rebuild Holdings</v-list-item-title>
+                                <v-list-item-subtitle class="text-[9px]">Fixes unit/cost desync</v-list-item-subtitle>
+                            </v-list-item>
+                            
+                            <v-list-item @click="handleCleanupDuplicates" rounded="lg">
+                                <template v-slot:prepend><Trash2 :size="14" class="mr-3 text-error" /></template>
+                                <v-list-item-title class="text-caption font-weight-bold">Cleanup Duplicates</v-list-item-title>
+                            </v-list-item>
+                        </v-list>
+                    </v-menu>
+
+                    <div class="d-flex gap-2">
                                 <v-chip size="small" variant="tonal" color="primary" class="font-weight-black">1 YEAR</v-chip>
                                 <v-menu :close-on-content-click="false" location="bottom end">
                                     <template v-slot:activator="{ props }">
@@ -604,7 +643,7 @@ import { useRouter } from 'vue-router'
 import {
     TrendingUp, TrendingDown, Clock, Search, Target, Sparkles,
     ExternalLink, Eye as EyeIconMain, ChevronDown, ChevronRight,
-    Trash2, Activity, Briefcase, RefreshCcw
+    Trash2, Activity, Briefcase, RefreshCcw, Settings
 } from 'lucide-vue-next'
 
 import { useMutualFundStore } from '@/stores/finance/mutualFunds'
@@ -649,6 +688,7 @@ const isManagementLoading = ref(false)
 const marketIndices = ref<any[]>([])
 const marketPulsePeriod = ref('1d')
 const isMarketPulseLoading = ref(false)
+const isRebuilding = ref(false)
 
 // Headers
 const headers = [
@@ -796,6 +836,37 @@ async function fetchMarketIndices() {
     } finally {
         isMarketPulseLoading.value = false
     }
+}
+
+async function handleRebuildHoldings() {
+    isRebuilding.value = true
+    try {
+        await mfStore.rebuildHoldings()
+        await refreshAll()
+    } finally {
+        isRebuilding.value = false
+    }
+}
+
+async function handleCleanupDuplicates() {
+    try {
+        await mfStore.cleanupDuplicates()
+        await refreshAll()
+    } catch (e) { console.error(e) }
+}
+
+async function refreshAll() {
+    await Promise.all([
+        fetchPortfolio(),
+        fetchAnalytics(),
+        fetchPortfolioTimeline()
+    ])
+}
+
+function formatDateShort(dateStr: string) {
+    if (!dateStr) return ''
+    const d = new Date(dateStr)
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
 function openDeleteModal(item: any) {
@@ -1011,5 +1082,35 @@ watch(portfolio, (val) => emit('update:count', val.length))
     transform: translateY(-4px);
     border-color: rgba(var(--v-theme-primary), 0.2) !important;
     box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.12) !important;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-online {
+    background-color: rgb(var(--v-theme-success));
+    box-shadow: 0 0 8px rgba(var(--v-theme-success), 0.5);
+}
+
+.status-syncing {
+    background-color: rgb(var(--v-theme-primary));
+    animation: pulse 1.5s infinite;
+}
+
+.status-error {
+    background-color: rgb(var(--v-theme-error));
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.9); opacity: 0.7; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(0.9); opacity: 0.7; }
+}
+
+.bg-surface-variant-opacity-10 {
+    background: rgba(var(--v-theme-on-surface), 0.05);
 }
 </style>

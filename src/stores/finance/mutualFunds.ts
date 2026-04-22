@@ -105,6 +105,28 @@ export const useMutualFundStore = defineStore('mutualFunds', () => {
         }
     }
 
+    async function rebuildHoldings() {
+        try {
+            await financeApi.recalculateHoldings()
+            notification.success('Portfolio holdings rebuilt from transaction history.')
+            clearPortfolioCache()
+        } catch (error) {
+            console.error('[MutualFundStore] Rebuild failed:', error)
+            throw error
+        }
+    }
+
+    async function cleanupDuplicates() {
+        try {
+            const { data } = await financeApi.cleanupDuplicateOrders()
+            notification.success(`Deduplication complete: ${data.stats?.deleted || 0} duplicates removed.`)
+            clearPortfolioCache()
+        } catch (error) {
+            console.error('[MutualFundStore] Cleanup failed:', error)
+            throw error
+        }
+    }
+
     return {
         isSyncing,
         syncStatus,
@@ -118,7 +140,9 @@ export const useMutualFundStore = defineStore('mutualFunds', () => {
         clearPortfolioCache,
         getExploreFundInfo,
         recalculateFundTrends,
-        hardRefreshPortfolio
+        hardRefreshPortfolio,
+        rebuildHoldings,
+        cleanupDuplicates
     }
 })
 
