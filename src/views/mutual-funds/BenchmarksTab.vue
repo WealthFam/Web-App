@@ -300,7 +300,7 @@ const fetchRules = async () => {
     loading.value = true
     try {
         const response = await financeApi.getBenchmarkRules()
-        rules.value = response.data
+        rules.value = response.data?.data || response.data
     } catch (error) {
         notify.error('Failed to fetch benchmark rules')
     } finally {

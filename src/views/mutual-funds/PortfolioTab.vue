@@ -784,7 +784,7 @@ async function fetchMarketIndices() {
     isMarketPulseLoading.value = true
     try {
         const res = await financeApi.getMarketIndices(marketPulsePeriod.value)
-        marketIndices.value = res.data || []
+        marketIndices.value = res.data?.data || res.data || []
     } catch (e) {
         console.error("Failed to fetch market indices", e)
     } finally {
