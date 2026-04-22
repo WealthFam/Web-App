@@ -84,7 +84,7 @@
                             <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Monthly Spending
                             </div>
                             <div class="text-h4 font-weight-black text-error mb-1">{{
-                                formatAmount(metrics.monthly_spending) }}
+                                formatAmount(metrics?.monthly_spending || 0) }}
                             </div>
                             <div class="d-flex align-center text-caption font-weight-bold"
                                 :class="spendingChange <= 0 ? 'text-success' : 'text-error'">
@@ -230,7 +230,7 @@
                                 class="text-none font-weight-black">See More</v-btn>
                         </div>
                         <v-list class="pa-0 bg-transparent overflow-x-hidden" style="overflow-x: hidden;">
-                            <v-list-item v-for="txn in metrics.recent_transactions.slice(0, 5)" :key="txn.id"
+                            <v-list-item v-for="txn in (metrics?.recent_transactions || []).slice(0, 5)" :key="txn.id"
                                 class="rounded-xl px-4 py-4 mb-2 m3-list-item border">
                                 <template v-slot:prepend>
                                     <v-avatar size="44"
