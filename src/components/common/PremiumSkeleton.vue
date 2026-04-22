@@ -9,11 +9,12 @@
 import { computed } from 'vue'
 
 const props = defineProps<{
-    type: 'hero' | 'stat-card' | 'category-card' | 'insight-card' | 'list-item' | 'pulse-card'
+    type: 'hero' | 'stat-card' | 'category-card' | 'insight-card' | 'list-item' | 'pulse-card' | 'fund-card'
     height?: string | number
     width?: string | number
     glass?: boolean
 }>()
+
 
 const skeletonType = computed(() => {
     switch (props.type) {
@@ -23,6 +24,7 @@ const skeletonType = computed(() => {
         case 'insight-card': return 'article'
         case 'list-item': return 'list-item-avatar-two-line'
         case 'pulse-card': return 'image'
+        case 'fund-card': return 'image, article'
         default: return 'card'
     }
 })
@@ -68,5 +70,10 @@ const skeletonType = computed(() => {
 /* Pulse Card Variant */
 .pulse-card {
     height: 110px;
+}
+
+/* Fund Card Variant */
+.fund-card {
+    height: 280px;
 }
 </style>

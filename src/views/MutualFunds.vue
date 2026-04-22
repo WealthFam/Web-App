@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { storeToRefs } from 'pinia'
+
+import { useMutualFundStore } from '@/stores/finance/mutualFunds'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { FileText, Search, Upload, Settings } from 'lucide-vue-next'
 import PortfolioTab from './mutual-funds/PortfolioTab.vue'
@@ -8,7 +10,9 @@ import ImportTab from './mutual-funds/ImportTab.vue'
 import BenchmarksTab from './mutual-funds/BenchmarksTab.vue'
 
 // State
-const activeTab = ref('portfolio')
+const mfStore = useMutualFundStore()
+const { activeTab } = storeToRefs(mfStore)
+
 </script>
 
 <template>

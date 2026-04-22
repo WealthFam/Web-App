@@ -220,33 +220,38 @@
                             </h3>
                             <p class="text-caption opacity-60">Historical net value vs. invested capital trend</p>
                         </div>
-                        <div class="d-flex gap-2">
-                            <v-chip size="small" variant="tonal" color="primary" class="font-weight-black">1
-                                YEAR</v-chip>
-                            <v-menu :close-on-content-click="false" location="bottom end">
-                                <template v-slot:activator="{ props }">
-                                    <v-btn v-bind="props" size="small" variant="tonal" color="primary"
-                                        class="font-weight-black">
-                                        <TrendingUp :size="14" class="mr-2" /> BENCHMARKS
-                                    </v-btn>
-                                </template>
-                                <v-list density="compact" class="pa-2" width="220" rounded="xl">
-                                    <v-list-item v-for="bm in benchmarksData" :key="bm.symbol" density="compact"
-                                        rounded="lg" class="mb-1">
-                                        <template v-slot:prepend>
-                                            <div class="mr-3"
-                                                :style="{ width: '12px', height: '12px', borderRadius: '3px', background: bm.styling?.color }">
-                                            </div>
-                                        </template>
-                                        <v-list-item-title class="text-caption font-weight-bold">{{ bm.label
-                                            }}</v-list-item-title>
-                                        <template v-slot:append>
-                                            <v-checkbox-btn v-model="selectedBenchmarkSymbols" :value="bm.symbol"
-                                                density="compact" color="primary"></v-checkbox-btn>
-                                        </template>
-                                    </v-list-item>
-                                </v-list>
-                            </v-menu>
+                        <div class="d-flex align-center gap-4">
+                            <v-btn size="x-small" variant="tonal" color="primary" class="font-weight-black px-4"
+                                @click="hardRefreshTimeline" :loading="isTimelineRefreshing">
+                                <RefreshCcw :size="12" class="mr-1" /> RECALCULATE TRENDS
+                            </v-btn>
+                            <div class="d-flex gap-2">
+                                <v-chip size="small" variant="tonal" color="primary" class="font-weight-black">1 YEAR</v-chip>
+                                <v-menu :close-on-content-click="false" location="bottom end">
+                                    <template v-slot:activator="{ props }">
+                                        <v-btn v-bind="props" size="small" variant="tonal" color="primary"
+                                            class="font-weight-black">
+                                            <TrendingUp :size="14" class="mr-2" /> BENCHMARKS
+                                        </v-btn>
+                                    </template>
+                                    <v-list density="compact" class="pa-2" width="220" rounded="xl">
+                                        <v-list-item v-for="bm in benchmarksData" :key="bm.symbol" density="compact"
+                                            rounded="lg" class="mb-1">
+                                            <template v-slot:prepend>
+                                                <div class="mr-3"
+                                                    :style="{ width: '12px', height: '12px', borderRadius: '3px', background: bm.styling?.color }">
+                                                </div>
+                                            </template>
+                                            <v-list-item-title class="text-caption font-weight-bold">{{ bm.label
+                                                }}</v-list-item-title>
+                                            <template v-slot:append>
+                                                <v-checkbox-btn v-model="selectedBenchmarkSymbols" :value="bm.symbol"
+                                                    density="compact" color="primary"></v-checkbox-btn>
+                                            </template>
+                                        </v-list-item>
+                                    </v-list>
+                                </v-menu>
+                            </div>
                         </div>
                     </div>
 
@@ -599,21 +604,21 @@ import { useRouter } from 'vue-router'
 import {
     TrendingUp, TrendingDown, Clock, Search, Target, Sparkles,
     ExternalLink, Eye as EyeIconMain, ChevronDown, ChevronRight,
-    Trash2, Activity, Briefcase
+    Trash2, Activity, Briefcase, RefreshCcw
 } from 'lucide-vue-next'
 
-import { financeApi } from '@/api/client'
-import { useCurrency } from '@/composables/useCurrency'
-import { useAuthStore } from '@/stores/auth'
 import { useMutualFundStore } from '@/stores/finance/mutualFunds'
 import { useNotificationStore } from '@/stores/notification'
+import { useAuthStore } from '@/stores/auth'
+import { financeApi } from '@/api/client'
+import { useCurrency } from '@/composables/useCurrency'
 
 import PremiumSkeleton from '@/components/common/PremiumSkeleton.vue'
 import Sparkline from '@/components/Sparkline.vue'
-import LinkGoalModal from './modals/LinkGoalModal.vue'
-import DeleteHoldingDeepDiveModal from './modals/DeleteHoldingDeepDiveModal.vue'
 import FundPerformanceChart from './components/FundPerformanceChart.vue'
 import PortfolioDonutChart from './components/PortfolioDonutChart.vue'
+import LinkGoalModal from './modals/LinkGoalModal.vue'
+import DeleteHoldingDeepDiveModal from './modals/DeleteHoldingDeepDiveModal.vue'
 
 
 
@@ -634,6 +639,7 @@ const timelineData = ref<any[]>([])
 const benchmarkData = ref<any[]>([]); const benchmarksData = ref<any[]>([]); const selectedBenchmarkSymbols = ref<string[]>([])
 const isLoading = ref(true)
 const isTimelineLoading = ref(true)
+const isTimelineRefreshing = ref(false)
 const search = ref('')
 const expanded = ref<string[]>([])
 const selectedHolding = ref<any>(null)
@@ -825,6 +831,18 @@ function getRandomColor(name: string) {
     const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
     let hash = 0; for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
     return colors[Math.abs(hash) % colors.length]
+}
+
+async function hardRefreshTimeline() {
+    isTimelineRefreshing.value = true
+    try {
+        await mfStore.hardRefreshPortfolio()
+        await fetchTimeline()
+    } catch (e) {
+        console.error("Manual refresh failed:", e)
+    } finally {
+        isTimelineRefreshing.value = false
+    }
 }
 
 onMounted(() => {
