@@ -236,6 +236,12 @@ const currentCategoryBudget = computed(() => {
 watch(() => localForm.category, (newVal) => {
     if (!newVal) return;
 
+    // Don't auto-toggle if we're just loading an existing transaction's category
+    if (props.isEditing && newVal === props.form.category) return;
+    
+    // Don't auto-toggle for 'Money In' (Credit) transactions
+    if (localForm.type === 'CREDIT') return;
+
     // Check if category implies credit card payment
     const lower = newVal.toLowerCase();
     if (lower.includes('credit card') || lower.includes('cc payment') || lower.includes('card payment')) {
@@ -512,7 +518,7 @@ function getIconColor(item: any) {
                                             </v-col>
                                             <v-col cols="12" md="4">
                                                 <v-btn color="primary" block height="40" rounded="lg" variant="flat"
-                                                    @click="emit('findMatches')" :loading="isSearchingMatches">
+                                                    @click="emit('findMatches', localForm)" :loading="isSearchingMatches">
                                                     Scan Matches
                                                 </v-btn>
                                             </v-col>
@@ -529,7 +535,15 @@ function getIconColor(item: any) {
                                                 <v-card v-for="match in potentialMatches" :key="match.id" padding="0"
                                                     class="match-card rounded-xl border-opacity-5 cursor-pointer overflow-hidden transition-all"
                                                     :class="{ 'match-selected-active': localForm.linked_transaction_id === match.id }"
-                                                    @click="emit('selectMatch', match)" variant="flat"
+                                                    @click="
+                                                        if (localForm.linked_transaction_id === match.id) {
+                                                            localForm.linked_transaction_id = '';
+                                                        } else {
+                                                            localForm.linked_transaction_id = match.id;
+                                                            localForm.is_transfer = true;
+                                                            localForm.exclude_from_reports = true;
+                                                        }
+                                                    " variant="flat"
                                                     :color="localForm.linked_transaction_id === match.id ? 'primary' : 'surface'">
                                                     <div class="pa-4 d-flex justify-space-between align-center">
                                                         <div class="d-flex align-center gap-3">
@@ -546,8 +560,14 @@ function getIconColor(item: any) {
                                                                     match.date }}</div>
                                                             </div>
                                                         </div>
-                                                        <div class="text-h6 font-weight-black">
-                                                            {{ formatAmount(match.amount) }}
+                                                        <div class="d-flex align-center gap-4">
+                                                            <div class="text-h6 font-weight-black">
+                                                                {{ formatAmount(match.amount) }}
+                                                            </div>
+                                                            <div class="d-flex align-center justify-center rounded-circle transition-all"
+                                                                :style="{ width: '24px', height: '24px', border: localForm.linked_transaction_id === match.id ? 'none' : '2px solid rgba(var(--v-theme-on-surface), 0.2)' }">
+                                                                <CheckCircle2 v-if="localForm.linked_transaction_id === match.id" :size="24" class="text-white bg-primary rounded-circle" />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </v-card>
