@@ -115,8 +115,10 @@ const { formatAmount } = useCurrency()
               </div>
               <div class="mt-3 pt-3 border-t d-flex justify-center">
                 <v-btn variant="text" size="x-small" color="on-surface" class="opacity-60 font-weight-bold" @click.stop="emit('open-details', group.parent.category, group.parent)">
+                  <template v-slot:prepend>
+                    <ArrowRight :size="12" />
+                  </template>
                   View Analysis
-                  <ArrowRight :size="12" class="ml-1" />
                 </v-btn>
               </div>
             </v-card>

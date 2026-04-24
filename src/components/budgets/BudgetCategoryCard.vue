@@ -116,7 +116,11 @@
                   <span class="text-tiny opacity-30">/</span>
                   <span class="text-tiny opacity-60 font-weight-bold">{{ formatAmount(child.amount_limit) }}</span>
                 </template>
-                <v-btn v-else size="x-small" variant="text" color="primary" @click.stop="emit('edit', child)" class="pa-0 text-none font-weight-black" style="height: 16px; font-size: 9px; min-width: auto;">
+                <v-btn v-else size="x-small" variant="tonal" color="primary" @click.stop="emit('edit', child)" 
+                  class="pa-0 text-none font-weight-black px-2" style="height: 20px; font-size: 9px; min-width: auto;" rounded="pill">
+                  <template v-slot:prepend>
+                    <Plus :size="10" />
+                  </template>
                   Set
                 </v-btn>
               </div>
@@ -131,6 +135,9 @@
       <template v-else>
         <div class="text-center pa-2">
           <v-btn variant="tonal" size="small" color="primary" rounded="pill" @click="emit('edit', group.parent)" class="text-none font-weight-black px-6">
+            <template v-slot:prepend>
+              <Plus :size="14" />
+            </template>
             Set Limit
           </v-btn>
         </div>

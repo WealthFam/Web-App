@@ -97,9 +97,11 @@ function getBudgetHealthClass(percentage: number) {
         <v-col cols="12" md="4" class="text-md-right">
           <v-btn v-if="overallBudget.budget_id" icon variant="tonal" rounded="xl" size="large" @click="emit('edit', overallBudget)" color="white">
             <Pencil :size="24" />
+            <v-tooltip activator="parent" location="top">Edit Monthly Limit</v-tooltip>
           </v-btn>
           <v-btn v-else icon variant="tonal" rounded="xl" size="large" @click="emit('set-limit')" color="white">
             <Plus :size="24" />
+            <v-tooltip activator="parent" location="top">Set Monthly Limit</v-tooltip>
           </v-btn>
         </v-col>
       </v-row>

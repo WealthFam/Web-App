@@ -4,29 +4,33 @@
             <!-- Header -->
             <v-row class="mb-10 align-center">
                 <v-col cols="12" md="6">
-                    <h1 class="text-h6 font-weight-black mb-1">Budgets & Activity</h1>
-                    <p class="text-subtitle-2 text-on-surface opacity-70 font-weight-bold">Personal finance intelligence
+                    <h1 class="text-h4 font-weight-black mb-1 letter-spacing-tight">Budgets & Activity</h1>
+                    <p class="text-subtitle-2 text-on-surface opacity-60 font-weight-bold">
+                        Personal finance intelligence and monthly limits
                     </p>
                 </v-col>
 
                 <v-col cols="12" md="6" class="d-flex justify-md-end align-center ga-4">
-                    <!-- Month Selector (Refined Vuetify Style) -->
-                    <v-sheet rounded="pill" border class="d-flex align-center px-1" height="44">
-                        <v-btn icon variant="text" size="small" @click="changeMonth(-1)" color="primary">
+                    <!-- Month Selector (Premium Glass Style) -->
+                    <v-sheet rounded="pill" class="premium-glass-card d-flex align-center px-1 border-thin" height="44">
+                        <v-btn icon variant="text" size="small" @click="changeMonth(-1)" color="primary" class="hover-scale">
                             <ChevronLeft :size="18" />
                         </v-btn>
-                        <v-btn variant="text" class="text-none font-weight-black px-2 mx-1" @click="resetToCurrent"
-                            min-width="120">
+                        <v-btn variant="text" class="text-none font-weight-black px-4 mx-1 letter-spacing-1" @click="resetToCurrent"
+                            min-width="140">
                             {{ monthYearLabel }}
                         </v-btn>
-                        <v-btn icon variant="text" size="small" @click="changeMonth(1)" color="primary">
+                        <v-btn icon variant="text" size="small" @click="changeMonth(1)" color="primary" class="hover-scale">
                             <ChevronRight :size="18" />
                         </v-btn>
                     </v-sheet>
 
-                    <v-btn v-if="!overallBudget" color="primary" variant="outlined" rounded="pill"
-                        class="text-none px-6 font-weight-black" height="44" @click="openSetBudgetModal(true)">
-                        <Plus :size="18" class="mr-2" /> Limit
+                    <v-btn v-if="!overallBudget" color="primary" variant="elevated" rounded="pill"
+                        class="text-none px-6 font-weight-black btn-primary-glow" height="44" @click="openSetBudgetModal(true)">
+                        <template v-slot:prepend>
+                            <Plus :size="18" />
+                        </template>
+                        Set Monthly Limit
                     </v-btn>
                 </v-col>
             </v-row>
@@ -150,8 +154,11 @@
                             <p class="text-subtitle-1 opacity-60 mb-8 font-weight-medium">Start by setting a budget or
                                 recording transactions to see analysis.</p>
                             <v-btn color="primary" rounded="pill" size="large" variant="elevated"
-                                class="text-none px-10 elevation-4 btn-primary-glow font-weight-black"
+                                class="text-none px-10 elevation-8 btn-primary-glow font-weight-black"
                                 @click="openSetBudgetModal(false)">
+                                <template v-slot:prepend>
+                                    <Target :size="20" />
+                                </template>
                                 Set Category Budget
                             </v-btn>
                         </v-col>
@@ -432,11 +439,19 @@ onMounted(() => {
     box-shadow: 0 4px 15px rgba(var(--v-theme-primary), 0.3);
 }
 
+.letter-spacing-tight {
+    letter-spacing: -0.05em !important;
+}
+
+.letter-spacing-1 {
+    letter-spacing: 0.5px !important;
+}
+
 .hover-scale {
-    transition: transform 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .hover-scale:hover {
-    transform: translateY(-2px);
+    transform: translateY(-2px) scale(1.05);
 }
 </style>
