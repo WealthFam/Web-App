@@ -134,10 +134,17 @@ export const financeApi = {
     importRules: (data: any[]) => apiClient.post('/finance/rules/import', data),
     exportRules: () => apiClient.get<any[]>('/finance/rules/export'),
 
+    // Triage Detection
+    scanTriageForRule: (id: string) => apiClient.post(`/finance/rules/${id}/scan-triage`),
+    applyRuleToTriage: (id: string) => apiClient.post(`/finance/rules/${id}/apply-triage`),
+    scanAllTriage: () => apiClient.post('/finance/rules/scan-all-triage'),
+    getRuleStats: () => apiClient.get('/finance/rules/stats'),
+
     getCategories: (tree: boolean = false) => apiClient.get('/finance/categories', { params: { tree } }),
     createCategory: (data: any) => apiClient.post('/finance/categories', data),
     updateCategory: (id: string, data: any) => apiClient.put(`/finance/categories/${id}`, data),
     deleteCategory: (id: string) => apiClient.delete(`/finance/categories/${id}`),
+    getCategoryUsage: (id: string) => apiClient.get(`/finance/categories/${id}/usage`),
     importCategories: (data: any[]) => apiClient.post('/finance/categories/import', data),
     exportCategories: () => apiClient.get<any[]>('/finance/categories/export'),
 

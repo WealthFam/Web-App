@@ -15,6 +15,8 @@ export interface Rule {
     exclude_from_reports?: boolean
     is_valid?: boolean
     validation_error?: string
+    hit_count?: number
+    last_hit_at?: string
 }
 
 export interface RuleSuggestion {
@@ -24,6 +26,29 @@ export interface RuleSuggestion {
     count?: number
     reason?: string
     confidence_level?: string
+}
+
+export interface RuleStats {
+    total_rules: number
+    total_hits: number
+    rules_with_zero_hits: number
+    avg_hit_rate: number
+    top_rules: { name: string; hit_count: number; category: string }[]
+    pending_triage?: number
+}
+
+export interface TriageScanResult {
+    rule_id: string
+    rule_name: string
+    category: string
+    matching_count: number
+    preview: any[]
+}
+
+export interface TriageScanSummary {
+    total_pending: number
+    total_matches: number
+    rules_with_matches: TriageScanResult[]
 }
 
 export const useRulesStore = defineStore('rules', () => {
@@ -45,6 +70,12 @@ export const useRulesStore = defineStore('rules', () => {
     
     const previewPage = ref(1)
     const previewLimit = 5
+
+    // Triage Detection State
+    const ruleStats = ref<RuleStats | null>(null)
+    const triageScanResults = ref<TriageScanSummary | null>(null)
+    const triageScanLoading = ref(false)
+    const triageApplyLoading = ref(false)
 
     const notify = useNotificationStore()
 
@@ -171,28 +202,7 @@ export const useRulesStore = defineStore('rules', () => {
         }
     }
 
-    async function applyAllRules() {
-        loading.value = true
-        let totalAffected = 0
-        try {
-            // Hardened: Fetch ALL rules first for bulk apply (ignore pagination limit)
-            const allRulesRes = await financeApi.getRules({ skip: 0, limit: 1000 })
-            const allRules = allRulesRes.data.data
-            
-            for (const rule of allRules) {
-                const res = await financeApi.applyRuleRetrospectively(rule.id, overrideExisting.value)
-                totalAffected += res.data.affected || 0
-            }
-            notify.success(`Bulk Apply Complete: Updated ${totalAffected} transactions across all ${allRules.length} rules.`)
-            return totalAffected
-        } catch (e: any) {
-            console.error("Failed bulk apply", e)
-            notify.error("Bulk application interrupted")
-            return false
-        } finally {
-            loading.value = false
-        }
-    }
+
 
     async function fetchMatchPreview(keywords: string[], page: number = 1) {
         previewLoading.value = true
@@ -248,6 +258,62 @@ export const useRulesStore = defineStore('rules', () => {
         }
     }
 
+    // --- Triage Detection Actions ---
+
+    async function fetchRuleStats() {
+        try {
+            const res = await financeApi.getRuleStats()
+            ruleStats.value = res.data
+        } catch (e: any) {
+            console.error("Failed to fetch rule stats", e)
+        }
+    }
+
+    async function scanAllTriage() {
+        triageScanLoading.value = true
+        try {
+            const res = await financeApi.scanAllTriage()
+            triageScanResults.value = res.data
+            return res.data
+        } catch (e: any) {
+            console.error("Failed to scan triage", e)
+            notify.error("Failed to scan triage queue")
+            return null
+        } finally {
+            triageScanLoading.value = false
+        }
+    }
+
+    async function scanTriageForRule(ruleId: string) {
+        triageScanLoading.value = true
+        try {
+            const res = await financeApi.scanTriageForRule(ruleId)
+            return res.data
+        } catch (e: any) {
+            console.error("Failed to scan triage for rule", e)
+            notify.error("Failed to scan triage for rule")
+            return null
+        } finally {
+            triageScanLoading.value = false
+        }
+    }
+
+    async function applyRuleToTriage(ruleId: string) {
+        triageApplyLoading.value = true
+        try {
+            const res = await financeApi.applyRuleToTriage(ruleId)
+            const count = res.data.affected || 0
+            notify.success(`Moved ${count} transactions from triage to ledger`)
+            return res.data
+        } catch (e: any) {
+            console.error("Failed to apply rule to triage", e)
+            notify.error("Failed to apply rule to triage")
+            return null
+        } finally {
+            triageApplyLoading.value = false
+        }
+    }
+
     return {
         rules,
         suggestions,
@@ -264,7 +330,6 @@ export const useRulesStore = defineStore('rules', () => {
         ignoreSuggestion,
         approveSuggestion,
         applyRuleRetrospectively,
-        applyAllRules,
         fetchMatchPreview,
         matchingCount,
         matchingPreview,
@@ -276,6 +341,15 @@ export const useRulesStore = defineStore('rules', () => {
         previewPage,
         previewLimit,
         exportRules,
-        importRules
+        importRules,
+        // Triage Detection
+        ruleStats,
+        triageScanResults,
+        triageScanLoading,
+        triageApplyLoading,
+        fetchRuleStats,
+        scanAllTriage,
+        scanTriageForRule,
+        applyRuleToTriage
     }
 })
