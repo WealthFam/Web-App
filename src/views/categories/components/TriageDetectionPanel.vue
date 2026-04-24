@@ -286,7 +286,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
-    Check, ChevronLeft, ChevronRight, FileText, Inbox, Search, X, Zap
+    Check, ChevronLeft, ChevronRight, FileText, Search, X, Zap
 } from 'lucide-vue-next'
 import { useRulesStore, type TriageScanResult } from '@/stores/finance/rules'
 
