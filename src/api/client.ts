@@ -110,8 +110,8 @@ export const financeApi = {
     getAccountTransactionCount: (id: string) => apiClient.get(`/finance/accounts/${id}/transaction-count`),
     overrideAccountBalance: (id: string, data: { balance: number, credit_limit?: number | null, timestamp: string, source?: string }) =>
         apiClient.put(`/finance/accounts/${id}/balance`, { ...data, account_id: id }),
-    getTransactions: (accountId?: string, page: number = 1, limit: number = 50, startDate?: string, endDate?: string, search?: string, category?: string, sortBy: string = 'date', sortOrder: string = 'desc', userId?: string) =>
-        apiClient.get('/finance/transactions', { params: { account_id: accountId, page, limit, start_date: startDate, end_date: endDate, search, category, sort_by: sortBy, sort_order: sortOrder, user_id: userId } }),
+    getTransactions: (accountId?: string, page: number = 1, limit: number = 20, startDate?: string, endDate?: string, search?: string, category?: string, sortBy: string = 'date', sortOrder: string = 'desc', userId?: string, excludeTransfers?: boolean, excludeFromReports?: boolean) =>
+        apiClient.get('/finance/transactions', { params: { account_id: accountId, page, limit, start_date: startDate, end_date: endDate, search, category, sort_by: sortBy, sort_order: sortOrder, user_id: userId, exclude_transfers: excludeTransfers, exclude_from_reports: excludeFromReports } }),
     searchTransactions: (q: string, limit: number = 10) =>
         apiClient.get('/finance/transactions', { params: { search: q, limit, page: 1, sort_by: 'date', sort_order: 'desc' } }),
     createTransaction: (data: any) => apiClient.post('/finance/transactions', data),
@@ -175,8 +175,8 @@ export const financeApi = {
         apiClient.get('/finance/analytics/spending-trend', { params: { user_id: userId } }),
     getSpendingForecast: (startDate?: string, endDate?: string, userId?: string) =>
         apiClient.get('/finance/analytics/spending-forecast', { params: { start_date: startDate, end_date: endDate, user_id: userId } }),
-    getBudgetHistory: (months: number = 6, userId?: string) =>
-        apiClient.get('/finance/analytics/budget-history', { params: { months, user_id: userId } }),
+    getBudgetHistory: (months: number = 6, userId?: string, accountId?: string) =>
+        apiClient.get('/finance/analytics/budget-history', { params: { months, user_id: userId, account_id: accountId } }),
     getHeatmapData: (startDate?: string, endDate?: string, userId?: string) =>
         apiClient.get('/finance/analytics/heatmap', { params: { start_date: startDate, end_date: endDate, user_id: userId } }),
     getMerchantBreakdown: (category?: string, startDate?: string, endDate?: string, userId?: string) =>
@@ -408,7 +408,7 @@ export const aiApi = {
     updateSettings: (data: any) => apiClient.post('/ingestion/ai/settings', data),
     testConnection: (content: string) => apiClient.post('/ingestion/ai/test', { content }),
     listModels: (provider: string, apiKey?: string) => apiClient.get('/ingestion/ai/models', { params: { provider, api_key: apiKey } }),
-    generateSummaryInsights: (summary_data: any) => apiClient.post('/ingestion/ai/generate-insights', { summary_data }, { skipNotification: true }),
+    generateSummaryInsights: (summary_data: any, forceRefresh: boolean = false) => apiClient.post('/ingestion/ai/generate-insights', { summary_data, force_refresh: forceRefresh }, { skipNotification: true }),
     getAliases: () => apiClient.get('/ingestion/ai/aliases'),
     createAlias: (pattern: string, alias: string) => apiClient.post('/ingestion/ai/aliases', { pattern, alias }),
     deleteAlias: (id: string) => apiClient.delete(`/ingestion/ai/aliases/${id}`),

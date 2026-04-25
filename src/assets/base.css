@@ -149,12 +149,12 @@ html, body, .hide-scrollbars, .no-scrollbar {
 .premium-glass-card {
   background: rgba(var(--v-theme-surface), 0.7) !important;
   color: rgb(var(--v-theme-on-surface)) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(185%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(185%);
   border: 1px solid rgba(var(--v-border-color), 0.12) !important;
   box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  border-radius: 20px !important;
+  border-radius: 16px !important;
 }
 
 .premium-glass-card:hover {
@@ -265,4 +265,10 @@ html, body, .hide-scrollbars, .no-scrollbar {
 
 .force-no-x-scroll {
     overflow-x: hidden !important;
+}
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  -moz-font-feature-settings: 'tnum';
+  -webkit-font-feature-settings: 'tnum';
+  font-feature-settings: 'tnum';
 }

@@ -13,7 +13,7 @@
                 <!-- Header (Title left, Tabs & Actions right) -->
                 <v-row class="mb-10 align-center">
                     <v-col cols="12" md="6">
-                        <h1 class="text-h6 font-weight-black mb-1">Insights</h1>
+                        <h1 class="text-h4 font-weight-black mb-1">Insights</h1>
                         <p class="text-subtitle-2 text-on-surface opacity-70 font-weight-bold d-flex align-center">
                             Strategy and forecasting
                             <v-chip v-if="authStore.selectedMemberId" size="x-small" color="primary" variant="flat"
@@ -24,46 +24,40 @@
                     </v-col>
 
                     <v-col cols="12" md="6" class="d-flex justify-md-end align-center gap-3">
-                        <!-- Account Selector -->
-                        <v-select v-if="activeTab === 0" v-model="selectedAccount"
-                            :items="[{ title: 'All Accounts', value: '' }, ...accountOptions]"
-                            placeholder="All Accounts" density="compact" variant="outlined" hide-details
-                            class="trend-cat-premium" rounded="pill" menu-icon=""
-                            style="background: rgba(var(--v-theme-surface), 0.7); max-width: 200px;">
-                            <template v-slot:prepend-inner>
-                                <Wallet :size="16" class="text-primary mr-2" />
-                            </template>
-                            <template v-slot:append-inner>
-                                <ChevronDown :size="16" class="text-primary opacity-70" />
-                            </template>
-                        </v-select>
-
                         <!-- Segmented Tab Switcher (Match Categories.vue) -->
                         <div class="glass-card pa-1 border rounded-pill d-flex"
-                            style="background: rgba(var(--v-theme-surface), 0.5)">
+                            style="background: rgba(var(--v-theme-surface), 0.5); height: 48px;">
                             <v-btn variant="flat" rounded="pill" height="40"
-                                class="text-none font-weight-black px-8 letter-spacing-1"
+                                class="text-none font-weight-black px-6 letter-spacing-1"
                                 :color="activeTab === 0 ? 'primary' : 'transparent'"
                                 :class="activeTab !== 0 ? 'text-medium-emphasis' : 'elevation-2'"
                                 @click="activeTab = 0">
+                                <template v-slot:prepend>
+                                    <BarChart3 :size="18" />
+                                </template>
                                 Analytics
                             </v-btn>
                             <v-btn variant="flat" rounded="pill" height="40"
-                                class="text-none font-weight-black px-8 letter-spacing-1"
+                                class="text-none font-weight-black px-6 letter-spacing-1"
                                 :color="activeTab === 1 ? 'primary' : 'transparent'"
                                 :class="activeTab !== 1 ? 'text-medium-emphasis' : 'elevation-2'"
                                 @click="activeTab = 1">
+                                <template v-slot:prepend>
+                                    <RefreshCw :size="18" />
+                                </template>
                                 Recurring
                             </v-btn>
                             <v-btn variant="flat" rounded="pill" height="40"
-                                class="text-none font-weight-black px-8 letter-spacing-1"
+                                class="text-none font-weight-black px-6 letter-spacing-1"
                                 :color="activeTab === 2 ? 'primary' : 'transparent'"
                                 :class="activeTab !== 2 ? 'text-medium-emphasis' : 'elevation-2'"
                                 @click="activeTab = 2">
-                                Family Circle
+                                <template v-slot:prepend>
+                                    <Users :size="18" />
+                                </template>
+                                Family Wealth
                             </v-btn>
                         </div>
-
                     </v-col>
                 </v-row>
 
@@ -89,14 +83,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { useFinanceStore } from '@/stores/finance'
 import { useAuthStore } from '@/stores/auth'
 import AnalyticsTab from '@/views/insights/AnalyticsTab.vue'
 import RecurringTab from '@/views/insights/RecurringTab.vue'
 import FamilyWealthTab from '@/views/insights/FamilyWealthTab.vue'
-import { Wallet, ChevronDown } from 'lucide-vue-next'
+import { BarChart3, RefreshCw, Users } from 'lucide-vue-next'
 
 const store = useFinanceStore()
 const authStore = useAuthStore()
@@ -127,26 +121,6 @@ watch(() => route.query.tab, (newTab) => {
         const tab = parseInt(newTab as string)
         if (!isNaN(tab)) activeTab.value = tab
     }
-})
-
-const accountOptions = computed(() => {
-    // Audit check: ensure store accounts are present
-    if (!store.accounts || store.accounts.length === 0) return []
-
-    return store.accounts
-        .filter(a => {
-            // Requirement 1: Only show verified accounts
-            if (!a.is_verified) return false
-
-            // Requirement 2: Respect global user filter
-            const selectedMemberId = authStore.selectedMemberId
-            if (!selectedMemberId) return true
-
-            // Show accounts owned by selected member OR shared accounts (owner_id is null)
-            // owner_id being null usually means shared/tenant-level
-            return a.owner_id === selectedMemberId || !a.owner_id
-        })
-        .map(a => ({ title: a.name, value: a.id }))
 })
 </script>
 
