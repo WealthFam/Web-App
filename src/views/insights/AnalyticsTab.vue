@@ -592,25 +592,26 @@
 </template>
 
 <script setup lang="ts">
-import { localDateString } from '@/utils/time'
-import { ref, onMounted, computed, watch } from 'vue'
-import { useFinanceStore } from '@/stores/finance'
-import { useAuthStore } from '@/stores/auth'
-import { useSettingsStore } from '@/stores/settings'
-import { financeApi } from '@/api/client'
-import { useInsightsStore } from '@/stores/insights'
-import { useCurrency } from '@/composables/useCurrency'
-import TransactionTable from '@/components/transactions/TransactionTable.vue'
-import BaseChart from '@/components/BaseChart.vue'
-import BudgetHistoryChart from '@/components/BudgetHistoryChart.vue'
 import { marked } from 'marked'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useTheme } from 'vuetify'
 import {
     TrendingUp, TrendingDown, Scale,
     CalendarRange, ArrowRight, RefreshCcw, Filter, BarChart2,
     ShieldAlert, Sparkles, Brain, ChevronDown, Wallet
 } from 'lucide-vue-next'
+
+import { financeApi } from '@/api/client'
+import BaseChart from '@/components/BaseChart.vue'
+import BudgetHistoryChart from '@/components/BudgetHistoryChart.vue'
+import TransactionTable from '@/components/transactions/TransactionTable.vue'
+import { useCurrency } from '@/composables/useCurrency'
+import { useAuthStore } from '@/stores/auth'
+import { useFinanceStore } from '@/stores/finance'
+import { useInsightsStore } from '@/stores/insights'
+import { useSettingsStore } from '@/stores/settings'
 import { getCategoryLucideIcon } from '@/utils/iconMapping'
+import { localDateString } from '@/utils/time'
 
 interface Props {
     selectedAccount?: string
@@ -987,9 +988,12 @@ const trendChartData = computed(() => {
     return {
         labels: filteredTrendData.value.map((d: any) => {
             if (trendView.value === 'daily') return d.label.slice(5)
-            // Format YYYY-MM to MMM YYYY
-            const [year, month] = d.label.split('-')
-            const date = new Date(parseInt(year), parseInt(month) - 1)
+            // If already formatted (e.g. "Apr 2026"), return as is
+            if (d.label.includes(' ')) return d.label
+            // Otherwise try to parse YYYY-MM
+            const parts = d.label.split('-')
+            if (parts.length < 2) return d.label
+            const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1)
             return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
         }),
         datasets: [{
