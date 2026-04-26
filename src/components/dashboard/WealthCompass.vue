@@ -161,7 +161,7 @@ const monthlyInvestment = computed(() => {
 })
 
 const totalSavings = computed(() => {
-  const spending = props.metrics?.monthly_spending || 0
+  const spending = props.metrics?.unfiltered_spending || 0
   const income = props.metrics?.unfiltered_income || 0
   return Math.max(0, income - spending)
 })
