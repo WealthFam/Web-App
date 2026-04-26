@@ -316,7 +316,16 @@
                                 cutout: '75%',
                                 plugins: {
                                     legend: { display: false },
-                                    polylineLabels: { display: true }
+                                    polylineLabels: { display: true },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context: any) {
+                                                const label = context.label || '';
+                                                const value = formatAmount(context.raw);
+                                                return ` ${label}: ${value}`;
+                                            }
+                                        }
+                                    }
                                 },
                                 layout: {
                                     padding: { left: 160, right: 160, top: 30, bottom: 30 }
@@ -344,6 +353,13 @@
                                 indexAxis: 'y',
                                 plugins: {
                                     legend: { display: false },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context: any) {
+                                                return ` Spending: ${formatAmount(context.raw)}`;
+                                            }
+                                        }
+                                    },
                                     datalabels: {
                                         display: true,
                                         anchor: 'end',
@@ -380,6 +396,7 @@
                     </v-card-text>
                 </v-card>
             </v-col>
+
 
             <v-col cols="12">
                 <v-card rounded="xl" class="premium-glass-card no-hover">

@@ -5,6 +5,8 @@ import { useCurrency } from '@/composables/useCurrency'
 defineProps<{
   totalIncome: number
   totalSpent: number
+  totalInvested: number
+  activeTab: 'expense' | 'income' | 'investment'
   overallBudget: any
   alertGroups: any[]
 }>()
@@ -21,7 +23,8 @@ const { formatAmount } = useCurrency()
   <div>
     <!-- Summary Grid -->
     <v-row class="mb-10">
-      <v-col cols="12" sm="6" lg="3">
+      <!-- Income Card -->
+      <v-col v-if="activeTab !== 'investment'" cols="12" sm="6" lg="3">
         <v-card class="premium-glass-card pa-6 h-100" rounded="xl">
           <div class="d-flex justify-space-between align-center mb-6">
             <span class="text-overline font-weight-black opacity-60 letter-spacing-1">Income In</span>
@@ -33,22 +36,30 @@ const { formatAmount } = useCurrency()
         </v-card>
       </v-col>
 
+      <!-- Outflow/Spending Card -->
       <v-col cols="12" sm="6" lg="3">
         <v-card class="premium-glass-card pa-6 h-100" rounded="xl">
           <div class="d-flex justify-space-between align-center mb-6">
-            <span class="text-overline font-weight-black opacity-60 letter-spacing-1">Total Outflow</span>
-            <v-avatar color="rose-lighten-5" rounded="lg" size="48">
-              <TrendingDown class="text-error" :size="24" />
+            <span class="text-overline font-weight-black opacity-60 letter-spacing-1">
+              {{ activeTab === 'investment' ? 'Total Invested' : 'Operational Outflow' }}
+            </span>
+            <v-avatar :color="activeTab === 'investment' ? 'warning-lighten-5' : 'rose-lighten-5'" rounded="lg" size="48">
+              <TrendingDown :class="activeTab === 'investment' ? 'text-warning' : 'text-error'" :size="24" />
             </v-avatar>
           </div>
-          <div class="text-h4 font-weight-black text-error">{{ formatAmount(totalSpent) }}</div>
+          <div :class="['text-h4 font-weight-black', activeTab === 'investment' ? 'text-warning' : 'text-error']">
+            {{ formatAmount(activeTab === 'investment' ? totalInvested : totalSpent) }}
+          </div>
         </v-card>
       </v-col>
 
+      <!-- Net Balance/Savings Card -->
       <v-col cols="12" sm="6" lg="3">
         <v-card class="premium-glass-card pa-6 h-100" rounded="xl">
           <div class="d-flex justify-space-between align-center mb-6">
-            <span class="text-overline font-weight-black opacity-60 letter-spacing-1">Net Balance</span>
+            <span class="text-overline font-weight-black opacity-60 letter-spacing-1">
+              {{ activeTab === 'investment' ? 'Remaining Budget' : 'Net Savings' }}
+            </span>
             <v-avatar color="indigo-lighten-5" rounded="lg" size="48">
               <Wallet class="text-indigo" :size="24" />
             </v-avatar>
@@ -58,6 +69,7 @@ const { formatAmount } = useCurrency()
           </div>
         </v-card>
       </v-col>
+
 
       <v-col v-if="overallBudget?.total_excluded || overallBudget?.excluded_income" cols="12" sm="6" lg="3">
         <v-card class="premium-glass-card pa-6 h-100" rounded="xl">

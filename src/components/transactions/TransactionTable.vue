@@ -115,15 +115,22 @@
         <template #[`item.amount`]="{ item }">
             <div class="text-right">
                 <div :class="[
-                    'text-subtitle-1 font-weight-black',
+                    'text-subtitle-1 font-weight-black d-flex align-center justify-end ga-1',
                     Number(item.amount) > 0 ? 'text-success' : 'text-error',
                     item.is_transfer ? 'opacity-70 text-medium-emphasis grayscale' : ''
                 ]">
-                    <span v-if="item.is_transfer">🔄</span>
-                    <span v-else-if="Number(item.amount) > 0">↑</span>
-                    <span v-else>↓</span>
+                    <template v-if="item.is_transfer">
+                        <span>🔄</span>
+                    </template>
+                    <template v-else-if="Number(item.amount) > 0">
+                        <ArrowDownLeft :size="16" class="mt-1" />
+                    </template>
+                    <template v-else>
+                        <ArrowUpRight :size="16" class="mt-1" />
+                    </template>
                     {{ formatAmount(Math.abs(Number(item.amount))) }}
                 </div>
+
             </div>
         </template>
 
@@ -194,7 +201,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { MapPin, MoreVertical, Pencil, Trash2, FileText } from 'lucide-vue-next'
+import { MapPin, MoreVertical, Pencil, Trash2, FileText, ArrowDownLeft, ArrowUpRight } from 'lucide-vue-next'
 import { useCurrency } from '@/composables/useCurrency'
 
 const { formatAmount } = useCurrency()

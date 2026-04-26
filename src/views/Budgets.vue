@@ -82,6 +82,8 @@
                     <BudgetSummaryCards 
                         :totalIncome="totalIncome" 
                         :totalSpent="totalSpent" 
+                        :totalInvested="totalInvested"
+                        :activeTab="activeTab"
                         :overallBudget="overallBudget" 
                         :alertGroups="alertGroups" 
                         @edit="editBudget" 
@@ -335,16 +337,23 @@ const alertGroups = computed(() => {
 })
 
 const totalIncome = computed(() => {
-    if (overallBudget.value) return Number(overallBudget.value.income || 0)
+    // Return total income for the current view
     return budgets.value
-        .filter(b => !b.parent_id)
+        .filter(b => !b.parent_id && (b.type === 'income' || b.income > 0))
         .reduce((sum, b) => sum + Number(b.income || 0), 0)
 })
 
 const totalSpent = computed(() => {
-    if (overallBudget.value) return Number(overallBudget.value.spent)
+    // Return total operational expenses (excluding investments)
     return budgets.value
-        .filter(b => !b.parent_id)
+        .filter(b => !b.parent_id && (b.type === 'expense' || b.type === null))
+        .reduce((sum, b) => sum + Number(b.spent), 0)
+})
+
+const totalInvested = computed(() => {
+    // Return total investments
+    return budgets.value
+        .filter(b => !b.parent_id && b.type === 'investment')
         .reduce((sum, b) => sum + Number(b.spent), 0)
 })
 

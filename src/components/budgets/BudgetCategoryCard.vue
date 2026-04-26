@@ -39,8 +39,12 @@
 
           <v-row no-gutters>
             <v-col cols="6" class="metric-col">
-              <div class="text-overline font-weight-black opacity-50 line-height-1 mb-1">SPENT</div>
-              <div class="text-h6 font-weight-black">{{ formatAmount(activeTab === 'income' ? group.parent.income : group.parent.spent) }}</div>
+              <div class="text-overline font-weight-black opacity-50 line-height-1 mb-1">
+                {{ activeTab === 'income' ? 'RECEIVED' : (activeTab === 'investment' ? 'INVESTED' : 'SPENT') }}
+              </div>
+              <div :class="['text-h6 font-weight-black', activeTab === 'investment' ? 'text-warning' : (activeTab === 'income' ? 'text-success' : '')]">
+                {{ formatAmount(activeTab === 'income' ? group.parent.income : group.parent.spent) }}
+              </div>
             </v-col>
             <v-col cols="6" class="text-right metric-col">
               <div class="text-overline font-weight-black opacity-50 line-height-1 mb-1">
@@ -51,6 +55,7 @@
               </div>
             </v-col>
           </v-row>
+
           <div :class="['health-glow', { 'is-overspent': group.parent.percentage > 100, 'is-warning': group.parent.percentage > 70 }]"></div>
         </div>
 
