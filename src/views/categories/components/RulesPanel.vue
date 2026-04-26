@@ -3,6 +3,17 @@
         <!-- Toolbar -->
         <v-card class="premium-glass-card premium-toolbar mb-6 no-hover border-thin elevation-2" rounded="xl">
             <v-row align="center" dense class="w-100">
+                <v-col cols="12" sm="3">
+                    <v-autocomplete v-model="rulesStore.categoryFilter" :items="[
+                        { title: 'All Categories', value: 'all' },
+                        ...categoriesStore.categories.map(c => ({ title: `${c.icon} ${c.name}`, value: c.name }))
+                    ]" variant="solo-filled" flat rounded="pill" hide-details density="compact" bg-color="surface"
+                        class="font-weight-black text-caption custom-autocomplete">
+                        <template v-slot:prepend-inner>
+                            <Filter :size="16" class="text-primary opacity-60 mr-1" />
+                        </template>
+                    </v-autocomplete>
+                </v-col>
                 <v-col cols="12" sm="4">
                     <v-text-field v-model="rulesStore.searchQuery" placeholder="Search rules..." hide-details
                         density="comfortable" variant="solo-filled" flat rounded="pill" class="font-weight-bold"
@@ -361,7 +372,7 @@ import { ref } from 'vue'
 import {
     AlertCircle, ArrowDown, ArrowUp, ChevronDown, ChevronLeft, ChevronRight, Copy,
     Download, EyeOff, FileText, Inbox, MoreVertical, Pencil, Plus, Search, Shuffle,
-    Trash2, Upload, Zap
+    Trash2, Upload, Zap, Filter
 } from 'lucide-vue-next'
 import { useRulesStore, type Rule } from '@/stores/finance/rules'
 import { useCategoriesStore } from '@/stores/finance/categories'
@@ -399,6 +410,13 @@ function handlePageSizeChange(size: number) {
     rulesStore.pageSize = size
     rulesStore.fetchRules(1)
 }
+
+import { watch } from 'vue'
+
+// Watch for filter changes and refresh data
+watch(() => [rulesStore.searchQuery, rulesStore.categoryFilter], () => {
+    rulesStore.fetchRules(1)
+})
 
 function nextPage() {
     if (rulesStore.currentPage * rulesStore.pageSize < rulesStore.totalRules) {

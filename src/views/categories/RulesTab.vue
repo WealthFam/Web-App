@@ -92,9 +92,7 @@ onMounted(() => {
     rulesStore.fetchSuggestions()
     rulesStore.fetchRuleStats()
     rulesStore.scanAllTriage() // Pre-load triage matches for the tab
-    if (categoriesStore.categories.length === 0) {
-        categoriesStore.fetchCategories()
-    }
+    categoriesStore.fetchCategories()
 })
 
 // Reset pagination on search

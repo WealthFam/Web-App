@@ -40,7 +40,7 @@
           <v-row no-gutters>
             <v-col cols="6" class="metric-col">
               <div class="text-overline font-weight-black opacity-50 line-height-1 mb-1">SPENT</div>
-              <div class="text-h6 font-weight-black">{{ formatAmount(activeTab === 'expense' ? group.parent.spent : group.parent.income) }}</div>
+              <div class="text-h6 font-weight-black">{{ formatAmount(activeTab === 'income' ? group.parent.income : group.parent.spent) }}</div>
             </v-col>
             <v-col cols="6" class="text-right metric-col">
               <div class="text-overline font-weight-black opacity-50 line-height-1 mb-1">
@@ -109,7 +109,7 @@
               <!-- Right: Spent / Limit -->
               <div class="d-flex align-center ga-1 justify-end text-right" style="min-width: 80px;">
                 <span class="text-caption font-weight-black" :class="[{ 'text-error': child.percentage > 100 }]" style="font-size: 0.75rem;">
-                  {{ formatAmount(activeTab === 'expense' ? child.spent : child.income) }}
+                  {{ formatAmount(activeTab === 'income' ? child.income : child.spent) }}
                 </span>
                 
                 <template v-if="child.amount_limit">

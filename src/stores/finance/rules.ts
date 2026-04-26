@@ -58,6 +58,7 @@ export const useRulesStore = defineStore('rules', () => {
     const loading = ref(false)
     const error = ref<string | null>(null)
     const searchQuery = ref('')
+    const categoryFilter = ref('all')
     const matchingCount = ref(0)
     const matchingPreview = ref<any[]>([])
     const previewLoading = ref(false)
@@ -80,16 +81,7 @@ export const useRulesStore = defineStore('rules', () => {
     const notify = useNotificationStore()
 
     // Getters
-    const filteredRules = computed(() => {
-        if (!searchQuery.value) return rules.value
-
-        const q = searchQuery.value.toLowerCase()
-        return rules.value.filter(r =>
-            r.name.toLowerCase().includes(q) ||
-            r.category.toLowerCase().includes(q) ||
-            r.keywords.some((k: string) => k.toLowerCase().includes(q))
-        )
-    })
+    const filteredRules = computed(() => rules.value)
 
     const emptyRulesMsg = computed(() => searchQuery.value ? 'No rules match your search.' : 'No rules found. Define rules to automate categorization.')
 
@@ -101,7 +93,12 @@ export const useRulesStore = defineStore('rules', () => {
         
         try {
             const skip = (page - 1) * pageSize.value
-            const res = await financeApi.getRules({ skip, limit: pageSize.value })
+            const res = await financeApi.getRules({ 
+                skip, 
+                limit: pageSize.value,
+                category: categoryFilter.value !== 'all' ? categoryFilter.value : undefined,
+                search: searchQuery.value || undefined
+            })
             
             // Standard #67 requires pagination envelope {"data": [...], "total": N}
             rules.value = res.data.data
@@ -320,6 +317,7 @@ export const useRulesStore = defineStore('rules', () => {
         loading,
         error,
         searchQuery,
+        categoryFilter,
         filteredRules,
         emptyRulesMsg,
         fetchRules,

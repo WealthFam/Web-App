@@ -110,9 +110,23 @@
         <!-- Toolbar -->
         <v-card class="premium-glass-card mb-6 border-thin premium-toolbar" rounded="xl">
             <v-row align="center" dense class="w-100">
+                <v-col cols="12" md="3">
+                    <v-autocomplete v-model="categoriesStore.searchFilter" :items="[
+                        { title: 'All Types', value: 'all' },
+                        { title: 'Expenses', value: 'expense' },
+                        { title: 'Income', value: 'income' },
+                        { title: 'Investment', value: 'investment' },
+                        { title: 'Transfer', value: 'transfer' }
+                    ]" variant="solo-filled" flat rounded="pill" hide-details density="compact" bg-color="surface"
+                        class="font-weight-black text-caption custom-autocomplete">
+                        <template v-slot:prepend-inner>
+                            <Filter :size="16" class="text-primary opacity-60 mr-1" />
+                        </template>
+                    </v-autocomplete>
+                </v-col>
                 <v-col cols="12" md="4">
                     <v-text-field v-model="categoriesStore.searchQuery" prepend-inner-icon="mdi-magnify"
-                        placeholder="Filter categories..." variant="solo-filled" flat rounded="pill" hide-details
+                        placeholder="Search names..." variant="solo-filled" flat rounded="pill" hide-details
                         density="compact" class="search-input" bg-color="surface">
                         <template v-slot:prepend-inner>
                             <Search :size="18" class="text-primary opacity-60" />
@@ -285,7 +299,7 @@ import { useCategoriesStore } from '@/stores/finance/categories'
 import {
     Search, Plus, Pencil, Trash2,
     Download, Upload, AlertCircle,
-    BarChart3, TrendingDown, TrendingUp, Repeat, Inbox
+    BarChart3, TrendingDown, TrendingUp, Repeat, Inbox, Filter
 } from 'lucide-vue-next'
 import CategoryModal from './components/CategoryModal.vue'
 
