@@ -2,7 +2,7 @@
     <v-container fluid class="pa-0 animate-in relative-pos z-10">
         <!-- Stats Overview -->
         <v-row class="mb-6">
-            <v-col cols="12" sm="6" md="4" lg="2">
+            <v-col cols="12" sm="6" md="4" class="col-five">
                 <v-card @click="categoriesStore.searchFilter = 'all'"
                     class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl">
                     <div class="d-flex justify-space-between align-start mb-2">
@@ -20,7 +20,7 @@
                 </v-card>
             </v-col>
 
-            <v-col cols="12" sm="6" md="4" lg="2" class="flex-grow-1">
+            <v-col cols="12" sm="6" md="4" class="col-five">
                 <v-card @click="categoriesStore.searchFilter = 'expense'"
                     class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl"
                     :class="{ 'border-error': categoriesStore.searchFilter === 'expense' }">
@@ -42,7 +42,7 @@
                 </v-card>
             </v-col>
 
-            <v-col cols="12" sm="6" md="4" lg="2" class="flex-grow-1">
+            <v-col cols="12" sm="6" md="4" class="col-five">
                 <v-card @click="categoriesStore.searchFilter = 'income'"
                     class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl"
                     :class="{ 'border-success': categoriesStore.searchFilter === 'income' }">
@@ -64,7 +64,7 @@
                 </v-card>
             </v-col>
 
-            <v-col cols="12" sm="6" md="4" lg="2" class="flex-grow-1">
+            <v-col cols="12" sm="6" md="4" class="col-five">
                 <v-card @click="categoriesStore.searchFilter = 'investment'"
                     class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl"
                     :class="{ 'border-warning': categoriesStore.searchFilter === 'investment' }">
@@ -86,7 +86,7 @@
                 </v-card>
             </v-col>
 
-            <v-col cols="12" sm="6" md="4" lg="2" class="flex-grow-1">
+            <v-col cols="12" sm="6" md="4" class="col-five">
                 <v-card @click="categoriesStore.searchFilter = 'transfer'"
                     class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl"
                     :class="{ 'border-info': categoriesStore.searchFilter === 'transfer' }">
@@ -448,5 +448,12 @@ defineExpose({
 .action-btn:hover {
     opacity: 1;
     transform: scale(1.1);
+}
+
+@media (min-width: 1280px) {
+    .col-five {
+        flex: 0 0 20% !important;
+        max-width: 20% !important;
+    }
 }
 </style>
