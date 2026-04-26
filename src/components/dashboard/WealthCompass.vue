@@ -81,48 +81,57 @@
     <v-row class="flex-grow-1 align-center">
       <!-- Savings Rate -->
       <v-col cols="6" sm="3">
-        <div class="compass-stat-item text-center">
+        <div class="compass-stat-item text-center d-flex flex-column align-center ga-1">
           <v-progress-circular :model-value="savingsRate" :size="70" :width="8" color="success"
-            class="mb-3 compass-progress">
+            class="mb-1 compass-progress">
             <span class="text-caption font-weight-black">{{ savingsRate }}%</span>
           </v-progress-circular>
           <div class="text-overline font-weight-black opacity-60">Savings Rate</div>
-          <div v-if="monthlyInvestment > 0" class="text-caption font-weight-bold text-success mt-n1">
-            {{ formatAmount(monthlyInvestment) }}
+          <div class="text-caption font-weight-black text-success mt-n1">
+            {{ formatAmount(totalSavings) }}
           </div>
         </div>
       </v-col>
 
       <!-- Investment Growth -->
       <v-col cols="6" sm="3">
-        <div class="compass-stat-item text-center">
+        <div class="compass-stat-item text-center d-flex flex-column align-center ga-1">
           <v-progress-circular :model-value="minMax(investmentGrowth, 0, 100)" :size="70" :width="8" color="primary"
-            class="mb-3 compass-progress">
+            class="mb-1 compass-progress">
             <span class="text-caption font-weight-black">{{ investmentGrowth }}%</span>
           </v-progress-circular>
           <div class="text-overline font-weight-black opacity-60">Portfolio</div>
+          <div class="text-caption font-weight-black text-primary mt-n1">
+            {{ formatAmount(portfolioValue) }}
+          </div>
         </div>
       </v-col>
 
       <!-- Debt Utility -->
       <v-col cols="6" sm="3">
-        <div class="compass-stat-item text-center">
+        <div class="compass-stat-item text-center d-flex flex-column align-center ga-1">
           <v-progress-circular :model-value="100 - creditUtilization" :size="70" :width="8" color="warning"
-            class="mb-3 compass-progress">
+            class="mb-1 compass-progress">
             <span class="text-caption font-weight-black">{{ (100 - creditUtilization).toFixed(0) }}%</span>
           </v-progress-circular>
           <div class="text-overline font-weight-black opacity-60">Credit Health</div>
+          <div class="text-caption font-weight-black text-warning mt-n1">
+            Debt: {{ formatAmount(creditDebt) }}
+          </div>
         </div>
       </v-col>
 
       <!-- Budget Discipline -->
       <v-col cols="6" sm="3">
-        <div class="compass-stat-item text-center">
+        <div class="compass-stat-item text-center d-flex flex-column align-center ga-1">
           <v-progress-circular :model-value="budgetEfficiency" :size="70" :width="8" color="info"
-            class="mb-3 compass-progress">
+            class="mb-1 compass-progress">
             <span class="text-caption font-weight-black">{{ budgetEfficiency }}%</span>
           </v-progress-circular>
           <div class="text-overline font-weight-black opacity-60">Budgeting</div>
+          <div class="text-caption font-weight-black text-info mt-n1">
+            Spent: {{ formatAmount(totalSpent) }}
+          </div>
         </div>
       </v-col>
     </v-row>
@@ -151,18 +160,22 @@ const monthlyInvestment = computed(() => {
   return props.metrics?.monthly_investment || 0
 })
 
-const savingsRate = computed(() => {
+const totalSavings = computed(() => {
   const spending = props.metrics?.monthly_spending || 0
-  const income = props.metrics?.total_income || 0
-  if (income <= 0) return 0
-  // Savings Rate = (Income - Consumption) / Income
-  // Consumption = spending (operational expenses)
-  const rate = ((income - spending) / income) * 100
-  return Math.max(0, Math.round(rate))
+  const income = props.metrics?.unfiltered_income || 0
+  return Math.max(0, income - spending)
+})
+
+const savingsRate = computed(() => {
+  return Math.max(0, Math.round(props.metrics?.savings_rate || 0))
 })
 
 const investmentGrowth = computed(() => {
   return Math.round(props.portfolio?.xirr || 0)
+})
+
+const portfolioValue = computed(() => {
+  return props.portfolio?.current || 0
 })
 
 const creditUtilization = computed(() => {
@@ -172,10 +185,18 @@ const creditUtilization = computed(() => {
   return (debt / limit) * 100
 })
 
+const creditDebt = computed(() => {
+  return props.metrics?.breakdown?.credit_debt || 0
+})
+
 const budgetEfficiency = computed(() => {
   const percentage = props.metrics?.budget_health?.percentage || 0
   if (percentage === 0) return 100
   return Math.max(0, 100 - Math.round(percentage))
+})
+
+const totalSpent = computed(() => {
+  return props.metrics?.monthly_spending || 0
 })
 
 function minMax(val: number, min: number, max: number) {
