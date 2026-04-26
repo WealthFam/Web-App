@@ -140,7 +140,7 @@
                                         <span class="text-medium-emphasis">Progress</span>
                                         <span class="text-primary">{{ loan.progress_percentage }}%</span>
                                     </div>
-                                    <v-progress-linear :model-value="loan.progress_percentage" height="10"
+                                    <v-progress-linear :model-value="Math.max(0, loan.progress_percentage)" height="10"
                                         rounded="pill" class="loan-progress-premium">
                                     </v-progress-linear>
                                 </div>

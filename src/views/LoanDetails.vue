@@ -121,7 +121,7 @@
                                         class="font-weight-black px-2">{{
                                             loan.progress_percentage }}%</v-chip>
                                 </div>
-                                <v-progress-linear :model-value="loan.progress_percentage" color="primary" rounded
+                                <v-progress-linear :model-value="Math.max(0, loan.progress_percentage)" color="primary" rounded
                                     height="10" class="loan-progress-premium shadow-sm"></v-progress-linear>
                             </v-card>
                         </v-col>

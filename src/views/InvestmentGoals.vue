@@ -364,7 +364,7 @@ watch(() => authStore.selectedMemberId, () => {
                                         <span class="text-caption font-weight-black" :style="{ color: goal.color }">{{
                                             Math.round(goal.progress_percentage) }}%</span>
                                     </div>
-                                    <v-progress-linear :model-value="goal.progress_percentage" :color="goal.color"
+                                    <v-progress-linear :model-value="Math.max(0, goal.progress_percentage)" :color="goal.color"
                                         height="8" rounded="pill" class="goal-progress-bar elevation-1" />
                                 </div>
                             </div>

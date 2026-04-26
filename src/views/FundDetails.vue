@@ -539,7 +539,7 @@ function isImageUrl(url: string) {
                                     </div>
                                 </div>
                                 <v-progress-linear
-                                    :model-value="(holding.current_value / holding.goal.target_amount) * 100"
+                                    :model-value="Math.max(0, (holding.current_value / holding.goal.target_amount) * 100)"
                                     color="primary" height="6" rounded="pill" class="mt-4" />
                                 <div class="d-flex justify-space-between mt-1">
                                     <span class="text-caption font-weight-bold text-primary">Contribution</span>
