@@ -393,7 +393,7 @@ import { ref, onMounted } from 'vue'
 import {
     Plus, X, ChevronDown, CalendarClock, Trash2, Wallet,
     CreditCard, Sparkles, RefreshCw, Calendar, Edit2, ShieldCheck,
-    Check, History, Info
+    Check, History, Info, Pencil
 } from 'lucide-vue-next'
 import { useFinanceStore } from '@/stores/finance'
 import { useAuthStore } from '@/stores/auth'
@@ -489,6 +489,7 @@ async function approveSuggestion(suggestion: any) {
 
     // Fill the modal with suggestion data for user review
     newRecurrence.value = {
+        id: null,
         name: suggestion.name,
         amount: suggestion.amount,
         category: suggestion.category || '',
@@ -593,6 +594,7 @@ function getCategoryDisplay(name: string) {
 defineExpose({
     openAddModal: () => {
         newRecurrence.value = {
+            id: null,
             name: '',
             amount: 0,
             category: '',

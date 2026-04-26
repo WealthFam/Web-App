@@ -57,7 +57,7 @@
         <!-- Progress for Active Groups -->
         <div v-if="group.parent.amount_limit" class="mb-6 relative-pos">
           <v-progress-linear 
-            :model-value="Math.min(group.parent.percentage, 100)" 
+            :model-value="Math.max(0, Math.min(group.parent.percentage, 100))" 
             height="10" 
             rounded="pill"
             :class="['mb-3 elevation-1', getBudgetHealthClass(group.parent.percentage)]"
@@ -99,7 +99,7 @@
               <!-- Center: Mini Progress Bar (if limit exists) -->
               <div v-if="child.amount_limit" class="flex-grow-1 d-none d-sm-block px-1" style="min-width: 30px; max-width: 60px;">
                 <v-progress-linear 
-                  :model-value="Math.min(child.percentage, 100)" 
+                  :model-value="Math.max(0, Math.min(child.percentage, 100))" 
                   height="2" 
                   rounded="pill"
                   :class="getBudgetHealthClass(child.percentage)"
@@ -157,7 +157,7 @@ import { useCurrency } from '@/composables/useCurrency'
 
 const props = defineProps<{
   group: any
-  activeTab: 'expense' | 'income'
+  activeTab: 'expense' | 'income' | 'investment'
   isInactive?: boolean
 }>()
 

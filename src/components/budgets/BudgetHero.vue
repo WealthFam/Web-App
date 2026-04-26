@@ -109,7 +109,7 @@ function getBudgetHealthClass(percentage: number) {
       <div v-if="overallBudget.amount_limit" class="mt-8">
         <div class="relative-pos mb-4 progress-container-premium">
           <v-progress-linear 
-            :model-value="Math.min(overallBudget.percentage, 100)" 
+            :model-value="Math.max(0, Math.min(overallBudget.percentage, 100))" 
             height="16" 
             rounded="pill"
             :class="['premium-progress-lg elevation-4', getBudgetHealthClass(overallBudget.percentage)]"

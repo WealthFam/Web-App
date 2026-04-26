@@ -476,7 +476,7 @@ const headers = [
     { title: 'Recipient / Source', key: 'recipient', sortable: true, width: '250px' },
     { title: 'Description', key: 'description', sortable: false },
     { title: 'Amount', key: 'amount', sortable: true, align: 'end' as const, width: '130px' },
-    { title: '', key: 'actions', sortable: false, align: 'center' as const, width: '60px' },
+    { title: '', key: 'actions', sortable: false, align: 'center' as any, width: '60px' },
 ]
 
 // Adaptation for v-data-table selection (array based) vs parent's Set based

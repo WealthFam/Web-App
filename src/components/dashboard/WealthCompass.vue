@@ -19,6 +19,9 @@
             <span class="text-caption font-weight-black">{{ savingsRate }}%</span>
           </v-progress-circular>
           <div class="text-overline font-weight-black opacity-60">Savings Rate</div>
+          <div v-if="monthlyInvestment > 0" class="text-caption font-weight-bold text-success mt-n1">
+            {{ formatAmount(monthlyInvestment) }}
+          </div>
         </div>
       </v-col>
 
@@ -66,16 +69,25 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Compass } from 'lucide-vue-next'
+import { useCurrency } from '@/composables/useCurrency'
 
 const props = defineProps<{
   metrics: any
   portfolio: any
 }>()
 
+const { formatAmount } = useCurrency()
+
+const monthlyInvestment = computed(() => {
+  return props.metrics?.monthly_investment || 0
+})
+
 const savingsRate = computed(() => {
   const spending = props.metrics?.monthly_spending || 0
-  const income = props.metrics?.total_income || 0 // Assuming income is available or implied
+  const income = props.metrics?.total_income || 0
   if (income <= 0) return 0
+  // Savings Rate = (Income - Consumption) / Income
+  // Consumption = spending (operational expenses)
   const rate = ((income - spending) / income) * 100
   return Math.max(0, Math.round(rate))
 })

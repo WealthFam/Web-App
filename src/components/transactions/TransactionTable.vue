@@ -246,7 +246,7 @@ const computedHeaders = computed(() => {
         { title: 'Amount', key: 'amount', sortable: true, align: 'end' as const, width: '130px' },
     ]
     if (!props.hideActions) {
-        base.push({ title: '', key: 'actions', sortable: false, align: 'center' as const, width: '60px' })
+        base.push({ title: '', key: 'actions', sortable: false, align: 'center' as any, width: '60px' })
     }
     return base
 })

@@ -36,6 +36,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     const spendingTrend = ref<number[]>([])
     const spendingLabels = ref<string[]>([])
     const sixMonthSpendingTrend = ref<number[]>([])
+    const sixMonthInvestmentTrend = ref<number[]>([])
     const sixMonthLabels = ref<string[]>([])
     const aiInsights = ref<any>(null)
     const loading = ref(false)
@@ -126,9 +127,22 @@ export const useDashboardStore = defineStore('dashboard', () => {
             if (bh.data && Array.isArray(bh.data)) {
                 sixMonthSpendingTrend.value = bh.data.map((month: any) => {
                     const overall = month.data?.find((c: any) => c.category === 'OVERALL')
-                    if (overall) return Number(overall.spent || 0)
-                    return month.data?.reduce((sum: number, c: any) => sum + Number(c.spent || 0), 0) || 0
+                    return Number(overall?.spent || 0)
                 })
+                // Ensure at least 2 points for sparkline if data is skewed
+                if (sixMonthSpendingTrend.value.every(v => v === 0) && metrics.value?.monthly_spending) {
+                    sixMonthSpendingTrend.value[sixMonthSpendingTrend.value.length - 1] = metrics.value.monthly_spending
+                }
+
+                sixMonthInvestmentTrend.value = bh.data.map((month: any) => {
+                    const inv = month.data?.find((c: any) => c.category === 'INVESTMENT')
+                    return Number(inv?.spent || 0)
+                })
+                // Ensure at least 2 points for sparkline
+                if (sixMonthInvestmentTrend.value.every(v => v === 0) && metrics.value?.monthly_investment) {
+                    sixMonthInvestmentTrend.value[sixMonthInvestmentTrend.value.length - 1] = metrics.value.monthly_investment
+                }
+
                 sixMonthLabels.value = bh.data.map((month: any) => month.month || '')
             }
 
@@ -163,6 +177,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
         spendingTrend,
         spendingLabels,
         sixMonthSpendingTrend,
+        sixMonthInvestmentTrend,
         sixMonthLabels,
         projectedBudgetTrend,
         projectedBudgetLabels,

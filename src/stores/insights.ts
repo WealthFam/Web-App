@@ -12,8 +12,10 @@ export const useInsightsStore = defineStore('insights', () => {
     const analyticsData = ref<any>({
         income: 0,
         expense_total: 0,
+        investment_total: 0,
         net: 0,
         categories: [],
+        investment_breakdown: [],
         merchants: [],
         heatmap: { grid: {}, categories: [], hours: [], max: 0 },
         excludedExpense: 0,

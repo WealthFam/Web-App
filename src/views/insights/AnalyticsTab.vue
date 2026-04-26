@@ -157,7 +157,7 @@
             </v-col>
 
             <!-- Summary Cards -->
-            <v-col cols="12" md="4">
+            <v-col cols="12" sm="6" md="3">
                 <v-card rounded="xl" class="stat-glass-card stat-income h-100">
                     <div class="d-flex align-center pa-4">
                         <div class="stat-icon-glow income-glow mr-4">
@@ -174,7 +174,7 @@
                 </v-card>
             </v-col>
 
-            <v-col cols="12" md="4">
+            <v-col cols="12" sm="6" md="3">
                 <v-card rounded="xl" class="stat-glass-card stat-expense h-100">
                     <div class="d-flex align-center pa-4">
                         <div class="stat-icon-glow expense-glow mr-4">
@@ -191,7 +191,24 @@
                 </v-card>
             </v-col>
 
-            <v-col cols="12" md="4">
+            <v-col cols="12" sm="6" md="3">
+                <v-card rounded="xl" class="stat-glass-card stat-investment h-100">
+                    <div class="d-flex align-center pa-4">
+                        <div class="stat-icon-glow investment-glow mr-4">
+                            <TrendingUp :size="28" class="text-warning" />
+                        </div>
+                        <div>
+                            <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Total
+                                Investments</span>
+                            <h2 class="text-h4 font-weight-black text-warning mt-n1 tabular-nums">{{
+                                formatAmount(analyticsData.investment_total || 0) }}
+                            </h2>
+                        </div>
+                    </div>
+                </v-card>
+            </v-col>
+
+            <v-col cols="12" sm="6" md="3">
                 <v-card rounded="xl" class="stat-glass-card stat-net h-100">
                     <div class="d-flex align-center pa-4">
                         <div class="stat-icon-glow net-glow mr-4">
@@ -273,9 +290,25 @@
             <!-- Major Charts Grid -->
             <v-col cols="12" md="6">
                 <v-card rounded="xl" class="premium-glass-card h-100 no-hover">
-                    <v-card-title class="d-flex align-center px-6 pt-6">
-                        <Sparkles :size="20" class="text-primary mr-3" />
-                        <span class="text-h6 font-weight-black">Spending Categorization</span>
+                    <v-card-title class="d-flex align-center justify-space-between px-6 pt-6">
+                        <div class="d-flex align-center">
+                            <Sparkles :size="20" class="text-primary mr-3" />
+                            <span class="text-h6 font-weight-black">Categorization</span>
+                        </div>
+                        <div class="pa-1 border rounded-pill d-flex" style="background: rgba(var(--v-theme-surface), 0.5)">
+                            <v-btn variant="flat" rounded="pill" height="28"
+                                class="text-none font-weight-black px-4 text-caption"
+                                :color="breakdownView === 'expense' ? 'primary' : 'transparent'"
+                                @click="breakdownView = 'expense'">
+                                Expenses
+                            </v-btn>
+                            <v-btn variant="flat" rounded="pill" height="28"
+                                class="text-none font-weight-black px-4 text-caption"
+                                :color="breakdownView === 'investment' ? 'primary' : 'transparent'"
+                                @click="breakdownView = 'investment'">
+                                Investments
+                            </v-btn>
+                        </div>
                     </v-card-title>
                     <v-card-text class="pa-6">
                         <div class="doughnut-chart-container relative-pos">
@@ -290,8 +323,8 @@
                                 }
                             }" @chart-click="handleCategoryClick" />
                             <div class="chart-center-label">
-                                <div class="text-overline font-weight-black opacity-60">TOTAL SPENT</div>
-                                <div class="text-h6 font-weight-black">{{ formatAmount(analyticsData.expense_total) }}
+                                <div class="text-overline font-weight-black opacity-60">{{ breakdownView === 'expense' ? 'TOTAL SPENT' : 'TOTAL INVESTED' }}</div>
+                                <div class="text-h6 font-weight-black">{{ formatAmount(breakdownView === 'expense' ? analyticsData.expense_total : analyticsData.investment_total) }}
                                 </div>
                             </div>
                         </div>
@@ -558,8 +591,7 @@ import { useTheme } from 'vuetify'
 import {
     TrendingUp, TrendingDown, Scale,
     CalendarRange, ArrowRight, RefreshCcw, Filter, BarChart2,
-    ShieldAlert, Sparkles, Brain, ChevronDown, Wallet,
-    ChevronLeft, ChevronRight, MapPin
+    ShieldAlert, Sparkles, Brain, ChevronDown, Wallet
 } from 'lucide-vue-next'
 import { getCategoryLucideIcon } from '@/utils/iconMapping'
 
@@ -585,6 +617,7 @@ const endDate = ref('')
 const selectedTrendCategory = ref('')
 const trendView = ref<'daily' | 'monthly'>('daily')
 const localSelectedAccount = ref(props.selectedAccount || '')
+const breakdownView = ref<'expense' | 'investment'>('expense')
 
 // Pagination for transactions
 const filteredTransactions = ref<any[]>([])
@@ -861,8 +894,10 @@ async function generateAIInsights(forceRefresh: boolean = true) {
         const promptData = {
             income: analyticsData.value.income,
             expense_total: analyticsData.value.expense_total,
+            investment_total: analyticsData.value.investment_total,
             net: analyticsData.value.net,
             categories: analyticsData.value.categories,
+            investment_breakdown: analyticsData.value.investment_breakdown,
             merchants: analyticsData.value.merchants,
             accounts: analyticsData.value.accounts,
             types: analyticsData.value.types,
@@ -969,15 +1004,18 @@ const merchantChartData = computed(() => ({
     }]
 }))
 
-const categoryChartData = computed(() => ({
-    labels: analyticsData.value.categories?.map((c: any) => c.name) || [],
-    datasets: [{
-        data: analyticsData.value.categories?.map((c: any) => c.value / (settings.maskingFactor || 1)) || [],
-        backgroundColor: analyticsData.value.categories?.map((_: any, i: number) => chartPalette[i % chartPalette.length]) || [],
-        hoverOffset: 12,
-        borderWidth: 0
-    }]
-}))
+const categoryChartData = computed(() => {
+    const source = breakdownView.value === 'expense' ? analyticsData.value.categories : analyticsData.value.investment_breakdown
+    return {
+        labels: source?.map((c: any) => c.name) || [],
+        datasets: [{
+            data: source?.map((c: any) => c.value / (settings.maskingFactor || 1)) || [],
+            backgroundColor: source?.map((_: any, i: number) => chartPalette[i % chartPalette.length]) || [],
+            hoverOffset: 12,
+            borderWidth: 0
+        }]
+    }
+})
 
 const forecastChartData = computed(() => ({
     labels: forecastData.value.map((d: any) => d.date.split('T')[0].slice(5)),

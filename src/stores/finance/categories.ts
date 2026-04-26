@@ -38,6 +38,7 @@ export const useCategoriesStore = defineStore('categories', () => {
             expenses: categories.value.filter(c => (c.type || 'expense') === 'expense').length,
             income: categories.value.filter(c => c.type === 'income').length,
             transfer: categories.value.filter(c => c.type === 'transfer').length,
+            investment: categories.value.filter(c => c.type === 'investment').length,
         }
     })
 

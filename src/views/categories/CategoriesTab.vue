@@ -2,7 +2,7 @@
     <v-container fluid class="pa-0 animate-in relative-pos z-10">
         <!-- Stats Overview -->
         <v-row class="mb-6">
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="4" lg="2">
                 <v-card @click="categoriesStore.searchFilter = 'all'"
                     class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl">
                     <div class="d-flex justify-space-between align-start mb-2">
@@ -16,11 +16,11 @@
                             <BarChart3 :size="24" />
                         </v-avatar>
                     </div>
-                    <div class="text-caption font-weight-bold opacity-60">Revenue & Expense items</div>
+                    <div class="text-caption font-weight-bold opacity-60">Master Inventory</div>
                 </v-card>
             </v-col>
 
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="4" lg="2" class="flex-grow-1">
                 <v-card @click="categoriesStore.searchFilter = 'expense'"
                     class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl"
                     :class="{ 'border-error': categoriesStore.searchFilter === 'expense' }">
@@ -42,7 +42,7 @@
                 </v-card>
             </v-col>
 
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="4" lg="2" class="flex-grow-1">
                 <v-card @click="categoriesStore.searchFilter = 'income'"
                     class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl"
                     :class="{ 'border-success': categoriesStore.searchFilter === 'income' }">
@@ -64,7 +64,29 @@
                 </v-card>
             </v-col>
 
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="4" lg="2" class="flex-grow-1">
+                <v-card @click="categoriesStore.searchFilter = 'investment'"
+                    class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl"
+                    :class="{ 'border-warning': categoriesStore.searchFilter === 'investment' }">
+                    <div class="d-flex justify-space-between align-start mb-2">
+                        <div>
+                            <span class="text-overline font-weight-black opacity-50 letter-spacing-2">Investment</span>
+                            <div class="text-h4 font-weight-black mt-1"
+                                :class="categoriesStore.searchFilter === 'investment' ? 'text-warning' : ''">
+                                {{ categoriesStore.categoryStats.investment }}
+                            </div>
+                        </div>
+                        <v-avatar color="warning" variant="tonal" rounded="lg" size="48" class="elevation-1">
+                            <TrendingUp :size="24" />
+                        </v-avatar>
+                    </div>
+                    <v-progress-linear
+                        :model-value="(categoriesStore.categoryStats.investment / (categoriesStore.categoryStats.total || 1)) * 100"
+                        color="warning" height="6" rounded class="mt-4 opacity-30" />
+                </v-card>
+            </v-col>
+
+            <v-col cols="12" sm="6" md="4" lg="2" class="flex-grow-1">
                 <v-card @click="categoriesStore.searchFilter = 'transfer'"
                     class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl"
                     :class="{ 'border-info': categoriesStore.searchFilter === 'transfer' }">
@@ -156,7 +178,7 @@
 
                 <!-- Type Column -->
                 <template v-slot:item.type="{ item }">
-                    <v-chip :color="item.type === 'expense' ? 'error' : (item.type === 'income' ? 'success' : 'info')"
+                    <v-chip :color="item.type === 'expense' ? 'error' : (item.type === 'income' ? 'success' : (item.type === 'investment' ? 'warning' : 'info'))"
                         size="x-small" class="text-none font-weight-black px-2" variant="tonal">
                         {{ item.type.toUpperCase() }}
                     </v-chip>

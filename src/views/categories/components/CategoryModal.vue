@@ -66,7 +66,8 @@
                                     rounded="pill" hide-details density="comfortable" :items="[
                                         { title: '🔴 Expense', value: 'expense' },
                                         { title: '🟢 Income', value: 'income' },
-                                        { title: '🔄 Transfer', value: 'transfer' }
+                                        { title: '🔄 Transfer', value: 'transfer' },
+                                        { title: '📈 Investment', value: 'investment' }
                                     ]" class="font-weight-bold" bg-color="surface">
                                     <template v-slot:prepend-inner>
                                         <Activity :size="18" class="text-primary mr-2 opacity-70" />

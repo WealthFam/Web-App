@@ -101,16 +101,22 @@
                         <div class="glass-card pa-1 border rounded-pill d-flex"
                             style="background: rgba(var(--v-theme-surface), 0.5)">
                             <v-btn variant="flat" rounded="pill" height="36"
-                                class="text-none font-weight-black px-6 letter-spacing-1"
+                                class="text-none font-weight-black px-5 letter-spacing-1"
                                 :color="activeTab === 'expense' ? 'primary' : 'transparent'"
                                 :class="activeTab !== 'expense' ? 'text-disabled' : ''" @click="activeTab = 'expense'">
                                 Expense
                             </v-btn>
                             <v-btn variant="flat" rounded="pill" height="36"
-                                class="text-none font-weight-black px-6 letter-spacing-1"
+                                class="text-none font-weight-black px-5 letter-spacing-1"
                                 :color="activeTab === 'income' ? 'primary' : 'transparent'"
                                 :class="activeTab !== 'income' ? 'text-disabled' : ''" @click="activeTab = 'income'">
                                 Income
+                            </v-btn>
+                            <v-btn variant="flat" rounded="pill" height="36"
+                                class="text-none font-weight-black px-5 letter-spacing-1"
+                                :color="activeTab === 'investment' ? 'primary' : 'transparent'"
+                                :class="activeTab !== 'investment' ? 'text-disabled' : ''" @click="activeTab = 'investment'">
+                                Investment
                             </v-btn>
                         </div>
                     </div>
@@ -261,7 +267,7 @@ const newBudget = ref({
     amount_limit: null as number | null
 })
 
-const activeTab = ref<'expense' | 'income'>('expense')
+const activeTab = ref<'expense' | 'income' | 'investment'>('expense')
 
 // Metrics
 
@@ -289,11 +295,19 @@ const groupedBudgets = computed(() => {
 
     // 4. Tab Filter (Expense vs Income)
     return groups.filter(g => {
+        if (activeTab.value === 'investment') {
+            return g.parent.type === 'investment'
+        }
+
         const isIncomeTab = activeTab.value === 'income'
         const isIncomeGroup = g.parent.type === 'income' || g.parent.income > 0 || g.parent.category === 'Salary'
 
         if (isIncomeTab && !isIncomeGroup) return false
         if (!isIncomeTab && isIncomeGroup) return false
+        
+        // Also exclude investments from generic expense tab
+        if (activeTab.value === 'expense' && g.parent.type === 'investment') return false
+
         return true
     }).sort((a, b) => b.parent.percentage - a.parent.percentage)
 })
