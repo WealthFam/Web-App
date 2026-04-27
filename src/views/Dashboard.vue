@@ -465,9 +465,15 @@ const expenseGroups = computed(() => expenseGroupStore.groups)
 const recurringTransactions = ref<any[]>([]) // Should define type if possible later
 
 const netWorth = computed(() => {
+    // Prefer the backend's pre-calculated net worth for consistency, 
+    // but allow for frontend adjustments if needed.
+    if (metrics.value?.breakdown?.net_worth !== undefined) {
+        return Number(metrics.value.breakdown.net_worth)
+    }
+    
     const liquid = (metrics.value?.breakdown?.bank_balance || 0) + (metrics.value?.breakdown?.cash_balance || 0)
-    const investment = mfPortfolio.value?.current || 0
-    const debt = metrics.value?.breakdown?.credit_debt || 0
+    const investment = (metrics.value?.breakdown?.investment_value || 0)
+    const debt = (metrics.value?.breakdown?.total_debt || 0)
     return liquid + investment - debt
 })
 
