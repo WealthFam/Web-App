@@ -156,13 +156,10 @@ const props = defineProps<{
 const { formatAmount } = useCurrency()
 const showInfo = ref(false)
 
-const monthlyInvestment = computed(() => {
-  return props.metrics?.monthly_investment || 0
-})
 
 const totalSavings = computed(() => {
-  const spending = props.metrics?.unfiltered_spending || 0
-  const income = props.metrics?.unfiltered_income || 0
+  const spending = props.metrics?.monthly_spending || 0
+  const income = props.metrics?.total_income || 0
   return Math.max(0, income - spending)
 })
 
