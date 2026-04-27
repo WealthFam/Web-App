@@ -83,7 +83,7 @@
                                         :labels="sixMonthLabels" color="#e11d48" :height="40" :width="120" fill />
                                 </div>
                             </div>
-                            <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Monthly Spending</div>
+                            <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Expenses</div>
                             <div class="text-h4 font-weight-black text-error mb-1">{{ formatAmount(metrics?.monthly_spending || 0) }}</div>
                             <div class="mt-auto pt-2">
                                 <div class="d-flex align-center text-caption font-weight-bold"
