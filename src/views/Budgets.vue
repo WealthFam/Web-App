@@ -337,14 +337,14 @@ const alertGroups = computed(() => {
 })
 
 const totalIncome = computed(() => {
-    // Return total income for the current view
+    // Return total income for the current view (strictly 'income' type)
     return budgets.value
-        .filter(b => !b.parent_id && (b.type === 'income' || b.income > 0))
+        .filter(b => !b.parent_id && b.type === 'income')
         .reduce((sum, b) => sum + Number(b.income || 0), 0)
 })
 
 const totalSpent = computed(() => {
-    // Return total operational expenses (excluding investments)
+    // Return total expenses (strictly 'expense' or None type)
     return budgets.value
         .filter(b => !b.parent_id && (b.type === 'expense' || b.type === null))
         .reduce((sum, b) => sum + Number(b.spent), 0)

@@ -41,7 +41,7 @@ const { formatAmount } = useCurrency()
         <v-card class="premium-glass-card pa-6 h-100" rounded="xl">
           <div class="d-flex justify-space-between align-center mb-6">
             <span class="text-overline font-weight-black opacity-60 letter-spacing-1">
-              {{ activeTab === 'investment' ? 'Total Invested' : 'Operational Outflow' }}
+              {{ activeTab === 'investment' ? 'Total Invested' : 'Expenses' }}
             </span>
             <v-avatar :color="activeTab === 'investment' ? 'warning-lighten-5' : 'rose-lighten-5'" rounded="lg" size="48">
               <TrendingDown :class="activeTab === 'investment' ? 'text-warning' : 'text-error'" :size="24" />
@@ -81,11 +81,11 @@ const { formatAmount } = useCurrency()
           </div>
           <div class="d-flex flex-column ga-2 mt-2">
             <div v-if="overallBudget.total_excluded > 0" class="text-subtitle-2 font-weight-black opacity-60 d-flex justify-space-between align-center">
-              <span>Outflow</span>
+              <span>Expenses</span>
               <span class="text-subtitle-1">{{ formatAmount(overallBudget.total_excluded) }}</span>
             </div>
             <div v-if="overallBudget.excluded_income > 0" class="text-subtitle-2 font-weight-black text-success d-flex justify-space-between align-center">
-              <span>Inflow</span>
+              <span>Income</span>
               <span class="text-subtitle-1">+{{ formatAmount(overallBudget.excluded_income) }}</span>
             </div>
           </div>
