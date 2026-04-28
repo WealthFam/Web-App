@@ -106,8 +106,16 @@ const AVATARS: Record<string, string> = {
     'kid': '🧒'
 }
 
+interface NavItem {
+    title: string
+    icon: any
+    to?: string
+    children?: NavItem[]
+    adultOnly?: boolean
+}
+
 const navItems = computed(() => {
-    const rawItems = [
+    const rawItems: NavItem[] = [
         { title: 'Dashboard', icon: LayoutDashboard, to: '/' },
         { title: 'Transactions', icon: Wallet, to: '/transactions' },
         {
