@@ -107,25 +107,62 @@ const AVATARS: Record<string, string> = {
 }
 
 const navItems = computed(() => {
-    const items = [
+    const rawItems = [
         { title: 'Dashboard', icon: LayoutDashboard, to: '/' },
-        { title: 'Accounts', icon: Briefcase, to: '/accounts', adultOnly: true },
         { title: 'Transactions', icon: Wallet, to: '/transactions' },
-        { title: 'Budgets', icon: PieChart, to: '/budgets' },
-        { title: 'Categories', icon: Tags, to: '/categories' },
-        { title: 'Insights', icon: Sparkles, to: '/insights' },
-        { title: 'Mutual Funds', icon: Coins, to: '/mutual-funds' },
-        { title: 'Financial Goals', icon: Target, to: '/investment-goals' },
-        { title: 'Expense Groups', icon: Layers, to: '/expense-groups' },
-        { title: 'Loans', icon: Landmark, to: '/loans' },
-        { title: 'Vault', icon: ShieldCheck, to: '/vault' },
-        { title: 'Settings', icon: Settings, to: '/settings' },
+        {
+            title: 'Banking',
+            icon: Landmark,
+            children: [
+                { title: 'Accounts', icon: Briefcase, to: '/accounts', adultOnly: true },
+            ]
+        },
+        {
+            title: 'Planning',
+            icon: PieChart,
+            children: [
+                { title: 'Insights', icon: Sparkles, to: '/insights' },
+                { title: 'Budgets', icon: PieChart, to: '/budgets' },
+                { title: 'Categories', icon: Tags, to: '/categories' },
+                { title: 'Expense Groups', icon: Layers, to: '/expense-groups' },
+            ]
+        },
+        {
+            title: 'Wealth',
+            icon: Coins,
+            children: [
+                { title: 'Mutual Funds', icon: Coins, to: '/mutual-funds' },
+                { title: 'Financial Goals', icon: Target, to: '/investment-goals' },
+                { title: 'Loans', icon: Landmark, to: '/loans' },
+            ]
+        },
+        {
+            title: 'System',
+            icon: Settings,
+            children: [
+                { title: 'Vault', icon: ShieldCheck, to: '/vault' },
+                { title: 'Settings', icon: Settings, to: '/settings' },
+            ]
+        }
     ]
 
-    if (auth.user?.role === 'CHILD') {
-        return items.filter(item => !item.adultOnly)
-    }
-    return items
+    // Deep filter for adultOnly items
+    return rawItems.map(item => {
+        if (item.children) {
+            const filteredChildren = item.children.filter(child => {
+                if (auth.user?.role === 'CHILD' && child.adultOnly) return false
+                return true
+            })
+            return { ...item, children: filteredChildren }
+        }
+        return item
+    }).filter(item => {
+        // If it's a group, keep it only if it has children after filtering
+        if (item.children) return item.children.length > 0
+        // If it's a flat item, check adultOnly
+        if (auth.user?.role === 'CHILD' && item.adultOnly) return false
+        return true
+    })
 })
 
 function logout() {
@@ -178,6 +215,8 @@ onUnmounted(() => {
 // Hyper-Premium Sidebar Interactions
 const mouseX = ref(0)
 const mouseY = ref(0)
+const openedGroups = ref<string[]>([])
+
 function handleMouseMove(e: MouseEvent) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     mouseX.value = e.clientX - rect.left
@@ -420,28 +459,87 @@ function handleMouseMove(e: MouseEvent) {
         <v-navigation-drawer v-model="drawer" :rail="rail" permanent floating class="aether-drawer" width="280"
             :rail-width="rail ? 88 : 280" @mousemove="handleMouseMove"
             :style="{ '--mouse-x': mouseX + 'px', '--mouse-y': mouseY + 'px' }">
-            <v-list nav class="px-0 py-4">
+            <v-list nav class="px-0 py-4" v-model:opened="openedGroups">
                 <template v-for="(item, index) in navItems" :key="item.title">
-                    <v-tooltip :text="item.title" location="right" v-if="rail" offset="12">
-                        <template v-slot:activator="{ props }">
-                            <v-list-item v-bind="props" :to="item.to" :active="route.path === item.to"
-                                class="nav-item-aether rail-mode-item mb-1" link
-                                :style="{ transitionDelay: `${index * 40}ms` }">
-                                <div class="rail-item-content">
-                                    <component :is="item.icon" :size="20" class="nav-icon" />
-                                    <span class="rail-label-tiny">{{ item.title }}</span>
+                    <!-- RAIL MODE (Strictly Collapsed) -->
+                    <template v-if="rail">
+                        <!-- Group with Floating Menu -->
+                        <v-menu v-if="item.children" open-on-hover location="right" offset="12"
+                            transition="slide-x-transition">
+                            <template v-slot:activator="{ props }">
+                                <v-list-item v-bind="props" class="nav-item-aether rail-mode-item mb-1" link
+                                    :active="item.children?.some(c => route.path === c.to)"
+                                    :style="{ transitionDelay: `${index * 40}ms` }">
+                                    <div class="rail-item-content">
+                                        <component :is="item.icon" :size="20" class="nav-icon" />
+                                        <span class="rail-label-tiny">{{ item.title }}</span>
+                                    </div>
+                                </v-list-item>
+                            </template>
+                            <v-card width="230" class="premium-popup pa-2">
+                                <div class="px-3 py-2 text-tiny font-weight-black opacity-40 uppercase letter-spacing-1">
+                                    {{ item.title }}</div>
+                                <v-list density="compact" nav class="pa-0">
+                                    <v-list-item v-for="child in item.children" :key="child.title" :to="child.to"
+                                        :active="route.path === child.to" class="nav-item-child-floating mb-1" link>
+                                        <template v-slot:prepend>
+                                            <component :is="child.icon" :size="16" class="mr-3 opacity-60" />
+                                        </template>
+                                        <v-list-item-title class="text-caption font-weight-bold">{{ child.title }}
+                                        </v-list-item-title>
+                                    </v-list-item>
+                                </v-list>
+                            </v-card>
+                        </v-menu>
+
+                        <!-- Flat Item with Tooltip -->
+                        <v-tooltip v-else :text="item.title" location="right" offset="12">
+                            <template v-slot:activator="{ props }">
+                                <v-list-item v-bind="props" :to="item.to" :active="route.path === item.to"
+                                    class="nav-item-aether rail-mode-item mb-1" link
+                                    :style="{ transitionDelay: `${index * 40}ms` }">
+                                    <div class="rail-item-content">
+                                        <component :is="item.icon" :size="20" class="nav-icon" />
+                                        <span class="rail-label-tiny">{{ item.title }}</span>
+                                    </div>
+                                </v-list-item>
+                            </template>
+                        </v-tooltip>
+                    </template>
+
+                    <!-- EXPANDED MODE -->
+                    <template v-else>
+                        <!-- Group Item -->
+                        <v-list-group v-if="item.children" :value="item.title" class="nav-group-aether mb-1">
+                            <template v-slot:activator="{ props }">
+                                <v-list-item v-bind="props" class="nav-item-aether" link
+                                    :active="item.children?.some(c => route.path === c.to)">
+                                    <div class="nav-item-content-horizontal">
+                                        <component :is="item.icon" :size="20" class="nav-icon mr-4" />
+                                        <v-list-item-title class="nav-title">{{ item.title }}</v-list-item-title>
+                                    </div>
+                                </v-list-item>
+                            </template>
+
+                            <v-list-item v-for="child in item.children" :key="child.title" :to="child.to"
+                                :active="route.path === child.to" class="nav-item-aether nav-item-child mb-1" link>
+                                <div class="nav-item-content-horizontal">
+                                    <component :is="child.icon" :size="18" class="nav-icon mr-4 ml-4" />
+                                    <v-list-item-title class="nav-title-child">{{ child.title }}
+                                    </v-list-item-title>
                                 </div>
                             </v-list-item>
-                        </template>
-                    </v-tooltip>
+                        </v-list-group>
 
-                    <v-list-item v-else :to="item.to" :active="route.path === item.to" class="nav-item-aether mb-1" link
-                        :style="{ transitionDelay: `${index * 40}ms` }">
-                        <div class="nav-item-content-horizontal">
-                            <component :is="item.icon" :size="20" class="nav-icon mr-4" />
-                            <v-list-item-title class="nav-title">{{ item.title }}</v-list-item-title>
-                        </div>
-                    </v-list-item>
+                        <!-- Flat Item -->
+                        <v-list-item v-else :to="item.to" :active="route.path === item.to"
+                            class="nav-item-aether mb-1" link :style="{ transitionDelay: `${index * 40}ms` }">
+                            <div class="nav-item-content-horizontal">
+                                <component :is="item.icon" :size="20" class="nav-icon mr-4" />
+                                <v-list-item-title class="nav-title">{{ item.title }}</v-list-item-title>
+                            </div>
+                        </v-list-item>
+                    </template>
                 </template>
             </v-list>
 
@@ -797,6 +895,79 @@ function handleMouseMove(e: MouseEvent) {
 .nav-title {
     font-size: 0.875rem;
     font-weight: 600;
+}
+
+/* Group & Child Refinements */
+.nav-group-aether :deep(.v-list-group__items) {
+    --v-list-group-items-padding: 0;
+}
+
+.nav-item-child {
+    min-height: 44px !important;
+    padding-left: 32px !important;
+}
+
+.nav-title-child {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    opacity: 0.7;
+    letter-spacing: 0.02em;
+}
+
+.nav-item-child.v-list-item--active .nav-title-child {
+    opacity: 1;
+    color: rgb(var(--v-theme-primary));
+}
+
+/* Sub-pulse for children */
+.nav-item-child.v-list-item--active::before {
+    border-left-width: 2px; /* Thinner for children */
+    box-shadow: inset 10px 0 20px -10px rgba(var(--v-theme-primary), 0.1);
+}
+
+/* Floating Menu Child Refinements */
+.nav-item-child-floating {
+    min-height: 40px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease;
+    margin-bottom: 2px;
+}
+
+.nav-item-child-floating:hover {
+    background: rgba(var(--v-theme-primary), 0.08) !important;
+    transform: translateX(4px);
+}
+
+.nav-item-child-floating.v-list-item--active {
+    background: rgba(var(--v-theme-primary), 0.12) !important;
+    color: rgb(var(--v-theme-primary)) !important;
+}
+
+.nav-item-child-floating.v-list-item--active :deep(.v-list-item-title) {
+    font-weight: 800 !important;
+}
+
+.letter-spacing-1 {
+    letter-spacing: 0.1em !important;
+}
+
+.text-tiny {
+    font-size: 0.65rem !important;
+}
+
+.nav-group-aether :deep(.v-list-item__append) {
+    margin-left: 4px;
+}
+
+.nav-group-aether :deep(.v-list-item__append .v-icon) {
+    font-size: 1.1rem;
+    opacity: 0.4;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-group-aether.v-list-group--active :deep(.v-list-item__append .v-icon) {
+    opacity: 0.8;
+    color: rgb(var(--v-theme-primary));
 }
 
 .sidebar-footer {
