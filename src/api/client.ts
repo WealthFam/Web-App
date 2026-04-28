@@ -363,6 +363,9 @@ export const financeApi = {
     unlinkHoldingFromGoal: (goalId: string, holdingId: string) => apiClient.delete(`/finance/investment-goals/${goalId}/holdings/${holdingId}`),
     addGoalAsset: (goalId: string, data: any) => apiClient.post(`/finance/investment-goals/${goalId}/assets`, data),
     removeGoalAsset: (assetId: string) => apiClient.delete(`/finance/investment-goals/assets/${assetId}`),
+    payCreditCardBill: (id: string, data: { source_account_id: string, amount: number, date: string, description?: string }) => 
+        apiClient.post(`/finance/accounts/${id}/pay-bill`, data),
+    getCreditIntelligence: (userId?: string) => apiClient.get('/finance/analytics/credit-intelligence', { params: { user_id: userId } }),
 }
 
 const parserClient = axios.create({
@@ -405,6 +408,7 @@ export const parserApi = {
 
 export const aiApi = {
     getSettings: () => apiClient.get('/ingestion/ai/settings'),
+    getStatus: () => apiClient.get('/ingestion/ai/status', { skipNotification: true }),
     updateSettings: (data: any) => apiClient.post('/ingestion/ai/settings', data),
     testConnection: (content: string) => apiClient.post('/ingestion/ai/test', { content }),
     listModels: (provider: string, apiKey?: string) => apiClient.get('/ingestion/ai/models', { params: { provider, api_key: apiKey } }),

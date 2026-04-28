@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import {
-    Settings as SettingsIcon,
-
-    CreditCard,
     Mail,
     Users,
     Bot,
@@ -13,15 +11,20 @@ import {
 } from 'lucide-vue-next'
 
 // Child Components
-import GeneralSettings from './settings/GeneralSettings.vue'
-import AccountsSettings from './settings/AccountsSettings.vue'
 import EmailSettings from './settings/EmailSettings.vue'
 import FamilySettings from './settings/FamilySettings.vue'
 import AISettings from './settings/AISettings.vue'
 import DevicesSettings from './settings/DevicesSettings.vue'
 import ParserSettings from './settings/ParserSettings.vue'
 
-const activeTab = ref('general')
+const route = useRoute()
+const activeTab = ref('tenants')
+
+onMounted(() => {
+    if (route.query.tab) {
+        activeTab.value = route.query.tab as string
+    }
+})
 </script>
 
 <template>
@@ -40,7 +43,7 @@ const activeTab = ref('general')
                             <h1 class="text-h6 font-weight-black text-content">Settings</h1>
                         </div>
                         <p class="text-subtitle-2 text-medium-emphasis font-weight-bold mt-1 opacity-70">
-                            Manage your preferences and configurations
+                            Manage your family configuration and system preferences
                         </p>
                     </v-col>
 
@@ -49,18 +52,6 @@ const activeTab = ref('general')
                         <div class="premium-pill-tabs flex-grow-1 flex-md-grow-0 d-flex overflow-x-auto">
                             <v-tabs v-model="activeTab" color="primary" density="compact" hide-slider show-arrows
                                 class="rounded-xl">
-                                <v-tab value="general" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center gap-2">
-                                        <SettingsIcon :size="16" />
-                                        <span>General</span>
-                                    </div>
-                                </v-tab>
-                                <v-tab value="accounts" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center gap-2">
-                                        <CreditCard :size="16" />
-                                        <span>Accounts</span>
-                                    </div>
-                                </v-tab>
                                 <v-tab value="tenants" class="premium-tab" rounded="xl">
                                     <div class="d-flex align-center gap-2">
                                         <Users :size="16" />
@@ -98,14 +89,6 @@ const activeTab = ref('general')
 
                 <!-- CONTENT AREA -->
                 <v-window v-model="activeTab" class="overflow-visible">
-                    <v-window-item value="general">
-                        <GeneralSettings />
-                    </v-window-item>
-
-                    <v-window-item value="accounts">
-                        <AccountsSettings />
-                    </v-window-item>
-
                     <v-window-item value="tenants">
                         <FamilySettings />
                     </v-window-item>

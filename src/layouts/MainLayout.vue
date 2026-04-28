@@ -1,9 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-
-import { useAuthStore } from '@/stores/auth'
-import { useRouter, useRoute } from 'vue-router'
-import { useTheme } from 'vuetify'
 import {
     LayoutDashboard,
     Wallet,
@@ -26,10 +21,19 @@ import {
     Search,
     RefreshCw,
     ShieldCheck,
-    Zap
+    Zap,
+    Eye,
+    EyeOff,
+    Cpu,
+    Briefcase
 } from 'lucide-vue-next'
-import { onUnmounted, computed, watch } from 'vue'
+import { ref, onUnmounted, computed, watch } from 'vue'
 import { useMutualFundStore } from '@/stores/finance/mutualFunds'
+import { useSettingsStore } from '@/stores/settings'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter, useRoute } from 'vue-router'
+import { useTheme } from 'vuetify'
+import { aiApi } from '@/api/client'
 import ToastContainer from '@/components/ToastContainer.vue'
 import GlobalSearch from '@/components/common/GlobalSearch.vue'
 import { useWebSockets } from '@/composables/useWebSockets'
@@ -49,9 +53,32 @@ watch(unreadCount, (newVal, oldVal) => {
 })
 
 const auth = useAuthStore()
+const settingsStore = useSettingsStore()
 const router = useRouter()
 const route = useRoute()
 const theme = useTheme()
+
+// AI Status Logic
+const aiStatus = ref({
+    is_enabled: false,
+    has_api_key: false,
+    status: 'disabled',
+    error_message: null
+})
+
+async function fetchAiStatus() {
+    try {
+        const res = await aiApi.getStatus()
+        aiStatus.value = res.data
+    } catch (e) {
+        console.error("Failed to fetch AI status", e)
+    }
+}
+
+// Privacy Masking Factor Toggle
+function toggleMasking() {
+    settingsStore.toggleMasking()
+}
 
 // Version info
 const appVersion = __APP_VERSION__
@@ -79,32 +106,39 @@ const AVATARS: Record<string, string> = {
     'kid': '🧒'
 }
 
-const navItems = [
-    { title: 'Dashboard', icon: LayoutDashboard, to: '/' },
-    { title: 'Transactions', icon: Wallet, to: '/transactions' },
-    { title: 'Budgets', icon: PieChart, to: '/budgets' },
-    { title: 'Categories', icon: Tags, to: '/categories' },
-    { title: 'Insights', icon: Sparkles, to: '/insights' },
-    { title: 'Mutual Funds', icon: Coins, to: '/mutual-funds' },
-    { title: 'Financial Goals', icon: Target, to: '/investment-goals' },
-    { title: 'Expense Groups', icon: Layers, to: '/expense-groups' },
-    { title: 'Loans', icon: Landmark, to: '/loans' },
-    { title: 'Vault', icon: ShieldCheck, to: '/vault' },
-    { title: 'Settings', icon: Settings, to: '/settings' },
-]
+const navItems = computed(() => {
+    const items = [
+        { title: 'Dashboard', icon: LayoutDashboard, to: '/' },
+        { title: 'Accounts', icon: Briefcase, to: '/accounts', adultOnly: true },
+        { title: 'Transactions', icon: Wallet, to: '/transactions' },
+        { title: 'Budgets', icon: PieChart, to: '/budgets' },
+        { title: 'Categories', icon: Tags, to: '/categories' },
+        { title: 'Insights', icon: Sparkles, to: '/insights' },
+        { title: 'Mutual Funds', icon: Coins, to: '/mutual-funds' },
+        { title: 'Financial Goals', icon: Target, to: '/investment-goals' },
+        { title: 'Expense Groups', icon: Layers, to: '/expense-groups' },
+        { title: 'Loans', icon: Landmark, to: '/loans' },
+        { title: 'Vault', icon: ShieldCheck, to: '/vault' },
+        { title: 'Settings', icon: Settings, to: '/settings' },
+    ]
+
+    if (auth.user?.role === 'CHILD') {
+        return items.filter(item => !item.adultOnly)
+    }
+    return items
+})
 
 function logout() {
     auth.logout()
     router.push('/login')
 }
 
-
-
 const mfStore = useMutualFundStore()
 const isSyncing = computed(() => mfStore.isSyncing)
 const syncStatus = computed(() => mfStore.syncStatus)
 
 let syncInterval: any = null
+let aiStatusInterval: any = null
 
 const syncStatusText = computed(() => {
     if (isSyncing.value || syncStatus.value?.status === 'running') return 'Syncing Mutual Fund NAVs...'
@@ -112,17 +146,23 @@ const syncStatusText = computed(() => {
     return 'Refresh Mutual Fund NAVs'
 })
 
-
 function startPolling() {
     if (syncInterval) return
     mfStore.fetchSyncStatus()
     syncInterval = setInterval(() => mfStore.fetchSyncStatus(), 15000)
+
+    fetchAiStatus()
+    aiStatusInterval = setInterval(() => fetchAiStatus(), 60000) // Check AI status every minute
 }
 
 function stopPolling() {
     if (syncInterval) {
         clearInterval(syncInterval)
         syncInterval = null
+    }
+    if (aiStatusInterval) {
+        clearInterval(aiStatusInterval)
+        aiStatusInterval = null
     }
 }
 
@@ -245,6 +285,35 @@ function handleMouseMove(e: MouseEvent) {
                         </v-list>
                     </v-card>
                 </v-menu>
+
+                <!-- Privacy Mask Toggle -->
+                <v-tooltip location="bottom">
+                    <template v-slot:activator="{ props }">
+                        <v-btn v-bind="props" icon size="40" color="slate-600" class="mr-2" @click="toggleMasking"
+                            :variant="settingsStore.isMasked ? 'tonal' : 'text'">
+                            <component :is="settingsStore.isMasked ? EyeOff : Eye" :size="20"
+                                :class="{ 'text-primary': settingsStore.isMasked }" />
+                        </v-btn>
+                    </template>
+                    <span>{{ settingsStore.isMasked ? 'Privacy Mask Enabled' : 'Enable Privacy Mask' }}</span>
+                </v-tooltip>
+
+                <!-- AI Status Badge -->
+                <v-tooltip location="bottom">
+                    <template v-slot:activator="{ props }">
+                        <v-btn v-bind="props" icon size="40" color="slate-600" class="mr-2" to="/settings?tab=ai">
+                            <div class="ai-status-container">
+                                <Cpu :size="20" :class="{
+                                    'text-success': aiStatus.status === 'healthy',
+                                    'text-error': aiStatus.status === 'error',
+                                    'text-medium-emphasis': aiStatus.status === 'disabled'
+                                }" />
+                                <div v-if="aiStatus.status === 'healthy'" class="ai-pulse"></div>
+                            </div>
+                        </v-btn>
+                    </template>
+                    <span>AI Status: {{ aiStatus.status.toUpperCase() }}{{ aiStatus.error_message ? ` - ${aiStatus.error_message}` : '' }}</span>
+                </v-tooltip>
 
                 <!-- Mutual Fund Sync Status -->
                 <v-tooltip location="bottom" v-if="auth.user">
@@ -894,5 +963,37 @@ function handleMouseMove(e: MouseEvent) {
     animation: bell-ring 0.6s ease-in-out;
     transform-origin: top center;
     color: var(--v-theme-error) !important;
+}
+.ai-status-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ai-pulse {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: rgb(var(--v-theme-success));
+    border-radius: 50%;
+    top: -2px;
+    right: -2px;
+    box-shadow: 0 0 0 rgba(var(--v-theme-success), 0.4);
+    animation: ai-pulse-anim 2s infinite;
+}
+
+@keyframes ai-pulse-anim {
+    0% {
+        box-shadow: 0 0 0 0 rgba(var(--v-theme-success), 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px rgba(var(--v-theme-success), 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(var(--v-theme-success), 0);
+    }
 }
 </style>

@@ -15,6 +15,18 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/accounts/:id',
+      name: 'account-details',
+      component: () => import('@/views/AccountDetails.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/accounts',
+      name: 'accounts',
+      component: () => import('@/views/Accounts.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/transactions',
       name: 'transactions',
       component: () => import('@/views/Transactions.vue'),
