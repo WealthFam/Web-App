@@ -97,9 +97,11 @@ function getBudgetHealthClass(percentage: number) {
         <v-col cols="12" md="4" class="text-md-right">
           <v-btn v-if="overallBudget.budget_id" icon variant="tonal" rounded="xl" size="large" @click="emit('edit', overallBudget)" color="white">
             <Pencil :size="24" />
+            <v-tooltip activator="parent" location="top">Edit Monthly Limit</v-tooltip>
           </v-btn>
           <v-btn v-else icon variant="tonal" rounded="xl" size="large" @click="emit('set-limit')" color="white">
             <Plus :size="24" />
+            <v-tooltip activator="parent" location="top">Set Monthly Limit</v-tooltip>
           </v-btn>
         </v-col>
       </v-row>
@@ -107,7 +109,7 @@ function getBudgetHealthClass(percentage: number) {
       <div v-if="overallBudget.amount_limit" class="mt-8">
         <div class="relative-pos mb-4 progress-container-premium">
           <v-progress-linear 
-            :model-value="Math.min(overallBudget.percentage, 100)" 
+            :model-value="Math.max(0, Math.min(overallBudget.percentage, 100))" 
             height="16" 
             rounded="pill"
             :class="['premium-progress-lg elevation-4', getBudgetHealthClass(overallBudget.percentage)]"

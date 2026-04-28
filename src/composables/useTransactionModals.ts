@@ -330,29 +330,36 @@ export function useTransactionModals(
     /**
      * Find potential matches for transfer linking
      */
-    async function findMatches() {
-        if (!form.value.to_account_id || !form.value.amount || !form.value.date) return
+    async function findMatches(currentForm?: any) {
+        // Use provided form data from modal or fall back to internal state
+        const activeForm = currentForm || form.value
+        
+        if (!activeForm.to_account_id || !activeForm.amount || !activeForm.date) return
 
         isSearchingMatches.value = true
         matchesSearched.value = false
         try {
-            const txnDate = new Date(form.value.date)
+            const txnDate = new Date(activeForm.date)
             const startDate = new Date(txnDate)
             startDate.setDate(startDate.getDate() - 3)
             const endDate = new Date(txnDate)
             endDate.setDate(endDate.getDate() + 3)
-
+ 
             const res = await financeApi.getTransactions(
-                form.value.to_account_id,
+                activeForm.to_account_id,
                 1,
                 50,
                 startDate.toISOString().slice(0, 10),
                 endDate.toISOString().slice(0, 10)
             )
+ 
+            // Calculate target amount with opposite sign
+            // If current is DEBIT (-100), target is CREDIT (+100)
+            // If current is CREDIT (+100), target is DEBIT (-100)
+            const targetAmount = Number(activeForm.amount) * (activeForm.type === 'DEBIT' ? 1 : -1)
 
-            const targetAmount = -Number(form.value.amount)
-
-            potentialMatches.value = res.data.items.filter((t: any) => {
+            const items = res.data.data || res.data.items || res.data || []
+            potentialMatches.value = items.filter((t: any) => {
                 return Math.abs(t.amount - targetAmount) < 1.0 &&
                     t.id !== editingTxnId.value &&
                     (!t.linked_transaction_id || t.linked_transaction_id === editingTxnId.value)
@@ -369,13 +376,7 @@ export function useTransactionModals(
     /**
      * Select/deselect a match
      */
-    function selectMatch(match: any) {
-        if (form.value.linked_transaction_id === match.id) {
-            form.value.linked_transaction_id = ''
-        } else {
-            form.value.linked_transaction_id = match.id
-        }
-    }
+
 
     return {
         // State
@@ -400,7 +401,6 @@ export function useTransactionModals(
         handleSubmit,
         handleBulkRename,
         handleSmartCategorize,
-        findMatches,
-        selectMatch
+        findMatches
     }
 }

@@ -29,43 +29,39 @@ export function useWebSockets() {
         socket = new WebSocket(wsUrl)
 
         socket.onopen = () => {
-            console.log('[WebSockets] Connection established')
-            activityStore.setConnected(true)
+            activityStore.setConnected(true);
             if (reconnectTimer) {
-                clearTimeout(reconnectTimer)
-                reconnectTimer = null
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
             }
-        }
+        };
 
         socket.onmessage = (event) => {
             try {
-                const data = JSON.parse(event.data)
-                // Always update lastEvent for reactivity across components
-                activityStore.setLastEvent(data)
+                const data = JSON.parse(event.data);
+                activityStore.setLastEvent(data);
 
                 if (data.type === 'NOTIFICATION') {
-                    activityStore.addActivity(data.payload)
+                    activityStore.addActivity(data.payload);
                 }
             } catch (e) {
-                console.error('[WebSockets] Error parsing message:', e)
+                console.error('[WebSockets] Error parsing message:', e);
             }
-        }
+        };
 
-        socket.onclose = () => {
-            activityStore.setConnected(false)
-            // Exponential backoff or simple retry
+        socket.onclose = (_event) => {
+            activityStore.setConnected(false);
             if (!reconnectTimer) {
                 reconnectTimer = setTimeout(() => {
-                    reconnectTimer = null
-                    connect()
-                }, 5000)
+                    reconnectTimer = null;
+                    connect();
+                }, 5000);
             }
-        }
+        };
 
-        socket.onerror = (error) => {
-            console.error('[WebSockets] Error:', error)
-            socket?.close()
-        }
+        socket.onerror = () => {
+            socket?.close();
+        };
     }
 
     const disconnect = () => {

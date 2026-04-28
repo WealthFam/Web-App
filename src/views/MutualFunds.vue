@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { storeToRefs } from 'pinia'
+
+import { useMutualFundStore } from '@/stores/finance/mutualFunds'
 import MainLayout from '@/layouts/MainLayout.vue'
-import { FileText, Search, Upload } from 'lucide-vue-next'
+import { FileText, Search, Upload, Settings } from 'lucide-vue-next'
 import PortfolioTab from './mutual-funds/PortfolioTab.vue'
 import SearchTab from './mutual-funds/SearchTab.vue'
 import ImportTab from './mutual-funds/ImportTab.vue'
+import BenchmarksTab from './mutual-funds/BenchmarksTab.vue'
 
 // State
-const activeTab = ref('portfolio')
+const mfStore = useMutualFundStore()
+const { activeTab } = storeToRefs(mfStore)
+
 </script>
 
 <template>
@@ -48,6 +53,12 @@ const activeTab = ref('portfolio')
                                         <span>Import CAS</span>
                                     </div>
                                 </v-tab>
+                                <v-tab value="benchmarks" class="premium-tab" rounded="xl">
+                                    <div class="d-flex align-center gap-2">
+                                        <Settings :size="16" />
+                                        <span>Benchmarks</span>
+                                    </div>
+                                </v-tab>
                             </v-tabs>
                         </div>
                     </v-col>
@@ -68,6 +79,11 @@ const activeTab = ref('portfolio')
                     <!-- IMPORT TAB -->
                     <v-window-item value="import">
                         <ImportTab @success="activeTab = 'portfolio'" />
+                    </v-window-item>
+
+                    <!-- BENCHMARKS TAB -->
+                    <v-window-item value="benchmarks" class="overflow-visible">
+                        <BenchmarksTab />
                     </v-window-item>
                 </v-window>
             </div>

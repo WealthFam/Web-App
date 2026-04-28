@@ -38,6 +38,7 @@ export const useCategoriesStore = defineStore('categories', () => {
             expenses: categories.value.filter(c => (c.type || 'expense') === 'expense').length,
             income: categories.value.filter(c => c.type === 'income').length,
             transfer: categories.value.filter(c => c.type === 'transfer').length,
+            investment: categories.value.filter(c => c.type === 'investment').length,
         }
     })
 
@@ -109,8 +110,22 @@ export const useCategoriesStore = defineStore('categories', () => {
             return true
         } catch (e: any) {
             console.error("Failed to delete category", e)
-            notify.error("Failed to delete category")
+            if (e.response && e.response.data && e.response.data.detail) {
+                notify.error(e.response.data.detail)
+            } else {
+                notify.error("Failed to delete category")
+            }
             return false
+        }
+    }
+
+    async function getCategoryUsage(id: string) {
+        try {
+            const res = await financeApi.getCategoryUsage(id)
+            return res.data
+        } catch (e) {
+            console.error("Failed to fetch category usage", e)
+            return null
         }
     }
 
@@ -163,6 +178,7 @@ export const useCategoriesStore = defineStore('categories', () => {
         createCategory,
         updateCategory,
         deleteCategory,
+        getCategoryUsage,
         importCategories,
         exportCategories
     }

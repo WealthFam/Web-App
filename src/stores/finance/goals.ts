@@ -41,7 +41,7 @@ export const useGoalStore = defineStore('goals', () => {
     async function fetchPortfolio(mId?: string) {
         try {
             const res = await financeApi.getPortfolio(mId || auth.selectedMemberId || undefined)
-            portfolio.value = res.data
+            portfolio.value = res.data?.data || res.data
         } catch (error) {
             console.error('[GoalStore] Failed to fetch portfolio', error)
         }

@@ -1,21 +1,24 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ChevronLeft, TrendingUp, Shield, BarChart2, Star, Target, Globe, Briefcase, RefreshCcw } from 'lucide-vue-next'
+
 import MainLayout from '@/layouts/MainLayout.vue'
-import { financeApi } from '@/api/client'
+import { useMutualFundStore } from '@/stores/finance/mutualFunds'
 import { useNotificationStore } from '@/stores/notification'
 import FundPerformanceChart from './mutual-funds/components/FundPerformanceChart.vue'
 import InvestModal from './mutual-funds/modals/InvestModal.vue'
-import { ChevronLeft, TrendingUp, Shield, BarChart2, Star, Target, Globe, Briefcase } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
 const notify = useNotificationStore()
+const mfStore = useMutualFundStore()
 
 const schemeCode = route.params.id as string
 const fund = ref<any>(null)
 const isLoading = ref(true)
 const isChartLoading = ref(true)
+const isRecalculating = ref(false)
 
 // Modal
 const showInvestModal = ref(false)
@@ -23,8 +26,7 @@ const showInvestModal = ref(false)
 async function fetchFundInfo() {
     isLoading.value = true
     try {
-        const res = await financeApi.getSchemeInfo(schemeCode)
-        fund.value = res.data
+        fund.value = await mfStore.getExploreFundInfo(schemeCode)
     } catch (e) {
         console.error("Failed to fetch fund info:", e)
         notify.error("Failed to load fund details")
@@ -32,6 +34,23 @@ async function fetchFundInfo() {
     } finally {
         isLoading.value = false
         isChartLoading.value = false
+    }
+}
+
+async function recalculateTrends() {
+    isRecalculating.value = true
+    try {
+        notify.info("Synchronizing NAV history from architecture...")
+        // Trigger NAV fetch for this fund via store
+        await mfStore.recalculateFundTrends(schemeCode)
+        // Refresh local info
+        await fetchFundInfo()
+        notify.success("NAV trends updated successfully.")
+    } catch (e) {
+        console.error("Recalculate failed:", e)
+        notify.error("Architecture sync failed. Repository may be unreachable.")
+    } finally {
+        isRecalculating.value = false
     }
 }
 
@@ -104,15 +123,23 @@ function getRiskColor(risk: string) {
                     <!-- Left Column: Chart -->
                     <v-col cols="12" lg="8">
                         <v-card class="premium-glass-card pa-6 mb-6" rounded="xl">
-                            <div class="d-flex align-center justify-space-between mb-6">
-                                <h3 class="text-h6 font-weight-black text-content d-flex align-center gap-2">
-                                    <TrendingUp :size="24" class="text-primary" /> NAV Historical Performance (1Y)
-                                </h3>
-                                <div class="text-h5 font-weight-black text-primary">
-                                    ₹{{ fund.last_nav.toFixed(2) }} <span
-                                        class="text-caption text-medium-emphasis font-weight-bold">Current</span>
+                            <div class="d-flex align-center justify-space-between mb-6 flex-wrap gap-4">
+                                <div class="d-flex align-center gap-4">
+                                    <h3 class="text-h6 font-weight-black text-content d-flex align-center gap-2">
+                                        <TrendingUp :size="24" class="text-primary" /> NAV Historical Performance (1Y)
+                                    </h3>
+                                    <v-btn size="x-small" variant="tonal" color="primary" class="font-weight-black px-4"
+                                        @click="recalculateTrends" :loading="isRecalculating">
+                                        <RefreshCcw :size="12" class="mr-1" /> RECALCULATE
+                                    </v-btn>
+                                </div>
+                                <div class="text-h5 font-weight-black text-primary d-flex align-center gap-2">
+                                    <span v-if="fund.last_nav > 0">₹{{ fund.last_nav.toFixed(2) }}</span>
+                                    <v-chip v-else size="small" color="warning" variant="flat" class="font-weight-black">PENDING SYNC</v-chip>
+                                    <span class="text-caption text-medium-emphasis font-weight-bold">Current</span>
                                 </div>
                             </div>
+
 
                             <!-- Chart Area -->
                             <div style="height: 400px;">

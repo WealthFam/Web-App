@@ -5,6 +5,8 @@ import { useCurrency } from '@/composables/useCurrency'
 defineProps<{
   totalIncome: number
   totalSpent: number
+  totalInvested: number
+  activeTab: 'expense' | 'income' | 'investment'
   overallBudget: any
   alertGroups: any[]
 }>()
@@ -21,7 +23,8 @@ const { formatAmount } = useCurrency()
   <div>
     <!-- Summary Grid -->
     <v-row class="mb-10">
-      <v-col cols="12" sm="6" lg="3">
+      <!-- Income Card -->
+      <v-col v-if="activeTab !== 'investment'" cols="12" sm="6" lg="3">
         <v-card class="premium-glass-card pa-6 h-100" rounded="xl">
           <div class="d-flex justify-space-between align-center mb-6">
             <span class="text-overline font-weight-black opacity-60 letter-spacing-1">Income In</span>
@@ -33,22 +36,30 @@ const { formatAmount } = useCurrency()
         </v-card>
       </v-col>
 
+      <!-- Outflow/Spending Card -->
       <v-col cols="12" sm="6" lg="3">
         <v-card class="premium-glass-card pa-6 h-100" rounded="xl">
           <div class="d-flex justify-space-between align-center mb-6">
-            <span class="text-overline font-weight-black opacity-60 letter-spacing-1">Total Outflow</span>
-            <v-avatar color="rose-lighten-5" rounded="lg" size="48">
-              <TrendingDown class="text-error" :size="24" />
+            <span class="text-overline font-weight-black opacity-60 letter-spacing-1">
+              {{ activeTab === 'investment' ? 'Total Invested' : 'Expenses' }}
+            </span>
+            <v-avatar :color="activeTab === 'investment' ? 'warning-lighten-5' : 'rose-lighten-5'" rounded="lg" size="48">
+              <TrendingDown :class="activeTab === 'investment' ? 'text-warning' : 'text-error'" :size="24" />
             </v-avatar>
           </div>
-          <div class="text-h4 font-weight-black text-error">{{ formatAmount(totalSpent) }}</div>
+          <div :class="['text-h4 font-weight-black', activeTab === 'investment' ? 'text-warning' : 'text-error']">
+            {{ formatAmount(activeTab === 'investment' ? totalInvested : totalSpent) }}
+          </div>
         </v-card>
       </v-col>
 
+      <!-- Net Balance/Savings Card -->
       <v-col cols="12" sm="6" lg="3">
         <v-card class="premium-glass-card pa-6 h-100" rounded="xl">
           <div class="d-flex justify-space-between align-center mb-6">
-            <span class="text-overline font-weight-black opacity-60 letter-spacing-1">Net Balance</span>
+            <span class="text-overline font-weight-black opacity-60 letter-spacing-1">
+              {{ activeTab === 'investment' ? 'Remaining Budget' : 'Net Savings' }}
+            </span>
             <v-avatar color="indigo-lighten-5" rounded="lg" size="48">
               <Wallet class="text-indigo" :size="24" />
             </v-avatar>
@@ -58,6 +69,7 @@ const { formatAmount } = useCurrency()
           </div>
         </v-card>
       </v-col>
+
 
       <v-col v-if="overallBudget?.total_excluded || overallBudget?.excluded_income" cols="12" sm="6" lg="3">
         <v-card class="premium-glass-card pa-6 h-100" rounded="xl">
@@ -69,11 +81,11 @@ const { formatAmount } = useCurrency()
           </div>
           <div class="d-flex flex-column ga-2 mt-2">
             <div v-if="overallBudget.total_excluded > 0" class="text-subtitle-2 font-weight-black opacity-60 d-flex justify-space-between align-center">
-              <span>Outflow</span>
+              <span>Expenses</span>
               <span class="text-subtitle-1">{{ formatAmount(overallBudget.total_excluded) }}</span>
             </div>
             <div v-if="overallBudget.excluded_income > 0" class="text-subtitle-2 font-weight-black text-success d-flex justify-space-between align-center">
-              <span>Inflow</span>
+              <span>Income</span>
               <span class="text-subtitle-1">+{{ formatAmount(overallBudget.excluded_income) }}</span>
             </div>
           </div>
@@ -115,8 +127,10 @@ const { formatAmount } = useCurrency()
               </div>
               <div class="mt-3 pt-3 border-t d-flex justify-center">
                 <v-btn variant="text" size="x-small" color="on-surface" class="opacity-60 font-weight-bold" @click.stop="emit('open-details', group.parent.category, group.parent)">
+                  <template v-slot:prepend>
+                    <ArrowRight :size="12" />
+                  </template>
                   View Analysis
-                  <ArrowRight :size="12" class="ml-1" />
                 </v-btn>
               </div>
             </v-card>

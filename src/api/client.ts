@@ -110,8 +110,8 @@ export const financeApi = {
     getAccountTransactionCount: (id: string) => apiClient.get(`/finance/accounts/${id}/transaction-count`),
     overrideAccountBalance: (id: string, data: { balance: number, credit_limit?: number | null, timestamp: string, source?: string }) =>
         apiClient.put(`/finance/accounts/${id}/balance`, { ...data, account_id: id }),
-    getTransactions: (accountId?: string, page: number = 1, limit: number = 50, startDate?: string, endDate?: string, search?: string, category?: string, sortBy: string = 'date', sortOrder: string = 'desc', userId?: string) =>
-        apiClient.get('/finance/transactions', { params: { account_id: accountId, page, limit, start_date: startDate, end_date: endDate, search, category, sort_by: sortBy, sort_order: sortOrder, user_id: userId } }),
+    getTransactions: (accountId?: string, page: number = 1, limit: number = 20, startDate?: string, endDate?: string, search?: string, category?: string, sortBy: string = 'date', sortOrder: string = 'desc', userId?: string, excludeTransfers?: boolean, excludeFromReports?: boolean) =>
+        apiClient.get('/finance/transactions', { params: { account_id: accountId, page, limit, start_date: startDate, end_date: endDate, search, category, sort_by: sortBy, sort_order: sortOrder, user_id: userId, exclude_transfers: excludeTransfers, exclude_from_reports: excludeFromReports } }),
     searchTransactions: (q: string, limit: number = 10) =>
         apiClient.get('/finance/transactions', { params: { search: q, limit, page: 1, sort_by: 'date', sort_order: 'desc' } }),
     createTransaction: (data: any) => apiClient.post('/finance/transactions', data),
@@ -121,7 +121,7 @@ export const financeApi = {
     bulkDeleteTransactions: (ids: string[]) => apiClient.post('/finance/transactions/bulk-delete', { transaction_ids: ids }),
     getMetrics: (accountId?: string, startDate?: string, endDate?: string, userId?: string) => apiClient.get('/finance/analytics/metrics', { params: { account_id: accountId, start_date: startDate, end_date: endDate, user_id: userId } }),
     getDetailedAnalytics: (accountId?: string, startDate?: string, endDate?: string, userId?: string, category?: string) => apiClient.get('/finance/analytics/detailed', { params: { account_id: accountId, start_date: startDate, end_date: endDate, user_id: userId, category } }),
-    getRules: (params?: { skip?: number, limit?: number }) => apiClient.get('/finance/rules', { params }),
+    getRules: (params?: { skip?: number, limit?: number, category?: string, search?: string }) => apiClient.get('/finance/rules', { params }),
     getRuleSuggestions: () => apiClient.get('/finance/rules/suggestions'),
     createRule: (data: any) => apiClient.post('/finance/rules', data),
     ignoreSuggestion: (data: { pattern: string }) => apiClient.post('/finance/rules/suggestions/ignore', data),
@@ -134,10 +134,17 @@ export const financeApi = {
     importRules: (data: any[]) => apiClient.post('/finance/rules/import', data),
     exportRules: () => apiClient.get<any[]>('/finance/rules/export'),
 
+    // Triage Detection
+    scanTriageForRule: (id: string) => apiClient.post(`/finance/rules/${id}/scan-triage`),
+    applyRuleToTriage: (id: string) => apiClient.post(`/finance/rules/${id}/apply-triage`),
+    scanAllTriage: () => apiClient.post('/finance/rules/scan-all-triage'),
+    getRuleStats: () => apiClient.get('/finance/rules/stats'),
+
     getCategories: (tree: boolean = false) => apiClient.get('/finance/categories', { params: { tree } }),
     createCategory: (data: any) => apiClient.post('/finance/categories', data),
     updateCategory: (id: string, data: any) => apiClient.put(`/finance/categories/${id}`, data),
     deleteCategory: (id: string) => apiClient.delete(`/finance/categories/${id}`),
+    getCategoryUsage: (id: string) => apiClient.get(`/finance/categories/${id}/usage`),
     importCategories: (data: any[]) => apiClient.post('/finance/categories/import', data),
     exportCategories: () => apiClient.get<any[]>('/finance/categories/export'),
 
@@ -168,8 +175,8 @@ export const financeApi = {
         apiClient.get('/finance/analytics/spending-trend', { params: { user_id: userId } }),
     getSpendingForecast: (startDate?: string, endDate?: string, userId?: string) =>
         apiClient.get('/finance/analytics/spending-forecast', { params: { start_date: startDate, end_date: endDate, user_id: userId } }),
-    getBudgetHistory: (months: number = 6, userId?: string) =>
-        apiClient.get('/finance/analytics/budget-history', { params: { months, user_id: userId } }),
+    getBudgetHistory: (months: number = 6, userId?: string, accountId?: string) =>
+        apiClient.get('/finance/analytics/budget-history', { params: { months, user_id: userId, account_id: accountId } }),
     getHeatmapData: (startDate?: string, endDate?: string, userId?: string) =>
         apiClient.get('/finance/analytics/heatmap', { params: { start_date: startDate, end_date: endDate, user_id: userId } }),
     getMerchantBreakdown: (category?: string, startDate?: string, endDate?: string, userId?: string) =>
@@ -285,7 +292,7 @@ export const financeApi = {
     searchFunds: (query?: string, category?: string, amc?: string, limit: number = 20, offset: number = 0, sortBy: string = 'relevance') =>
         apiClient.get('/finance/mutual-funds/search', { params: { q: query, category, amc, limit, offset, sort_by: sortBy } }),
 
-    getMarketIndices: () => apiClient.get('/finance/mutual-funds/indices'),
+    getMarketIndices: (period: string = '1d') => apiClient.get('/finance/mutual-funds/indices', { params: { period } }),
     getPortfolio: (userId?: string) => apiClient.get('/finance/mutual-funds/portfolio', { params: { user_id: userId } }),
     getMutualFundSyncStatus: () => apiClient.get('/finance/mutual-funds/sync/status'),
     triggerMutualFundSync: () => apiClient.post('/finance/mutual-funds/sync/refresh'),
@@ -302,11 +309,19 @@ export const financeApi = {
         apiClient.get('/finance/mutual-funds/analytics/performance-timeline', { params: { period, granularity, user_id: userId, scheme_code: schemeCode, holding_id: holdingId } }),
     deleteCacheTimeline: () => apiClient.delete('/finance/mutual-funds/analytics/cache'),
     cleanupDuplicateOrders: () => apiClient.post('/finance/mutual-funds/cleanup-duplicates'),
+    recalculateHoldings: () => apiClient.post('/finance/mutual-funds/recalculate-holdings'),
     createFundTransaction: (data: any) => apiClient.post('/finance/mutual-funds/transaction', data),
     editFundTransaction: (id: string, data: any) => apiClient.put(`/finance/mutual-funds/transactions/${id}`, data),
     bulkDeleteFundTransactions: (ids: string[]) => apiClient.post('/finance/mutual-funds/transactions/bulk-delete', { transaction_ids: ids }),
     delete: (url: string) => apiClient.delete(url), // Generic delete helper or specific method
     deleteHolding: (id: string) => apiClient.delete(`/finance/mutual-funds/holdings/${id}`),
+    
+    // Benchmark Rules
+    getBenchmarkRules: () => apiClient.get('/finance/mutual-funds/benchmarks/rules'),
+    saveBenchmarkRule: (data: any, ruleId?: string) => 
+        apiClient.post('/finance/mutual-funds/benchmarks/rules', data, { params: { rule_id: ruleId } }),
+    deleteBenchmarkRule: (id: string) => apiClient.delete(`/finance/mutual-funds/benchmarks/rules/${id}`),
+    syncBenchmarks: () => apiClient.post('/finance/mutual-funds/benchmarks/rules/sync'),
     importCAS: (formData: FormData) => apiClient.post('/finance/mutual-funds/import-cas', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     }),
@@ -348,6 +363,9 @@ export const financeApi = {
     unlinkHoldingFromGoal: (goalId: string, holdingId: string) => apiClient.delete(`/finance/investment-goals/${goalId}/holdings/${holdingId}`),
     addGoalAsset: (goalId: string, data: any) => apiClient.post(`/finance/investment-goals/${goalId}/assets`, data),
     removeGoalAsset: (assetId: string) => apiClient.delete(`/finance/investment-goals/assets/${assetId}`),
+    payCreditCardBill: (id: string, data: { source_account_id: string, amount: number, date: string, description?: string }) => 
+        apiClient.post(`/finance/accounts/${id}/pay-bill`, data),
+    getCreditIntelligence: (userId?: string) => apiClient.get('/finance/analytics/credit-intelligence', { params: { user_id: userId } }),
 }
 
 const parserClient = axios.create({
@@ -390,10 +408,11 @@ export const parserApi = {
 
 export const aiApi = {
     getSettings: () => apiClient.get('/ingestion/ai/settings'),
+    getStatus: () => apiClient.get('/ingestion/ai/status', { skipNotification: true }),
     updateSettings: (data: any) => apiClient.post('/ingestion/ai/settings', data),
     testConnection: (content: string) => apiClient.post('/ingestion/ai/test', { content }),
     listModels: (provider: string, apiKey?: string) => apiClient.get('/ingestion/ai/models', { params: { provider, api_key: apiKey } }),
-    generateSummaryInsights: (summary_data: any) => apiClient.post('/ingestion/ai/generate-insights', { summary_data }, { skipNotification: true }),
+    generateSummaryInsights: (summary_data: any, forceRefresh: boolean = false) => apiClient.post('/ingestion/ai/generate-insights', { summary_data, force_refresh: forceRefresh }, { skipNotification: true }),
     getAliases: () => apiClient.get('/ingestion/ai/aliases'),
     createAlias: (pattern: string, alias: string) => apiClient.post('/ingestion/ai/aliases', { pattern, alias }),
     deleteAlias: (id: string) => apiClient.delete(`/ingestion/ai/aliases/${id}`),

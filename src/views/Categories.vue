@@ -54,12 +54,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import CategoriesTab from '@/views/categories/CategoriesTab.vue'
 import RulesTab from '@/views/categories/RulesTab.vue'
+import { useCategoriesStore } from '@/stores/finance/categories'
 
 const activeTab = ref('categories')
+const categoriesStore = useCategoriesStore()
+
+onMounted(() => {
+    categoriesStore.fetchCategories()
+})
 </script>
 
 <style scoped>

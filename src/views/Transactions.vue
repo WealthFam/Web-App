@@ -213,7 +213,7 @@
             :categories="categories" :budgets="budgets" :expenseGroups="expenseGroups"
             :potentialMatches="potentialMatches" :isSearchingMatches="isSearchingMatches"
             :matchesSearched="matchesSearched" @close="showModal = false" @submit="handleSubmit"
-            @findMatches="findMatches" @selectMatch="selectMatch" />
+            @findMatches="findMatches" />
 
         <VendorInsightsModal v-model="showVendorModal" :vendor-name="selectedVendorForInsights" />
 
@@ -422,8 +422,7 @@ const {
     openEditModal,
     handleSubmit,
     handleSmartCategorize,
-    findMatches,
-    selectMatch
+    findMatches
 } = useTransactionModals(selectedAccount, accounts, budgets, transactions, fetchData, showSmartPrompt,
     smartPromptData, refreshAccounts)
 

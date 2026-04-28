@@ -4,29 +4,33 @@
             <!-- Header -->
             <v-row class="mb-10 align-center">
                 <v-col cols="12" md="6">
-                    <h1 class="text-h6 font-weight-black mb-1">Budgets & Activity</h1>
-                    <p class="text-subtitle-2 text-on-surface opacity-70 font-weight-bold">Personal finance intelligence
+                    <h1 class="text-h4 font-weight-black mb-1 letter-spacing-tight">Budgets & Activity</h1>
+                    <p class="text-subtitle-2 text-on-surface opacity-60 font-weight-bold">
+                        Personal finance intelligence and monthly limits
                     </p>
                 </v-col>
 
                 <v-col cols="12" md="6" class="d-flex justify-md-end align-center ga-4">
-                    <!-- Month Selector (Refined Vuetify Style) -->
-                    <v-sheet rounded="pill" border class="d-flex align-center px-1" height="44">
-                        <v-btn icon variant="text" size="small" @click="changeMonth(-1)" color="primary">
+                    <!-- Month Selector (Premium Glass Style) -->
+                    <v-sheet rounded="pill" class="premium-glass-card d-flex align-center px-1 border-thin" height="44">
+                        <v-btn icon variant="text" size="small" @click="changeMonth(-1)" color="primary" class="hover-scale">
                             <ChevronLeft :size="18" />
                         </v-btn>
-                        <v-btn variant="text" class="text-none font-weight-black px-2 mx-1" @click="resetToCurrent"
-                            min-width="120">
+                        <v-btn variant="text" class="text-none font-weight-black px-4 mx-1 letter-spacing-1" @click="resetToCurrent"
+                            min-width="140">
                             {{ monthYearLabel }}
                         </v-btn>
-                        <v-btn icon variant="text" size="small" @click="changeMonth(1)" color="primary">
+                        <v-btn icon variant="text" size="small" @click="changeMonth(1)" color="primary" class="hover-scale">
                             <ChevronRight :size="18" />
                         </v-btn>
                     </v-sheet>
 
-                    <v-btn v-if="!overallBudget" color="primary" variant="outlined" rounded="pill"
-                        class="text-none px-6 font-weight-black" height="44" @click="openSetBudgetModal(true)">
-                        <Plus :size="18" class="mr-2" /> Limit
+                    <v-btn v-if="!overallBudget" color="primary" variant="elevated" rounded="pill"
+                        class="text-none px-6 font-weight-black btn-primary-glow" height="44" @click="openSetBudgetModal(true)">
+                        <template v-slot:prepend>
+                            <Plus :size="18" />
+                        </template>
+                        Set Monthly Limit
                     </v-btn>
                 </v-col>
             </v-row>
@@ -78,6 +82,8 @@
                     <BudgetSummaryCards 
                         :totalIncome="totalIncome" 
                         :totalSpent="totalSpent" 
+                        :totalInvested="totalInvested"
+                        :activeTab="activeTab"
                         :overallBudget="overallBudget" 
                         :alertGroups="alertGroups" 
                         @edit="editBudget" 
@@ -97,16 +103,22 @@
                         <div class="glass-card pa-1 border rounded-pill d-flex"
                             style="background: rgba(var(--v-theme-surface), 0.5)">
                             <v-btn variant="flat" rounded="pill" height="36"
-                                class="text-none font-weight-black px-6 letter-spacing-1"
+                                class="text-none font-weight-black px-5 letter-spacing-1"
                                 :color="activeTab === 'expense' ? 'primary' : 'transparent'"
                                 :class="activeTab !== 'expense' ? 'text-disabled' : ''" @click="activeTab = 'expense'">
                                 Expense
                             </v-btn>
                             <v-btn variant="flat" rounded="pill" height="36"
-                                class="text-none font-weight-black px-6 letter-spacing-1"
+                                class="text-none font-weight-black px-5 letter-spacing-1"
                                 :color="activeTab === 'income' ? 'primary' : 'transparent'"
                                 :class="activeTab !== 'income' ? 'text-disabled' : ''" @click="activeTab = 'income'">
                                 Income
+                            </v-btn>
+                            <v-btn variant="flat" rounded="pill" height="36"
+                                class="text-none font-weight-black px-5 letter-spacing-1"
+                                :color="activeTab === 'investment' ? 'primary' : 'transparent'"
+                                :class="activeTab !== 'investment' ? 'text-disabled' : ''" @click="activeTab = 'investment'">
+                                Investment
                             </v-btn>
                         </div>
                     </div>
@@ -150,8 +162,11 @@
                             <p class="text-subtitle-1 opacity-60 mb-8 font-weight-medium">Start by setting a budget or
                                 recording transactions to see analysis.</p>
                             <v-btn color="primary" rounded="pill" size="large" variant="elevated"
-                                class="text-none px-10 elevation-4 btn-primary-glow font-weight-black"
+                                class="text-none px-10 elevation-8 btn-primary-glow font-weight-black"
                                 @click="openSetBudgetModal(false)">
+                                <template v-slot:prepend>
+                                    <Target :size="20" />
+                                </template>
                                 Set Category Budget
                             </v-btn>
                         </v-col>
@@ -254,7 +269,7 @@ const newBudget = ref({
     amount_limit: null as number | null
 })
 
-const activeTab = ref<'expense' | 'income'>('expense')
+const activeTab = ref<'expense' | 'income' | 'investment'>('expense')
 
 // Metrics
 
@@ -282,11 +297,19 @@ const groupedBudgets = computed(() => {
 
     // 4. Tab Filter (Expense vs Income)
     return groups.filter(g => {
+        if (activeTab.value === 'investment') {
+            return g.parent.type === 'investment'
+        }
+
         const isIncomeTab = activeTab.value === 'income'
         const isIncomeGroup = g.parent.type === 'income' || g.parent.income > 0 || g.parent.category === 'Salary'
 
         if (isIncomeTab && !isIncomeGroup) return false
         if (!isIncomeTab && isIncomeGroup) return false
+        
+        // Also exclude investments from generic expense tab
+        if (activeTab.value === 'expense' && g.parent.type === 'investment') return false
+
         return true
     }).sort((a, b) => b.parent.percentage - a.parent.percentage)
 })
@@ -314,16 +337,23 @@ const alertGroups = computed(() => {
 })
 
 const totalIncome = computed(() => {
-    if (overallBudget.value) return Number(overallBudget.value.income || 0)
+    // Return total income for the current view (strictly 'income' type)
     return budgets.value
-        .filter(b => !b.parent_id)
+        .filter(b => !b.parent_id && b.type === 'income')
         .reduce((sum, b) => sum + Number(b.income || 0), 0)
 })
 
 const totalSpent = computed(() => {
-    if (overallBudget.value) return Number(overallBudget.value.spent)
+    // Return total expenses (strictly 'expense' or None type)
     return budgets.value
-        .filter(b => !b.parent_id)
+        .filter(b => !b.parent_id && (b.type === 'expense' || b.type === null))
+        .reduce((sum, b) => sum + Number(b.spent), 0)
+})
+
+const totalInvested = computed(() => {
+    // Return total investments
+    return budgets.value
+        .filter(b => !b.parent_id && b.type === 'investment')
         .reduce((sum, b) => sum + Number(b.spent), 0)
 })
 
@@ -432,11 +462,19 @@ onMounted(() => {
     box-shadow: 0 4px 15px rgba(var(--v-theme-primary), 0.3);
 }
 
+.letter-spacing-tight {
+    letter-spacing: -0.05em !important;
+}
+
+.letter-spacing-1 {
+    letter-spacing: 0.5px !important;
+}
+
 .hover-scale {
-    transition: transform 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .hover-scale:hover {
-    transform: translateY(-2px);
+    transform: translateY(-2px) scale(1.05);
 }
 </style>

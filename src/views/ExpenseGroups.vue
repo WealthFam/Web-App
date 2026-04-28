@@ -169,7 +169,7 @@
                                         </div>
                                     </div>
 
-                                    <v-progress-linear :model-value="getBudgetPercentage(group)"
+                                    <v-progress-linear :model-value="Math.max(0, getBudgetPercentage(group))"
                                         :color="getBudgetColorCode(group)" height="10" rounded="pill"
                                         class="elevation-0 bg-grey-lighten-4 mb-3" />
 

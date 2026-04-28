@@ -3,6 +3,16 @@
     <div class="chart-box-render">
       <BaseChart type="bar" :data="chartData" :options="chartOptions" :height="300" :key="settings.maskingFactor" />
     </div>
+    <div class="d-flex justify-center gap-6 mt-4">
+      <div class="lp-item limit">
+        <div class="lp-box" style="background: rgba(var(--v-theme-surface-variant), 0.3)"></div>
+        <span>Budget Limit</span>
+      </div>
+      <div class="lp-item actual">
+        <div class="lp-box" style="background: rgb(var(--v-theme-primary))"></div>
+        <span>Actual Spending</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -44,46 +54,51 @@ const chartData = computed(() => {
     labels: months,
     datasets: [
       {
-        label: 'Monthly Limit',
+        label: 'Budget Limit',
         data: limits,
-        backgroundColor: 'rgba(var(--v-theme-surface-variant), 0.3)',
-        borderColor: 'rgba(var(--v-theme-surface-variant), 0.5)',
+        backgroundColor: 'rgba(var(--v-theme-surface-variant), 0.2)',
+        borderColor: 'rgba(var(--v-theme-surface-variant), 0.4)',
         borderWidth: 1,
         borderRadius: 8,
         barPercentage: 0.9,
         categoryPercentage: 0.8
       },
       {
-        label: 'Monthly Spending',
+        label: 'Actual Spending',
         data: spent,
         backgroundColor: (context: any) => {
-          const index = context.dataIndex
-          const isOver = spent[index] > limits[index]
-          return isOver ? 'rgba(var(--v-theme-error), 0.8)' : 'rgba(var(--v-theme-primary), 0.8)'
+          const idx = context.dataIndex
+          return spent[idx] > limits[idx] ? 'rgba(var(--v-theme-error), 0.8)' : 'rgba(var(--v-theme-primary), 0.8)'
         },
-        borderRadius: 8,
+        borderRadius: 6,
         barPercentage: 0.6,
         categoryPercentage: 0.8,
-        grouped: false,
+        grouped: false, // Overlap
       }
     ]
   }
 })
 
 const chartOptions = computed(() => {
-  settings.maskingFactor // Trigger reactivity
   return {
     scales: {
       x: {
         grid: { display: false },
-        ticks: { color: '#94a3b8', font: { size: 11 } }
+        ticks: { 
+            color: 'rgba(var(--v-theme-on-surface), 0.5)', 
+            font: { size: 10, weight: 'bold' } 
+        }
       },
       y: {
-        grid: { color: 'rgba(0,0,0,0.03)' },
+        beginAtZero: true,
+        grid: { 
+            color: 'rgba(var(--v-theme-on-surface), 0.05)',
+            drawBorder: false
+        },
         ticks: {
-          color: '#94a3b8',
-          font: { size: 11 },
-          callback: (value: any) => formatAmount(value, 'INR', true, true)
+          color: 'rgba(var(--v-theme-on-surface), 0.5)',
+          font: { size: 10, weight: 'bold' },
+          callback: (value: any) => formatAmount(value, undefined, true, true)
         }
       }
     },
@@ -92,12 +107,14 @@ const chartOptions = computed(() => {
       tooltip: {
         mode: 'index',
         intersect: false,
+        padding: 12,
+        cornerRadius: 12,
         callbacks: {
           label: (context: any) => {
             let label = context.dataset.label || ''
             if (label) label += ': '
             if (context.parsed.y !== null) {
-              label += formatAmount(context.parsed.y, 'INR', false, true)
+              label += formatAmount(context.parsed.y, undefined, false, true)
             }
             return label
           }

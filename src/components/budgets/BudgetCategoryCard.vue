@@ -39,8 +39,12 @@
 
           <v-row no-gutters>
             <v-col cols="6" class="metric-col">
-              <div class="text-overline font-weight-black opacity-50 line-height-1 mb-1">SPENT</div>
-              <div class="text-h6 font-weight-black">{{ formatAmount(activeTab === 'expense' ? group.parent.spent : group.parent.income) }}</div>
+              <div class="text-overline font-weight-black opacity-50 line-height-1 mb-1">
+                {{ activeTab === 'income' ? 'RECEIVED' : (activeTab === 'investment' ? 'INVESTED' : 'SPENT') }}
+              </div>
+              <div :class="['text-h6 font-weight-black', activeTab === 'investment' ? 'text-warning' : (activeTab === 'income' ? 'text-success' : '')]">
+                {{ formatAmount(activeTab === 'income' ? group.parent.income : group.parent.spent) }}
+              </div>
             </v-col>
             <v-col cols="6" class="text-right metric-col">
               <div class="text-overline font-weight-black opacity-50 line-height-1 mb-1">
@@ -51,13 +55,14 @@
               </div>
             </v-col>
           </v-row>
+
           <div :class="['health-glow', { 'is-overspent': group.parent.percentage > 100, 'is-warning': group.parent.percentage > 70 }]"></div>
         </div>
 
         <!-- Progress for Active Groups -->
         <div v-if="group.parent.amount_limit" class="mb-6 relative-pos">
           <v-progress-linear 
-            :model-value="Math.min(group.parent.percentage, 100)" 
+            :model-value="Math.max(0, Math.min(group.parent.percentage, 100))" 
             height="10" 
             rounded="pill"
             :class="['mb-3 elevation-1', getBudgetHealthClass(group.parent.percentage)]"
@@ -99,7 +104,7 @@
               <!-- Center: Mini Progress Bar (if limit exists) -->
               <div v-if="child.amount_limit" class="flex-grow-1 d-none d-sm-block px-1" style="min-width: 30px; max-width: 60px;">
                 <v-progress-linear 
-                  :model-value="Math.min(child.percentage, 100)" 
+                  :model-value="Math.max(0, Math.min(child.percentage, 100))" 
                   height="2" 
                   rounded="pill"
                   :class="getBudgetHealthClass(child.percentage)"
@@ -109,14 +114,18 @@
               <!-- Right: Spent / Limit -->
               <div class="d-flex align-center ga-1 justify-end text-right" style="min-width: 80px;">
                 <span class="text-caption font-weight-black" :class="[{ 'text-error': child.percentage > 100 }]" style="font-size: 0.75rem;">
-                  {{ formatAmount(activeTab === 'expense' ? child.spent : child.income) }}
+                  {{ formatAmount(activeTab === 'income' ? child.income : child.spent) }}
                 </span>
                 
                 <template v-if="child.amount_limit">
                   <span class="text-tiny opacity-30">/</span>
                   <span class="text-tiny opacity-60 font-weight-bold">{{ formatAmount(child.amount_limit) }}</span>
                 </template>
-                <v-btn v-else size="x-small" variant="text" color="primary" @click.stop="emit('edit', child)" class="pa-0 text-none font-weight-black" style="height: 16px; font-size: 9px; min-width: auto;">
+                <v-btn v-else size="x-small" variant="tonal" color="primary" @click.stop="emit('edit', child)" 
+                  class="pa-0 text-none font-weight-black px-2" style="height: 20px; font-size: 9px; min-width: auto;" rounded="pill">
+                  <template v-slot:prepend>
+                    <Plus :size="10" />
+                  </template>
                   Set
                 </v-btn>
               </div>
@@ -131,6 +140,9 @@
       <template v-else>
         <div class="text-center pa-2">
           <v-btn variant="tonal" size="small" color="primary" rounded="pill" @click="emit('edit', group.parent)" class="text-none font-weight-black px-6">
+            <template v-slot:prepend>
+              <Plus :size="14" />
+            </template>
             Set Limit
           </v-btn>
         </div>
@@ -150,7 +162,7 @@ import { useCurrency } from '@/composables/useCurrency'
 
 const props = defineProps<{
   group: any
-  activeTab: 'expense' | 'income'
+  activeTab: 'expense' | 'income' | 'investment'
   isInactive?: boolean
 }>()
 

@@ -42,133 +42,155 @@
 
             <v-row v-else>
                 <!-- TOP ROW: High Impact Metrics -->
-                <v-col cols="12" sm="6" lg="3">
+                <!-- TOP ROW: Key Wealth Metrics (5-Column Layout) -->
+                <v-col cols="12" sm="6" md="4" class="col-five">
                     <v-hover v-slot="{ isHovering, props }">
-                        <v-card v-bind="props" class="m3-card metric-card pa-6" :class="{ 'raised': isHovering }"
-                            rounded="xl" @click="router.push('/')">
+                        <v-card v-bind="props" class="m3-card metric-card pa-6 h-100 d-flex flex-column"
+                            :class="{ 'raised': isHovering }" rounded="xl" @click="router.push('/accounts')">
                             <div class="d-flex justify-space-between align-center mb-6">
                                 <v-avatar class="premium-gradient-primary elevation-2" rounded="lg" size="48">
                                     <Landmark :size="24" color="white" />
                                 </v-avatar>
                                 <div class="ml-auto">
                                     <Sparkline v-if="netWorthTrend.length > 1" :data="netWorthTrend"
-                                        :labels="netWorthLabels" color="#6366f1" :height="40" :width="160" fill />
+                                        :labels="netWorthLabels" color="#6366f1" :height="40" :width="120" fill />
                                 </div>
                             </div>
-                            <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Total Net Worth
-                            </div>
+                            <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Total Net Worth</div>
                             <div class="text-h4 font-weight-black text-primary mb-1">{{ formatAmount(netWorth) }}</div>
-                            <div class="d-flex align-center text-caption font-weight-bold"
-                                :class="netWorthChange >= 0 ? 'text-success' : 'text-error'">
-                                <TrendingUp v-if="netWorthChange >= 0" :size="14" class="mr-1" />
-                                <TrendingDown v-else :size="14" class="mr-1" />
-                                {{ Number(netWorthChange || 0).toFixed(1) }}% from last month
+                            <div class="mt-auto pt-2">
+                                <div class="d-flex align-center text-caption font-weight-bold"
+                                    :class="netWorthChange >= 0 ? 'text-success' : 'text-error'">
+                                    <TrendingUp v-if="netWorthChange >= 0" :size="14" class="mr-1" />
+                                    <TrendingDown v-else :size="14" class="mr-1" />
+                                    {{ Number(Math.abs(netWorthChange || 0)).toFixed(1) }}% vs last month
+                                </div>
                             </div>
                         </v-card>
                     </v-hover>
                 </v-col>
 
-                <v-col cols="12" sm="6" lg="3">
+                <v-col cols="12" sm="6" md="4" class="col-five">
                     <v-hover v-slot="{ isHovering, props }">
-                        <v-card v-bind="props" class="m3-card metric-card pa-6" :class="{ 'raised': isHovering }"
-                            rounded="xl" @click="router.push('/transactions')">
+                        <v-card v-bind="props" class="m3-card metric-card pa-6 h-100 d-flex flex-column"
+                            :class="{ 'raised': isHovering }" rounded="xl" @click="router.push('/transactions')">
                             <div class="d-flex justify-space-between align-center mb-6">
                                 <v-avatar class="premium-gradient-error elevation-2" rounded="lg" size="48">
                                     <Wallet :size="24" color="white" />
                                 </v-avatar>
                                 <div class="ml-auto">
                                     <Sparkline v-if="sixMonthSpendingTrend.length > 1" :data="sixMonthSpendingTrend"
-                                        :labels="sixMonthLabels" color="#e11d48" :height="40" :width="160" fill />
+                                        :labels="sixMonthLabels" color="#e11d48" :height="40" :width="120" fill />
                                 </div>
                             </div>
-                            <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Monthly Spending
-                            </div>
-                            <div class="text-h4 font-weight-black text-error mb-1">{{
-                                formatAmount(metrics.monthly_spending) }}
-                            </div>
-                            <div class="d-flex align-center text-caption font-weight-bold"
-                                :class="spendingChange <= 0 ? 'text-success' : 'text-error'">
-                                <TrendingDown v-if="spendingChange <= 0" :size="14" class="mr-1" />
-                                <TrendingUp v-else :size="14" class="mr-1" />
-                                {{ Math.abs(spendingChange || 0).toFixed(1) }}% vs last month
+                            <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Expenses</div>
+                            <div class="text-h4 font-weight-black text-error mb-1">{{ formatAmount(metrics?.monthly_spending || 0) }}</div>
+                            <div class="mt-auto pt-2">
+                                <div class="d-flex align-center text-caption font-weight-bold"
+                                    :class="spendingChange <= 0 ? 'text-success' : 'text-error'">
+                                    <TrendingDown v-if="spendingChange <= 0" :size="14" class="mr-1" />
+                                    <TrendingUp v-else :size="14" class="mr-1" />
+                                    {{ Number(Math.abs(spendingChange || 0)).toFixed(1) }}% vs last month
+                                </div>
                             </div>
                         </v-card>
                     </v-hover>
                 </v-col>
 
-                <v-col cols="12" sm="6" lg="3">
+                <v-col cols="12" sm="6" md="4" class="col-five">
                     <v-hover v-slot="{ isHovering, props }">
-                        <v-card v-bind="props" class="m3-card metric-card pa-6" :class="{ 'raised': isHovering }"
-                            rounded="xl" @click="router.push('/mutual-funds')">
+                        <v-card v-bind="props" class="m3-card metric-card pa-6 h-100 d-flex flex-column"
+                            :class="{ 'raised': isHovering }" rounded="xl" @click="router.push('/transactions')">
+                            <div class="d-flex justify-space-between align-center mb-6">
+                                <v-avatar class="premium-gradient-success elevation-2" rounded="lg" size="48">
+                                    <Zap :size="24" color="white" />
+                                </v-avatar>
+                                <div class="ml-auto">
+                                    <Sparkline v-if="sixMonthInvestmentTrend.length > 0" :data="sixMonthInvestmentTrend"
+                                        :labels="sixMonthLabels" color="#10b981" :height="40" :width="120" fill />
+                                    <div v-else class="text-right">
+                                        <div class="text-tiny opacity-40 uppercase font-weight-black">Savings Rate</div>
+                                        <div class="text-subtitle-2 font-weight-black text-success">{{ (metrics?.savings_rate || 0).toFixed(1) }}%</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Monthly Investment</div>
+                            <div class="text-h4 font-weight-black text-success mb-1">{{ formatAmount(metrics?.monthly_investment || 0) }}</div>
+                            <div class="mt-auto pt-2">
+                                <div class="d-flex align-center text-caption font-weight-bold"
+                                    :class="investmentChange >= 0 ? 'text-success' : 'text-error'">
+                                    <TrendingUp v-if="investmentChange >= 0" :size="14" class="mr-1" />
+                                    <TrendingDown v-else :size="14" class="mr-1" />
+                                    {{ Number(Math.abs(investmentChange || 0)).toFixed(1) }}% vs last month
+                                </div>
+                            </div>
+                        </v-card>
+                    </v-hover>
+                </v-col>
+
+                <v-col cols="12" sm="6" md="4" class="col-five">
+                    <v-hover v-slot="{ isHovering, props }">
+                        <v-card v-bind="props" class="m3-card metric-card pa-6 h-100 d-flex flex-column"
+                            :class="{ 'raised': isHovering }" rounded="xl" @click="router.push('/mutual-funds')">
                             <div class="d-flex justify-space-between align-center mb-6">
                                 <v-avatar class="premium-gradient-success elevation-2" rounded="lg" size="48">
                                     <Sparkles :size="24" color="white" />
                                 </v-avatar>
                                 <div class="ml-auto">
                                     <Sparkline v-if="netWorthTrend.length > 1" :data="netWorthTrend"
-                                        :labels="netWorthLabels" color="#10b981" :height="40" :width="160" fill />
+                                        :labels="netWorthLabels" color="#10b981" :height="40" :width="120" fill />
+                                    <div v-else class="text-right">
+                                        <div class="text-tiny opacity-40 uppercase font-weight-black">Overall XIRR</div>
+                                        <div class="text-subtitle-2 font-weight-black text-success">{{ Number(mfPortfolio.xirr || 0).toFixed(1) }}%</div>
+                                    </div>
                                 </div>
                             </div>
-                            <div
-                                class="text-overline opacity-60 font-weight-black letter-spacing-1 d-flex justify-space-between align-center">
-                                Mutual Funds
-                                <span class="text-success">{{ Number(mfPortfolio.xirr || 0).toFixed(1) }}% XIRR</span>
-                            </div>
-                            <div class="text-h4 font-weight-black text-success mb-1">{{
-                                formatAmount(mfPortfolio.current) }}</div>
-                            <div class="d-flex align-center text-caption font-weight-bold"
-                                :class="mfPortfolio.pl >= 0 ? 'text-success' : 'text-error'">
-                                <TrendingUp v-if="mfPortfolio.pl >= 0" :size="14" class="mr-1" />
-                                <TrendingDown v-else :size="14" class="mr-1" />
-                                {{ mfPortfolio.pl >= 0 ? '+' : '' }}{{ formatAmount(mfPortfolio.pl) }} ({{
-                                    Number(mfPortfolio.plPercent || 0).toFixed(1) }}%)
+                            <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Portfolio Value</div>
+                            <div class="text-h4 font-weight-black text-success mb-1">{{ formatAmount(mfPortfolio.current) }}</div>
+                            <div class="mt-auto pt-2">
+                                <div class="d-flex align-center text-caption font-weight-bold text-success">
+                                    <TrendingUp :size="14" class="mr-1" />
+                                    {{ formatAmount(mfPortfolio.pl) }} total gains
+                                </div>
                             </div>
                         </v-card>
                     </v-hover>
                 </v-col>
 
-                <v-col cols="12" sm="6" lg="3">
+                <v-col cols="12" sm="6" md="4" class="col-five">
                     <v-hover v-slot="{ isHovering, props }">
-                        <v-card v-bind="props" class="m3-card metric-card pa-6" :class="{ 'raised': isHovering }"
-                            rounded="xl" @click="router.push('/budgets')">
+                        <v-card v-bind="props" class="m3-card metric-card pa-6 h-100 d-flex flex-column"
+                            :class="{ 'raised': isHovering }" rounded="xl" @click="router.push('/budgets')">
                             <div class="d-flex justify-space-between align-center mb-6">
                                 <v-avatar class="premium-gradient-warning elevation-2" rounded="lg" size="48">
                                     <PieChart :size="24" color="white" />
                                 </v-avatar>
                                 <div class="ml-auto">
                                     <Sparkline v-if="projectedBudgetTrend.length > 1" :data="projectedBudgetTrend"
-                                        :labels="projectedBudgetLabels" color="#f59e0b" :height="40" :width="160"
-                                        fill />
+                                        :labels="projectedBudgetLabels" color="#f59e0b" :height="40" :width="120" fill />
                                 </div>
                             </div>
-                            <div
-                                class="text-overline opacity-60 font-weight-black letter-spacing-1 d-flex justify-space-between align-center">
-                                Remaining Budget
-                                <span :class="metrics.budget_health?.percentage > 90 ? 'text-error' : 'text-warning'">{{
-                                    Number(metrics.budget_health?.percentage || 0).toFixed(0) }}% Spent</span>
+                            <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Remaining Budget</div>
+                            <div class="text-h4 font-weight-black text-warning mb-1">
+                                {{ formatAmount((metrics?.budget_health?.limit || 0) - (metrics?.budget_health?.spent || 0)) }}
                             </div>
-                            <div class="text-h4 font-weight-black mb-1"
-                                :class="metrics.budget_health?.percentage > 90 ? 'text-error' : 'text-warning'">
-                                {{ formatAmount(Math.max(0, (Number(metrics.budget_health?.limit || 0) -
-                                    Number(metrics.budget_health?.spent || 0)))) }}
-                            </div>
-                            <div class="d-flex align-center text-caption font-weight-bold"
-                                :class="metrics.budget_health?.percentage > 90 ? 'text-error' : 'text-warning'">
-                                <TrendingDown v-if="metrics.budget_health?.percentage <= 90" :size="14" class="mr-1" />
-                                <TrendingUp v-else :size="14" class="mr-1" />
-                                {{ formatAmount(metrics.budget_health?.spent || 0) }} used of {{
-                                    formatAmount(metrics.budget_health?.limit || 0) }}
+                            <div class="mt-auto pt-2">
+                                <div class="d-flex align-center text-caption font-weight-bold"
+                                    :class="metrics?.budget_health?.percentage <= 90 ? 'text-success' : 'text-error'">
+                                    <PieChart :size="14" class="mr-1" />
+                                    {{ Number(metrics?.budget_health?.percentage || 0).toFixed(0) }}% budget utilized
+                                </div>
                             </div>
                         </v-card>
                     </v-hover>
                 </v-col>
 
                 <!-- MIDDLE ROW: Wealth Compass & AI Intelligence -->
-                <v-col cols="12" lg="7">
+                <v-col cols="12" lg="8">
                     <WealthCompass :metrics="metrics" :portfolio="mfPortfolio" class="h-100" />
                 </v-col>
 
-                <v-col cols="12" lg="5">
+                <v-col cols="12" lg="4">
                     <v-card class="m3-card intelligence-card pa-6 h-100 d-flex flex-column" rounded="xl" elevation="1">
                         <div class="d-flex justify-space-between align-center mb-6">
                             <div class="d-flex align-center">
@@ -230,7 +252,7 @@
                                 class="text-none font-weight-black">See More</v-btn>
                         </div>
                         <v-list class="pa-0 bg-transparent overflow-x-hidden" style="overflow-x: hidden;">
-                            <v-list-item v-for="txn in metrics.recent_transactions.slice(0, 5)" :key="txn.id"
+                            <v-list-item v-for="txn in (metrics?.recent_transactions || []).slice(0, 5)" :key="txn.id"
                                 class="rounded-xl px-4 py-4 mb-2 m3-list-item border">
                                 <template v-slot:prepend>
                                     <v-avatar size="44"
@@ -369,7 +391,7 @@
                                     </div>
 
                                     <div class="mt-2">
-                                        <v-progress-linear :model-value="card.utilization" height="3" rounded
+                                        <v-progress-linear :model-value="Math.max(0, card.utilization)" height="3" rounded
                                             :color="card.utilization > 75 ? 'error' : 'primary'"
                                             class="opacity-80"></v-progress-linear>
                                     </div>
@@ -426,10 +448,11 @@ const { formatAmount } = useCurrency()
 
 // --- State & Computed ---
 const metrics = computed(() => dashboardStore.metrics)
-const mfPortfolio = computed(() => dashboardStore.mfPortfolio || { current: 0, invested: 0, pl: 0, plPercent: 0, xirr: 0, loading: true })
+const mfPortfolio = computed(() => dashboardStore.mfPortfolio || { current: 0, invested: 0, pl: 0, plPercent: 0, xirr: 0, dayChange: 0, dayChangePercent: 0, loading: true })
 const netWorthTrend = computed(() => dashboardStore.netWorthTrend || [])
 const netWorthLabels = computed(() => dashboardStore.netWorthLabels || [])
 const sixMonthSpendingTrend = computed(() => dashboardStore.sixMonthSpendingTrend || [])
+const sixMonthInvestmentTrend = computed(() => dashboardStore.sixMonthInvestmentTrend || [])
 const sixMonthLabels = computed(() => dashboardStore.sixMonthLabels || [])
 const projectedBudgetTrend = computed(() => dashboardStore.projectedBudgetTrend || [])
 const projectedBudgetLabels = computed(() => dashboardStore.projectedBudgetLabels || [])
@@ -442,9 +465,15 @@ const expenseGroups = computed(() => expenseGroupStore.groups)
 const recurringTransactions = ref<any[]>([]) // Should define type if possible later
 
 const netWorth = computed(() => {
+    // Prefer the backend's pre-calculated net worth for consistency, 
+    // but allow for frontend adjustments if needed.
+    if (metrics.value?.breakdown?.net_worth !== undefined) {
+        return Number(metrics.value.breakdown.net_worth)
+    }
+    
     const liquid = (metrics.value?.breakdown?.bank_balance || 0) + (metrics.value?.breakdown?.cash_balance || 0)
-    const investment = mfPortfolio.value?.current || 0
-    const debt = metrics.value?.breakdown?.credit_debt || 0
+    const investment = (metrics.value?.breakdown?.investment_value || 0)
+    const debt = (metrics.value?.breakdown?.total_debt || 0)
     return liquid + investment - debt
 })
 
@@ -485,11 +514,15 @@ async function forceRefreshAi() {
 }
 
 const creditSummary = computed(() => {
-    const limit = metrics.value?.breakdown?.total_credit_limit || 0
-    const debt = metrics.value?.breakdown?.credit_debt || 0
-    const utilization = limit > 0 ? (debt / limit) * 100 : 0
-    return { utilization, debt }
+    const cards = metrics.value?.credit_intelligence || []
+    if (cards.length === 0) return { utilization: 0, total_balance: 0, total_limit: 0 }
+    const total_balance = cards.reduce((acc: number, c: any) => acc + Number(c.statement_balance || 0), 0)
+    const total_limit = cards.reduce((acc: number, c: any) => acc + Number(c.credit_limit || 0), 0)
+    const utilization = total_limit > 0 ? (total_balance / total_limit) * 100 : 0
+    return { utilization, total_balance, total_limit }
 })
+
+
 
 const sortedCredit = computed(() => {
     return [...(metrics.value?.credit_intelligence || [])].sort((a, b) => (a.days_until_due || 999) - (b.days_until_due || 999))
@@ -530,6 +563,13 @@ const spendingChange = computed(() => {
     if (!metrics.value?.last_month_spending || metrics.value.last_month_spending === 0) return 0
     const current = metrics.value.monthly_spending || 0
     const last = metrics.value.last_month_spending
+    return ((current - last) / last) * 100
+})
+
+const investmentChange = computed(() => {
+    if (!metrics.value?.last_month_investment || metrics.value.last_month_investment === 0) return 0
+    const current = metrics.value.monthly_investment || 0
+    const last = metrics.value.last_month_investment
     return ((current - last) / last) * 100
 })
 
@@ -655,6 +695,10 @@ watch(() => auth.selectedMemberId, async () => {
     animation: rotate 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+.text-tiny {
+    font-size: 0.65rem;
+}
+
 .letter-spacing-1 {
     letter-spacing: 0.05em;
 }
@@ -706,5 +750,31 @@ watch(() => auth.selectedMemberId, async () => {
 
 .metric-card:hover::before {
     opacity: 1;
+}
+
+.col-five {
+    flex: 0 0 20% !important;
+    max-width: 20% !important;
+}
+
+@media (max-width: 1264px) {
+    .col-five {
+        flex: 0 0 33.33% !important;
+        max-width: 33.33% !important;
+    }
+}
+
+@media (max-width: 960px) {
+    .col-five {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .col-five {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
 }
 </style>

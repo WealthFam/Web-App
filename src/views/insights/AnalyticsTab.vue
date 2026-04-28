@@ -35,21 +35,34 @@
 
                 <v-spacer />
 
-                <v-col cols="12" md="auto" class="px-4 d-flex align-center">
+                <v-col cols="12" md="auto" class="px-4 d-flex align-center gap-3">
+                    <!-- Account Selector -->
+                    <v-autocomplete v-model="localSelectedAccount"
+                        :items="[{ title: 'All Accounts', value: '' }, ...accountOptions]"
+                        placeholder="All Accounts" density="compact" variant="outlined" hide-details
+                        class="trend-cat-premium" rounded="pill" menu-icon=""
+                        style="background: rgba(var(--v-theme-surface), 0.7); min-width: 200px;">
+                        <template v-slot:prepend-inner>
+                            <Wallet :size="16" class="text-primary mr-2" />
+                        </template>
+                        <template v-slot:append-inner>
+                            <ChevronDown :size="16" class="text-primary opacity-70" />
+                        </template>
+                    </v-autocomplete>
+
                     <v-expand-x-transition>
-                        <div v-if="selectedTimeRange === 'custom'" class="d-flex align-center gap-3">
-                            <v-text-field v-model="startDate" type="date" hide-details density="comfortable"
+                        <div v-if="selectedTimeRange === 'custom'" class="d-flex align-center gap-2">
+                            <v-text-field v-model="startDate" type="date" hide-details density="compact"
                                 variant="outlined" flat @change="fetchAnalyticsData"
-                                class="date-picker-compact rounded-lg" rounded="lg"
-                                style="background: rgba(var(--v-theme-surface-variant), 0.2);" />
-                            <ArrowRight :size="16" class="text-medium-emphasis" />
-                            <v-text-field v-model="endDate" type="date" hide-details density="comfortable"
+                                class="date-picker-premium" rounded="pill"
+                                style="max-width: 150px;" />
+                            <ArrowRight :size="14" class="text-primary opacity-50" />
+                            <v-text-field v-model="endDate" type="date" hide-details density="compact"
                                 variant="outlined" flat @change="fetchAnalyticsData"
-                                class="date-picker-compact rounded-lg" rounded="lg"
-                                style="background: rgba(var(--v-theme-surface-variant), 0.2);" />
+                                class="date-picker-premium" rounded="pill"
+                                style="max-width: 150px;" />
                         </div>
                     </v-expand-x-transition>
-
                 </v-col>
             </v-row>
         </v-card>
@@ -65,15 +78,18 @@
                                     <Sparkles :size="24" color="white" />
                                 </div>
                                 <div>
-                                    <h3 class="text-h6 font-weight-black text-white">Financial Intelligence</h3>
+                                    <h3 class="text-h6 font-weight-black text-white">Financial Insights</h3>
                                     <p class="text-caption text-blue-lighten-4 opacity-70">AI-driven spending vectors
                                         and
                                         strategy</p>
                                 </div>
                             </div>
-                            <v-btn variant="tonal" color="white" rounded="lg" :loading="generatingAI"
-                                @click="generateAIInsights" class="text-none font-weight-bold">
-                                {{ aiInsights ? 'Update Insights' : 'Generate Intelligence' }}
+                            <v-btn variant="tonal" color="white" rounded="pill" :loading="generatingAI"
+                                height="44" @click="generateAIInsights(true)" class="text-none font-weight-bold px-6">
+                                <template v-slot:prepend>
+                                    <Sparkles :size="18" />
+                                </template>
+                                {{ aiInsights ? 'Update Strategy' : 'Generate Insights' }}
                             </v-btn>
                         </div>
 
@@ -121,10 +137,15 @@
                                 <div class="brain-glow-container mb-4">
                                     <Brain :size="56" class="text-white brain-animate" />
                                 </div>
-                                <p class="text-h6 font-weight-black text-white mb-1">Analysis Ready</p>
-                                <p class="text-body-2 text-blue-lighten-4 opacity-70">Ready to generate smart
-                                    optimization tips
-                                    based on your spending patterns.</p>
+                                <p class="text-h6 font-weight-black text-white mb-1">
+                                    {{ hasData ? 'Analysis Ready' : 'Awaiting Data' }}
+                                </p>
+                                <p class="text-body-2 text-blue-lighten-4 opacity-70">
+                                    {{ hasData 
+                                        ? 'Ready to generate smart optimization tips based on your spending patterns.' 
+                                        : 'Connect your accounts or record transactions to enable AI-driven financial insights.' 
+                                    }}
+                                </p>
                             </div>
                         </v-expand-transition>
                     </div>
@@ -136,7 +157,7 @@
             </v-col>
 
             <!-- Summary Cards -->
-            <v-col cols="12" md="4">
+            <v-col cols="12" sm="6" md="3">
                 <v-card rounded="xl" class="stat-glass-card stat-income h-100">
                     <div class="d-flex align-center pa-4">
                         <div class="stat-icon-glow income-glow mr-4">
@@ -145,7 +166,7 @@
                         <div>
                             <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Total
                                 Income</span>
-                            <h2 class="text-h4 font-weight-black text-success mt-n1">{{
+                            <h2 class="text-h4 font-weight-black text-success mt-n1 tabular-nums">{{
                                 formatAmount(analyticsData.income || 0) }}
                             </h2>
                         </div>
@@ -153,7 +174,7 @@
                 </v-card>
             </v-col>
 
-            <v-col cols="12" md="4">
+            <v-col cols="12" sm="6" md="3">
                 <v-card rounded="xl" class="stat-glass-card stat-expense h-100">
                     <div class="d-flex align-center pa-4">
                         <div class="stat-icon-glow expense-glow mr-4">
@@ -162,7 +183,7 @@
                         <div>
                             <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Total
                                 Expenses</span>
-                            <h2 class="text-h4 font-weight-black text-error mt-n1">{{
+                            <h2 class="text-h4 font-weight-black text-error mt-n1 tabular-nums">{{
                                 formatAmount(analyticsData.expense_total) }}
                             </h2>
                         </div>
@@ -170,7 +191,24 @@
                 </v-card>
             </v-col>
 
-            <v-col cols="12" md="4">
+            <v-col cols="12" sm="6" md="3">
+                <v-card rounded="xl" class="stat-glass-card stat-investment h-100">
+                    <div class="d-flex align-center pa-4">
+                        <div class="stat-icon-glow investment-glow mr-4">
+                            <TrendingUp :size="28" class="text-warning" />
+                        </div>
+                        <div>
+                            <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Total
+                                Investments</span>
+                            <h2 class="text-h4 font-weight-black text-warning mt-n1 tabular-nums">{{
+                                formatAmount(analyticsData.investment_total || 0) }}
+                            </h2>
+                        </div>
+                    </div>
+                </v-card>
+            </v-col>
+
+            <v-col cols="12" sm="6" md="3">
                 <v-card rounded="xl" class="stat-glass-card stat-net h-100">
                     <div class="d-flex align-center pa-4">
                         <div class="stat-icon-glow net-glow mr-4">
@@ -179,7 +217,7 @@
                         <div>
                             <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Net
                                 Savings</span>
-                            <h2 class="text-h4 font-weight-black mt-n1"
+                            <h2 class="text-h4 font-weight-black mt-n1 tabular-nums"
                                 :class="(analyticsData.net || 0) >= 0 ? 'text-primary' : 'text-error'">
                                 {{ formatAmount(analyticsData.net || 0) }}
                             </h2>
@@ -252,9 +290,25 @@
             <!-- Major Charts Grid -->
             <v-col cols="12" md="6">
                 <v-card rounded="xl" class="premium-glass-card h-100 no-hover">
-                    <v-card-title class="d-flex align-center px-6 pt-6">
-                        <Sparkles :size="20" class="text-primary mr-3" />
-                        <span class="text-h6 font-weight-black">Spending Categorization</span>
+                    <v-card-title class="d-flex align-center justify-space-between px-6 pt-6">
+                        <div class="d-flex align-center">
+                            <Sparkles :size="20" class="text-primary mr-3" />
+                            <span class="text-h6 font-weight-black">Categorization</span>
+                        </div>
+                        <div class="pa-1 border rounded-pill d-flex" style="background: rgba(var(--v-theme-surface), 0.5)">
+                            <v-btn variant="flat" rounded="pill" height="28"
+                                class="text-none font-weight-black px-4 text-caption"
+                                :color="breakdownView === 'expense' ? 'primary' : 'transparent'"
+                                @click="breakdownView = 'expense'">
+                                Expenses
+                            </v-btn>
+                            <v-btn variant="flat" rounded="pill" height="28"
+                                class="text-none font-weight-black px-4 text-caption"
+                                :color="breakdownView === 'investment' ? 'primary' : 'transparent'"
+                                @click="breakdownView = 'investment'">
+                                Investments
+                            </v-btn>
+                        </div>
                     </v-card-title>
                     <v-card-text class="pa-6">
                         <div class="doughnut-chart-container relative-pos">
@@ -262,15 +316,24 @@
                                 cutout: '75%',
                                 plugins: {
                                     legend: { display: false },
-                                    polylineLabels: { display: true }
+                                    polylineLabels: { display: true },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context: any) {
+                                                const label = context.label || '';
+                                                const value = formatAmount(context.raw);
+                                                return ` ${label}: ${value}`;
+                                            }
+                                        }
+                                    }
                                 },
                                 layout: {
                                     padding: { left: 160, right: 160, top: 30, bottom: 30 }
                                 }
                             }" @chart-click="handleCategoryClick" />
                             <div class="chart-center-label">
-                                <div class="text-overline font-weight-black opacity-60">TOTAL SPENT</div>
-                                <div class="text-h6 font-weight-black">{{ formatAmount(analyticsData.expense_total) }}
+                                <div class="text-overline font-weight-black opacity-60">{{ breakdownView === 'expense' ? 'TOTAL SPENT' : 'TOTAL INVESTED' }}</div>
+                                <div class="text-h6 font-weight-black">{{ formatAmount(breakdownView === 'expense' ? analyticsData.expense_total : analyticsData.investment_total) }}
                                 </div>
                             </div>
                         </div>
@@ -290,6 +353,13 @@
                                 indexAxis: 'y',
                                 plugins: {
                                     legend: { display: false },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context: any) {
+                                                return ` Spending: ${formatAmount(context.raw)}`;
+                                            }
+                                        }
+                                    },
                                     datalabels: {
                                         display: true,
                                         anchor: 'end',
@@ -301,7 +371,7 @@
                                     }
                                 },
                                 layout: {
-                                    padding: { left: 10, right: 60, top: 0, bottom: 0 }
+                                    padding: { left: 80, right: 60, top: 0, bottom: 0 }
                                 },
                                 scales: {
                                     x: {
@@ -309,11 +379,15 @@
                                         ticks: { display: false }
                                     },
                                     y: {
+                                        type: 'category',
                                         grid: { display: false },
                                         ticks: {
                                             display: true,
                                             font: { size: 11, weight: 'bold' },
-                                            color: isDark ? '#ffffff' : '#0f172a'
+                                            color: isDark ? '#ffffff' : '#0f172a',
+                                            callback: function(v: any) { 
+                                                return (this as any).getLabelForValue(v) 
+                                            }
                                         }
                                     }
                                 }
@@ -323,6 +397,7 @@
                 </v-card>
             </v-col>
 
+
             <v-col cols="12">
                 <v-card rounded="xl" class="premium-glass-card no-hover">
                     <v-card-title class="d-flex align-center justify-space-between px-6 pt-6">
@@ -331,11 +406,22 @@
                             <span class="text-h6 font-weight-black">Spending Dynamics</span>
                         </div>
                         <div class="d-flex align-center gap-4">
-                            <v-btn-toggle v-model="trendView" mandatory density="comfortable" color="primary"
-                                variant="tonal">
-                                <v-btn value="daily" class="text-none">Daily</v-btn>
-                                <v-btn value="monthly" class="text-none">Monthly</v-btn>
-                            </v-btn-toggle>
+                            <!-- Premium Segmented Control -->
+                            <div class="segmented-control-premium pa-1 border rounded-pill d-flex"
+                                style="background: rgba(var(--v-theme-surface), 0.5)">
+                                <v-btn variant="flat" rounded="pill" height="32"
+                                    class="text-none font-weight-black px-4 letter-spacing-1 text-caption"
+                                    :color="trendView === 'daily' ? 'primary' : 'transparent'"
+                                    :class="trendView !== 'daily' ? 'text-disabled' : ''" @click="trendView = 'daily'">
+                                    Daily
+                                </v-btn>
+                                <v-btn variant="flat" rounded="pill" height="32"
+                                    class="text-none font-weight-black px-4 letter-spacing-1 text-caption"
+                                    :color="trendView === 'monthly' ? 'primary' : 'transparent'"
+                                    :class="trendView !== 'monthly' ? 'text-disabled' : ''" @click="trendView = 'monthly'">
+                                    Monthly
+                                </v-btn>
+                            </div>
                             <v-autocomplete v-model="selectedTrendCategory" :items="categoryOptions" item-title="title"
                                 item-value="value" density="comfortable" variant="outlined" hide-details
                                 class="trend-cat-premium" rounded="pill" menu-icon="" placeholder="Search Categories..."
@@ -368,10 +454,14 @@
                     <v-card-text class="pa-6">
                         <div class="large-chart-container">
                             <BaseChart v-if="filteredTrendData.length > 0" type="line" :data="trendChartData"
-                                :height="400" />
-                            <div v-else class="empty-state d-flex flex-column align-center justify-center h-100">
-                                <BarChart2 :size="64" class="text-medium-emphasis" />
-                                <p class="mt-4 text-medium-emphasis">No spending data found for these filters</p>
+                                :height="320" />
+                            <div v-else class="empty-state d-flex flex-column align-center justify-center h-100 px-6 text-center animate-fade-in">
+                                <BarChart2 :size="64" class="text-medium-emphasis opacity-10 mb-4" />
+                                <p class="text-subtitle-1 font-weight-black text-medium-emphasis mb-1">No Activity Logged</p>
+                                <p class="text-caption opacity-50 max-width-300 mx-auto">
+                                    We couldn't find any analytical spending for this period. 
+                                    Internal transfers, hidden items, and income are shielded from this view.
+                                </p>
                             </div>
                         </div>
                     </v-card-text>
@@ -387,8 +477,8 @@
                     <v-card-text class="pa-6">
                         <div class="analytics-chart-box relative">
                             <BaseChart v-if="forecastData.length > 0" type="line" :data="forecastChartData"
-                                :height="300" />
-                            <div v-else class="d-flex items-center justify-center fill-height">Calculative Projection...
+                                :height="320" />
+                            <div v-else class="d-flex items-center justify-center h-100">Calculative Projection...
                             </div>
                         </div>
                         <v-alert density="comfortable" variant="tonal" type="info" class="mt-4 text-caption rounded-lg"
@@ -413,7 +503,9 @@
                         <span class="text-h6 font-weight-black">Historical Arc</span>
                     </v-card-title>
                     <v-card-text class="pa-6">
-                        <BudgetHistoryChart v-if="budgetHistory.length > 0" :history="budgetHistory" />
+                        <div class="large-chart-container">
+                            <BudgetHistoryChart v-if="budgetHistory.length > 0" :history="budgetHistory" />
+                        </div>
                     </v-card-text>
                 </v-card>
             </v-col>
@@ -460,28 +552,66 @@
                     </v-card-text>
                 </v-card>
             </v-col>
+
+            <!-- Transactions List -->
+            <v-col cols="12">
+                <v-card rounded="xl" class="premium-glass-card no-hover overflow-hidden">
+                    <v-card-title class="d-flex align-center justify-space-between px-6 pt-6 pb-2">
+                        <div class="d-flex align-center">
+                            <Wallet :size="20" class="text-primary mr-3" />
+                            <span class="text-h6 font-weight-black">Analytical Transactions</span>
+                        </div>
+                        <div class="d-flex align-center gap-2">
+                            <v-chip v-if="analyticsData.excludedExpense > 0 || analyticsData.excludedIncome > 0" size="small" variant="tonal" color="warning" class="font-weight-black px-4">
+                                <ShieldAlert :size="14" class="mr-1" />
+                                {{ formatAmount(analyticsData.excludedExpense + analyticsData.excludedIncome) }} Shielded
+                            </v-chip>
+                        </div>
+                    </v-card-title>
+                    
+                    <v-card-text class="pa-0">
+                        <TransactionTable
+                            hide-actions
+                            :show-select="false"
+                            :transactions="filteredTransactions"
+                            :total="transactionPagination.total"
+                            :loading="loadingTransactions"
+                            :page-size="transactionPagination.limit"
+                            :page="transactionPagination.page"
+                            :selected-ids="new Set()"
+                            :accounts="store.accounts"
+                            :categories="store.categories"
+                            :expense-groups="[]"
+                            @optionsUpdate="fetchFilteredTransactions"
+                        />
+                    </v-card-text>
+                </v-card>
+            </v-col>
         </v-row>
     </div>
 </template>
 
 <script setup lang="ts">
-import { localDateString } from '@/utils/time'
-import { ref, onMounted, computed, watch } from 'vue'
-import { useFinanceStore } from '@/stores/finance'
-import { useAuthStore } from '@/stores/auth'
-import { useSettingsStore } from '@/stores/settings'
-import { financeApi, aiApi } from '@/api/client'
-import { useCurrency } from '@/composables/useCurrency'
-import BaseChart from '@/components/BaseChart.vue'
-import BudgetHistoryChart from '@/components/BudgetHistoryChart.vue'
 import { marked } from 'marked'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useTheme } from 'vuetify'
 import {
     TrendingUp, TrendingDown, Scale,
     CalendarRange, ArrowRight, RefreshCcw, Filter, BarChart2,
-    ShieldAlert, Sparkles, Brain, ChevronDown
+    ShieldAlert, Sparkles, Brain, ChevronDown, Wallet
 } from 'lucide-vue-next'
+
+import { financeApi } from '@/api/client'
+import BaseChart from '@/components/BaseChart.vue'
+import BudgetHistoryChart from '@/components/BudgetHistoryChart.vue'
+import TransactionTable from '@/components/transactions/TransactionTable.vue'
+import { useCurrency } from '@/composables/useCurrency'
+import { useAuthStore } from '@/stores/auth'
+import { useFinanceStore } from '@/stores/finance'
+import { useInsightsStore } from '@/stores/insights'
+import { useSettingsStore } from '@/stores/settings'
 import { getCategoryLucideIcon } from '@/utils/iconMapping'
+import { localDateString } from '@/utils/time'
 
 interface Props {
     selectedAccount?: string
@@ -489,10 +619,11 @@ interface Props {
 
 const props = defineProps<Props>()
 
+const theme = useTheme()
+const insightsStore = useInsightsStore()
 const store = useFinanceStore()
 const authStore = useAuthStore()
 const settings = useSettingsStore()
-const theme = useTheme()
 const { formatAmount } = useCurrency()
 
 const isDark = computed(() => theme.global.current.value.dark)
@@ -503,6 +634,29 @@ const startDate = ref('')
 const endDate = ref('')
 const selectedTrendCategory = ref('')
 const trendView = ref<'daily' | 'monthly'>('daily')
+const localSelectedAccount = ref(props.selectedAccount || '')
+const breakdownView = ref<'expense' | 'investment'>('expense')
+
+// Pagination for transactions
+const filteredTransactions = ref<any[]>([])
+const transactionPagination = ref({
+    page: 1,
+    limit: 10,
+    total: 0
+})
+
+const monthlyHistory = ref<any[]>([])
+const loadingMonthly = ref(false)
+const loadingTransactions = ref(false)
+
+const accountOptions = computed(() => {
+    return store.accounts.map(acc => ({
+        title: acc.name,
+        value: acc.id,
+        subtitle: acc.type
+    }))
+})
+
 
 // Category Color Palette (if store colors are missing or identical)
 const chartPalette = [
@@ -552,36 +706,102 @@ const timeRangeOptions = [
     { label: 'Custom Range', value: 'custom' }
 ]
 
-// Data for Analytics
-
-const analyticsData = ref<any>({
-    income: 0,
-    expense_total: 0,
-    net: 0,
-    categories: [],
-    merchants: [],
-    heatmap: { grid: {}, categories: [], hours: [], max: 0 },
-    excludedExpense: 0,
-    excludedIncome: 0,
-    excludedCategories: [],
-    accounts: [],
-    types: [],
-    credit: { limit: 0, consumed: 0, available: 0, percent: 0 },
-    patterns: { weekend: 0, weekday: 0, weekendPercent: 0, weekdayPercent: 0 },
-    count: 0
+// Data from store
+const analyticsData = computed(() => insightsStore.analyticsData)
+const aiInsights = computed(() => insightsStore.aiInsights)
+const generatingAI = computed(() => insightsStore.generatingAI)
+const hasData = computed(() => {
+    return analyticsData.value && (
+        (analyticsData.value.income && analyticsData.value.income > 0) || 
+        (analyticsData.value.expense_total && analyticsData.value.expense_total > 0)
+    )
 })
+
 const forecastData = ref<any[]>([])
 const budgets = ref<any[]>([])
+
+let lastMonthlyFetchKey = ''
+
+async function fetchMonthlyHistory() {
+    const fetchKey = `${localSelectedAccount.value}-${authStore.selectedMemberId}`
+    if (monthlyHistory.value.length > 0 && lastMonthlyFetchKey === fetchKey) return
+    
+    loadingMonthly.value = true
+    try {
+        const res = await financeApi.getBudgetHistory(12, authStore.selectedMemberId || undefined, localSelectedAccount.value || undefined)
+        // Transform budget history into a simpler trend format
+        monthlyHistory.value = res.data.map((m: any) => {
+            const overall = m.data.find((d: any) => d.category === 'OVERALL')
+            return {
+                label: m.month,
+                value: overall ? overall.spent : m.data.reduce((acc: number, d: any) => acc + d.spent, 0)
+            }
+        })
+        lastMonthlyFetchKey = fetchKey
+    } catch (e) {
+        console.error("Failed to fetch monthly history:", e)
+    } finally {
+        loadingMonthly.value = false
+    }
+}
+
+async function fetchFilteredTransactions(options?: any) {
+    if (options) {
+        transactionPagination.value.page = options.page
+        transactionPagination.value.limit = options.itemsPerPage
+    }
+
+    loadingTransactions.value = true
+    try {
+        // Fetch transactions based on current filters
+        const res = await financeApi.getTransactions(
+            localSelectedAccount.value || undefined,
+            transactionPagination.value.page,
+            transactionPagination.value.limit,
+            startDate.value || undefined,
+            endDate.value || undefined,
+            undefined, // search
+            undefined, // category
+            'date',
+            'desc',
+            authStore.selectedMemberId || undefined,
+            true, // exclude_transfers
+            true  // exclude_from_reports
+        )
+
+        filteredTransactions.value = res.data.data
+        transactionPagination.value.total = res.data.total
+    } catch (e) {
+        console.error("Failed to fetch transactions:", e)
+    } finally {
+        loadingTransactions.value = false
+    }
+}
+
+watch(trendView, (newVal) => {
+    if (newVal === 'monthly') {
+        fetchMonthlyHistory()
+    }
+})
+
+// Update watchEffect or watchers to fetch transactions
+watch([localSelectedAccount, selectedTimeRange, startDate, endDate, () => authStore.selectedMemberId], () => {
+    transactionPagination.value.page = 1
+    fetchFilteredTransactions()
+})
 const budgetHistory = ref<any[]>([])
-const aiInsights = ref<string>('')
 const aiError = ref<string | null>(null)
-const generatingAI = ref(false)
-const loading = ref(false)
 const showExcludedDetails = ref(false)
 
 onMounted(async () => {
     // Initial fetch
     handleTimeRangeChange('this-month')
+    fetchFilteredTransactions() // Ensure table loads on initial mount
+    
+    // Attempt to load cached AI insights on load
+    setTimeout(() => {
+        generateAIInsights(false)
+    }, 1000) // Delay slightly to ensure analytics data is loaded for context if needed
 })
 
 // Watch for global member filter change
@@ -589,8 +809,8 @@ watch(() => authStore.selectedMemberId, async () => {
     await fetchAnalyticsData()
 })
 
-// Watch for shell-provided account filter
-watch(() => props.selectedAccount, () => {
+// Watch for local account filter change
+watch(localSelectedAccount, () => {
     fetchAnalyticsData()
 })
 
@@ -609,22 +829,37 @@ function handleTimeRangeChange(val: string) {
         startDate.value = localDateString(start.getFullYear(), start.getMonth(), start.getDate())
         endDate.value = localDateString(end.getFullYear(), end.getMonth(), end.getDate())
     } else if (val === 'this-week') {
+        // Week: Monday to Sunday
         const day = now.getDay()
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1)
-        start.setDate(diff)
+        const diffToMonday = (day === 0 ? 6 : day - 1)
+        start.setDate(now.getDate() - diffToMonday)
         start.setHours(0, 0, 0, 0)
+        
+        end.setDate(start.getDate() + 6)
+        end.setHours(23, 59, 59, 999)
+        
         startDate.value = localDateString(start.getFullYear(), start.getMonth(), start.getDate())
+        endDate.value = localDateString(end.getFullYear(), end.getMonth(), end.getDate())
     } else if (val === 'this-month') {
+        // Month: 1st to last day
         start.setDate(1)
         start.setHours(0, 0, 0, 0)
+        
+        end.setMonth(now.getMonth() + 1)
+        end.setDate(0)
+        end.setHours(23, 59, 59, 999)
+        
         startDate.value = localDateString(start.getFullYear(), start.getMonth(), start.getDate())
+        endDate.value = localDateString(end.getFullYear(), end.getMonth(), end.getDate())
     } else if (val === 'last-month') {
         start.setMonth(start.getMonth() - 1)
         start.setDate(1)
         start.setHours(0, 0, 0, 0)
+        
         end.setMonth(end.getMonth())
-        end.setDate(0)
+        end.setDate(0) // Last day of previous month
         end.setHours(23, 59, 59, 999)
+        
         startDate.value = localDateString(start.getFullYear(), start.getMonth(), start.getDate())
         endDate.value = localDateString(end.getFullYear(), end.getMonth(), end.getDate())
     }
@@ -638,34 +873,34 @@ watch(selectedTrendCategory, () => {
 })
 
 async function fetchAnalyticsData() {
-    loading.value = true
     try {
         const userId = authStore.selectedMemberId || undefined
-        const params = {
-            start_date: startDate.value,
-            end_date: endDate.value,
-            account_id: props.selectedAccount || undefined
-        }
 
-        const [detailedRes, forecastRes, budgetRes, historyRes] = await Promise.all([
-            financeApi.getDetailedAnalytics(params.account_id, params.start_date || undefined, params.end_date || undefined, userId, selectedTrendCategory.value || undefined),
-            financeApi.getForecast(params.account_id, 30, userId),
+        const [, forecastRes, budgetRes, historyRes] = await Promise.all([
+            insightsStore.fetchAnalytics({
+                account_id: localSelectedAccount.value || undefined,
+                start_date: startDate.value || undefined,
+                end_date: endDate.value || undefined,
+                category: selectedTrendCategory.value || undefined
+            }),
+            financeApi.getForecast(localSelectedAccount.value || undefined, 30, userId),
             financeApi.getBudgets(undefined, undefined, userId),
-            financeApi.getBudgetHistory(6, userId)
+            financeApi.getBudgetHistory(6, userId, localSelectedAccount.value || undefined)
         ])
-        analyticsData.value = detailedRes.data
+        // Note: detailedRes is already handled by insightsStore.analyticsData
         forecastData.value = forecastRes.data
         budgets.value = budgetRes.data
         budgetHistory.value = historyRes.data
+        
+        if (trendView.value === 'monthly') {
+            fetchMonthlyHistory()
+        }
     } catch (e) {
         console.error(e)
-    } finally {
-        loading.value = false
     }
 }
 
-async function generateAIInsights() {
-    generatingAI.value = true
+async function generateAIInsights(forceRefresh: boolean = true) {
     aiError.value = null
     try {
         const timeContext = selectedTimeRange.value === 'custom'
@@ -677,8 +912,10 @@ async function generateAIInsights() {
         const promptData = {
             income: analyticsData.value.income,
             expense_total: analyticsData.value.expense_total,
+            investment_total: analyticsData.value.investment_total,
             net: analyticsData.value.net,
             categories: analyticsData.value.categories,
+            investment_breakdown: analyticsData.value.investment_breakdown,
             merchants: analyticsData.value.merchants,
             accounts: analyticsData.value.accounts,
             types: analyticsData.value.types,
@@ -696,14 +933,8 @@ async function generateAIInsights() {
             account_filtered: props.selectedAccount ? "Yes" : "No",
             member_context: authStore.selectedMemberId ? "Filtered by specific member" : "Global view"
         }
-        const res = await aiApi.generateSummaryInsights(promptData)
-        if (res.data && res.data.insights) {
-            aiInsights.value = res.data.insights
-            aiError.value = null
-        } else {
-            console.warn("AI Response successful but missing data:", res.data)
-            aiError.value = "AI reached (v2) but returned empty analysis. This usually means the model generated no content. Check settings."
-        }
+        await insightsStore.generateAIInsights(promptData, forceRefresh)
+        aiError.value = null
     } catch (e: any) {
         console.error("AI Insight Error:", e)
         const rawMsg = e.response?.data?.detail || e.message || ""
@@ -719,8 +950,6 @@ async function generateAIInsights() {
         } else {
             aiError.value = rawMsg || "Failed to connect to the intelligence service."
         }
-    } finally {
-        generatingAI.value = false
     }
 }
 
@@ -744,16 +973,10 @@ const categoryOptions = computed(() => {
 })
 
 const filteredTrendData = computed(() => {
-    const trend = analyticsData.value.trend || []
     if (trendView.value === 'monthly') {
-        const map: Record<string, number> = {}
-        trend.forEach((d: any) => {
-            const month = d.date.slice(0, 7)
-            map[month] = (map[month] || 0) + d.amount
-        })
-        return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([label, value]) => ({ label, value }))
+        return monthlyHistory.value
     }
+    const trend = analyticsData.value.trend || []
     return trend.map((d: any) => ({ label: d.date, value: d.amount }))
 })
 
@@ -763,7 +986,16 @@ const trendChartData = computed(() => {
     const bgColor = color.startsWith('#') ? color + '20' : color.replace('rgb(', 'rgba(').replace(')', ', 0.1)')
 
     return {
-        labels: filteredTrendData.value.map((d: any) => trendView.value === 'daily' ? d.label.slice(5) : d.label),
+        labels: filteredTrendData.value.map((d: any) => {
+            if (trendView.value === 'daily') return d.label.slice(5)
+            // If already formatted (e.g. "Apr 2026"), return as is
+            if (d.label.includes(' ')) return d.label
+            // Otherwise try to parse YYYY-MM
+            const parts = d.label.split('-')
+            if (parts.length < 2) return d.label
+            const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1)
+            return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
+        }),
         datasets: [{
             label: selectedTrendCategory.value || 'All Spending',
             data: filteredTrendData.value.map((d: any) => d.value / (settings.maskingFactor || 1)),
@@ -793,15 +1025,18 @@ const merchantChartData = computed(() => ({
     }]
 }))
 
-const categoryChartData = computed(() => ({
-    labels: analyticsData.value.categories?.map((c: any) => c.name) || [],
-    datasets: [{
-        data: analyticsData.value.categories?.map((c: any) => c.value / (settings.maskingFactor || 1)) || [],
-        backgroundColor: analyticsData.value.categories?.map((_: any, i: number) => chartPalette[i % chartPalette.length]) || [],
-        hoverOffset: 12,
-        borderWidth: 0
-    }]
-}))
+const categoryChartData = computed(() => {
+    const source = breakdownView.value === 'expense' ? analyticsData.value.categories : analyticsData.value.investment_breakdown
+    return {
+        labels: source?.map((c: any) => c.name) || [],
+        datasets: [{
+            data: source?.map((c: any) => c.value / (settings.maskingFactor || 1)) || [],
+            backgroundColor: source?.map((_: any, i: number) => chartPalette[i % chartPalette.length]) || [],
+            hoverOffset: 12,
+            borderWidth: 0
+        }]
+    }
+})
 
 const forecastChartData = computed(() => ({
     labels: forecastData.value.map((d: any) => d.date.split('T')[0].slice(5)),
@@ -818,12 +1053,54 @@ const forecastChartData = computed(() => ({
 </script>
 
 <style scoped>
-/* AI Premium Card */
+/* AI Premium Card (Midnight Variant to match Budget Hero) */
 .premium-ai-card {
-    background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, rgba(var(--v-theme-primary), 0.7) 100%);
+    background: #0f172a !important;
     position: relative;
     overflow: hidden;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.ai-background-blobs {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.blob-blue {
+    position: absolute;
+    filter: blur(80px);
+    opacity: 0.15;
+    background: rgba(59, 130, 246, 0.2);
+    width: 600px;
+    height: 600px;
+    top: -200px;
+    right: -100px;
+    border-radius: 50%;
+    animation: blob-float 20s infinite alternate;
+}
+
+.blob-purple {
+    position: absolute;
+    filter: blur(80px);
+    opacity: 0.1;
+    background: rgba(139, 92, 246, 0.1);
+    width: 400px;
+    height: 400px;
+    bottom: -100px;
+    left: -100px;
+    border-radius: 50%;
+    animation: blob-float 20s infinite alternate-reverse;
+    animation-delay: -5s;
+}
+
+@keyframes blob-float {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(20px, -20px) scale(1.1); }
 }
 
 .ai-card-inner {
@@ -986,7 +1263,7 @@ const forecastChartData = computed(() => ({
 
 /* Charts */
 .analytics-chart-box {
-    height: 450px;
+    height: 320px;
     width: 100%;
     position: relative;
 }
@@ -1012,7 +1289,7 @@ const forecastChartData = computed(() => ({
 }
 
 .large-chart-container {
-    height: 400px;
+    height: 320px;
     width: 100%;
 }
 
@@ -1217,5 +1494,68 @@ const forecastChartData = computed(() => ({
 
 .max-w-md {
     max-width: 450px;
+}
+/* Premium Table Styling */
+.premium-table :deep(table) {
+    border-collapse: separate;
+    border-spacing: 0 4px;
+}
+
+.premium-table :deep(thead th) {
+    border: none !important;
+    height: 48px !important;
+}
+
+.txn-row {
+    transition: all 0.2s ease;
+}
+
+.txn-row:hover {
+    background: rgba(var(--v-theme-primary), 0.05) !important;
+    transform: translateX(4px);
+}
+
+.txn-row td {
+    border: none !important;
+    height: 64px !important;
+}
+
+/* Segmented Control Styling */
+.segmented-control-premium {
+    backdrop-filter: blur(10px);
+}
+
+.letter-spacing-1 {
+    letter-spacing: 1px;
+}
+/* Premium Date Picker Styling */
+.date-picker-premium :deep(.v-field) {
+    background: rgba(var(--v-theme-surface), 0.7) !important;
+    border-radius: 50px !important;
+}
+
+.date-picker-premium :deep(.v-field__outline) {
+    --v-field-border-opacity: 0.1;
+}
+
+.date-picker-premium:hover :deep(.v-field__outline) {
+    --v-field-border-opacity: 0.4;
+    border-color: rgb(var(--v-theme-primary)) !important;
+}
+
+.date-picker-premium :deep(input) {
+    font-size: 0.75rem !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: 32px !important;
+}
+
+/* Custom calendar icon color */
+.date-picker-premium :deep(input::-webkit-calendar-picker-indicator) {
+    filter: invert(0.5) sepia(1) saturate(5) hue-rotate(175deg);
+    cursor: pointer;
 }
 </style>
