@@ -123,6 +123,7 @@ const navItems = computed(() => {
             icon: Landmark,
             children: [
                 { title: 'Accounts', icon: Briefcase, to: '/accounts', adultOnly: true },
+                { title: 'Statements', icon: RefreshCw, to: '/statements', adultOnly: true },
             ]
         },
         {

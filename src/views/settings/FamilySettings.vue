@@ -107,15 +107,20 @@
                             variant="outlined" required></v-text-field>
 
                         <v-row>
-                            <v-col cols="6">
+                            <v-col cols="4">
                                 <v-text-field v-model="memberForm.dob" label="Date of Birth" type="date"
                                     variant="outlined"></v-text-field>
                             </v-col>
-                            <v-col cols="6">
+                            <v-col cols="4">
                                 <v-text-field v-model="memberForm.pan_number" label="PAN Number"
                                     :type="showPan ? 'text' : 'password'"
                                     :append-inner-icon="showPan ? 'EyeOff' : 'Eye'"
                                     @click:append-inner="showPan = !showPan" placeholder="ABCDE1234F" maxlength="10"
+                                    variant="outlined"></v-text-field>
+                            </v-col>
+                            <v-col cols="4">
+                                <v-text-field v-model="memberForm.phone_number" label="Phone (Last 5 used for PDFs)"
+                                    placeholder="9876543210" maxlength="10"
                                     variant="outlined"></v-text-field>
                             </v-col>
                         </v-row>
@@ -195,7 +200,8 @@ const memberForm = ref({
     role: 'ADULT',
     avatar: '👨‍💼',
     dob: '',
-    pan_number: ''
+    pan_number: '',
+    phone_number: ''
 })
 const showPan = ref(false)
 
@@ -284,7 +290,8 @@ function openAddMemberModal() {
         role: 'ADULT' as any,
         avatar: '👨‍💼',
         dob: '',
-        pan_number: ''
+        pan_number: '',
+        phone_number: ''
     }
     showPan.value = false
     showMemberModal.value = true
@@ -299,8 +306,9 @@ function openEditMemberModal(member: any) {
         password: '',
         role: member.role,
         avatar: member.avatar || '👤',
-        dob: member.dob || '',
-        pan_number: member.pan_number || ''
+        dob: member.dob ? member.dob.split('T')[0] : '',
+        pan_number: member.pan_number || '',
+        phone_number: member.phone_number || ''
     }
     showPan.value = false
     showMemberModal.value = true
@@ -315,6 +323,7 @@ async function handleMemberSubmit() {
                 role: memberForm.value.role,
                 dob: memberForm.value.dob || undefined,
                 pan_number: memberForm.value.pan_number || undefined,
+                phone_number: memberForm.value.phone_number || undefined,
                 password: memberForm.value.password || undefined
             })
             notify.success("Member updated")

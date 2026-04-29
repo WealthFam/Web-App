@@ -366,6 +366,17 @@ export const financeApi = {
     payCreditCardBill: (id: string, data: { source_account_id: string, amount: number, date: string, description?: string }) => 
         apiClient.post(`/finance/accounts/${id}/pay-bill`, data),
     getCreditIntelligence: (userId?: string) => apiClient.get('/finance/analytics/credit-intelligence', { params: { user_id: userId } }),
+    getStatements: () => apiClient.get('/finance/statements'),
+    getStatementTransactions: (id: string) => apiClient.get(`/finance/statements/${id}/transactions`),
+    uploadStatement: (formData: FormData) => apiClient.post('/finance/statements/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    deleteStatement: (id: string) => apiClient.delete(`/finance/statements/${id}`),
+    syncStatements: (sinceDate?: string) => apiClient.post('/finance/statements/sync', null, { params: { since_date: sinceDate } }),
+    reconcileStatement: (id: string) => apiClient.post(`/finance/statements/${id}/reconcile`),
+    ingestStatementTransaction: (id: string, category?: string) => apiClient.post(`/finance/statements/transactions/${id}/ingest`, null, { params: { category } }),
+    bulkIngestStatementTransactions: (data: { items: { transaction_id: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[] }) => apiClient.post('/finance/statements/transactions/bulk-ingest', data),
+    retryParsingStatement: (id: string, password: string) => apiClient.post(`/finance/statements/${id}/retry`, null, { params: { password } }),
 }
 
 const parserClient = axios.create({
