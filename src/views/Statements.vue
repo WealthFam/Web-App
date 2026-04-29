@@ -13,7 +13,6 @@ import {
     Clock,
     Trash2,
     Eye,
-    Plus,
     EyeOff,
     X,
     Search as SearchIcon
