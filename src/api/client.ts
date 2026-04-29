@@ -366,12 +366,13 @@ export const financeApi = {
     payCreditCardBill: (id: string, data: { source_account_id: string, amount: number, date: string, description?: string }) => 
         apiClient.post(`/finance/accounts/${id}/pay-bill`, data),
     getCreditIntelligence: (userId?: string) => apiClient.get('/finance/analytics/credit-intelligence', { params: { user_id: userId } }),
-    getStatements: () => apiClient.get('/finance/statements'),
-    getStatementTransactions: (id: string) => apiClient.get(`/finance/statements/${id}/transactions`),
+    getStatements: (params?: { skip?: number, limit?: number, search?: string }) => apiClient.get('/finance/statements', { params }),
+    getStatementTransactions: (id: string, params?: { skip?: number, limit?: number, search?: string }) => apiClient.get(`/finance/statements/${id}/transactions`, { params }),
     uploadStatement: (formData: FormData) => apiClient.post('/finance/statements/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     }),
     deleteStatement: (id: string) => apiClient.delete(`/finance/statements/${id}`),
+    updateStatement: (id: string, data: { account_id?: string, is_deleted?: boolean }) => apiClient.patch(`/finance/statements/${id}`, data),
     syncStatements: (sinceDate?: string) => apiClient.post('/finance/statements/sync', null, { params: { since_date: sinceDate } }),
     reconcileStatement: (id: string) => apiClient.post(`/finance/statements/${id}/reconcile`),
     ingestStatementTransaction: (id: string, category?: string) => apiClient.post(`/finance/statements/transactions/${id}/ingest`, null, { params: { category } }),
