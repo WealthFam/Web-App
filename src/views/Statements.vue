@@ -14,7 +14,12 @@ import {
     User,
     Clock,
     Trash2,
-    Eye
+    Eye,
+    Edit,
+    Check,
+    Download,
+    Plus,
+    EyeOff
 } from 'lucide-vue-next'
 import MainLayout from '@/layouts/MainLayout.vue'
 import apiClient, { financeApi } from '@/api/client'
@@ -41,6 +46,19 @@ const retryDialog = ref(false)
 const retryPassword = ref('')
 const showRetryPassword = ref(false)
 const selectedStatementForRetry = ref<any>(null)
+
+const statementPage = ref(1)
+const statementPageSize = 8
+
+const txnSearch = ref('')
+const txnPage = ref(1)
+const headers = [
+    { title: 'Date', key: 'date', sortable: true },
+    { title: 'Description', key: 'description', sortable: true },
+    { title: 'Category', key: 'category_suggestion', sortable: true },
+    { title: 'Amount', key: 'amount', align: 'end', sortable: true },
+    { title: 'Status', key: 'status', align: 'center', sortable: false },
+]
 
 const users = ref<any[]>([])
 const accounts = ref<any[]>([])
@@ -142,7 +160,7 @@ async function confirmBulkIngest() {
 }
 
 onMounted(async () => {
-    store.fetchStatements()
+    store.fetchStatements(0, statementPageSize)
     try {
         const [usersRes, accountsRes, categoriesRes] = await Promise.all([
             apiClient.get('/auth/users'),
@@ -154,6 +172,23 @@ onMounted(async () => {
         categories.value = categoriesRes.data
     } catch (e) {
         console.error("Failed to fetch data", e)
+    }
+})
+
+// Server-side pagination for statements
+watch([statementPage, search], () => {
+    store.fetchStatements((statementPage.value - 1) * statementPageSize, statementPageSize, search.value)
+})
+
+// Server-side pagination for transactions
+watch([txnPage, txnSearch, selectedStatement], () => {
+    if (selectedStatement.value) {
+        store.fetchTransactions(
+            selectedStatement.value.id, 
+            (txnPage.value - 1) * 10, 
+            10, 
+            txnSearch.value
+        )
     }
 })
 
@@ -180,16 +215,10 @@ watch(uploadUser, (user) => {
     }
 })
 
-const filteredStatements = computed(() => {
-    if (!search.value) return store.statements
-    return store.statements.filter(s => 
-        s.filename.toLowerCase().includes(search.value.toLowerCase())
-    )
-})
-
 async function selectStatement(s: any) {
     selectedStatement.value = s
-    await store.fetchTransactions(s.id)
+    txnPage.value = 1
+    // Fetch logic is handled by the watch
 }
 
 async function handleUpload() {
@@ -295,6 +324,31 @@ function getUnreconciledCount(s: any) {
 const deleteDialog = ref(false)
 const statementToDelete = ref<string | null>(null)
 
+const reassignDialog = ref(false)
+const reassignAccountId = ref<string | null>(null)
+const reassigning = ref(false)
+
+function openReassignDialog() {
+    if (!selectedStatement.value) return
+    reassignAccountId.value = selectedStatement.value.account_id
+    reassignDialog.value = true
+}
+
+async function confirmReassign() {
+    if (!selectedStatement.value || !reassignAccountId.value) return
+    reassigning.value = true
+    try {
+        const updated = await store.updateStatement(selectedStatement.value.id, { account_id: reassignAccountId.value })
+        selectedStatement.value = updated
+        notification.success('Account re-assigned successfully')
+        reassignDialog.value = false
+    } catch (e: any) {
+        notification.error(e.message || 'Failed to re-assign account')
+    } finally {
+        reassigning.value = false
+    }
+}
+
 function promptDeleteStatement(id: string) {
     statementToDelete.value = id
     deleteDialog.value = true
@@ -377,9 +431,9 @@ async function reevaluateStatement(id: string) {
                                 </v-text-field>
                             </div>
 
-                            <v-list class="pa-2 bg-transparent overflow-y-auto" style="max-height: calc(100vh - 300px)">
+                            <v-list class="pa-2 bg-transparent overflow-y-auto" style="max-height: calc(100vh - 350px)">
                                 <v-list-item
-                                    v-for="s in filteredStatements"
+                                    v-for="s in store.statements"
                                     :key="s.id"
                                     @click="selectStatement(s)"
                                     :active="selectedStatement?.id === s.id"
@@ -396,36 +450,36 @@ async function reevaluateStatement(id: string) {
                                         </div>
                                     </template>
 
-                                    <v-list-item-title class="font-weight-bold">{{ s.filename }}</v-list-item-title>
+                                    <v-list-item-title class="font-weight-bold text-truncate">{{ s.filename }}</v-list-item-title>
                                     <v-list-item-subtitle class="text-caption mt-1 d-flex align-center">
                                         <Clock :size="12" class="mr-1" /> {{ formatDate(s.created_at) }}
-                                        <div class="mx-2 opacity-30">•</div>
-                                        <Mail v-if="s.source === 'EMAIL'" :size="12" class="mr-1 text-slate-500" />
-                                        <Upload v-else :size="12" class="mr-1 text-slate-500" />
-                                        <span class="text-tiny font-weight-bold text-slate-500">{{ s.source === 'EMAIL' ? 'Email Sync' : 'Manual Upload' }}</span>
                                         <v-chip size="x-small" :color="getStatusColor(s.status)" class="ml-2 font-weight-black text-tiny">
                                             {{ s.status }}
                                         </v-chip>
                                     </v-list-item-subtitle>
 
                                     <template v-slot:append>
-                                        <div class="d-flex align-center">
-                                            <v-badge
-                                                v-if="getUnreconciledCount(s) > 0"
-                                                :content="getUnreconciledCount(s)"
-                                                color="warning"
-                                                class="mr-4"
-                                            ></v-badge>
-                                            <ArrowRight :size="16" class="opacity-30" />
-                                        </div>
+                                        <ArrowRight :size="16" class="opacity-30" />
                                     </template>
                                 </v-list-item>
 
-                                <div v-if="filteredStatements.length === 0" class="pa-10 text-center opacity-40">
+                                <div v-if="store.statements.length === 0" class="pa-10 text-center opacity-40">
                                     <FileText :size="48" class="mb-4" />
                                     <p class="font-weight-bold">No statements found</p>
                                 </div>
                             </v-list>
+                            
+                            <div v-if="store.totalStatements > statementPageSize" class="pa-4 border-t d-flex justify-center bg-slate-50">
+                                <v-pagination
+                                    v-model="statementPage"
+                                    :length="Math.ceil(store.totalStatements / statementPageSize)"
+                                    density="comfortable"
+                                    rounded="pill"
+                                    size="small"
+                                    active-color="primary"
+                                    total-visible="3"
+                                ></v-pagination>
+                            </div>
                         </v-card>
                     </v-col>
 
@@ -443,9 +497,13 @@ async function reevaluateStatement(id: string) {
                                         <p class="text-caption text-slate-500 font-weight-bold uppercase letter-spacing-1 mt-1">
                                             <span v-if="getAccountInfo(selectedStatement.account_id)">
                                                 <User :size="12" class="mr-1 d-inline-block align-text-bottom" />{{ getAccountInfo(selectedStatement.account_id)?.userName }} • 
-                                                {{ getAccountInfo(selectedStatement.account_id)?.accountName }} • 
+                                                {{ getAccountInfo(selectedStatement.account_id)?.accountName }}
                                             </span>
-                                            <span v-else>Account: XX{{ selectedStatement.account_id?.slice(-4) }} • </span>
+                                            <span v-else>Account: XX{{ selectedStatement.account_id?.slice(-4) || 'Unknown' }}</span>
+                                            <v-btn icon size="x-small" variant="text" color="primary" class="ml-1 mt-n1" @click="openReassignDialog">
+                                                <Edit :size="14" />
+                                            </v-btn>
+                                            <span class="mx-1">•</span>
                                             {{ store.currentTransactions.length }} Transactions Found
                                         </p>
                                     </div>
@@ -501,59 +559,121 @@ async function reevaluateStatement(id: string) {
                                 </v-btn>
                             </div>
 
+                            <!-- Search & Filter Header -->
+                            <div class="pa-4 border-b d-flex align-center bg-slate-50">
+                                <v-text-field
+                                    v-model="txnSearch"
+                                    prepend-inner-icon="mdi-magnify"
+                                    label="Search transactions..."
+                                    variant="solo"
+                                    flat
+                                    hide-details
+                                    density="compact"
+                                    rounded="pill"
+                                    class="max-w-[300px] search-input"
+                                ></v-text-field>
+                                <v-spacer></v-spacer>
+                                <v-btn 
+                                    v-if="selectedTransactions.length > 0"
+                                    color="primary" 
+                                    rounded="pill" 
+                                    elevation="0" 
+                                    size="small"
+                                    @click="openBulkIngestDialog"
+                                    class="px-6 font-weight-black"
+                                >
+                                    <template v-slot:prepend>
+                                        <CheckCircle2 :size="16" />
+                                    </template>
+                                    Ingest Selected ({{ selectedTransactions.length }})
+                                </v-btn>
+                            </div>
+
                             <!-- Reconciliation Table -->
-                            <div v-if="selectedStatement.status === 'PARSED'" class="flex-grow-1 overflow-y-auto pa-4">
-                                <v-table hover class="premium-table">
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center" style="width: 40px;">
-                                                <v-checkbox-btn v-model="selectAll" color="primary" hide-details></v-checkbox-btn>
-                                            </th>
-                                            <th class="text-left font-weight-black text-tiny uppercase opacity-60">Date</th>
-                                            <th class="text-left font-weight-black text-tiny uppercase opacity-60">Description</th>
-                                            <th class="text-left font-weight-black text-tiny uppercase opacity-60">Category</th>
-                                            <th class="text-right font-weight-black text-tiny uppercase opacity-60">Amount</th>
-                                            <th class="text-center font-weight-black text-tiny uppercase opacity-60">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="txn in store.currentTransactions" :key="txn.id">
-                                            <td class="text-center">
-                                                <v-checkbox-btn 
-                                                    v-if="!txn.is_reconciled"
-                                                    v-model="selectedTransactions" 
-                                                    :value="txn.id" 
-                                                    color="primary"
-                                                    hide-details
-                                                ></v-checkbox-btn>
-                                            </td>
-                                            <td class="font-weight-bold text-caption">{{ formatDate(txn.date) }}</td>
-                                            <td>
-                                                <div class="font-weight-black text-caption text-truncate max-w-[200px]">{{ txn.description }}</div>
-                                            </td>
-                                            <td>
-                                                <v-chip v-if="txn.category_suggestion && txn.category_suggestion !== 'Uncategorized'" size="x-small" color="primary" variant="tonal" class="font-weight-bold text-tiny">
-                                                    {{ txn.category_suggestion }}
-                                                </v-chip>
-                                                <span v-else class="text-tiny opacity-40 font-weight-bold">Uncategorized</span>
-                                            </td>
-                                            <td class="text-right font-weight-black" :class="txn.type === 'DEBIT' ? 'text-red' : 'text-success'">
-                                                {{ txn.type === 'DEBIT' ? '-' : '+' }}{{ formatCurrency(txn.amount) }}
-                                            </td>
-                                            <td class="text-center">
-                                                <v-tooltip location="top">
-                                                    <template v-slot:activator="{ props }">
-                                                        <div v-bind="props" class="d-inline-flex align-center">
-                                                            <CheckCircle2 v-if="txn.is_reconciled" :size="18" class="text-success" />
-                                                            <AlertCircle v-else :size="18" class="text-warning" />
-                                                        </div>
-                                                    </template>
-                                                    <span>{{ txn.is_reconciled ? 'Matched with Ledger' : 'Not in Ledger' }}</span>
-                                                </v-tooltip>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </v-table>
+                            <div v-if="selectedStatement.status === 'PARSED'" class="flex-grow-1 overflow-hidden d-flex flex-column">
+                                <v-data-table-server
+                                    v-model="selectedTransactions"
+                                    :headers="headers"
+                                    :items="store.currentTransactions"
+                                    :items-length="store.totalTransactions"
+                                    :items-per-page="10"
+                                    :loading="store.loading"
+                                    show-select
+                                    hover
+                                    class="premium-table flex-grow-1 bg-transparent"
+                                    item-value="id"
+                                    @update:options="({page, itemsPerPage, sortBy}) => {
+                                        txnPage = page;
+                                    }"
+                                >
+                                    <!-- Date Column -->
+                                    <template v-slot:item.date="{ item }">
+                                        <span class="font-weight-bold text-caption tabular-nums text-slate-500">
+                                            {{ formatDate(item.date) }}
+                                        </span>
+                                    </template>
+
+                                    <!-- Description Column -->
+                                    <template v-slot:item.description="{ item }">
+                                        <div class="font-weight-black text-caption text-truncate max-w-[250px]">
+                                            {{ item.description }}
+                                        </div>
+                                    </template>
+
+                                    <!-- Category Column -->
+                                    <template v-slot:item.category_suggestion="{ item }">
+                                        <v-chip 
+                                            v-if="item.category_suggestion && item.category_suggestion !== 'Uncategorized'" 
+                                            size="x-small" 
+                                            color="primary" 
+                                            variant="tonal" 
+                                            class="font-weight-bold text-tiny"
+                                        >
+                                            {{ item.category_suggestion }}
+                                        </v-chip>
+                                        <span v-else class="text-tiny opacity-40 font-weight-bold">Uncategorized</span>
+                                    </template>
+
+                                    <!-- Amount Column -->
+                                    <template v-slot:item.amount="{ item }">
+                                        <div class="text-right font-weight-black tabular-nums" :class="item.type === 'DEBIT' ? 'text-red' : 'text-success'">
+                                            {{ item.type === 'DEBIT' ? '-' : '+' }}{{ formatCurrency(item.amount) }}
+                                        </div>
+                                    </template>
+
+                                    <!-- Status Column -->
+                                    <template v-slot:item.status="{ item }">
+                                        <div class="text-center">
+                                            <v-tooltip location="top">
+                                                <template v-slot:activator="{ props }">
+                                                    <div v-bind="props" class="d-inline-flex align-center">
+                                                        <CheckCircle2 v-if="item.is_reconciled" :size="18" class="text-success" />
+                                                        <AlertCircle v-else :size="18" class="text-warning" />
+                                                    </div>
+                                                </template>
+                                                <span>{{ item.is_reconciled ? 'Matched with Ledger' : 'Not in Ledger' }}</span>
+                                            </v-tooltip>
+                                        </div>
+                                    </template>
+
+                                    <!-- Pagination Footer Overrides -->
+                                    <template v-slot:bottom>
+                                        <div class="pa-4 border-t d-flex align-center justify-space-between bg-slate-50">
+                                            <div class="text-tiny font-weight-black text-slate-400 uppercase letter-spacing-1">
+                                                Total {{ store.totalTransactions }} Transactions
+                                            </div>
+                                            <v-pagination
+                                                v-model="txnPage"
+                                                :length="Math.ceil(store.totalTransactions / 10)"
+                                                density="comfortable"
+                                                rounded="pill"
+                                                size="small"
+                                                active-color="primary"
+                                                total-visible="5"
+                                            ></v-pagination>
+                                        </div>
+                                    </template>
+                                </v-data-table-server>
                             </div>
                         </v-card>
 
@@ -839,6 +959,63 @@ async function reevaluateStatement(id: string) {
                     </div>
                 </v-card>
             </v-dialog>
+            <!-- Reassign Account Dialog -->
+            <v-dialog v-model="reassignDialog" max-width="450">
+                <v-card rounded="xl" class="pa-4 premium-popup">
+                    <v-card-title class="text-h6 font-weight-black d-flex align-center">
+                        <Landmark :size="24" class="mr-3 text-primary" />
+                        Re-assign Account
+                    </v-card-title>
+                    <v-card-text class="pt-4">
+                        <p class="text-slate-500 mb-6 font-weight-medium">
+                            If the automatic detection was incorrect, select the correct account for this statement below.
+                        </p>
+                        
+                        <v-autocomplete
+                            v-model="reassignAccountId"
+                            :items="accounts"
+                            item-title="name"
+                            item-value="id"
+                            label="Select Correct Account"
+                            placeholder="Search accounts..."
+                            variant="outlined"
+                            rounded="lg"
+                            density="comfortable"
+                            color="primary"
+                            :prepend-inner-icon="Landmark"
+                            clearable
+                        >
+                            <template v-slot:item="{ props, item }">
+                                <v-list-item v-bind="props" :subtitle="`Mask: XX${item.raw.account_mask}`">
+                                    <template v-slot:prepend>
+                                        <div class="icon-box-small mr-3" :class="item.raw.is_verified ? 'bg-primary-lighten-5' : 'bg-slate-100'">
+                                            <Landmark :size="16" :class="item.raw.is_verified ? 'text-primary' : 'text-slate-400'" />
+                                        </div>
+                                    </template>
+                                </v-list-item>
+                            </template>
+                        </v-autocomplete>
+                    </v-card-text>
+                    <v-card-actions class="px-4 pb-4">
+                        <v-spacer></v-spacer>
+                        <v-btn variant="text" color="slate-500" rounded="pill" height="44" @click="reassignDialog = false">
+                            Cancel
+                        </v-btn>
+                        <v-btn 
+                            color="primary" 
+                            rounded="pill" 
+                            elevation="0" 
+                            height="44" 
+                            class="px-6"
+                            @click="confirmReassign" 
+                            :loading="reassigning"
+                            :disabled="!reassignAccountId"
+                        >
+                            Update Account
+                        </v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
         </v-container>
     </MainLayout>
 </template>
@@ -911,6 +1088,15 @@ async function reevaluateStatement(id: string) {
     justify-content: center;
 }
 
+.icon-box-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .icon-box-large {
     width: 56px;
     height: 56px;
@@ -964,5 +1150,10 @@ async function reevaluateStatement(id: string) {
 
 .gap-3 {
     gap: 12px;
+}
+
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-family: 'Inter', monospace;
 }
 </style>

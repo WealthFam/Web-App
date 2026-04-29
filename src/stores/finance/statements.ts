@@ -27,15 +27,18 @@ export interface Statement {
 
 export const useStatementStore = defineStore('statements', () => {
     const statements = ref<Statement[]>([])
+    const totalStatements = ref(0)
     const currentTransactions = ref<StatementTransaction[]>([])
+    const totalTransactions = ref(0)
     const loading = ref(false)
     const syncing = ref(false)
 
-    async function fetchStatements() {
+    async function fetchStatements(skip = 0, limit = 20, search?: string) {
         loading.value = true
         try {
-            const res = await financeApi.getStatements()
-            statements.value = res.data
+            const res = await financeApi.getStatements({ skip, limit, search })
+            statements.value = res.data.items
+            totalStatements.value = res.data.total
         } catch (error) {
             console.error('[StatementStore] Failed to fetch statements', error)
         } finally {
@@ -43,11 +46,12 @@ export const useStatementStore = defineStore('statements', () => {
         }
     }
 
-    async function fetchTransactions(statementId: string) {
+    async function fetchTransactions(statementId: string, skip = 0, limit = 50, search?: string) {
         loading.value = true
         try {
-            const res = await financeApi.getStatementTransactions(statementId)
-            currentTransactions.value = res.data
+            const res = await financeApi.getStatementTransactions(statementId, { skip, limit, search })
+            currentTransactions.value = res.data.items
+            totalTransactions.value = res.data.total
         } catch (error) {
             console.error('[StatementStore] Failed to fetch transactions', error)
         } finally {
@@ -137,6 +141,21 @@ export const useStatementStore = defineStore('statements', () => {
         }
     }
 
+    async function updateStatement(id: string, data: { account_id?: string, is_deleted?: boolean }) {
+        try {
+            const res = await financeApi.updateStatement(id, data)
+            // Update local state
+            const index = statements.value.findIndex(s => s.id === id)
+            if (index !== -1) {
+                statements.value[index] = res.data
+            }
+            return res.data
+        } catch (error) {
+            console.error('[StatementStore] Update failed', error)
+            throw error
+        }
+    }
+
     async function retryParsing(id: string, password: string) {
         loading.value = true
         try {
@@ -152,7 +171,9 @@ export const useStatementStore = defineStore('statements', () => {
 
     return {
         statements,
+        totalStatements,
         currentTransactions,
+        totalTransactions,
         loading,
         syncing,
         fetchStatements,
@@ -163,6 +184,7 @@ export const useStatementStore = defineStore('statements', () => {
         ingestTransaction,
         bulkIngestTransactions,
         reconcileStatement,
+        updateStatement,
         retryParsing
     }
 })
