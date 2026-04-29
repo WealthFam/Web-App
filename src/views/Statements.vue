@@ -6,8 +6,6 @@ import {
     RefreshCw, 
     CheckCircle2, 
     AlertCircle, 
-    Search, 
-    Mail,
     Lock,
     ArrowRight,
     Landmark,
@@ -15,11 +13,10 @@ import {
     Clock,
     Trash2,
     Eye,
-    Edit,
-    Check,
-    Download,
     Plus,
-    EyeOff
+    EyeOff,
+    X,
+    Search as SearchIcon
 } from 'lucide-vue-next'
 import MainLayout from '@/layouts/MainLayout.vue'
 import apiClient, { financeApi } from '@/api/client'
@@ -52,10 +49,11 @@ const statementPageSize = 8
 
 const txnSearch = ref('')
 const txnPage = ref(1)
-const headers = [
-    { title: 'Date', key: 'date', sortable: true },
-    { title: 'Description', key: 'description', sortable: true },
-    { title: 'Category', key: 'category_suggestion', sortable: true },
+const txnLimit = ref(10)
+const headers: any[] = [
+    { title: 'Date', key: 'date', sortable: true, align: 'start' },
+    { title: 'Description', key: 'description', sortable: true, align: 'start' },
+    { title: 'Category', key: 'category_suggestion', sortable: true, align: 'start' },
     { title: 'Amount', key: 'amount', align: 'end', sortable: true },
     { title: 'Status', key: 'status', align: 'center', sortable: false },
 ]
@@ -68,19 +66,7 @@ const selectedTransactions = ref<string[]>([])
 const bulkIngestDialog = ref(false)
 const bulkIngestItems = ref<{ transaction_id: string, description: string, amount: number, date: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[]>([])
 
-const selectAll = computed({
-    get: () => {
-        const unreconciled = store.currentTransactions.filter(t => !t.is_reconciled)
-        return unreconciled.length > 0 && selectedTransactions.value.length === unreconciled.length
-    },
-    set: (val) => {
-        if (val) {
-            selectedTransactions.value = store.currentTransactions.filter(t => !t.is_reconciled).map(t => t.id)
-        } else {
-            selectedTransactions.value = []
-        }
-    }
-})
+
 
 const categoryOptions = computed(() => {
     const list: any[] = []
@@ -181,12 +167,12 @@ watch([statementPage, search], () => {
 })
 
 // Server-side pagination for transactions
-watch([txnPage, txnSearch, selectedStatement], () => {
+watch([txnPage, txnSearch, txnLimit, selectedStatement], () => {
     if (selectedStatement.value) {
         store.fetchTransactions(
             selectedStatement.value.id, 
-            (txnPage.value - 1) * 10, 
-            10, 
+            (txnPage.value - 1) * txnLimit.value, 
+            txnLimit.value, 
             txnSearch.value
         )
     }
@@ -316,10 +302,7 @@ function getAccountInfo(accountId: string) {
     return { accountName: acc.name, userName: user?.full_name || 'System' }
 }
 
-function getUnreconciledCount(s: any) {
-    if (!s.transactions) return 0
-    return s.transactions.filter((t: any) => !t.is_reconciled).length
-}
+
 
 const deleteDialog = ref(false)
 const statementToDelete = ref<string | null>(null)
@@ -327,12 +310,6 @@ const statementToDelete = ref<string | null>(null)
 const reassignDialog = ref(false)
 const reassignAccountId = ref<string | null>(null)
 const reassigning = ref(false)
-
-function openReassignDialog() {
-    if (!selectedStatement.value) return
-    reassignAccountId.value = selectedStatement.value.account_id
-    reassignDialog.value = true
-}
 
 async function confirmReassign() {
     if (!selectedStatement.value || !reassignAccountId.value) return
@@ -414,24 +391,31 @@ async function reevaluateStatement(id: string) {
                 <v-row>
                     <!-- Left Sidebar: Statements List -->
                     <v-col cols="12" md="4">
-                        <v-card rounded="xl" border flat class="glass-card h-full overflow-hidden">
-                            <div class="pa-4 border-b">
+                        <v-card rounded="xl" border flat class="glass-card h-full flex flex-col overflow-hidden">
+                            <!-- Premium Toolbar -->
+                            <div class="premium-toolbar px-4 d-flex align-center bg-white border-b" style="height: 64px;">
+                                <FileText :size="20" class="mr-2 text-primary flex-shrink-0" />
+                                
                                 <v-text-field
                                     v-model="search"
                                     placeholder="Search statements..."
                                     variant="solo-filled"
-                                    density="compact"
-                                    hide-details
-                                    rounded="lg"
                                     flat
+                                    hide-details
+                                    density="compact"
+                                    rounded="pill"
+                                    class="mx-2 flex-grow-1"
+                                    style="max-width: 180px;"
                                 >
                                     <template v-slot:prepend-inner>
-                                        <Search :size="18" class="text-slate-400" />
+                                        <SearchIcon :size="18" class="text-slate-400" />
                                     </template>
                                 </v-text-field>
+
+                                <v-spacer></v-spacer>
                             </div>
 
-                            <v-list class="pa-2 bg-transparent overflow-y-auto" style="max-height: calc(100vh - 350px)">
+                            <v-list class="pa-2 bg-transparent overflow-y-auto flex-grow-1" style="max-height: calc(100vh - 350px)">
                                 <v-list-item
                                     v-for="s in store.statements"
                                     :key="s.id"
@@ -440,6 +424,7 @@ async function reevaluateStatement(id: string) {
                                     rounded="lg"
                                     class="mb-2 statement-item"
                                     :color="selectedStatement?.id === s.id ? 'primary' : ''"
+                                    height="72"
                                 >
                                     <template v-slot:prepend>
                                         <div class="icon-box mr-4" :class="`bg-${getStatusColor(s.status)}-lighten-5`">
@@ -450,10 +435,10 @@ async function reevaluateStatement(id: string) {
                                         </div>
                                     </template>
 
-                                    <v-list-item-title class="font-weight-bold text-truncate">{{ s.filename }}</v-list-item-title>
-                                    <v-list-item-subtitle class="text-caption mt-1 d-flex align-center">
+                                    <v-list-item-title class="font-weight-black text-caption text-truncate">{{ s.filename }}</v-list-item-title>
+                                    <v-list-item-subtitle class="text-tiny mt-1 d-flex align-center opacity-70">
                                         <Clock :size="12" class="mr-1" /> {{ formatDate(s.created_at) }}
-                                        <v-chip size="x-small" :color="getStatusColor(s.status)" class="ml-2 font-weight-black text-tiny">
+                                        <v-chip size="x-small" :color="getStatusColor(s.status)" class="ml-2 font-weight-black text-tiny" variant="tonal">
                                             {{ s.status }}
                                         </v-chip>
                                     </v-list-item-subtitle>
@@ -463,8 +448,8 @@ async function reevaluateStatement(id: string) {
                                     </template>
                                 </v-list-item>
 
-                                <div v-if="store.statements.length === 0" class="pa-10 text-center opacity-40">
-                                    <FileText :size="48" class="mb-4" />
+                                <div v-if="store.statements.length === 0" class="pa-10 text-center opacity-40 mx-auto">
+                                    <FileText :size="48" class="mb-4 mx-auto" />
                                     <p class="font-weight-bold">No statements found</p>
                                 </div>
                             </v-list>
@@ -485,94 +470,56 @@ async function reevaluateStatement(id: string) {
 
                     <!-- Right Content: Reconciliation Dashboard -->
                     <v-col cols="12" md="8">
-                        <v-card v-if="selectedStatement" rounded="xl" border flat class="glass-card h-full min-h-[600px] flex flex-col">
-                            <!-- Detail Header -->
-                            <div class="pa-6 border-b d-flex justify-space-between align-center">
-                                <div class="d-flex align-center">
-                                    <div class="icon-box-large mr-4 bg-primary-lighten-5">
-                                        <Landmark :size="24" class="text-primary" />
+                        <v-card v-if="selectedStatement" rounded="xl" border flat class="glass-card h-full flex flex-col overflow-hidden">
+                            <!-- Detail View Toolbar -->
+                            <div class="premium-toolbar px-4 d-flex align-center bg-white border-b" style="height: 64px;">
+                                <div class="d-flex align-center flex-grow-1 mr-4 overflow-hidden">
+                                    <div class="icon-box-small mr-3 bg-primary-lighten-5">
+                                        <FileText :size="16" class="text-primary" />
                                     </div>
-                                    <div>
-                                        <h2 class="text-h6 font-weight-black">{{ selectedStatement.filename }}</h2>
-                                        <p class="text-caption text-slate-500 font-weight-bold uppercase letter-spacing-1 mt-1">
-                                            <span v-if="getAccountInfo(selectedStatement.account_id)">
-                                                <User :size="12" class="mr-1 d-inline-block align-text-bottom" />{{ getAccountInfo(selectedStatement.account_id)?.userName }} • 
+                                    <div class="overflow-hidden">
+                                        <div class="text-caption font-weight-black text-truncate">{{ selectedStatement.filename }}</div>
+                                        <div class="text-tiny text-slate-500 font-weight-bold d-flex align-center overflow-hidden">
+                                            <span v-if="getAccountInfo(selectedStatement.account_id)" class="d-flex align-center text-truncate">
+                                                <User :size="10" class="mr-1 opacity-70" />
+                                                {{ getAccountInfo(selectedStatement.account_id)?.userName }} 
+                                                <span class="mx-1 opacity-30">•</span>
                                                 {{ getAccountInfo(selectedStatement.account_id)?.accountName }}
                                             </span>
-                                            <span v-else>Account: XX{{ selectedStatement.account_id?.slice(-4) || 'Unknown' }}</span>
-                                            <v-btn icon size="x-small" variant="text" color="primary" class="ml-1 mt-n1" @click="openReassignDialog">
-                                                <Edit :size="14" />
+                                            <span v-else class="text-truncate mr-1">Account: XX{{ selectedStatement.account_id?.slice(-4) || 'Unknown' }}</span>
+                                            
+                                            <v-btn 
+                                                variant="text" 
+                                                size="x-small" 
+                                                color="primary" 
+                                                class="px-1 font-weight-black text-tiny flex-shrink-0" 
+                                                density="compact"
+                                                @click="reassignDialog = true"
+                                            >
+                                                Edit
                                             </v-btn>
-                                            <span class="mx-1">•</span>
-                                            {{ store.currentTransactions.length }} Transactions Found
-                                        </p>
+
+                                            <span class="mx-1 opacity-30 flex-shrink-0">•</span>
+                                            <span class="flex-shrink-0 tabular-nums">{{ store.totalTransactions }} Trans.</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="d-flex gap-2">
-                                    <v-btn icon variant="text" color="primary" @click="reevaluateStatement(selectedStatement.id)" title="Reevaluate Transactions">
-                                        <RefreshCw :size="20" />
-                                    </v-btn>
-                                    <v-btn icon variant="text" color="error" @click="promptDeleteStatement(selectedStatement.id)" title="Delete Statement">
-                                        <Trash2 :size="20" />
-                                    </v-btn>
-                                    <v-btn icon variant="text" color="slate-400" title="Download">
-                                        <Download :size="20" />
-                                    </v-btn>
-                                </div>
-                            </div>
-                            <!-- Action Bar -->
-                            <div v-if="selectedStatement.status === 'PARSED'" class="pa-4 border-b d-flex justify-space-between align-center bg-slate-50">
-                                <div class="text-caption font-weight-bold text-slate-500">
-                                    {{ selectedTransactions.length }} transactions selected
-                                </div>
-                                <v-btn 
-                                    color="primary" 
-                                    rounded="pill" 
-                                    elevation="0" 
-                                    height="44"
-                                    :disabled="selectedTransactions.length === 0"
-                                    @click="openBulkIngestDialog"
-                                >
-                                    <template v-slot:prepend><Plus :size="18"/></template>
-                                    Bulk Ingest Selected
-                                </v-btn>
-                            </div>
 
-                            <div v-if="selectedStatement.status === 'PENDING'" class="flex-grow-1 d-flex flex-col align-center justify-center pa-10 text-center bg-slate-50/50">
-                                <div class="icon-box-huge mb-6 bg-warning-lighten-5">
-                                    <Lock :size="64" class="text-warning" />
-                                </div>
-                                <h2 class="text-h5 font-weight-black mb-2 text-slate-800">Decryption Required</h2>
-                                <p class="text-slate-500 font-weight-medium mb-8 max-w-[400px]">
-                                    This statement is password protected. Please provide the password to extract and reconcile transactions.
-                                </p>
-                                <v-btn 
-                                    color="warning" 
-                                    rounded="pill" 
-                                    elevation="0" 
-                                    height="44"
-                                    class="px-8 font-weight-black"
-                                    @click="openRetryDialog(selectedStatement)"
-                                >
-                                    <template v-slot:prepend><Lock :size="20"/></template>
-                                    Enter Password
-                                </v-btn>
-                            </div>
-
-                            <!-- Search & Filter Header -->
-                            <div class="pa-4 border-b d-flex align-center bg-slate-50">
                                 <v-text-field
                                     v-model="txnSearch"
-                                    prepend-inner-icon="mdi-magnify"
-                                    label="Search transactions..."
-                                    variant="solo"
+                                    placeholder="Search transactions..."
+                                    variant="solo-filled"
                                     flat
                                     hide-details
                                     density="compact"
                                     rounded="pill"
-                                    class="max-w-[300px] search-input"
-                                ></v-text-field>
-                                <v-spacer></v-spacer>
+                                    class="max-w-[200px] mr-3"
+                                >
+                                    <template v-slot:prepend-inner>
+                                        <SearchIcon :size="18" class="text-slate-400" />
+                                    </template>
+                                </v-text-field>
+
                                 <v-btn 
                                     v-if="selectedTransactions.length > 0"
                                     color="primary" 
@@ -580,14 +527,39 @@ async function reevaluateStatement(id: string) {
                                     elevation="0" 
                                     size="small"
                                     @click="openBulkIngestDialog"
-                                    class="px-6 font-weight-black"
+                                    height="36"
+                                    class="px-6 font-weight-bold"
                                 >
-                                    <template v-slot:prepend>
-                                        <CheckCircle2 :size="16" />
-                                    </template>
-                                    Ingest Selected ({{ selectedTransactions.length }})
+                                    <template v-slot:prepend><CheckCircle2 :size="16" /></template>
+                                    Ingest ({{ selectedTransactions.length }})
+                                </v-btn>
+                                
+                                <v-btn icon variant="text" color="primary" @click="reevaluateStatement(selectedStatement.id)" class="ml-1">
+                                    <v-tooltip activator="parent" location="top">Re-evaluate Statement</v-tooltip>
+                                    <RefreshCw :size="18" />
+                                </v-btn>
+                                
+                                <v-btn icon variant="text" color="error" @click="promptDeleteStatement(selectedStatement.id)" class="ml-1">
+                                    <v-tooltip activator="parent" location="top">Delete Statement</v-tooltip>
+                                    <Trash2 :size="18" />
                                 </v-btn>
                             </div>
+
+                            <!-- Status specific Action Bar (Only for Parse fail/pending) -->
+                            <div v-if="selectedStatement.status === 'PENDING'" class="pa-10 d-flex flex-column align-center justify-center bg-slate-50/50 flex-grow-1">
+                                <div class="icon-box-huge mb-6 bg-warning-lighten-5">
+                                    <Lock :size="64" class="text-warning" />
+                                </div>
+                                <h2 class="text-h5 font-weight-black mb-2 text-slate-800">Decryption Required</h2>
+                                <p class="text-slate-500 font-weight-medium mb-8 max-w-[400px] text-center">
+                                    This statement is password protected. Please provide the password to extract transactions.
+                                </p>
+                                <v-btn color="warning" rounded="pill" elevation="0" height="44" class="px-8 font-weight-black" @click="openRetryDialog(selectedStatement)">
+                                    <template v-slot:prepend><Lock :size="20"/></template>
+                                    Enter Password
+                                </v-btn>
+                            </div>
+
 
                             <!-- Reconciliation Table -->
                             <div v-if="selectedStatement.status === 'PARSED'" class="flex-grow-1 overflow-hidden d-flex flex-column">
@@ -602,7 +574,7 @@ async function reevaluateStatement(id: string) {
                                     hover
                                     class="premium-table flex-grow-1 bg-transparent"
                                     item-value="id"
-                                    @update:options="({page, itemsPerPage, sortBy}) => {
+                                    @update:options="({page}) => {
                                         txnPage = page;
                                     }"
                                 >
@@ -656,21 +628,40 @@ async function reevaluateStatement(id: string) {
                                         </div>
                                     </template>
 
-                                    <!-- Pagination Footer Overrides -->
+                                    <!-- Premium Pagination Footer -->
                                     <template v-slot:bottom>
-                                        <div class="pa-4 border-t d-flex align-center justify-space-between bg-slate-50">
-                                            <div class="text-tiny font-weight-black text-slate-400 uppercase letter-spacing-1">
-                                                Total {{ store.totalTransactions }} Transactions
+                                        <div class="pa-4 border-t d-flex align-center justify-space-between bg-slate-50 overflow-x-auto">
+                                            <div class="d-flex align-center gap-4">
+                                                <div class="text-tiny font-weight-black text-slate-400 uppercase letter-spacing-1 mr-4">
+                                                    Total {{ store.totalTransactions }} Items
+                                                </div>
+                                                <div class="d-flex align-center text-tiny font-weight-bold text-slate-500">
+                                                    <span class="mr-2">Rows:</span>
+                                                    <v-select
+                                                        :items="[10, 25, 50]"
+                                                        v-model="txnLimit"
+                                                        variant="plain"
+                                                        density="compact"
+                                                        hide-details
+                                                        class="limit-select"
+                                                        style="width: 60px;"
+                                                    ></v-select>
+                                                </div>
                                             </div>
-                                            <v-pagination
-                                                v-model="txnPage"
-                                                :length="Math.ceil(store.totalTransactions / 10)"
-                                                density="comfortable"
-                                                rounded="pill"
-                                                size="small"
-                                                active-color="primary"
-                                                total-visible="5"
-                                            ></v-pagination>
+                                            <div class="d-flex align-center">
+                                                <span class="text-tiny font-weight-bold text-slate-500 mr-4 tabular-nums">
+                                                    {{ (txnPage - 1) * txnLimit + 1 }}-{{ Math.min(txnPage * txnLimit, store.totalTransactions) }} of {{ store.totalTransactions }}
+                                                </span>
+                                                <v-pagination
+                                                    v-model="txnPage"
+                                                    :length="Math.ceil(store.totalTransactions / txnLimit)"
+                                                    density="comfortable"
+                                                    rounded="pill"
+                                                    size="small"
+                                                    active-color="primary"
+                                                    total-visible="3"
+                                                ></v-pagination>
+                                            </div>
                                         </div>
                                     </template>
                                 </v-data-table-server>
@@ -733,7 +724,7 @@ async function reevaluateStatement(id: string) {
                     <v-card-title class="text-h6 font-weight-black d-flex justify-space-between align-center">
                         Upload Account Statement
                         <v-btn icon variant="text" size="small" @click="uploadDialog = false">
-                            <v-icon>mdi-close</v-icon>
+                            <X :size="20" />
                         </v-btn>
                     </v-card-title>
                     
@@ -1148,8 +1139,24 @@ async function reevaluateStatement(id: string) {
     to { transform: rotate(360deg); }
 }
 
-.gap-3 {
-    gap: 12px;
+.glass-card {
+    background: rgba(var(--v-theme-surface), 0.7) !important;
+    backdrop-filter: blur(24px) saturate(185%) !important;
+    border: 1px solid rgba(var(--v-border-color), 0.12) !important;
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08) !important;
+}
+
+.premium-toolbar {
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(12px);
+    z-index: 10;
+}
+
+.limit-select :deep(.v-field__input) {
+    font-size: 11px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: 24px !important;
 }
 
 .tabular-nums {
