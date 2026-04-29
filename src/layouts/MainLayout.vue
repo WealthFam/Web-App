@@ -293,15 +293,15 @@ function handleMouseMove(e: MouseEvent) {
                 <!-- Global Member Selection -->
                 <v-menu offset="12" transition="scale-transition" v-if="auth.user && auth.user.role !== 'CHILD'">
                     <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" variant="tonal" color="primary" class="text-none font-weight-bold mr-4"
-                            height="40" rounded="pill" elevation="0">
+                        <v-btn v-bind="props" variant="tonal" color="primary" class="text-none font-weight-black mr-2 px-4"
+                            height="42" rounded="pill" elevation="0" border="thin">
                             <template v-slot:prepend>
                                 <v-avatar v-if="auth.selectedMemberId" size="24" color="primary-lighten-5" class="mr-1">
                                     <span class="text-caption font-weight-black text-primary"
                                         style="font-size: 0.6rem !important;">{{
                                             auth.selectedMemberName.charAt(0).toUpperCase() }}</span>
                                 </v-avatar>
-                                <Users v-else :size="16" class="text-primary mr-2" />
+                                <Users v-else :size="16" class="text-primary mr-1" />
                             </template>
                             {{ auth.selectedMemberName }}
                             <ChevronDown :size="14" class="ml-2 opacity-50" />
@@ -337,8 +337,9 @@ function handleMouseMove(e: MouseEvent) {
                 <!-- Privacy Mask Toggle -->
                 <v-tooltip location="bottom">
                     <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" icon size="40" color="slate-600" class="mr-2" @click="toggleMasking"
-                            :variant="settingsStore.isMasked ? 'tonal' : 'text'">
+                        <v-btn v-bind="props" icon size="42" color="slate-600" class="mr-2" @click="toggleMasking"
+                            rounded="pill" :variant="settingsStore.isMasked ? 'tonal' : 'tonal'" border="thin"
+                            :class="{ 'bg-primary-lighten-5': settingsStore.isMasked }">
                             <component :is="settingsStore.isMasked ? EyeOff : Eye" :size="20"
                                 :class="{ 'text-primary': settingsStore.isMasked }" />
                         </v-btn>
@@ -349,7 +350,8 @@ function handleMouseMove(e: MouseEvent) {
                 <!-- AI Status Badge -->
                 <v-tooltip location="bottom">
                     <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" icon size="40" color="slate-600" class="mr-2" to="/settings?tab=ai">
+                        <v-btn v-bind="props" icon size="42" color="slate-600" class="mr-2" to="/settings?tab=ai"
+                            variant="tonal" rounded="pill" border="thin">
                             <div class="ai-status-container">
                                 <Cpu :size="20" :class="{
                                     'text-success': aiStatus.status === 'healthy',
@@ -366,8 +368,8 @@ function handleMouseMove(e: MouseEvent) {
                 <!-- Mutual Fund Sync Status -->
                 <v-tooltip location="bottom" v-if="auth.user">
                     <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" icon size="40" color="slate-600" class="mr-2" @click="mfStore.triggerSync"
-                            :loading="isSyncing">
+                        <v-btn v-bind="props" icon size="42" color="slate-600" class="mr-2" @click="mfStore.triggerSync"
+                            :loading="isSyncing" variant="tonal" rounded="pill" border="thin">
                             <RefreshCw :size="20" :class="{ 'spin-sync': isSyncing }" />
                         </v-btn>
                     </template>
@@ -375,14 +377,14 @@ function handleMouseMove(e: MouseEvent) {
                 </v-tooltip>
 
                 <!-- Theme Toggle -->
-                <v-btn icon @click="toggleTheme" color="slate-600" class="mr-2" size="40">
+                <v-btn icon @click="toggleTheme" color="slate-600" class="mr-2" size="42" variant="tonal" rounded="pill" border="thin">
                     <component :is="theme.global.current.value.dark ? Sun : Moon" :size="20" />
                 </v-btn>
 
                 <!-- Real-time Notifications Bell -->
                 <v-menu offset="12" transition="scale-transition">
                     <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" icon color="slate-600" class="mr-2" size="40">
+                        <v-btn v-bind="props" icon color="slate-600" class="mr-2" size="42" variant="tonal" rounded="pill" border="thin">
                             <v-badge v-if="unreadCount > 0" :content="unreadCount" color="error" overlap
                                 location="top right" offset-x="2" offset-y="2">
                                 <Bell :size="20" :class="{ 'bell-ring': isBellRinging }" />
@@ -420,11 +422,11 @@ function handleMouseMove(e: MouseEvent) {
                 <!-- User Profile Menu -->
                 <v-menu offset="12" transition="scale-transition" v-if="auth.user">
                     <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" variant="flat" class="profile-btn" rounded="pill" height="44">
-                            <v-avatar size="32" class="mr-2 avatar-glow">
-                                <span class="avatar-emoji">{{ AVATARS[selectedAvatar] }}</span>
+                        <v-btn v-bind="props" variant="tonal" class="profile-btn border-thin" rounded="pill" height="42">
+                            <v-avatar size="28" class="mr-2 avatar-glow">
+                                <span class="avatar-emoji" style="font-size: 1rem;">{{ AVATARS[selectedAvatar] }}</span>
                             </v-avatar>
-                            <span class="user-display-name d-none d-sm-inline">{{ auth.user.email.split('@')[0]
+                            <span class="user-display-name font-weight-black d-none d-sm-inline">{{ auth.user.email.split('@')[0]
                             }}</span>
                         </v-btn>
                     </template>
@@ -1021,12 +1023,13 @@ function handleMouseMove(e: MouseEvent) {
 .date-chip-v2 {
     display: flex;
     align-items: center;
+    height: 42px;
     gap: 8px;
-    padding: 6px 14px;
+    padding: 0 16px;
     background: rgba(var(--v-theme-primary), 0.05);
-    border-radius: 20px;
+    border-radius: 24px;
     font-size: 0.75rem;
-    font-weight: 800;
+    font-weight: 900;
     color: rgb(var(--v-theme-primary));
     border: 1px solid rgba(var(--v-theme-primary), 0.1);
 }
@@ -1061,10 +1064,12 @@ function handleMouseMove(e: MouseEvent) {
 }
 
 .centered-search-field :deep(.v-field) {
+    height: 42px !important;
+    min-height: 42px !important;
     background: rgba(var(--v-theme-on-surface), 0.05) !important;
     border: 1px solid rgba(var(--v-border-color), 0.1) !important;
     cursor: pointer !important;
-    font-weight: 600;
+    font-weight: 700;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
