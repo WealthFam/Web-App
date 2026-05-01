@@ -117,10 +117,17 @@
                   {{ formatAmount(activeTab === 'income' ? child.income : child.spent) }}
                 </span>
                 
-                <template v-if="child.amount_limit">
+                <div v-if="child.amount_limit" class="d-flex align-center ga-1">
                   <span class="text-tiny opacity-30">/</span>
-                  <span class="text-tiny opacity-60 font-weight-bold">{{ formatAmount(child.amount_limit) }}</span>
-                </template>
+                  <span class="text-tiny opacity-60 font-weight-bold mr-1">{{ formatAmount(child.amount_limit) }}</span>
+                  <v-btn size="x-small" variant="tonal" color="primary" @click.stop="emit('edit', child)" 
+                    class="pa-0 text-none font-weight-black px-2 edit-budget-btn" style="height: 20px; font-size: 9px; min-width: auto;" rounded="pill">
+                    <template v-slot:prepend>
+                      <Pencil :size="10" />
+                    </template>
+                    Edit
+                  </v-btn>
+                </div>
                 <v-btn v-else size="x-small" variant="tonal" color="primary" @click.stop="emit('edit', child)" 
                   class="pa-0 text-none font-weight-black px-2" style="height: 20px; font-size: 9px; min-width: auto;" rounded="pill">
                   <template v-slot:prepend>
@@ -155,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { Flame, Pencil, PieChart } from 'lucide-vue-next'
+import { Flame, Pencil, PieChart, Plus } from 'lucide-vue-next'
 import { computed } from 'vue'
 
 import { useCurrency } from '@/composables/useCurrency'
@@ -292,6 +299,15 @@ const iconColor = computed(() => {
   background: rgba(var(--v-theme-on-surface), 0.05);
   padding-left: 16px !important;
   border-color: rgba(var(--v-theme-primary), 0.2);
+}
+
+.edit-budget-btn {
+  opacity: 0.8;
+  transition: all 0.2s ease;
+}
+
+.subcategory-row:hover .edit-budget-btn {
+  opacity: 1;
 }
 
 .subcategory-hover-bg {

@@ -159,6 +159,8 @@ export const financeApi = {
     getBudgetsInsights: (year?: number, month?: number, userId?: string, forceRefresh?: boolean) => apiClient.get('/finance/budgets/insights', { params: { year, month, user_id: userId, force_refresh: forceRefresh } }),
     setBudget: (data: any) => apiClient.post('/finance/budgets', data),
     deleteBudget: (id: string) => apiClient.delete(`/finance/budgets/${id}`),
+    getBudgetRecommendation: (category: string, forceRefresh: boolean = false) => 
+        apiClient.get(`/finance/budgets/recommendation/${encodeURIComponent(category)}`, { params: { force_refresh: forceRefresh } }),
     getVendorStats: (vendorName: string, skip: number = 0, limit: number = 10) => apiClient.get('/finance/transactions/stats/vendor', { params: { vendor_name: vendorName, skip, limit } }),
 
     // Recurring Transactions
