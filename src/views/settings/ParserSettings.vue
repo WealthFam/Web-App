@@ -219,22 +219,20 @@
                             </div>
                         </td>
                         <td class="text-caption">
-                            <div v-if="log.output_payload">
-                                <div v-if="log.output_payload.results?.length > 1"
-                                    class="font-weight-bold text-primary mb-1">
-                                    📦 {{ log.output_payload.results.length }} items
+                            <div v-if="getLogDetails(log)">
+                                <div v-if="getLogDetails(log).count > 1" class="font-weight-bold text-primary mb-1">
+                                    📦 {{ getLogDetails(log).count }} items
                                 </div>
-                                <div v-if="log.output_payload.results?.[0]?.transaction">
+                                <div v-if="getLogDetails(log).main">
                                     <div class="font-weight-medium">
-                                        {{ log.output_payload.results[0].transaction.merchant?.cleaned ||
-                                            log.output_payload.results[0].transaction.description }}
+                                        {{ getLogDetails(log).main.merchant?.cleaned || getLogDetails(log).main.description }}
                                     </div>
                                     <div class="text-medium-emphasis">
-                                        {{ formatAmount(log.output_payload.results[0].transaction.amount) }}
+                                        {{ formatAmount(getLogDetails(log).main.amount) }}
                                     </div>
                                 </div>
-                                <div v-else-if="log.output_payload.error" class="text-error font-italic">
-                                    {{ log.output_payload.error }}
+                                <div v-else-if="getLogDetails(log).error" class="text-error font-italic">
+                                    {{ getLogDetails(log).error }}
                                 </div>
                                 <div v-else class="text-disabled font-italic">No extraction</div>
                             </div>
@@ -631,6 +629,40 @@ function formatDate(dateStr: string) {
         meta: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         full: d.toLocaleString()
     }
+}
+
+function getLogDetails(log: any) {
+    const payload = log.output_payload
+    if (!payload) return null
+
+    // Check for IngestionResult format (new)
+    if (payload.results && Array.isArray(payload.results) && payload.results.length > 0) {
+        return {
+            count: payload.results.length,
+            main: payload.results[0].transaction,
+            error: null
+        }
+    }
+
+    // Check for direct ParsedItem format (old)
+    if (payload.transaction) {
+        return {
+            count: 1,
+            main: payload.transaction,
+            error: null
+        }
+    }
+
+    // Check for error
+    if (payload.error) {
+        return {
+            count: 0,
+            main: null,
+            error: payload.error
+        }
+    }
+
+    return null
 }
 
 // --- Pattern Management Methods ---
