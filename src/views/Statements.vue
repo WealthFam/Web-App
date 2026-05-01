@@ -19,7 +19,7 @@ import {
     Table,
     Search as SearchIcon
 } from 'lucide-vue-next'
-import FilePreviewModal from '@/views/vault/FilePreviewModal.vue'
+
 import MainLayout from '@/layouts/MainLayout.vue'
 import apiClient, { financeApi } from '@/api/client'
 import { useStatementStore } from '@/stores/finance/statements'
@@ -46,14 +46,11 @@ const retryPassword = ref('')
 const showRetryPassword = ref(false)
 const selectedStatementForRetry = ref<any>(null)
 
-const pdfDialog = ref(false)
+
 const pdfUrl = ref('')
 const activeTab = ref('transactions')
 
 // Vault Preview State
-const showPreviewModal = ref(false)
-const selectedDoc = ref<any>(null)
-const loading = ref(false)
 
 const statementPage = ref(1)
 const statementPageSize = 8
@@ -391,19 +388,6 @@ async function reevaluateStatement(id: string) {
     }
 }
 
-async function viewPdf() {
-    if (!selectedStatement.value?.vault_id) return
-    loading.value = true
-    try {
-        const res = await financeApi.getDocument(selectedStatement.value.vault_id)
-        selectedDoc.value = res.data
-        showPreviewModal.value = true
-    } catch (e) {
-        notification.error('Failed to load document details from vault')
-    } finally {
-        loading.value = false
-    }
-}
 
 const attachmentUrl = ref<string | null>(null)
 
@@ -1181,13 +1165,7 @@ function getAccountName(account_id: string) {
             </v-dialog>
         </v-container>
 
-        <!-- Vault Preview Modal (Raw PDF) -->
-        <FilePreviewModal 
-            v-model="showPreviewModal" 
-            :item="selectedDoc" 
-            :initialEditMode="false"
-            @refresh="store.fetchStatements" 
-        />
+
     </MainLayout>
 </template>
 
