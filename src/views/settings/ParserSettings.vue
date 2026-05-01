@@ -219,24 +219,26 @@
                             </div>
                         </td>
                         <td class="text-caption">
-                            <div v-if="getLogDetails(log)">
-                                <div v-if="getLogDetails(log).count > 1" class="font-weight-bold text-primary mb-1">
-                                    📦 {{ getLogDetails(log).count }} items
-                                </div>
-                                <div v-if="getLogDetails(log).main">
-                                    <div class="font-weight-medium">
-                                        {{ getLogDetails(log).main.merchant?.cleaned || getLogDetails(log).main.description }}
+                            <div v-for="details in [getLogDetails(log)]" :key="log.id">
+                                <div v-if="details">
+                                    <div v-if="details.count > 1" class="font-weight-bold text-primary mb-1">
+                                        📦 {{ details.count }} items
                                     </div>
-                                    <div class="text-medium-emphasis">
-                                        {{ formatAmount(getLogDetails(log).main.amount) }}
+                                    <div v-if="details.main">
+                                        <div class="font-weight-medium">
+                                            {{ details.main.merchant?.cleaned || details.main.description }}
+                                        </div>
+                                        <div class="text-medium-emphasis">
+                                            {{ formatAmount(details.main.amount) }}
+                                        </div>
                                     </div>
+                                    <div v-else-if="details.error" class="text-error font-italic">
+                                        {{ details.error }}
+                                    </div>
+                                    <div v-else class="text-disabled font-italic">No extraction</div>
                                 </div>
-                                <div v-else-if="getLogDetails(log).error" class="text-error font-italic">
-                                    {{ getLogDetails(log).error }}
-                                </div>
-                                <div v-else class="text-disabled font-italic">No extraction</div>
+                                <div v-else class="text-disabled font-italic">No output</div>
                             </div>
-                            <div v-else class="text-disabled font-italic">No output</div>
                         </td>
                     </tr>
                     <tr v-if="parserLogs.length === 0">
@@ -631,7 +633,13 @@ function formatDate(dateStr: string) {
     }
 }
 
-function getLogDetails(log: any) {
+interface LogDetails {
+    count: number;
+    main: any;
+    error: string | null;
+}
+
+function getLogDetails(log: any): LogDetails | null {
     const payload = log.output_payload
     if (!payload) return null
 
