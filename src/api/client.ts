@@ -377,9 +377,9 @@ export const financeApi = {
     updateStatement: (id: string, data: { account_id?: string, is_deleted?: boolean }) => apiClient.patch(`/finance/statements/${id}`, data),
     syncStatements: (sinceDate?: string) => apiClient.post('/finance/statements/sync', null, { params: { since_date: sinceDate } }),
     reconcileStatement: (id: string) => apiClient.post(`/finance/statements/${id}/reconcile`),
+    reprocessStatement: (id: string, password?: string) => apiClient.post(`/finance/statements/${id}/reprocess`, null, { params: { password } }),
     ingestStatementTransaction: (id: string, category?: string) => apiClient.post(`/finance/statements/transactions/${id}/ingest`, null, { params: { category } }),
     bulkIngestStatementTransactions: (data: { items: { transaction_id: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[] }) => apiClient.post('/finance/statements/transactions/bulk-ingest', data),
-    retryParsingStatement: (id: string, password: string) => apiClient.post(`/finance/statements/${id}/retry`, null, { params: { password } }),
 }
 
 const parserClient = axios.create({

@@ -24,6 +24,7 @@ export interface Statement {
     source: 'EMAIL' | 'MANUAL'
     created_at: string
     email_sender?: string
+    email_body?: string
     failure_reason?: string
 }
 
@@ -127,6 +128,22 @@ export const useStatementStore = defineStore('statements', () => {
         }
     }
 
+    async function reprocessStatement(id: string, password?: string) {
+        loading.value = true
+        try {
+            const res = await financeApi.reprocessStatement(id, password)
+            await fetchStatements()
+            // Re-fetch transactions
+            await fetchTransactions(id)
+            return res.data
+        } catch (error) {
+            console.error('[StatementStore] Reprocess/Retry failed', error)
+            throw error
+        } finally {
+            loading.value = false
+        }
+    }
+
     async function bulkIngestTransactions(items: { transaction_id: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[]) {
         try {
             await financeApi.bulkIngestStatementTransactions({ items })
@@ -158,19 +175,6 @@ export const useStatementStore = defineStore('statements', () => {
         }
     }
 
-    async function retryParsing(id: string, password: string) {
-        loading.value = true
-        try {
-            await financeApi.retryParsingStatement(id, password)
-            await fetchStatements()
-        } catch (error) {
-            console.error('[StatementStore] Retry parsing failed', error)
-            throw error
-        } finally {
-            loading.value = false
-        }
-    }
-
     return {
         statements,
         totalStatements,
@@ -187,6 +191,6 @@ export const useStatementStore = defineStore('statements', () => {
         bulkIngestTransactions,
         reconcileStatement,
         updateStatement,
-        retryParsing
+        reprocessStatement
     }
 })
