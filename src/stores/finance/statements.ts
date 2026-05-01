@@ -23,6 +23,8 @@ export interface Statement {
     status: 'PENDING' | 'PARSED' | 'FAILED'
     source: 'EMAIL' | 'MANUAL'
     created_at: string
+    email_sender?: string
+    failure_reason?: string
 }
 
 export const useStatementStore = defineStore('statements', () => {

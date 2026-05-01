@@ -282,7 +282,7 @@ function getStatusColor(status: string) {
 
 function formatDate(date: string) {
     if (!date) return 'N/A'
-    return format(new Date(date), 'MMM dd, yyyy')
+    return format(new Date(date), 'MMM dd, yyyy HH:mm')
 }
 
 function formatCurrency(amount: number) {
@@ -435,9 +435,15 @@ async function reevaluateStatement(id: string) {
                                     </template>
 
                                     <v-list-item-title class="font-weight-black text-caption text-truncate">{{ s.filename }}</v-list-item-title>
-                                    <v-list-item-subtitle class="text-tiny mt-1 d-flex align-center opacity-70">
-                                        <Clock :size="12" class="mr-1" /> {{ formatDate(s.created_at) }}
-                                        <v-chip size="x-small" :color="getStatusColor(s.status)" class="ml-2 font-weight-black text-tiny" variant="tonal">
+                                    <v-list-item-subtitle class="text-tiny mt-1 d-flex flex-wrap align-center opacity-70 gap-x-2">
+                                        <span class="d-flex align-center"><Clock :size="12" class="mr-1" /> {{ formatDate(s.created_at) }}</span>
+                                        <span v-if="s.email_sender" class="d-flex align-center text-primary font-weight-black">
+                                            <Landmark :size="12" class="mr-1" /> {{ s.email_sender.split('@')[0] }}
+                                        </span>
+                                        <span v-else-if="s.source === 'MANUAL'" class="d-flex align-center">
+                                            <User :size="12" class="mr-1" /> Manual
+                                        </span>
+                                        <v-chip size="x-small" :color="getStatusColor(s.status)" class="font-weight-black text-tiny" variant="tonal">
                                             {{ s.status }}
                                         </v-chip>
                                     </v-list-item-subtitle>
@@ -495,6 +501,7 @@ async function reevaluateStatement(id: string) {
                                                 density="compact"
                                                 @click="reassignDialog = true"
                                             >
+                                                <template v-slot:prepend><Landmark :size="10" /></template>
                                                 Edit
                                             </v-btn>
 
@@ -556,6 +563,23 @@ async function reevaluateStatement(id: string) {
                                 <v-btn color="warning" rounded="pill" elevation="0" height="44" class="px-8 font-weight-black" @click="openRetryDialog(selectedStatement)">
                                     <template v-slot:prepend><Lock :size="20"/></template>
                                     Enter Password
+                                </v-btn>
+                            </div>
+
+                            <div v-else-if="selectedStatement.status === 'FAILED'" class="pa-10 d-flex flex-column align-center justify-center bg-slate-50/50 flex-grow-1">
+                                <div class="icon-box-huge mb-6 bg-error-lighten-5">
+                                    <AlertCircle :size="64" class="text-error" />
+                                </div>
+                                <h2 class="text-h5 font-weight-black mb-2 text-slate-800">Processing Failed</h2>
+                                <p class="text-error font-weight-bold mb-2 text-center">
+                                    {{ selectedStatement.failure_reason || 'An unexpected error occurred during ingestion.' }}
+                                </p>
+                                <p class="text-slate-500 font-weight-medium mb-8 max-w-[400px] text-center">
+                                    Usually this happens when the account mask in the PDF doesn't match any linked account.
+                                </p>
+                                <v-btn color="primary" rounded="pill" elevation="0" height="44" class="px-8 font-weight-black" @click="reassignDialog = true">
+                                    <template v-slot:prepend><Landmark :size="20"/></template>
+                                    Link Account Manually
                                 </v-btn>
                             </div>
 
@@ -809,9 +833,13 @@ async function reevaluateStatement(id: string) {
 
                     <v-card-actions class="pa-4">
                         <v-spacer></v-spacer>
-                        <v-btn variant="text" rounded="pill" class="text-none font-weight-black" @click="uploadDialog = false">Cancel</v-btn>
+                        <v-btn variant="text" rounded="pill" class="text-none font-weight-black" @click="uploadDialog = false">
+                            <template v-slot:prepend><X :size="18" /></template>
+                            Cancel
+                        </v-btn>
                         <v-btn color="primary" rounded="pill" elevation="0" class="text-none px-8 font-weight-black" :disabled="!uploadFile" @click="handleUpload" :loading="store.loading">
-                            Process
+                            <template v-slot:prepend><Upload :size="20" /></template>
+                            Process Statement
                         </v-btn>
                     </v-card-actions>
                 </v-card>
@@ -849,6 +877,7 @@ async function reevaluateStatement(id: string) {
                     <v-card-actions class="pt-2 px-4 pb-4">
                         <v-spacer></v-spacer>
                         <v-btn variant="text" color="slate-500" rounded="pill" height="44" @click="retryDialog = false">
+                            <template v-slot:prepend><X :size="18" /></template>
                             Cancel
                         </v-btn>
                         <v-btn color="warning" rounded="pill" elevation="0" height="44" @click="handleRetry" :loading="store.loading" :disabled="!retryPassword">
