@@ -159,6 +159,8 @@ export const financeApi = {
     getBudgetsInsights: (year?: number, month?: number, userId?: string, forceRefresh?: boolean) => apiClient.get('/finance/budgets/insights', { params: { year, month, user_id: userId, force_refresh: forceRefresh } }),
     setBudget: (data: any) => apiClient.post('/finance/budgets', data),
     deleteBudget: (id: string) => apiClient.delete(`/finance/budgets/${id}`),
+    getBudgetRecommendation: (category: string, forceRefresh: boolean = false) => 
+        apiClient.get(`/finance/budgets/recommendation/${encodeURIComponent(category)}`, { params: { force_refresh: forceRefresh } }),
     getVendorStats: (vendorName: string, skip: number = 0, limit: number = 10) => apiClient.get('/finance/transactions/stats/vendor', { params: { vendor_name: vendorName, skip, limit } }),
 
     // Recurring Transactions
@@ -366,6 +368,18 @@ export const financeApi = {
     payCreditCardBill: (id: string, data: { source_account_id: string, amount: number, date: string, description?: string }) => 
         apiClient.post(`/finance/accounts/${id}/pay-bill`, data),
     getCreditIntelligence: (userId?: string) => apiClient.get('/finance/analytics/credit-intelligence', { params: { user_id: userId } }),
+    getStatements: (params?: { skip?: number, limit?: number, search?: string }) => apiClient.get('/finance/statements', { params }),
+    getStatementTransactions: (id: string, params?: { skip?: number, limit?: number, search?: string }) => apiClient.get(`/finance/statements/${id}/transactions`, { params }),
+    uploadStatement: (formData: FormData) => apiClient.post('/finance/statements/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    deleteStatement: (id: string) => apiClient.delete(`/finance/statements/${id}`),
+    updateStatement: (id: string, data: { account_id?: string, is_deleted?: boolean }) => apiClient.patch(`/finance/statements/${id}`, data),
+    syncStatements: (sinceDate?: string) => apiClient.post('/finance/statements/sync', null, { params: { since_date: sinceDate } }),
+    reconcileStatement: (id: string) => apiClient.post(`/finance/statements/${id}/reconcile`),
+    reprocessStatement: (id: string, password?: string) => apiClient.post(`/finance/statements/${id}/reprocess`, null, { params: { password } }),
+    ingestStatementTransaction: (id: string, category?: string) => apiClient.post(`/finance/statements/transactions/${id}/ingest`, null, { params: { category } }),
+    bulkIngestStatementTransactions: (data: { items: { transaction_id: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[] }) => apiClient.post('/finance/statements/transactions/bulk-ingest', data),
 }
 
 const parserClient = axios.create({

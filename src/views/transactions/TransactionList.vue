@@ -106,7 +106,7 @@
         </div>
         <!-- Transaction KPIs -->
         <v-row class="mb-6">
-            <v-col cols="12" sm="4">
+            <v-col cols="12" sm="3">
                 <v-card class="glass-card pa-4 d-flex align-center border-thin" rounded="xl">
                     <v-avatar color="success" variant="tonal" class="mr-4" rounded="lg">
                         <TrendingUp :size="20" />
@@ -119,7 +119,7 @@
                     </div>
                 </v-card>
             </v-col>
-            <v-col cols="12" sm="4">
+            <v-col cols="12" sm="3">
                 <v-card class="glass-card pa-4 d-flex align-center border-thin" rounded="xl">
                     <v-avatar color="error" variant="tonal" class="mr-4" rounded="lg">
                         <TrendingDown :size="20" />
@@ -132,18 +132,31 @@
                     </div>
                 </v-card>
             </v-col>
-            <v-col cols="12" sm="4">
+            <v-col cols="12" sm="3">
+                <v-card class="glass-card pa-4 d-flex align-center border-thin" rounded="xl">
+                    <v-avatar color="info" variant="tonal" class="mr-4" rounded="lg">
+                        <ArrowUpRight :size="20" />
+                    </v-avatar>
+                    <div>
+                        <div class="text-caption font-weight-bold opacity-60 text-uppercase">Investments</div>
+                        <div class="text-h6 font-weight-black text-info">{{
+                            formatAmount(Math.abs(props.metrics.monthly_investment || 0)) }}
+                        </div>
+                    </div>
+                </v-card>
+            </v-col>
+            <v-col cols="12" sm="3">
                 <v-card class="glass-card pa-4 d-flex align-center border-thin" rounded="xl">
                     <v-avatar
-                        :color="(props.metrics.monthly_income - props.metrics.monthly_spending) >= 0 ? 'primary' : 'warning'"
+                        :color="(props.metrics.monthly_income - props.metrics.monthly_spending - (props.metrics.monthly_investment || 0)) >= 0 ? 'primary' : 'warning'"
                         variant="tonal" class="mr-4" rounded="lg">
                         <Wallet :size="20" />
                     </v-avatar>
                     <div>
                         <div class="text-caption font-weight-bold opacity-60 text-uppercase">Net Flow</div>
                         <div class="text-h6 font-weight-black"
-                            :class="(props.metrics.monthly_income - props.metrics.monthly_spending) >= 0 ? 'text-primary' : 'text-warning'">
-                            {{ formatAmount(props.metrics.monthly_income - props.metrics.monthly_spending) }}
+                            :class="(props.metrics.monthly_income - props.metrics.monthly_spending - (props.metrics.monthly_investment || 0)) >= 0 ? 'text-primary' : 'text-warning'">
+                            {{ formatAmount(props.metrics.monthly_income - props.metrics.monthly_spending - (props.metrics.monthly_investment || 0)) }}
                         </div>
                     </div>
                 </v-card>
@@ -361,7 +374,8 @@ import {
     FileText,
     TrendingUp,
     TrendingDown,
-    Wallet
+    Wallet,
+    ArrowUpRight
 } from 'lucide-vue-next'
 
 const { formatAmount } = useCurrency()
@@ -428,6 +442,7 @@ const props = defineProps<{
     metrics: {
         monthly_income: number
         monthly_spending: number
+        monthly_investment: number
         breakdown: {
             net_worth: number
         }

@@ -4,6 +4,7 @@ import { useActivityStore } from '@/stores/activity'
 
 let socket: WebSocket | null = null
 let reconnectTimer: any = null
+let reconnectAttempts = 0
 
 export function useWebSockets() {
     const auth = useAuthStore()
@@ -30,6 +31,7 @@ export function useWebSockets() {
 
         socket.onopen = () => {
             activityStore.setConnected(true);
+            reconnectAttempts = 0; // Reset attempts on success
             if (reconnectTimer) {
                 clearTimeout(reconnectTimer);
                 reconnectTimer = null;
@@ -52,10 +54,15 @@ export function useWebSockets() {
         socket.onclose = (_event) => {
             activityStore.setConnected(false);
             if (!reconnectTimer) {
+                // Bug 8 Fix: Exponential Backoff
+                const delay = Math.min(5000 * Math.pow(2, reconnectAttempts), 300000); // Start 5s, cap 5m
+                console.log(`[WebSockets] Reconnecting in ${delay/1000}s (attempt ${reconnectAttempts + 1})`);
+                
                 reconnectTimer = setTimeout(() => {
                     reconnectTimer = null;
+                    reconnectAttempts++;
                     connect();
-                }, 5000);
+                }, delay);
             }
         };
 

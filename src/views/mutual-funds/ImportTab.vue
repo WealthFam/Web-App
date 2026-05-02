@@ -444,11 +444,17 @@ async function handlePreview() {
             const formData = new FormData()
             formData.append('file', file.value)
             formData.append('password', panNumber.value)
+            if (selectedMemberId.value) {
+                formData.append('user_id', selectedMemberId.value)
+            }
             res = await financeApi.previewCAS(formData)
         } else {
             const formData = new FormData()
             formData.append('password', panNumber.value)
             formData.append('period', emailSyncPeriod.value)
+            if (selectedMemberId.value) {
+                formData.append('user_id', selectedMemberId.value)
+            }
             res = await financeApi.previewCASEmail(formData)
         }
 

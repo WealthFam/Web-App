@@ -219,26 +219,26 @@
                             </div>
                         </td>
                         <td class="text-caption">
-                            <div v-if="log.output_payload">
-                                <div v-if="log.output_payload.results?.length > 1"
-                                    class="font-weight-bold text-primary mb-1">
-                                    📦 {{ log.output_payload.results.length }} items
-                                </div>
-                                <div v-if="log.output_payload.results?.[0]?.transaction">
-                                    <div class="font-weight-medium">
-                                        {{ log.output_payload.results[0].transaction.merchant?.cleaned ||
-                                            log.output_payload.results[0].transaction.description }}
+                            <div v-for="details in [getLogDetails(log)]" :key="log.id">
+                                <div v-if="details">
+                                    <div v-if="details.count > 1" class="font-weight-bold text-primary mb-1">
+                                        📦 {{ details.count }} items
                                     </div>
-                                    <div class="text-medium-emphasis">
-                                        {{ formatAmount(log.output_payload.results[0].transaction.amount) }}
+                                    <div v-if="details.main">
+                                        <div class="font-weight-medium">
+                                            {{ details.main.merchant?.cleaned || details.main.description }}
+                                        </div>
+                                        <div class="text-medium-emphasis">
+                                            {{ formatAmount(details.main.amount) }}
+                                        </div>
                                     </div>
+                                    <div v-else-if="details.error" class="text-error font-italic">
+                                        {{ details.error }}
+                                    </div>
+                                    <div v-else class="text-disabled font-italic">No extraction</div>
                                 </div>
-                                <div v-else-if="log.output_payload.error" class="text-error font-italic">
-                                    {{ log.output_payload.error }}
-                                </div>
-                                <div v-else class="text-disabled font-italic">No extraction</div>
+                                <div v-else class="text-disabled font-italic">No output</div>
                             </div>
-                            <div v-else class="text-disabled font-italic">No output</div>
                         </td>
                     </tr>
                     <tr v-if="parserLogs.length === 0">
@@ -631,6 +631,46 @@ function formatDate(dateStr: string) {
         meta: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         full: d.toLocaleString()
     }
+}
+
+interface LogDetails {
+    count: number;
+    main: any;
+    error: string | null;
+}
+
+function getLogDetails(log: any): LogDetails | null {
+    const payload = log.output_payload
+    if (!payload) return null
+
+    // Check for IngestionResult format (new)
+    if (payload.results && Array.isArray(payload.results) && payload.results.length > 0) {
+        return {
+            count: payload.results.length,
+            main: payload.results[0].transaction,
+            error: null
+        }
+    }
+
+    // Check for direct ParsedItem format (old)
+    if (payload.transaction) {
+        return {
+            count: 1,
+            main: payload.transaction,
+            error: null
+        }
+    }
+
+    // Check for error
+    if (payload.error) {
+        return {
+            count: 0,
+            main: null,
+            error: payload.error
+        }
+    }
+
+    return null
 }
 
 // --- Pattern Management Methods ---

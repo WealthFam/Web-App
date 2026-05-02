@@ -10,6 +10,7 @@ interface User {
     tenant_id: string
     full_name?: string
     avatar?: string
+    dob?: string
     pan_number?: string
 }
 
