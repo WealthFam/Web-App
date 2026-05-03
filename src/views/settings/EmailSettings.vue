@@ -35,9 +35,8 @@
             </div>
         </v-alert>
 
-        <v-alert v-if="syncStatus && syncStatus.status === 'started'"
-            color="info" variant="tonal" border="start" closable
-            class="mb-6" @click:close="syncStatus = null">
+        <v-alert v-if="syncStatus && syncStatus.status === 'started'" color="info" variant="tonal" border="start"
+            closable class="mb-6" @click:close="syncStatus = null">
             <template v-slot:prepend>
                 <RefreshCw :size="24" class="mr-2 animate-spin" />
             </template>
@@ -103,7 +102,7 @@
                                 <div v-if="config.last_sync_at" class="text-caption font-weight-medium">
                                     {{ formatDate(config.last_sync_at).meta }}
                                     <span class="text-medium-emphasis">({{ formatDate(config.last_sync_at).day
-                                        }})</span>
+                                    }})</span>
                                 </div>
                                 <div v-else class="text-caption text-warning font-weight-bold">Never</div>
                             </div>
@@ -172,7 +171,8 @@
                         <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Status</th>
                         <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Items</th>
                         <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Message</th>
-                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase text-right">Actions</th>
+                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase text-right">Actions
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -400,7 +400,8 @@
         <!-- Itemized Details Modal -->
         <v-dialog v-model="showItemDetailsModal" max-width="850">
             <v-card class="rounded-xl overflow-hidden">
-                <v-card-title class="d-flex justify-space-between align-center pa-4 border-b bg-surface-variant text-white">
+                <v-card-title
+                    class="d-flex justify-space-between align-center pa-4 border-b bg-surface-variant text-white">
                     <div class="d-flex align-center gap-3">
                         <v-avatar color="white" variant="flat" size="32" rounded>
                             <Info :size="20" class="text-primary" />
@@ -410,7 +411,8 @@
                             <div class="text-caption opacity-80">Itemized results for individual emails</div>
                         </div>
                     </div>
-                    <v-btn icon variant="text" density="comfortable" color="white" @click="showItemDetailsModal = false">
+                    <v-btn icon variant="text" density="comfortable" color="white"
+                        @click="showItemDetailsModal = false">
                         <X :size="24" />
                     </v-btn>
                 </v-card-title>
@@ -441,27 +443,33 @@
                                 </td>
                                 <td>
                                     <div class="d-flex flex-column py-2">
-                                        <div class="text-caption font-weight-bold text-truncate" style="max-width: 300px;">
+                                        <div class="text-caption font-weight-bold text-truncate"
+                                            style="max-width: 300px;">
                                             {{ item.subject }}
                                         </div>
-                                        <div class="text-caption text-medium-emphasis text-truncate" style="max-width: 300px;">
+                                        <div class="text-caption text-medium-emphasis text-truncate"
+                                            style="max-width: 300px;">
                                             {{ item.sender }}
                                         </div>
                                     </div>
                                 </td>
                                 <td>
-                                    <v-chip v-if="item.parser_used" size="x-small" variant="outlined" color="primary" class="font-mono">
+                                    <v-chip v-if="item.parser_used" size="x-small" variant="outlined" color="primary"
+                                        class="font-mono">
                                         {{ item.parser_used }}
                                     </v-chip>
                                     <span v-else class="text-caption text-medium-emphasis">-</span>
                                 </td>
                                 <td>
                                     <div class="d-flex align-center gap-2">
-                                        <div class="text-caption text-truncate" style="max-width: 250px;" :title="item.reason">
-                                            {{ item.reason || (item.status === 'processed' ? 'Transaction Created' : '-') }}
+                                        <div class="text-caption text-truncate" style="max-width: 250px;"
+                                            :title="item.reason">
+                                            {{ item.reason || (item.status === 'processed' ? 'Transaction Created' :
+                                            '-') }}
                                         </div>
-                                        <v-btn v-if="item.transaction_id" icon size="x-small" variant="text" color="primary" 
-                                            :to="{ name: 'transactions', query: { id: item.transaction_id }}"
+                                        <v-btn v-if="item.transaction_id" icon size="x-small" variant="text"
+                                            color="primary"
+                                            :to="{ name: 'transactions', query: { id: item.transaction_id } }"
                                             title="View Transaction">
                                             <ExternalLink :size="14" />
                                         </v-btn>
@@ -493,7 +501,7 @@ import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
 import { useConfirmStore } from '@/stores/confirm'
 import { localISOString } from '@/utils/time'
-import { Settings, RefreshCw, Clock, Plus, Mail, Server, UserCheck, Search, Lock, X, CheckCircle2, XCircle, MailOpen, Loader2, Eye, ExternalLink, Info } from 'lucide-vue-next'
+import { Settings, RefreshCw, Clock, Plus, Mail, Server, UserCheck, Search, Lock, X, CheckCircle2, XCircle, MailOpen, Loader2, ExternalLink, Info } from 'lucide-vue-next'
 
 const emailConfigs = ref<any[]>([])
 const familyMembers = ref<any[]>([])
@@ -554,18 +562,18 @@ const fetchEmailLogs = async (configId?: string, resetSkip = false) => {
 
 async function handleSync(configId: string) {
     if (pollInterval.value) clearInterval(pollInterval.value)
-    
+
     isSyncing.value = true
     syncStatus.value = { status: 'running', configId }
     try {
         const res = await financeApi.syncEmailConfig(configId)
         syncStatus.value = { ...res.data, configId }
-        
+
         if (res.data.status === 'started' || res.data.status === 'running') {
             notify.info("Sync is running in background")
             // Refresh logs immediately to show the "running" entry
             setTimeout(() => fetchEmailLogs(undefined, true), 500)
-            
+
             // Start Polling if log_id is available
             if (res.data.log_id) {
                 pollSyncStatus(res.data.log_id, configId)
@@ -582,7 +590,7 @@ async function handleSync(configId: string) {
             const logId = e.response?.data?.log_id
             syncStatus.value = { status: 'started', message, configId, log_id: logId }
             notify.info(message)
-            
+
             if (logId) {
                 pollSyncStatus(logId, configId)
             }
@@ -597,7 +605,7 @@ async function handleSync(configId: string) {
 
 async function pollSyncStatus(logId: string, configId: string) {
     if (pollInterval.value) clearInterval(pollInterval.value)
-    
+
     let attempts = 0
     pollInterval.value = setInterval(async () => {
         attempts++
@@ -606,13 +614,13 @@ async function pollSyncStatus(logId: string, configId: string) {
             // or just fetch all and look for this ID.
             // For now, let's just fetch all logs to keep it simple and update the UI.
             await fetchEmailLogs(undefined, false)
-            
+
             const currentLog = emailLogs.value.find(l => l.id === logId)
             if (currentLog) {
                 if (currentLog.status === 'completed' || currentLog.status === 'failed' || currentLog.status === 'error') {
                     clearInterval(pollInterval.value)
                     pollInterval.value = null
-                    
+
                     if (currentLog.status === 'completed') {
                         syncStatus.value = { status: 'completed', message: currentLog.message, configId }
                         fetchData() // Refresh transactions
@@ -623,7 +631,7 @@ async function pollSyncStatus(logId: string, configId: string) {
                     }
                 }
             }
-            
+
             // Safety: Stop polling after 5 minutes
             if (attempts > 60) {
                 clearInterval(pollInterval.value)
