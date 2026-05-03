@@ -251,6 +251,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { useRoute } from 'vue-router'
+import { financeApi } from '@/api/client'
 
 import ImportModal from '@/components/ImportModal.vue'
 import SmartPromptModal from '@/components/SmartPromptModal.vue'
@@ -446,9 +447,31 @@ watch(() => auth.selectedMemberId, () => {
     fetchTriage()
 })
 
+// Deep-link handling
+async function checkDeepLink() {
+    const txnId = route.query.id as string
+    if (txnId) {
+        try {
+            const res = await financeApi.getTransaction(txnId)
+            if (res.data) {
+                // Ensure master data for modal is loaded
+                await fetchModalData()
+                openEditModal(res.data)
+            }
+        } catch (e) {
+            console.error('Failed to load deep-linked transaction', e)
+        }
+    }
+}
+
+watch(() => route.query.id, () => {
+    checkDeepLink()
+})
+
 onMounted(() => {
     fetchData()
     fetchTriage() // Pre-fetch count
+    checkDeepLink()
 })
 </script>
 

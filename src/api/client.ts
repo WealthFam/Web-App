@@ -112,6 +112,7 @@ export const financeApi = {
         apiClient.put(`/finance/accounts/${id}/balance`, { ...data, account_id: id }),
     getTransactions: (accountId?: string, page: number = 1, limit: number = 20, startDate?: string, endDate?: string, search?: string, category?: string, sortBy: string = 'date', sortOrder: string = 'desc', userId?: string, excludeTransfers?: boolean, excludeFromReports?: boolean) =>
         apiClient.get('/finance/transactions', { params: { account_id: accountId, page, limit, start_date: startDate, end_date: endDate, search, category, sort_by: sortBy, sort_order: sortOrder, user_id: userId, exclude_transfers: excludeTransfers, exclude_from_reports: excludeFromReports } }),
+    getTransaction: (id: string) => apiClient.get(`/finance/transactions/${id}`),
     searchTransactions: (q: string, limit: number = 10) =>
         apiClient.get('/finance/transactions', { params: { search: q, limit, page: 1, sort_by: 'date', sort_order: 'desc' } }),
     createTransaction: (data: any) => apiClient.post('/finance/transactions', data),
@@ -258,6 +259,7 @@ export const financeApi = {
     updateEmailConfig: (id: string, data: any) => apiClient.put(`/ingestion/email/configs/${id}`, data),
     getEmailSyncLogs: (id: string) => apiClient.get(`/ingestion/email/configs/${id}/logs`),
     syncEmailConfig: (id: string) => apiClient.post(`/ingestion/email/sync/${id}`),
+    getEmailSyncItemLogs: (logId: string) => apiClient.get(`/ingestion/email/logs/${logId}/items`),
 
     // Tenants / Management
     getTenants: () => apiClient.get('/auth/tenants'),
@@ -283,6 +285,7 @@ export const financeApi = {
     getIngestionEvents: (params?: { limit?: number, skip?: number, device_id?: string }) => apiClient.get('/ingestion/events', { params }),
     bulkDeleteEvents: (ids: string[]) => apiClient.post('/ingestion/events/bulk-delete', { event_ids: ids }),
     getEmailLogs: (params?: { limit?: number, skip?: number, config_id?: string }) => apiClient.get('/ingestion/email/logs', { params }),
+    testParser: (data: any) => parserClient.post('/ingest/test', data),
 
     // User Management
     getMe: () => apiClient.get<any>('/auth/me'),

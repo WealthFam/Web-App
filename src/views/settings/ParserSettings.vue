@@ -51,6 +51,180 @@
                 </v-card>
             </v-col>
         </v-row>
+        
+        <!-- Parser Sandbox / Tester -->
+        <v-card class="premium-glass-card mb-6" elevation="0">
+            <v-card-title class="d-flex align-center justify-space-between py-4 px-6 border-b">
+                <div class="d-flex align-center gap-3">
+                    <v-avatar color="primary" variant="tonal" size="40" rounded>
+                        <Search :size="24" class="text-primary" />
+                    </v-avatar>
+                    <div>
+                        <div class="text-h6 font-weight-bold">Parser Sandbox</div>
+                        <div class="text-caption text-medium-emphasis">Test your extraction rules against raw text</div>
+                    </div>
+                </div>
+                <v-btn variant="tonal" :color="showSandbox ? 'primary' : 'grey-darken-1'" size="small" @click="showSandbox = !showSandbox">
+                    {{ showSandbox ? 'Close Tester' : 'Open Tester' }}
+                </v-btn>
+            </v-card-title>
+            
+            <v-expand-transition>
+                <div v-if="showSandbox">
+                    <v-card-text class="pa-6">
+                        <v-row>
+                            <v-col cols="12" md="7">
+                                <div class="text-subtitle-2 font-weight-bold mb-2">Input Content</div>
+                                <v-textarea v-model="sandboxForm.content" placeholder="Paste raw SMS or Email text here..."
+                                    variant="outlined" rows="5" class="font-mono text-body-2 mb-4" hide-details></v-textarea>
+                                
+                                <div class="d-flex gap-4 mb-4">
+                                    <v-select v-model="sandboxForm.source" :items="['SMS', 'EMAIL']" label="Source"
+                                        variant="outlined" density="comfortable" hide-details class="flex-grow-1"></v-select>
+                                    
+                                    <v-text-field v-model="sandboxForm.sender" label="Sender / From" variant="outlined"
+                                        density="comfortable" hide-details class="flex-grow-1" placeholder="e.g. HDFCBK"></v-text-field>
+                                </div>
+                                
+                                <v-btn block color="primary" size="large" :loading="sandboxLoading" @click="testParser"
+                                    class="font-weight-bold">
+                                    Run Extraction Test
+                                </v-btn>
+                            </v-col>
+                            
+                            <v-col cols="12" md="5">
+                                <div class="text-subtitle-2 font-weight-bold mb-2">Extraction Result</div>
+                                <div v-if="sandboxResult" class="result-box bg-grey-lighten-4 rounded-lg pa-4 border h-100 overflow-auto" style="max-height: 400px;">
+                                    <div v-if="sandboxResult.status === 'success'" class="d-flex flex-column gap-3">
+                                        <v-chip color="success" size="small" variant="flat" class="w-fit font-weight-bold">SUCCESS</v-chip>
+                                        
+                                        <div v-for="(item, idx) in sandboxResult.results" :key="idx" class="border rounded-lg pa-3 mb-3 bg-white shadow-sm animate-in">
+                                            <div class="d-flex justify-space-between align-center mb-2">
+                                                <div class="d-flex align-center gap-2">
+                                                    <v-chip size="x-small" :color="item.metadata.parser_used.includes('AI') ? 'purple' : 'primary'" variant="flat" class="font-weight-bold">
+                                                        {{ item.metadata.parser_used }}
+                                                    </v-chip>
+                                                </div>
+                                                <v-chip size="x-small" variant="tonal" :color="item.metadata.confidence > 0.8 ? 'success' : 'warning'">
+                                                    Conf: {{ (item.metadata.confidence * 100).toFixed(0) }}%
+                                                </v-chip>
+                                            </div>
+                                            
+                                            <div class="d-flex justify-space-between align-start mb-1">
+                                                <div class="text-body-2 font-weight-bold text-truncate" style="max-width: 65%;">
+                                                    {{ item.transaction.recipient || item.transaction.merchant?.cleaned || item.transaction.description }}
+                                                </div>
+                                                <div class="d-flex flex-column align-end">
+                                                    <div class="text-subtitle-1 font-weight-black" :class="item.transaction.type === 'CREDIT' ? 'text-success' : 'text-error'">
+                                                        {{ item.transaction.type === 'CREDIT' ? '+' : '-' }}{{ formatAmount(item.transaction.amount) }}
+                                                    </div>
+                                                    <v-chip size="x-small" :color="item.transaction.type === 'CREDIT' ? 'success' : 'error'" variant="tonal" class="font-weight-bold mt-n1">
+                                                        {{ item.transaction.type }}
+                                                    </v-chip>
+                                                </div>
+                                            </div>
+
+                                            <v-row dense class="mt-1 bg-grey-lighten-5 rounded pa-1">
+                                                <v-col cols="6">
+                                                    <div class="text-caption d-flex align-center gap-1">
+                                                        <v-icon size="10" color="medium-emphasis">mdi-calendar</v-icon> 
+                                                        <span class="font-weight-medium">{{ new Date(item.transaction.date).toLocaleDateString() }}</span>
+                                                    </div>
+                                                </v-col>
+                                                <v-col cols="6">
+                                                    <div class="text-caption d-flex align-center gap-1">
+                                                        <v-icon size="10" color="medium-emphasis">mdi-credit-card-outline</v-icon> 
+                                                        <span class="font-weight-medium">A/c: {{ item.transaction.account?.mask || 'xxxx' }}</span>
+                                                    </div>
+                                                </v-col>
+                                                <v-col cols="12" v-if="item.transaction.ref_id">
+                                                    <div class="text-caption d-flex align-center gap-1 text-truncate">
+                                                        <v-icon size="10" color="medium-emphasis">mdi-identifier</v-icon> 
+                                                        <span class="font-weight-bold">Ref:</span> <span class="font-mono">{{ item.transaction.ref_id }}</span>
+                                                    </div>
+                                                </v-col>
+                                                <v-col cols="6" v-if="item.transaction.category">
+                                                    <div class="text-caption d-flex align-center gap-1">
+                                                        <v-icon size="10" color="medium-emphasis">mdi-tag-outline</v-icon> 
+                                                        <span class="text-primary font-weight-bold">{{ item.transaction.category }}</span>
+                                                    </div>
+                                                </v-col>
+                                                <v-col cols="6" v-if="item.transaction.balance">
+                                                    <div class="text-caption d-flex align-center gap-1">
+                                                        <v-icon size="10" color="medium-emphasis">mdi-wallet-outline</v-icon> 
+                                                        <span class="font-weight-bold">Bal:</span> {{ formatAmount(item.transaction.balance) }}
+                                                    </div>
+                                                </v-col>
+                                            </v-row>
+
+                                            <!-- Raw Technical Data (Collapsible) -->
+                                            <v-expansion-panels variant="accordion" class="mt-2 density-compact custom-panels">
+                                                <v-expansion-panel elevation="0">
+                                                    <v-expansion-panel-title class="pa-0 min-h-0 py-1 text-caption text-primary">
+                                                        Technical Details
+                                                    </v-expansion-panel-title>
+                                                    <v-expansion-panel-text class="pa-0">
+                                                        <pre class="bg-grey-darken-3 text-grey-lighten-2 pa-2 rounded font-mono text-caption" style="font-size: 0.65rem; max-height: 150px; overflow: auto;">{{ JSON.stringify(item.transaction, null, 2) }}</pre>
+                                                    </v-expansion-panel-text>
+                                                </v-expansion-panel>
+                                            </v-expansion-panels>
+                                        </div>
+
+                                        <!-- Strict Parsing Logs -->
+                                        <div v-if="sandboxResult.logs && sandboxResult.logs.length > 0" class="mt-4 pt-3 border-t">
+                                            <div class="text-caption font-weight-bold mb-1 text-medium-emphasis d-flex align-center gap-1">
+                                                <v-icon size="12">mdi-console</v-icon> Parsing Logs
+                                            </div>
+                                            <div class="bg-grey-darken-4 text-grey-lighten-2 pa-2 rounded font-mono text-caption overflow-auto" style="max-height: 100px; font-size: 0.7rem;">
+                                                <div v-for="(log, lidx) in sandboxResult.logs" :key="lidx" class="mb-1 border-b border-grey-darken-3 pb-1 last:border-0">
+                                                    > {{ log }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Non-Financial / Ignored Status -->
+                                    <div v-else-if="sandboxResult.status === 'ignored' || sandboxResult.status === 'non_financial'" 
+                                        class="d-flex flex-column align-center justify-center py-8 text-center animate-in">
+                                        <v-icon color="warning" size="48" class="mb-2">mdi-alert-circle-outline</v-icon>
+                                        <div class="text-subtitle-1 font-weight-bold text-warning">Non-Financial Content</div>
+                                        <div class="text-caption text-medium-emphasis px-4">
+                                            This content was filtered by the classifier as it does not appear to contain a trackable financial transaction.
+                                        </div>
+                                    </div>
+
+                                    <!-- Duplicate Status -->
+                                    <div v-else-if="sandboxResult.status === 'duplicate_submission'" 
+                                        class="d-flex flex-column align-center justify-center py-8 text-center animate-in">
+                                        <v-icon color="info" size="48" class="mb-2">mdi-content-copy</v-icon>
+                                        <div class="text-subtitle-1 font-weight-bold text-info">Duplicate Detected</div>
+                                        <div class="text-caption text-medium-emphasis px-4">
+                                            This exact content was recently processed and skipped to avoid duplication.
+                                        </div>
+                                    </div>
+
+                                    <!-- Extraction Error -->
+                                    <div v-else-if="sandboxResult.status === 'failed' || sandboxError" class="pa-2 text-error font-italic animate-in">
+                                        <div class="d-flex align-center gap-2 mb-2">
+                                            <XCircle :size="16" /> <strong>Extraction Failed</strong>
+                                        </div>
+                                        <div class="text-caption">{{ sandboxError || 'No parsers were able to extract data from this content.' }}</div>
+                                    </div>
+                                    
+                                    <div v-else class="text-caption text-medium-emphasis pa-4 text-center">
+                                        Status: {{ sandboxResult.status }}
+                                    </div>
+                                </div>
+                                <div v-else class="d-flex flex-column align-center justify-center h-100 border rounded-lg border-dashed text-medium-emphasis py-12">
+                                    <Search :size="32" class="opacity-20 mb-2" />
+                                    <div class="text-caption">Results will appear here</div>
+                                </div>
+                            </v-col>
+                        </v-row>
+                    </v-card-text>
+                </div>
+            </v-expand-transition>
+        </v-card>
 
         <v-row class="mb-12">
             <!-- Parser Configuration -->
@@ -457,7 +631,9 @@
             <v-card class="rounded-xl">
                 <v-card-title class="d-flex justify-space-between align-center pa-4 border-b">
                     <span class="text-h6 font-weight-bold">New Merchant Alias</span>
-                    <v-btn icon="X" variant="text" density="comfortable" @click="showAliasModal = false"></v-btn>
+                    <v-btn icon variant="text" density="comfortable" @click="showAliasModal = false">
+                        <X :size="20" />
+                    </v-btn>
                 </v-card-title>
                 <v-card-text class="pa-6">
                     <v-form @submit.prevent="saveAlias">
@@ -505,7 +681,10 @@
                     </p>
                     <div class="d-flex justify-center gap-3">
                         <v-btn variant="text" @click="showAliasDeleteConfirm = false">Cancel</v-btn>
-                        <v-btn color="error" @click="executeDeleteAlias" prepend-icon="Trash2">
+                        <v-btn color="error" @click="executeDeleteAlias">
+                            <template v-slot:prepend>
+                                <Trash2 :size="18" />
+                            </template>
                             Delete
                         </v-btn>
                     </div>
@@ -519,7 +698,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue'
 import {
-    CheckCircle, Zap, ShieldCheck, BrainCircuit, Activity, RefreshCw, ClipboardList, Edit2, Trash2, Sparkles
+    CheckCircle, Zap, ShieldCheck, BrainCircuit, Activity, RefreshCw, ClipboardList, Edit2, Trash2, Sparkles, Search, X, XCircle
 } from 'lucide-vue-next'
 import { parserApi, financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
@@ -547,6 +726,18 @@ const parserLogPagination = ref({ limit: 10, skip: 0, total: 0 })
 // --- Pattern Management State ---
 const patterns = ref<any[]>([])
 const patternsLoading = ref(false)
+
+// Sandbox State
+const showSandbox = ref(false)
+const sandboxForm = ref({
+    content: '',
+    source: 'SMS',
+    sender: '',
+    subject: ''
+})
+const sandboxResult = ref<any>(null)
+const sandboxLoading = ref(false)
+const sandboxError = ref<string | null>(null)
 const patternSaving = ref(false)
 const patternError = ref<string | null>(null)
 const showPatternModal = ref(false)
@@ -771,6 +962,24 @@ async function confirmDelete(pattern: any) {
         loadPatterns()
     } catch (err) {
         notify.error("Failed to delete pattern")
+    }
+}
+
+async function testParser() {
+    if (!sandboxForm.value.content) return
+    sandboxLoading.value = true
+    sandboxError.value = null
+    sandboxResult.value = null
+    try {
+        const res = await financeApi.testParser(sandboxForm.value)
+        sandboxResult.value = res.data
+        if (res.data.status === 'failed') {
+            sandboxError.value = res.data.logs?.join('; ') || 'Extraction failed'
+        }
+    } catch (e: any) {
+        sandboxError.value = e.response?.data?.detail || 'Test failed'
+    } finally {
+        sandboxLoading.value = false
     }
 }
 

@@ -18,7 +18,7 @@
             </div>
         </div>
 
-        <v-alert v-if="syncStatus && syncStatus.status !== 'running'"
+        <v-alert v-if="syncStatus && !['running', 'started'].includes(syncStatus.status)"
             :color="syncStatus.status === 'completed' ? 'success' : 'error'" variant="tonal" border="start" closable
             class="mb-6" @click:close="syncStatus = null">
             <template v-slot:prepend>
@@ -32,6 +32,18 @@
             </div>
             <div class="text-body-2">
                 {{ syncStatus.message || `${syncStatus.stats?.processed} transactions processed.` }}
+            </div>
+        </v-alert>
+
+        <v-alert v-if="syncStatus && syncStatus.status === 'started'"
+            color="info" variant="tonal" border="start" closable
+            class="mb-6" @click:close="syncStatus = null">
+            <template v-slot:prepend>
+                <RefreshCw :size="24" class="mr-2 animate-spin" />
+            </template>
+            <div class="text-subtitle-2 font-weight-bold">Sync Started</div>
+            <div class="text-body-2">
+                {{ syncStatus.message || "Email synchronization is running in the background." }}
             </div>
         </v-alert>
 
@@ -160,6 +172,7 @@
                         <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Status</th>
                         <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Items</th>
                         <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Message</th>
+                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -178,6 +191,12 @@
                         <td class="text-caption font-mono">{{ log.items_processed || 0 }}</td>
                         <td class="text-caption text-truncate" style="max-width: 200px;" :title="log.message">
                             {{ log.message }}
+                        </td>
+                        <td class="text-right">
+                            <v-btn size="x-small" variant="tonal" color="primary" class="font-weight-bold"
+                                @click="openItemDetailsModal(log.id)">
+                                Details
+                            </v-btn>
                         </td>
                     </tr>
                     <tr v-if="emailLogs.length === 0">
@@ -377,6 +396,94 @@
                 </div>
             </v-card>
         </v-dialog>
+
+        <!-- Itemized Details Modal -->
+        <v-dialog v-model="showItemDetailsModal" max-width="850">
+            <v-card class="rounded-xl overflow-hidden">
+                <v-card-title class="d-flex justify-space-between align-center pa-4 border-b bg-surface-variant text-white">
+                    <div class="d-flex align-center gap-3">
+                        <v-avatar color="white" variant="flat" size="32" rounded>
+                            <Info :size="20" class="text-primary" />
+                        </v-avatar>
+                        <div>
+                            <div class="text-subtitle-1 font-weight-bold">Scan Session Details</div>
+                            <div class="text-caption opacity-80">Itemized results for individual emails</div>
+                        </div>
+                    </div>
+                    <v-btn icon variant="text" density="comfortable" color="white" @click="showItemDetailsModal = false">
+                        <X :size="24" />
+                    </v-btn>
+                </v-card-title>
+
+                <v-card-text class="pa-0" style="max-height: 70vh; overflow-y: auto;">
+                    <div v-if="isLoadingItems" class="d-flex flex-column align-center justify-center py-12">
+                        <v-progress-circular indeterminate color="primary" class="mb-4"></v-progress-circular>
+                        <div class="text-caption text-medium-emphasis">Fetching email results...</div>
+                    </div>
+
+                    <v-table v-else class="bg-transparent sticky-header-table">
+                        <thead>
+                            <tr class="bg-grey-lighten-4">
+                                <th class="text-caption font-weight-bold">Status</th>
+                                <th class="text-caption font-weight-bold">Sender & Subject</th>
+                                <th class="text-caption font-weight-bold">Parser</th>
+                                <th class="text-caption font-weight-bold">Result / Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="item in selectedLogItems" :key="item.id" class="hover-row">
+                                <td style="width: 100px;">
+                                    <v-chip size="x-small"
+                                        :color="item.status === 'processed' ? 'success' : item.status === 'duplicate' ? 'warning' : item.status === 'skipped' ? 'grey' : 'error'"
+                                        variant="flat" class="font-weight-bold text-uppercase">
+                                        {{ item.status }}
+                                    </v-chip>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column py-2">
+                                        <div class="text-caption font-weight-bold text-truncate" style="max-width: 300px;">
+                                            {{ item.subject }}
+                                        </div>
+                                        <div class="text-caption text-medium-emphasis text-truncate" style="max-width: 300px;">
+                                            {{ item.sender }}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <v-chip v-if="item.parser_used" size="x-small" variant="outlined" color="primary" class="font-mono">
+                                        {{ item.parser_used }}
+                                    </v-chip>
+                                    <span v-else class="text-caption text-medium-emphasis">-</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-center gap-2">
+                                        <div class="text-caption text-truncate" style="max-width: 250px;" :title="item.reason">
+                                            {{ item.reason || (item.status === 'processed' ? 'Transaction Created' : '-') }}
+                                        </div>
+                                        <v-btn v-if="item.transaction_id" icon size="x-small" variant="text" color="primary" 
+                                            :to="{ name: 'transactions', query: { id: item.transaction_id }}"
+                                            title="View Transaction">
+                                            <ExternalLink :size="14" />
+                                        </v-btn>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr v-if="selectedLogItems.length === 0">
+                                <td colspan="4" class="text-center py-8 text-medium-emphasis">
+                                    No itemized logs found for this session.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </v-table>
+                </v-card-text>
+
+                <v-divider></v-divider>
+                <v-card-actions class="pa-4 bg-grey-lighten-4">
+                    <v-spacer></v-spacer>
+                    <v-btn variant="text" @click="showItemDetailsModal = false">Close</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
     </div>
 </template>
 
@@ -386,7 +493,7 @@ import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
 import { useConfirmStore } from '@/stores/confirm'
 import { localISOString } from '@/utils/time'
-import { Settings, RefreshCw, Clock, Plus, Mail, Server, UserCheck, Search, Lock, X, CheckCircle2, XCircle, MailOpen, Loader2 } from 'lucide-vue-next'
+import { Settings, RefreshCw, Clock, Plus, Mail, Server, UserCheck, Search, Lock, X, CheckCircle2, XCircle, MailOpen, Loader2, Eye, ExternalLink, Info } from 'lucide-vue-next'
 
 const emailConfigs = ref<any[]>([])
 const familyMembers = ref<any[]>([])
@@ -404,6 +511,12 @@ const selectedHistoryConfigId = ref<string | null>(null)
 const isSyncing = ref(false)
 const syncStatus = ref<any>(null)
 
+// Itemized Details State
+const showItemDetailsModal = ref(false)
+const selectedLogItems = ref<any[]>([])
+const isLoadingItems = ref(false)
+const selectedLogId = ref<string | null>(null)
+
 const emailForm = ref({
     email: '',
     password: '',
@@ -417,6 +530,7 @@ const emailForm = ref({
 // Email Logs State
 const emailLogs = ref<any[]>([])
 const emailLogPagination = ref({ total: 0, limit: 10, skip: 0 })
+const pollInterval = ref<any>(null)
 
 // --- Computed ---
 const emailModalTitle = computed(() => editingEmailConfig.value ? 'Edit Email Configuration' : 'Connect Email Account')
@@ -439,21 +553,86 @@ const fetchEmailLogs = async (configId?: string, resetSkip = false) => {
 }
 
 async function handleSync(configId: string) {
+    if (pollInterval.value) clearInterval(pollInterval.value)
+    
     isSyncing.value = true
     syncStatus.value = { status: 'running', configId }
     try {
         const res = await financeApi.syncEmailConfig(configId)
         syncStatus.value = { ...res.data, configId }
-        if (res.data.status === 'completed') {
+        
+        if (res.data.status === 'started' || res.data.status === 'running') {
+            notify.info("Sync is running in background")
+            // Refresh logs immediately to show the "running" entry
+            setTimeout(() => fetchEmailLogs(undefined, true), 500)
+            
+            // Start Polling if log_id is available
+            if (res.data.log_id) {
+                pollSyncStatus(res.data.log_id, configId)
+            }
+        } else if (res.data.status === 'completed') {
+            notify.success("Sync completed")
             fetchEmailLogs(undefined, true)
-            fetchEmailLogs(undefined, true) // double fetch??
             fetchData()
         }
     } catch (e: any) {
-        syncStatus.value = { status: 'error', message: e.response?.data?.detail || "Sync failed", configId }
+        // If it's a timeout or started, don't show error
+        if (e.code === 'ECONNABORTED' || e.response?.status === 202 || e.response?.status === 200) {
+            const message = e.response?.data?.message || "Sync is running in background"
+            const logId = e.response?.data?.log_id
+            syncStatus.value = { status: 'started', message, configId, log_id: logId }
+            notify.info(message)
+            
+            if (logId) {
+                pollSyncStatus(logId, configId)
+            }
+        } else {
+            syncStatus.value = { status: 'error', message: e.response?.data?.detail || "Sync failed", configId }
+        }
+        setTimeout(() => fetchEmailLogs(undefined, true), 1000)
     } finally {
         isSyncing.value = false
     }
+}
+
+async function pollSyncStatus(logId: string, configId: string) {
+    if (pollInterval.value) clearInterval(pollInterval.value)
+    
+    let attempts = 0
+    pollInterval.value = setInterval(async () => {
+        attempts++
+        try {
+            // We use the existing getEmailLogs but filter for this specific log if possible, 
+            // or just fetch all and look for this ID.
+            // For now, let's just fetch all logs to keep it simple and update the UI.
+            await fetchEmailLogs(undefined, false)
+            
+            const currentLog = emailLogs.value.find(l => l.id === logId)
+            if (currentLog) {
+                if (currentLog.status === 'completed' || currentLog.status === 'failed' || currentLog.status === 'error') {
+                    clearInterval(pollInterval.value)
+                    pollInterval.value = null
+                    
+                    if (currentLog.status === 'completed') {
+                        syncStatus.value = { status: 'completed', message: currentLog.message, configId }
+                        fetchData() // Refresh transactions
+                        // Hide banner after 5 seconds
+                        setTimeout(() => { if (syncStatus.value?.status === 'completed') syncStatus.value = null }, 5000)
+                    } else {
+                        syncStatus.value = { status: 'error', message: currentLog.message || "Sync failed", configId }
+                    }
+                }
+            }
+            
+            // Safety: Stop polling after 5 minutes
+            if (attempts > 60) {
+                clearInterval(pollInterval.value)
+                pollInterval.value = null
+            }
+        } catch (e) {
+            console.error("Polling error", e)
+        }
+    }, 5000) // Poll every 5 seconds
 }
 
 async function saveEmailConfig() {
@@ -557,6 +736,21 @@ async function openHistoryModal(config: any) {
         syncLogs.value = res.data
     } catch (e) {
         notify.error("Failed to fetch logs")
+    }
+}
+
+async function openItemDetailsModal(logId: string) {
+    selectedLogId.value = logId
+    showItemDetailsModal.value = true
+    selectedLogItems.value = []
+    isLoadingItems.value = true
+    try {
+        const res = await financeApi.getEmailSyncItemLogs(logId)
+        selectedLogItems.value = res.data
+    } catch (e) {
+        notify.error("Failed to fetch item details")
+    } finally {
+        isLoadingItems.value = false
     }
 }
 
