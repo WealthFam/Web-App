@@ -28,7 +28,6 @@ import {
     Briefcase
 } from 'lucide-vue-next'
 import { ref, onUnmounted, computed, watch } from 'vue'
-import { useMutualFundStore } from '@/stores/finance/mutualFunds'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
@@ -179,33 +178,17 @@ function logout() {
     router.push('/login')
 }
 
-const mfStore = useMutualFundStore()
-const isSyncing = computed(() => mfStore.isSyncing)
-const syncStatus = computed(() => mfStore.syncStatus)
 
-let syncInterval: any = null
 let aiStatusInterval: any = null
 
-const syncStatusText = computed(() => {
-    if (isSyncing.value || syncStatus.value?.status === 'running') return 'Syncing Mutual Fund NAVs...'
-    if (syncStatus.value?.status === 'error') return `Last sync failed: ${syncStatus.value.error || syncStatus.value.error_message}`
-    return 'Refresh Mutual Fund NAVs'
-})
+
 
 function startPolling() {
-    if (syncInterval) return
-    mfStore.fetchSyncStatus()
-    syncInterval = setInterval(() => mfStore.fetchSyncStatus(), 15000)
-
     fetchAiStatus()
     aiStatusInterval = setInterval(() => fetchAiStatus(), 60000) // Check AI status every minute
 }
 
 function stopPolling() {
-    if (syncInterval) {
-        clearInterval(syncInterval)
-        syncInterval = null
-    }
     if (aiStatusInterval) {
         clearInterval(aiStatusInterval)
         aiStatusInterval = null
@@ -365,16 +348,6 @@ function handleMouseMove(e: MouseEvent) {
                     <span>AI Status: {{ aiStatus.status.toUpperCase() }}{{ aiStatus.error_message ? ` - ${aiStatus.error_message}` : '' }}</span>
                 </v-tooltip>
 
-                <!-- Mutual Fund Sync Status -->
-                <v-tooltip location="bottom" v-if="auth.user">
-                    <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" icon size="42" color="slate-600" class="mr-2" @click="mfStore.triggerSync"
-                            :loading="isSyncing" variant="tonal" rounded="pill" border="thin">
-                            <RefreshCw :size="20" :class="{ 'spin-sync': isSyncing }" />
-                        </v-btn>
-                    </template>
-                    <span>{{ syncStatusText }}</span>
-                </v-tooltip>
 
                 <!-- Theme Toggle -->
                 <v-btn icon @click="toggleTheme" color="slate-600" class="mr-2" size="42" variant="tonal" rounded="pill" border="thin">

@@ -221,13 +221,13 @@
                     <div class="d-flex align-center justify-space-between mb-6">
                         <div>
                             <h3 class="text-subtitle-1 font-weight-black text-content d-flex align-center gap-2">
-                                <Activity :size="20" class="text-primary" /> Performance Architecture
+                                <Activity :size="20" class="text-primary" /> Performance Timeline
                             </h3>
                             <p class="text-caption opacity-60">Historical net value vs. invested capital trend</p>
                         </div>
                 <div class="d-flex align-center gap-4">
                     <!-- Sync Status Indicator -->
-                    <div v-if="mfStore.syncStatus" class="d-flex align-center gap-2 px-3 py-1 rounded-pill bg-surface-variant-opacity-10 border border-white-10">
+                    <div v-if="mfStore.syncStatus" class="d-flex align-center gap-2 px-4 rounded-pill bg-surface-variant-opacity-10 border border-white-10" style="height: 40px;">
                         <div class="status-dot" :class="mfStore.isSyncing ? 'status-syncing' : (mfStore.syncStatus.status === 'completed' ? 'status-online' : 'status-error')"></div>
                         <span class="text-[10px] font-weight-black opacity-60 uppercase letter-spacing-1">
                             {{ mfStore.isSyncing ? 'Syncing NAVs...' : (mfStore.syncStatus.status === 'completed' ? 'NAVs Current' : 'Sync Error') }}
@@ -237,15 +237,21 @@
                         </span>
                     </div>
 
-                    <v-btn size="x-small" variant="tonal" color="primary" class="font-weight-black px-4"
-                        @click="hardRefreshTimeline" :loading="isTimelineRefreshing">
-                        <RefreshCcw :size="12" class="mr-1" /> RECALCULATE TRENDS
+                    <v-btn color="primary" variant="tonal" rounded="pill" class="text-none font-weight-black mr-2 px-6"
+                        height="40" @click="handleManualSync"
+                        :loading="mfStore.isSyncing || mfStore.syncStatus?.status === 'running'" border="thin">
+                        <RefreshCw :size="16" class="mr-2" /> Sync NAVs
+                    </v-btn>
+
+                    <v-btn variant="tonal" color="primary" rounded="pill" class="text-none font-weight-black px-6 mr-2"
+                        height="40" @click="hardRefreshTimeline" :loading="isTimelineRefreshing" border="thin">
+                        <RefreshCcw :size="16" class="mr-2" /> Recalculate Trends
                     </v-btn>
                     
                     <v-menu location="bottom end">
                         <template v-slot:activator="{ props }">
-                            <v-btn v-bind="props" icon size="small" variant="tonal" color="primary">
-                                <Settings :size="16" />
+                            <v-btn v-bind="props" icon size="40" variant="tonal" color="primary" rounded="pill" border="thin">
+                                <Settings :size="18" />
                             </v-btn>
                         </template>
                         <v-list density="compact" rounded="xl" class="pa-2" width="240">
@@ -270,14 +276,17 @@
                     </v-menu>
 
                     <div class="d-flex gap-2">
-                                <v-chip size="small" variant="tonal" color="primary" class="font-weight-black">1 YEAR</v-chip>
-                                <v-menu :close-on-content-click="false" location="bottom end">
-                                    <template v-slot:activator="{ props }">
-                                        <v-btn v-bind="props" size="small" variant="tonal" color="primary"
-                                            class="font-weight-black">
-                                            <TrendingUp :size="14" class="mr-2" /> BENCHMARKS
-                                        </v-btn>
-                                    </template>
+                        <v-chip variant="tonal" color="primary" rounded="pill" class="font-weight-black px-4" style="height: 40px !important;">
+                            <Calendar :size="16" class="mr-2" /> 1 YEAR
+                        </v-chip>
+
+                        <v-menu :close-on-content-click="false" location="bottom end">
+                            <template v-slot:activator="{ props }">
+                                <v-btn v-bind="props" variant="tonal" color="primary" rounded="pill" height="40"
+                                    class="text-none font-weight-black px-6" border="thin">
+                                    <TrendingUp :size="16" class="mr-2" /> Benchmarks
+                                </v-btn>
+                            </template>
                                     <v-list density="compact" class="pa-2" width="220" rounded="xl">
                                         <v-list-item v-for="bm in benchmarksData" :key="bm.symbol" density="compact"
                                             rounded="lg" class="mb-1">
@@ -643,12 +652,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
     TrendingUp, TrendingDown, Clock, Search, Target, Sparkles,
     ExternalLink, Eye as EyeIconMain, ChevronDown, ChevronRight,
-    Trash2, Activity, Briefcase, RefreshCcw, Settings
+    Trash2, Activity, Briefcase, RefreshCcw, Settings, Calendar, RefreshCw
 } from 'lucide-vue-next'
 
 import { useMutualFundStore } from '@/stores/finance/mutualFunds'
@@ -853,6 +862,32 @@ async function handleRebuildHoldings() {
     }
 }
 
+async function handleManualSync() {
+    await mfStore.triggerSync()
+    startSyncPolling()
+}
+
+let syncPollInterval: any = null
+function startSyncPolling() {
+    if (syncPollInterval) return
+    syncPollInterval = setInterval(async () => {
+        await mfStore.fetchSyncStatus()
+        if (mfStore.syncStatus?.status !== 'running') {
+            stopSyncPolling()
+            if (mfStore.syncStatus?.status === 'completed') {
+                await refreshAll()
+            }
+        }
+    }, 5000)
+}
+
+function stopSyncPolling() {
+    if (syncPollInterval) {
+        clearInterval(syncPollInterval)
+        syncPollInterval = null
+    }
+}
+
 async function handleCleanupDuplicates() {
     try {
         await mfStore.cleanupDuplicates()
@@ -931,11 +966,19 @@ onMounted(() => {
 // Refresh data when tab becomes active
 watch(() => props.active, (isActive) => {
     if (isActive) {
-        fetchPortfolio()
-        fetchAnalytics()
-        fetchPortfolioTimeline()
+        refreshAll()
         fetchMarketIndices()
+        // If a sync is already running in background, start polling
+        if (mfStore.syncStatus?.status === 'running') {
+            startSyncPolling()
+        }
+    } else {
+        stopSyncPolling()
     }
+})
+
+onUnmounted(() => {
+    stopSyncPolling()
 })
 
 const emit = defineEmits(['update:count'])
