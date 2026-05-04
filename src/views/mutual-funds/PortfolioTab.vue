@@ -28,8 +28,10 @@
                             <div class="pa-4 d-flex flex-column justify-space-between h-100">
                                 <div class="mb-4">
                                     <div
-                                        class="text-[10px] font-weight-black text-medium-emphasis uppercase letter-spacing-1 mb-1">
-                                        {{ index.name }}</div>
+                                        class="text-[10px] font-weight-black text-medium-emphasis uppercase letter-spacing-1 mb-1 d-flex justify-space-between align-center">
+                                        <span>{{ index.name }}</span>
+                                        <span v-if="index.last_updated" class="opacity-40 font-weight-bold" style="font-size: 8px;">{{ index.last_updated }}</span>
+                                    </div>
                                     <div class="text-h6 font-weight-black text-content line-height-tight">{{ index.value
                                         }}</div>
                                     <div class="d-flex align-center gap-1 mt-1">
@@ -183,6 +185,9 @@
                                     </span>
                                     <span class="text-caption opacity-40 font-weight-bold uppercase"
                                         v-if="analytics?.xirr != null">XIRR Return</span>
+                                </div>
+                                <div v-if="analytics?.last_updated_at" class="text-[10px] opacity-40 font-weight-bold mt-2">
+                                    NAV: {{ analytics.last_updated_at }}
                                 </div>
                             </div>
                         </div>

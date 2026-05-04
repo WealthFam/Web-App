@@ -262,7 +262,14 @@ onMounted(() => {
 function formatDate(dateStr: string) {
     if (!dateStr) return '-'
     const date = new Date(dateStr)
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    if (isNaN(date.getTime())) return dateStr // Return raw string if parsing fails (e.g. already formatted from backend)
+    return date.toLocaleString('en-GB', { 
+        day: 'numeric', 
+        month: 'short', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
 }
 
 // Filtered Users

@@ -152,6 +152,9 @@
                                     <TrendingUp :size="14" class="mr-1" />
                                     {{ formatAmount(mfPortfolio.pl) }} total gains
                                 </div>
+                                <div v-if="mfPortfolio.last_updated_at" class="text-[10px] opacity-40 font-weight-bold mt-1">
+                                    NAV: {{ mfPortfolio.last_updated_at }}
+                                </div>
                             </div>
                         </v-card>
                     </v-hover>

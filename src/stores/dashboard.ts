@@ -20,6 +20,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
         xirr: number
         dayChange: number
         dayChangePercent: number
+        last_updated_at?: string
         loading: boolean
     }>({
         invested: 0,
@@ -29,6 +30,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
         xirr: 0,
         dayChange: 0,
         dayChangePercent: 0,
+        last_updated_at: undefined,
         loading: true
     })
     const netWorthTrend = ref<number[]>([])
@@ -114,6 +116,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
                     xirr: Number(p.xirr || 0),
                     dayChange: Number(p.day_change || 0),
                     dayChangePercent: Number(p.day_change_percent || 0),
+                    last_updated_at: p.last_updated_at,
                     loading: false
                 }
             }
