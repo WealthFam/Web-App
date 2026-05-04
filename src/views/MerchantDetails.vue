@@ -61,8 +61,8 @@ async function fetchMerchantData() {
             'desc',    // sortOrder
             userId     // userId
         )
-        if (res.data && res.data.items) {
-            transactions.value = res.data.items
+        if (res.data && res.data.data) {
+            transactions.value = res.data.data
         }
     } catch (e) {
         console.error("Failed to fetch merchant data", e)

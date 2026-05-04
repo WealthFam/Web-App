@@ -69,7 +69,7 @@ async function searchVaultDocs(q: string) {
             ? { search: q.trim(), limit: 20 }
             : { limit: 20 }
         const res = await financeApi.getDocuments(params)
-        const all: any[] = Array.isArray(res.data) ? res.data : (res.data?.items || [])
+        const all: any[] = Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.items || [])
         vaultPickerResults.value = all.filter(d => !d.is_folder)
     } catch { vaultPickerResults.value = [] }
     finally { vaultPickerLoading.value = false }
@@ -105,7 +105,7 @@ async function fetchAttachedDocs() {
     loadingDocs.value = true
     try {
         const res = await financeApi.getDocuments({ transaction_id: localForm.id })
-        attachedDocs.value = res.data
+        attachedDocs.value = res.data.data || res.data || []
     } catch (e) {
         console.error('Failed to fetch docs', e)
     } finally {

@@ -52,7 +52,7 @@ async function searchTransactions(q: string) {
     txSearchLoading.value = true
     try {
         const res = await financeApi.searchTransactions(q, 8)
-        txSearchResults.value = res.data?.items || res.data || []
+        txSearchResults.value = res.data?.data || res.data?.items || res.data || []
     } catch { txSearchResults.value = [] }
     finally { txSearchLoading.value = false }
 }
