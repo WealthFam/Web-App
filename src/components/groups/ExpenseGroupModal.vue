@@ -452,8 +452,8 @@ const filteredTxns = computed(() => {
         )
     }
 
-    // Filter out hidden and transfers
-    result = result.filter(t => !t.exclude_from_reports && !t.is_transfer)
+    // Keep all transactions returned by the backend for group linking
+    // Transfers and hidden items should be visible if linked to a group
 
     if (accountFilter.value) {
         result = result.filter(t => t.account_id === accountFilter.value)
@@ -569,11 +569,11 @@ const fetchEligibleTransactions = async () => {
             undefined, undefined, 'date', 'desc',
             financeStore.selectedMemberId || undefined
         )
-        eligibleTransactions.value = res.data.items || []
-
+        eligibleTransactions.value = res.data.data || []
+        
         // Auto-select previously pinned transactions for THIS group if edited
         if (props.isEditing && props.groupData?.id) {
-            const groupTxns = (res.data.items || []).filter((t: any) => t.expense_group_id === props.groupData.id)
+            const groupTxns = (res.data.data || []).filter((t: any) => t.expense_group_id === props.groupData.id)
             groupTxns.forEach((t: any) => {
                 if (!selectedTransactionIds.value.includes(t.id)) {
                     selectedTransactionIds.value.push(t.id)
@@ -600,8 +600,8 @@ const fetchExistingLinks = async () => {
             undefined, undefined, 'date', 'desc',
             financeStore.selectedMemberId || undefined
         )
-        eligibleTransactions.value = res.data.items || []
-        selectedTransactionIds.value = res.data.items
+        eligibleTransactions.value = res.data.data || []
+        selectedTransactionIds.value = (res.data.data || [])
             .filter((t: any) => t.expense_group_id === props.groupData.id)
             .map((t: any) => t.id)
         transactionsLoaded.value = true
