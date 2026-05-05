@@ -567,7 +567,8 @@ const fetchEligibleTransactions = async () => {
             form.value.start_date,
             form.value.end_date,
             undefined, undefined, 'date', 'desc',
-            financeStore.selectedMemberId || undefined
+            financeStore.selectedMemberId || undefined,
+            false, false, props.groupData?.id
         )
         eligibleTransactions.value = res.data.data || []
         
@@ -598,7 +599,8 @@ const fetchExistingLinks = async () => {
             form.value.start_date,
             form.value.end_date,
             undefined, undefined, 'date', 'desc',
-            financeStore.selectedMemberId || undefined
+            financeStore.selectedMemberId || undefined,
+            false, false, props.groupData?.id
         )
         eligibleTransactions.value = res.data.data || []
         selectedTransactionIds.value = (res.data.data || [])

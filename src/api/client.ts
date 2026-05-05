@@ -110,8 +110,8 @@ export const financeApi = {
     getAccountTransactionCount: (id: string) => apiClient.get(`/finance/accounts/${id}/transaction-count`),
     overrideAccountBalance: (id: string, data: { balance: number, credit_limit?: number | null, timestamp: string, source?: string }) =>
         apiClient.put(`/finance/accounts/${id}/balance`, { ...data, account_id: id }),
-    getTransactions: (accountId?: string, page: number = 1, limit: number = 20, startDate?: string, endDate?: string, search?: string, category?: string, sortBy: string = 'date', sortOrder: string = 'desc', userId?: string, excludeTransfers?: boolean, excludeFromReports?: boolean) =>
-        apiClient.get('/finance/transactions', { params: { account_id: accountId, page, limit, start_date: startDate, end_date: endDate, search, category, sort_by: sortBy, sort_order: sortOrder, user_id: userId, exclude_transfers: excludeTransfers, exclude_from_reports: excludeFromReports } }),
+    getTransactions: (accountId?: string, page: number = 1, limit: number = 20, startDate?: string, endDate?: string, search?: string, category?: string, sortBy: string = 'date', sortOrder: string = 'desc', userId?: string, excludeTransfers?: boolean, excludeFromReports?: boolean, expenseGroupId?: string) =>
+        apiClient.get('/finance/transactions', { params: { account_id: accountId, page, limit, start_date: startDate, end_date: endDate, search, category, sort_by: sortBy, sort_order: sortOrder, user_id: userId, exclude_transfers: excludeTransfers, exclude_from_reports: excludeFromReports, expense_group_id: expenseGroupId } }),
     getTransaction: (id: string) => apiClient.get(`/finance/transactions/${id}`),
     searchTransactions: (q: string, limit: number = 10) =>
         apiClient.get('/finance/transactions', { params: { search: q, limit, page: 1, sort_by: 'date', sort_order: 'desc' } }),
