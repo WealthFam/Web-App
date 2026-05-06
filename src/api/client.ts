@@ -7,13 +7,27 @@ declare module 'axios' {
     }
 }
 
-// Create Axios instance
+// --- CONNECTION HUB ---
+// All microservice URLs are defined here for easy management
+
+// 1. Main Backend Client
 const apiClient: AxiosInstance = axios.create({
     baseURL: import.meta.env.VITE_API_URL || '/api/v1',
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
 })
+
+// 2. Parser Microservice Client
+const parserClient = axios.create({
+    baseURL: import.meta.env.VITE_PARSER_API_URL || '/parser',
+    headers: { 'Content-Type': 'application/json' },
+})
+
+// 3. AI Agent (Strategic Optimizer) Client
+const agentClient = axios.create({
+    baseURL: import.meta.env.VITE_AGENT_API_URL || 'http://localhost:8002/api/v1',
+    headers: { 'Content-Type': 'application/json' },
+})
+// -----------------------
 
 // Request interceptor for API calls
 apiClient.interceptors.request.use(
@@ -385,13 +399,6 @@ export const financeApi = {
     bulkIngestStatementTransactions: (data: { items: { transaction_id: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[] }) => apiClient.post('/finance/statements/transactions/bulk-ingest', data),
 }
 
-const parserClient = axios.create({
-    baseURL: import.meta.env.VITE_PARSER_API_URL || '/parser',
-    headers: {
-        'Content-Type': 'application/json',
-    },
-})
-
 // Request interceptor for Parser calls
 parserClient.interceptors.request.use(
     async (config) => {
@@ -448,4 +455,23 @@ export const mobileApi = {
     deleteDevice: (id: string) => apiClient.delete(`/mobile/devices/${id}`),
     getAlerts: () => apiClient.get<any[]>('/mobile/alerts'),
     forensicParse: (content: string) => apiClient.post('/mobile/ai/forensic-parse', { content }),
+}
+
+// Request interceptor for Agent calls
+agentClient.interceptors.request.use(
+    async (config) => {
+        const token = localStorage.getItem('access_token')
+        if (token && config.headers) {
+            config.headers.Authorization = `Bearer ${token}`
+        }
+        return config
+    },
+    (error) => {
+        return Promise.reject(error)
+    }
+)
+
+export const agentApi = {
+    chat: (message: string, threadId?: string) => 
+        agentClient.post<{ response: string, status: string }>('/chat', { message, thread_id: threadId }),
 }

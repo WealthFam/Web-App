@@ -25,9 +25,12 @@ import {
     Eye,
     EyeOff,
     Cpu,
-    Briefcase
+    Briefcase,
+    X,
+    Bot
 } from 'lucide-vue-next'
-import { ref, onUnmounted, computed, watch } from 'vue'
+import StrategicOptimizer from '@/views/insights/components/StrategicOptimizer.vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
@@ -58,6 +61,8 @@ const route = useRoute()
 const theme = useTheme()
 
 // AI Status Logic
+const showAiDialog = ref(false)
+const isRefreshingAi = ref(false)
 const aiStatus = ref({
     is_enabled: false,
     has_api_key: false,
@@ -66,11 +71,14 @@ const aiStatus = ref({
 })
 
 async function fetchAiStatus() {
+    isRefreshingAi.value = true
     try {
         const res = await aiApi.getStatus()
         aiStatus.value = res.data
     } catch (e) {
         console.error("Failed to fetch AI status", e)
+    } finally {
+        isRefreshingAi.value = false
     }
 }
 
@@ -87,6 +95,10 @@ const appBuild = __APP_BUILD__
 const drawer = ref(true)
 const rail = ref(true)
 
+// AI Agent State
+const showAgent = ref(false)
+const disableAiAgent = import.meta.env.VITE_DISABLE_AI_AGENT === 'true'
+
 // Theme Toggle
 function toggleTheme() {
     theme.global.name.value = theme.global.current.value.dark ? 'wealthFamTheme' : 'wealthFamDark'
@@ -94,6 +106,13 @@ function toggleTheme() {
 
 // Global Search State
 const showSearch = ref(false)
+
+onMounted(() => {
+    fetchAiStatus() // Single fetch on load to initialize the status badge
+    
+    // Handle deep linking to search if needed
+    if (route.query.search === 'true') showSearch.value = true
+})
 
 // User Menu State
 const selectedAvatar = ref(localStorage.getItem('user_avatar') || 'default')
@@ -179,30 +198,9 @@ function logout() {
 }
 
 
-let aiStatusInterval: any = null
-
-
-
-function startPolling() {
-    fetchAiStatus()
-    aiStatusInterval = setInterval(() => fetchAiStatus(), 60000) // Check AI status every minute
-}
-
-function stopPolling() {
-    if (aiStatusInterval) {
-        clearInterval(aiStatusInterval)
-        aiStatusInterval = null
-    }
-}
-
-watch(() => auth.user, (val) => {
-    if (val) startPolling()
-    else stopPolling()
+watch(() => auth.user, () => {
+    // Zero background calls on login. Status is only fetched manually via the UI.
 }, { immediate: true })
-
-onUnmounted(() => {
-    stopPolling()
-})
 
 // Hyper-Premium Sidebar Interactions
 const mouseX = ref(0)
@@ -330,10 +328,22 @@ function handleMouseMove(e: MouseEvent) {
                     <span>{{ settingsStore.isMasked ? 'Privacy Mask Enabled' : 'Enable Privacy Mask' }}</span>
                 </v-tooltip>
 
+                <!-- Strategic AI Advisor Toggle -->
+                <v-tooltip v-if="!disableAiAgent" location="bottom">
+                    <template v-slot:activator="{ props }">
+                        <v-btn v-bind="props" icon size="42" color="primary" class="mr-2 advisor-btn"
+                            @click="showAgent = true" variant="tonal" rounded="pill" border="thin">
+                            <Bot :size="20" class="text-primary" />
+                            <div class="advisor-ping"></div>
+                        </v-btn>
+                    </template>
+                    <span>Strategic AI Advisor</span>
+                </v-tooltip>
+
                 <!-- AI Status Badge -->
                 <v-tooltip location="bottom">
                     <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" icon size="42" color="slate-600" class="mr-2" to="/settings?tab=ai"
+                        <v-btn v-bind="props" icon size="42" color="slate-600" class="mr-2" @click="showAiDialog = true"
                             variant="tonal" rounded="pill" border="thin">
                             <div class="ai-status-container">
                                 <Cpu :size="20" :class="{
@@ -345,8 +355,130 @@ function handleMouseMove(e: MouseEvent) {
                             </div>
                         </v-btn>
                     </template>
-                    <span>AI Status: {{ aiStatus.status.toUpperCase() }}{{ aiStatus.error_message ? ` - ${aiStatus.error_message}` : '' }}</span>
+                    <span>AI Intelligence Center</span>
                 </v-tooltip>
+
+                <!-- AI Intelligence Center Modal -->
+                <v-dialog v-model="showAiDialog" max-width="500" transition="dialog-bottom-transition">
+                    <v-card rounded="xl" border class="ai-center-card">
+                        <v-toolbar color="transparent" class="px-4">
+                            <v-toolbar-title class="pa-0" style="overflow: visible;">
+                                <div class="d-flex align-center flex-grow-1" style="line-height: 1;">
+                                    <Sparkles :size="20" class="mr-2 text-primary" />
+                                    <span class="text-h6 font-weight-black" style="white-space: nowrap;">AI Configuration</span>
+                                </div>
+                            </v-toolbar-title>
+                            <v-spacer></v-spacer>
+                            <v-btn icon @click="showAiDialog = false" variant="tonal" color="primary" rounded="pill" size="small">
+                                <X :size="18" />
+                            </v-btn>
+                        </v-toolbar>
+
+                        <v-card-text class="pa-6">
+                            <!-- Status Hero Section -->
+                            <div class="status-hero mb-8 pa-6 rounded-xl text-center" :class="aiStatus.status">
+                                <div class="status-icon-container mb-4">
+                                    <Cpu :size="48" :class="{
+                                        'text-success': aiStatus.status === 'healthy',
+                                        'text-error': aiStatus.status === 'error',
+                                        'text-slate-400': aiStatus.status === 'disabled'
+                                    }" />
+                                    <div v-if="aiStatus.status === 'healthy'" class="status-glow"></div>
+                                </div>
+                                <h3 class="text-h5 font-weight-black mb-1 uppercase letter-spacing-1">
+                                    {{ aiStatus.status === 'healthy' ? 'System Online' : aiStatus.status === 'error' ? 'Connection Interrupted' : 'Intelligence Disabled' }}
+                                </h3>
+                                <p class="text-caption opacity-70 font-weight-bold">
+                                    {{ aiStatus.status === 'healthy' ? 'Your financial co-pilot is active and analyzing.' : aiStatus.status === 'error' ? 'Validation failed. Check your API configuration.' : 'AI features are currently switched off.' }}
+                                </p>
+                            </div>
+
+                            <!-- Error Alert -->
+                            <v-alert v-if="aiStatus.error_message" type="error" variant="tonal" rounded="lg" class="mb-6 border-thin"
+                                density="comfortable">
+                                <template v-slot:prepend>
+                                    <ShieldCheck :size="20" class="mr-2" />
+                                </template>
+                                <div class="text-caption font-weight-bold line-height-1-4">
+                                    {{ aiStatus.error_message }}
+                                </div>
+                            </v-alert>
+
+                            <!-- Setup / Instructions -->
+                            <div class="setup-section mb-6">
+                                <div class="text-overline font-weight-black text-primary mb-3">Setup Guide</div>
+                                <v-list density="compact" class="pa-0 bg-transparent">
+                                    <v-list-item class="px-0 mb-2">
+                                        <template v-slot:prepend>
+                                            <div class="step-number mr-4">1</div>
+                                        </template>
+                                        <v-list-item-title class="text-caption font-weight-bold">Get your Google Gemini API Key</v-list-item-title>
+                                        <v-list-item-subtitle class="text-tiny">Visit AI Studio to generate a free key.</v-list-item-subtitle>
+                                    </v-list-item>
+                                    <v-list-item class="px-0 mb-2">
+                                        <template v-slot:prepend>
+                                            <div class="step-number mr-4">2</div>
+                                        </template>
+                                        <v-list-item-title class="text-caption font-weight-bold">Update System Settings</v-list-item-title>
+                                        <v-list-item-subtitle class="text-tiny">Paste your key in the AI Settings tab.</v-list-item-subtitle>
+                                    </v-list-item>
+                                    <v-list-item class="px-0">
+                                        <template v-slot:prepend>
+                                            <div class="step-number mr-4">3</div>
+                                        </template>
+                                        <v-list-item-title class="text-caption font-weight-bold">Run Validation</v-list-item-title>
+                                        <v-list-item-subtitle class="text-tiny">Use the button below to re-verify connectivity.</v-list-item-subtitle>
+                                    </v-list-item>
+                                </v-list>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="d-flex flex-column gap-2">
+                                <v-btn block color="primary" height="48" rounded="pill" elevation="0" 
+                                    @click="fetchAiStatus" :loading="isRefreshingAi" class="text-none font-weight-black">
+                                    <template v-slot:prepend>
+                                        <RefreshCw :size="18" :class="{ 'spin': isRefreshingAi }" />
+                                    </template>
+                                    Re-validate Connection
+                                </v-btn>
+                                <v-btn block variant="tonal" height="44" rounded="pill" to="/settings?tab=ai" 
+                                    @click="showAiDialog = false" class="text-none font-weight-black mt-2">
+                                    <template v-slot:prepend>
+                                        <Settings :size="18" />
+                                    </template>
+                                    Open AI Settings
+                                </v-btn>
+                            </div>
+                        </v-card-text>
+                    </v-card>
+                </v-dialog>
+
+                <!-- Strategic AI Advisor Modal -->
+                <v-dialog v-model="showAgent" max-width="700" transition="dialog-bottom-transition">
+                    <v-card rounded="xl" border class="ai-agent-modal overflow-hidden">
+                        <v-toolbar color="transparent" class="px-4 border-b">
+                            <v-toolbar-title class="pa-0" style="overflow: visible;">
+                                <div class="d-flex align-center">
+                                    <div class="agent-avatar-mini mr-3">
+                                        <Bot :size="18" class="text-white" />
+                                    </div>
+                                    <div>
+                                        <div class="text-h6 font-weight-black line-height-1">Strategic Advisor</div>
+                                        <div class="text-tiny font-weight-bold text-success">Intelligence Engine Active</div>
+                                    </div>
+                                </div>
+                            </v-toolbar-title>
+                            <v-spacer></v-spacer>
+                            <v-btn icon @click="showAgent = false" variant="tonal" color="primary" rounded="pill" size="small">
+                                <X :size="18" />
+                            </v-btn>
+                        </v-toolbar>
+                        
+                        <div class="agent-chat-container">
+                            <StrategicOptimizer />
+                        </div>
+                    </v-card>
+                </v-dialog>
 
 
                 <!-- Theme Toggle -->
@@ -1153,5 +1285,131 @@ function handleMouseMove(e: MouseEvent) {
     100% {
         box-shadow: 0 0 0 0 rgba(var(--v-theme-success), 0);
     }
+}
+.advisor-btn {
+    position: relative;
+    background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.1) 0%, rgba(var(--v-theme-primary), 0.05) 100%) !important;
+}
+
+.advisor-ping {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: rgb(var(--v-theme-primary));
+    border-radius: 50%;
+    top: 6px;
+    right: 6px;
+    box-shadow: 0 0 0 rgba(var(--v-theme-primary), 0.4);
+    animation: advisor-ping-anim 2s infinite;
+}
+
+@keyframes advisor-ping-anim {
+    0% { box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(var(--v-theme-primary), 0); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0); }
+}
+
+.ai-agent-modal {
+    background: rgba(var(--v-theme-surface), 0.85) !important;
+    backdrop-filter: blur(25px) saturate(180%) !important;
+    height: 85vh;
+}
+
+.agent-avatar-mini {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #6366f1 100%);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(var(--v-theme-primary), 0.3);
+}
+
+.agent-chat-container {
+    height: calc(85vh - 64px);
+    overflow: hidden;
+}
+
+/* Override internal component border/background when in modal */
+.agent-chat-container :deep(.strategic-optimizer) {
+    height: 100% !important;
+    border: none !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+}
+
+.agent-chat-container :deep(.optimizer-header) {
+    display: none !important;
+}
+
+.ai-center-card {
+    background: rgba(var(--v-theme-surface), 0.8) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    overflow: hidden;
+}
+
+.status-hero {
+    transition: all 0.4s ease;
+    border: 1px solid rgba(var(--v-border-color), 0.05);
+}
+
+.status-hero.healthy {
+    background: linear-gradient(135deg, rgba(var(--v-theme-success), 0.05) 0%, rgba(var(--v-theme-success), 0.1) 100%);
+    border-color: rgba(var(--v-theme-success), 0.2);
+}
+
+.status-hero.error {
+    background: linear-gradient(135deg, rgba(var(--v-theme-error), 0.05) 0%, rgba(var(--v-theme-error), 0.1) 100%);
+    border-color: rgba(var(--v-theme-error), 0.2);
+}
+
+.status-hero.disabled {
+    background: rgba(var(--v-theme-on-surface), 0.03);
+    border-color: rgba(var(--v-theme-on-surface), 0.1);
+}
+
+.status-icon-container {
+    position: relative;
+    display: inline-block;
+}
+
+.status-glow {
+    position: absolute;
+    inset: -10px;
+    background: radial-gradient(circle, rgba(var(--v-theme-success), 0.3) 0%, transparent 70%);
+    filter: blur(8px);
+    z-index: -1;
+}
+
+.step-number {
+    width: 24px;
+    height: 24px;
+    background: rgb(var(--v-theme-primary));
+    color: white;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 950;
+}
+
+.text-tiny {
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+.spin {
+    animation: spin-refresh 1s linear infinite;
+}
+
+@keyframes spin-refresh {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.gap-2 {
+    gap: 8px;
 }
 </style>
