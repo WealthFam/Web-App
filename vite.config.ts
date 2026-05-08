@@ -59,6 +59,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/parser/, '/v1'),
       },
+      '/agent': {
+        target: 'http://127.0.0.1:8002',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/agent/, '/api/v1'),
+      },
       '/ws': {
         target: 'http://127.0.0.1:8000',
         ws: true,

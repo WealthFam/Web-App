@@ -24,7 +24,7 @@ const parserClient = axios.create({
 
 // 3. AI Agent (Strategic Optimizer) Client
 const agentClient = axios.create({
-    baseURL: (import.meta.env.VITE_API_URL || '/api/v1') + '/agent',
+    baseURL: import.meta.env.VITE_AGENT_API_URL || '/agent',
     headers: { 'Content-Type': 'application/json' },
 })
 // -----------------------
