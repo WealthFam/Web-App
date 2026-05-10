@@ -124,6 +124,9 @@
                                             <v-chip v-if="txn.latitude" size="x-small" color="primary" variant="tonal" class="rounded-pill font-weight-bold ml-1" density="compact">
                                                 <MapPin :size="10" class="mr-1" /> GPS
                                             </v-chip>
+                                            <v-chip v-if="txn.external_id" size="x-small" variant="outlined" class="rounded-pill font-weight-medium ml-1" density="compact">
+                                                {{ txn.external_id }}
+                                            </v-chip>
                                         </div>
                                     </div>
 
@@ -607,6 +610,9 @@
                             <div class="text-caption text-medium-emphasis">
                                 {{ formatDate(selectedTriageTxn.date).day }} • {{
                                     formatDate(selectedTriageTxn.date).meta }}
+                                <template v-if="selectedTriageTxn.external_id">
+                                    • Ref: {{ selectedTriageTxn.external_id }}
+                                </template>
                             </div>
                         </div>
                         <div class="text-right">

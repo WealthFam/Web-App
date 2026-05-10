@@ -238,6 +238,11 @@
                                 {{ getAccountName(item.account_id) }}
                             </v-chip>
 
+                            <v-chip v-if="item.external_id" size="x-small" variant="outlined" color="medium-emphasis"
+                                class="font-weight-medium" title="Reference ID">
+                                {{ item.external_id }}
+                            </v-chip>
+
                             <v-chip v-if="item.is_ai_parsed" size="x-small" color="primary" variant="tonal"
                                 class="font-weight-bold">
                                 ✨ AI
@@ -419,6 +424,7 @@ export interface TransactionItem {
     expense_group_id?: string
     latitude?: number
     location_name?: string
+    external_id?: string
     [key: string]: any
 }
 
