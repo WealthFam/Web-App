@@ -203,6 +203,7 @@ const executeDelete = async () => {
     const success = await rulesStore.deleteRule(ruleToDelete.value, migrateTo)
     
     if (success) {
+        notify.success('Rule deleted successfully')
         showDeleteConfirm.value = false
         ruleToDelete.value = null
         migrationCategory.value = null
