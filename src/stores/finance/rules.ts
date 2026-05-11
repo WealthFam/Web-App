@@ -77,6 +77,10 @@ export const useRulesStore = defineStore('rules', () => {
     const triageScanResults = ref<TriageScanSummary | null>(null)
     const triageScanLoading = ref(false)
     const triageApplyLoading = ref(false)
+    
+    // Analysis State
+    const analysisResult = ref<any>(null)
+    const analysisLoading = ref(false)
 
     const notify = useNotificationStore()
 
@@ -155,10 +159,14 @@ export const useRulesStore = defineStore('rules', () => {
         }
     }
 
-    async function deleteRule(id: string) {
+    async function deleteRule(id: string, migrateTo?: string) {
         try {
-            await financeApi.deleteRule(id)
-            notify.success("Rule deleted")
+            await financeApi.deleteRule(id, migrateTo)
+            if (migrateTo) {
+                notify.success(`Rule deleted and transactions migrated to ${migrateTo}`)
+            } else {
+                notify.success("Rule deleted")
+            }
             await fetchRules(currentPage.value)
             return true
         } catch (e: any) {
@@ -311,6 +319,18 @@ export const useRulesStore = defineStore('rules', () => {
         }
     }
 
+    async function fetchRuleAnalysis() {
+        analysisLoading.value = true
+        try {
+            const res = await financeApi.analyzeRules()
+            analysisResult.value = res.data
+        } catch (e: any) {
+            console.error("Failed to analyze rules", e)
+        } finally {
+            analysisLoading.value = false
+        }
+    }
+
     return {
         rules,
         suggestions,
@@ -348,6 +368,9 @@ export const useRulesStore = defineStore('rules', () => {
         fetchRuleStats,
         scanAllTriage,
         scanTriageForRule,
-        applyRuleToTriage
+        applyRuleToTriage,
+        analysisResult,
+        analysisLoading,
+        fetchRuleAnalysis
     }
 })

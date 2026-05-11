@@ -36,6 +36,16 @@
                         {{ rulesStore.suggestions.length }}
                     </v-chip>
                 </v-tab>
+                <v-tab value="hygiene" class="text-none font-weight-black tab-item rounded-pill">
+                    <template v-slot:prepend>
+                        <ShieldAlert :size="16" class="mr-1" />
+                    </template>
+                    Rule Hygiene
+                    <v-chip v-if="rulesStore.analysisResult?.issues?.length > 0" size="x-small" color="error" variant="flat"
+                        class="ml-2 font-weight-black elevation-1">
+                        {{ rulesStore.analysisResult.issues.length }}
+                    </v-chip>
+                </v-tab>
             </v-tabs>
         </v-card>
 
@@ -55,6 +65,10 @@
             <v-window-item value="suggestions">
                 <SuggestionsPanel @accept-suggestion="openSuggestionAsRule" />
             </v-window-item>
+
+            <v-window-item value="hygiene">
+                <RuleHygienePanel />
+            </v-window-item>
         </v-window>
 
         <!-- Rule Form Modal (shared across tabs) -->
@@ -65,7 +79,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { FileText, Inbox, Sparkles } from 'lucide-vue-next'
+import { FileText, Inbox, Sparkles, ShieldAlert } from 'lucide-vue-next'
 
 import { useCategoriesStore } from '@/stores/finance/categories'
 import { useRulesStore, type Rule, type RuleSuggestion } from '@/stores/finance/rules'
@@ -75,6 +89,7 @@ import RulesPanel from './components/RulesPanel.vue'
 import TriageDetectionPanel from './components/TriageDetectionPanel.vue'
 import SuggestionsPanel from './components/SuggestionsPanel.vue'
 import RuleFormModal from './components/RuleFormModal.vue'
+import RuleHygienePanel from './components/RuleHygienePanel.vue'
 
 const rulesStore = useRulesStore()
 const categoriesStore = useCategoriesStore()
@@ -92,6 +107,7 @@ onMounted(() => {
     rulesStore.fetchSuggestions()
     rulesStore.fetchRuleStats()
     rulesStore.scanAllTriage() // Pre-load triage matches for the tab
+    rulesStore.fetchRuleAnalysis() // Pre-load hygiene analysis for the badge
     categoriesStore.fetchCategories()
 })
 
