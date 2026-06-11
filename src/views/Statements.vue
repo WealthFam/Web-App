@@ -376,9 +376,17 @@ async function reevaluateStatement(id: string) {
     if (!selectedStatement.value) return
     try {
         if (selectedStatement.value.status === 'FAILED') {
-            const updated = await store.reprocessStatement(id)
-            selectedStatement.value = updated
-            notification.success('Statement re-processed successfully')
+            // Smart recovery: check failure type
+            const reason = selectedStatement.value.failure_reason || ''
+            if (reason.startsWith('ACCOUNT_NOT_FOUND:')) {
+                // Account issue — just reprocess (account may have been linked since)
+                const updated = await store.reprocessStatement(id)
+                selectedStatement.value = updated
+                notification.success('Statement re-processed successfully')
+            } else {
+                // Parse/password issue — prompt for password
+                openRetryDialog(selectedStatement.value)
+            }
         } else {
             await store.reconcileStatement(id)
             notification.success('Statement reconciled successfully')
@@ -642,16 +650,48 @@ function getAccountName(account_id: string) {
                                                 <AlertCircle :size="64" class="text-error" />
                                             </div>
                                             <h2 class="text-h5 font-weight-black mb-2 text-slate-800">Processing Failed</h2>
-                                            <p class="text-error font-weight-bold mb-2 text-center">
-                                                {{ selectedStatement.failure_reason || 'An unexpected error occurred during ingestion.' }}
+                                            <p class="text-error font-weight-bold mb-2 text-center" style="max-width: 500px; word-break: break-word;">
+                                                {{ (selectedStatement.failure_reason || 'An unexpected error occurred during ingestion.').replace(/^(PASSWORD_FAILED|PARSE_FAILED|ACCOUNT_NOT_FOUND):\s*/, '') }}
                                             </p>
-                                            <p class="text-slate-500 font-weight-medium mb-8 max-w-[400px] text-center">
-                                                Usually this happens when the account mask in the PDF doesn't match any linked account.
-                                            </p>
-                                            <v-btn color="primary" rounded="pill" elevation="0" height="44" class="px-8 font-weight-black" @click="reassignDialog = true">
-                                                <template v-slot:prepend><Landmark :size="20"/></template>
-                                                Link Account Manually
-                                            </v-btn>
+                                            
+                                            <!-- Smart recovery: ACCOUNT_NOT_FOUND -->
+                                            <template v-if="selectedStatement.failure_reason?.startsWith('ACCOUNT_NOT_FOUND:')">
+                                                <p class="text-slate-500 font-weight-medium mb-8 max-w-[400px] text-center">
+                                                    The account mask in the PDF doesn't match any linked account. Link the correct account to continue.
+                                                </p>
+                                                <v-btn color="primary" rounded="pill" elevation="0" height="44" class="px-8 font-weight-black" @click="reassignDialog = true">
+                                                    <template v-slot:prepend><Landmark :size="20"/></template>
+                                                    Link Account Manually
+                                                </v-btn>
+                                            </template>
+                                            
+                                            <!-- Smart recovery: PASSWORD_FAILED -->
+                                            <template v-else-if="selectedStatement.failure_reason?.startsWith('PASSWORD_FAILED:')">
+                                                <p class="text-slate-500 font-weight-medium mb-8 max-w-[400px] text-center">
+                                                    The statement could not be decrypted. Please provide the correct password.
+                                                </p>
+                                                <v-btn color="warning" rounded="pill" elevation="0" height="44" class="px-8 font-weight-black" @click="openRetryDialog(selectedStatement)">
+                                                    <template v-slot:prepend><Lock :size="20"/></template>
+                                                    Enter Password
+                                                </v-btn>
+                                            </template>
+                                            
+                                            <!-- Smart recovery: PARSE_FAILED or generic -->
+                                            <template v-else>
+                                                <p class="text-slate-500 font-weight-medium mb-8 max-w-[400px] text-center">
+                                                    The statement parser encountered an error. You can try providing a password or linking a different account.
+                                                </p>
+                                                <div class="d-flex gap-3">
+                                                    <v-btn color="warning" rounded="pill" elevation="0" height="44" class="px-6 font-weight-black" @click="openRetryDialog(selectedStatement)">
+                                                        <template v-slot:prepend><Lock :size="20"/></template>
+                                                        Try Password
+                                                    </v-btn>
+                                                    <v-btn color="primary" variant="tonal" rounded="pill" elevation="0" height="44" class="px-6 font-weight-black" @click="reassignDialog = true">
+                                                        <template v-slot:prepend><Landmark :size="20"/></template>
+                                                        Link Account
+                                                    </v-btn>
+                                                </div>
+                                            </template>
                                         </div>
 
                                         <!-- Reconciliation Table -->
