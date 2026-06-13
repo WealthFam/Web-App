@@ -4,9 +4,24 @@ import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
 import { useCurrency } from '@/composables/useCurrency'
 import {
-    FileDown, X, UploadCloud, Lightbulb, FileText,
-    Coins, CheckCircle2, Trash2, CheckCircle
+    FileDown, UploadCloud, Lightbulb, FileText,
+    Coins, CheckCircle2, Trash2, CheckCircle, Loader2
 } from 'lucide-vue-next'
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 
 const { formatAmount } = useCurrency()
 
@@ -147,9 +162,9 @@ async function parseFile() {
         const mapPayload: any = {
             date: mapping.value.date,
             description: mapping.value.description,
-            reference: mapping.value.reference,
-            balance: mapping.value.balance,
-            credit_limit: mapping.value.credit_limit
+            reference: mapping.value.reference === 'none' ? '' : mapping.value.reference,
+            balance: mapping.value.balance === 'none' ? '' : mapping.value.balance,
+            credit_limit: mapping.value.credit_limit === 'none' ? '' : mapping.value.credit_limit
         }
 
         if (mapping.value.mode === 'single') {
@@ -257,475 +272,352 @@ function close() {
 </script>
 
 <template>
-    <v-dialog :model-value="isOpen" @update:model-value="close" persistent max-width="1100" scrollable>
-        <v-card class="premium-import-card rounded-xl overflow-hidden">
-            <v-card-title class="pa-0">
-                <div class="modal-header-premium pa-4 d-flex align-center justify-space-between text-white">
-                    <div class="d-flex align-center ga-3">
-                        <FileDown class="text-white" :size="24" />
-                        <h2 class="text-h6 font-weight-black">Import Transactions</h2>
+    <Dialog :open="isOpen" @update:open="close">
+        <DialogContent class="sm:max-w-[1100px] p-0 overflow-hidden rounded-2xl border-0 shadow-2xl flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="bg-gradient-to-br from-primary to-indigo-600 p-4 text-white flex items-center justify-between shadow-md">
+                <div class="flex items-center gap-3">
+                    <FileDown class="h-6 w-6 text-white animate-pulse" />
+                    <h2 class="text-lg font-black text-white m-0">Import Transactions</h2>
+                </div>
+            </div>
+
+            <!-- Stepper Progress Indicator -->
+            <div v-if="step < 5" class="flex items-center justify-center gap-2 md:gap-4 p-4 border-b bg-card overflow-x-auto">
+                <div v-for="s in 4" :key="s" class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all shrink-0"
+                         :class="step >= s ? 'bg-primary text-primary-foreground shadow-sm ring-4 ring-primary/10' : 'bg-muted text-muted-foreground'">
+                        {{ s }}
                     </div>
-                    <v-btn icon variant="text" color="white" density="compact" @click="close">
-                        <X :size="24" class="text-white" />
-                    </v-btn>
-                </div>
-
-                <!-- Stepper Progress Indicator -->
-                <div class="stepper-nav pa-4 border-b border-opacity-5 d-flex align-center justify-center gap-4">
-                    <div v-for="s in 4" :key="s" class="d-flex align-center gap-2">
-                        <div class="step-circle" :class="{ active: step >= s }">{{ s }}</div>
-                        <span class="step-label text-caption font-weight-black" :class="{ active: step >= s }">
-                            {{ stepLabels[s - 1] }}
-                        </span>
-                        <div v-if="s < 4" class="step-divider" :class="{ active: step > s }"></div>
+                    <span class="text-xs font-black transition-all whitespace-nowrap"
+                          :class="step >= s ? 'text-primary' : 'text-muted-foreground/60'">
+                        {{ stepLabels[s - 1] }}
+                    </span>
+                    <div v-if="s < 4" class="h-0.5 w-6 md:w-8 rounded-full transition-all shrink-0"
+                         :class="step > s ? 'bg-primary' : 'bg-muted'">
                     </div>
                 </div>
-            </v-card-title>
+            </div>
 
-            <v-card-text class="pa-0 pa-md-6 bg-surface-lighten-5">
-                <v-divider v-if="loading" class="mb-4"></v-divider>
-                <div v-if="loading" class="d-flex flex-column align-center justify-center py-10">
-                    <v-progress-circular indeterminate color="primary" size="64" width="6"></v-progress-circular>
-                    <p class="mt-4 text-h6 font-weight-bold opacity-70">Processing transactions...</p>
+            <!-- Content Area -->
+            <div class="flex-1 overflow-y-auto p-6 bg-muted/10 min-h-[300px]">
+                <div v-if="loading" class="flex flex-col items-center justify-center py-12">
+                    <Loader2 class="h-12 w-12 text-primary animate-spin" />
+                    <p class="mt-4 text-base font-bold text-muted-foreground animate-pulse">Processing transactions...</p>
                 </div>
 
-                <div v-else class="import-content-wrapper pa-4 pa-md-0">
+                <div v-else class="space-y-6">
                     <!-- Step 1: Account & File Selection -->
-                    <v-window v-model="step" class="overflow-visible">
-                        <v-window-item :value="1">
-                            <v-row>
-                                <v-col cols="12" md="6">
-                                    <v-label class="text-subtitle-2 font-weight-black mb-2 d-block">Select Target
-                                        Account</v-label>
-                                    <v-autocomplete v-model="selectedAccount" :items="accountOptionsFlat"
-                                        item-title="label" item-value="value"
-                                        placeholder="Which bank account is this for?" variant="outlined"
-                                        density="comfortable" flat class="premium-select-field" hide-details>
-
-                                    </v-autocomplete>
-                                </v-col>
-                                <v-col cols="12" md="6">
-                                    <v-label class="text-subtitle-2 font-weight-black mb-2 d-block">Upload CSV or
-                                        Excel</v-label>
-                                    <v-file-input @change="handleFileUpload" accept=".csv, .xlsx, .xls"
-                                        variant="outlined" density="comfortable" flat class="premium-file-field"
-                                        prepend-icon="" placeholder="Drag and drop or click to browse" hide-details>
-                                        <template v-slot:prepend-inner>
-                                            <UploadCloud :size="20" class="text-primary mr-2" />
-                                        </template>
-                                    </v-file-input>
-                                </v-col>
-                            </v-row>
-
-                            <v-alert border="start" border-color="primary" color="surface" elevation="1"
-                                class="mt-10 rounded-xl pa-6">
-                                <template v-slot:prepend>
-                                    <Lightbulb :size="32" class="text-primary" />
-                                </template>
-                                <div class="ml-4">
-                                    <h4 class="text-h6 font-weight-black mb-1">Pro Tip</h4>
-                                    <p class="text-body-2 opacity-70">Once you map your statement columns for an
-                                        account, we'll remember them for
-                                        your next import! Saving you time and clicks.</p>
+                    <div v-if="step === 1" class="space-y-6 animate-in fade-in">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-sm font-bold block">Select Target Account</label>
+                                <Select v-model="selectedAccount">
+                                    <SelectTrigger class="w-full h-10 rounded-xl">
+                                        <SelectValue placeholder="Which bank account is this for?" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem v-for="opt in accountOptionsFlat" :key="opt.value" :value="opt.value">
+                                            {{ opt.label }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label class="text-sm font-bold block">Upload CSV or Excel</label>
+                                <div class="border-2 border-dashed border-primary/30 hover:border-primary/60 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer bg-card transition-all hover:bg-primary/5 relative">
+                                    <input type="file" @change="handleFileUpload" accept=".csv, .xlsx, .xls" class="absolute inset-0 opacity-0 cursor-pointer" />
+                                    <UploadCloud class="h-8 w-8 text-primary mb-2 animate-bounce" />
+                                    <span class="text-xs font-bold text-center text-foreground max-w-xs truncate">
+                                        {{ file ? file.name : "Drag and drop or click to browse" }}
+                                    </span>
+                                    <span class="text-[10px] text-muted-foreground mt-1">Accepts .csv, .xlsx, .xls</span>
                                 </div>
-                            </v-alert>
-                        </v-window-item>
+                            </div>
+                        </div>
 
-                        <!-- Step 2: File Analysis Preview -->
-                        <v-window-item :value="2">
-                            <div v-if="analyzing"
-                                class="d-flex flex-column align-center justify-center py-10 text-center">
-                                <v-progress-circular indeterminate color="primary" size="48"></v-progress-circular>
-                                <p class="mt-4 font-weight-bold opacity-70">Analyzing file structure...</p>
+                        <Alert class="mt-10 rounded-xl p-6 border shadow-sm flex gap-4 bg-primary/5 border-primary/10 text-foreground">
+                            <Lightbulb class="h-8 w-8 text-primary shrink-0 mt-0.5" />
+                            <div>
+                                <AlertTitle class="font-black text-base mb-1">Pro Tip</AlertTitle>
+                                <AlertDescription class="text-sm text-muted-foreground">
+                                    Once you map your statement columns for an account, we'll remember them for your next import! Saving you time and clicks.
+                                </AlertDescription>
+                            </div>
+                        </Alert>
+                    </div>
+
+                    <!-- Step 2: File Analysis Preview -->
+                    <div v-else-if="step === 2" class="space-y-6 animate-in fade-in">
+                        <div v-if="analyzing" class="flex flex-col items-center justify-center py-12 text-center">
+                            <Loader2 class="h-10 w-10 text-primary animate-spin" />
+                            <p class="mt-4 font-bold opacity-70">Analyzing file structure...</p>
+                        </div>
+
+                        <div v-else class="space-y-6">
+                            <div class="bg-card border rounded-xl p-4 flex items-center gap-4 shadow-sm">
+                                <div class="text-3xl">👀</div>
+                                <div>
+                                    <h3 class="text-base font-black">Review File Structure</h3>
+                                    <p class="text-sm text-muted-foreground mt-0.5">
+                                        We found <strong class="text-foreground font-extrabold">{{ csvHeaders.length }} columns</strong> starting at row
+                                        <Badge class="font-extrabold mx-1">{{ detectedHeaderRow + 1 }}</Badge>.
+                                    </p>
+                                </div>
                             </div>
 
-                            <div v-else>
-                                <v-card
-                                    class="bg-surface border-0 rounded-xl pa-4 mb-6 d-flex align-center gap-4 elevation-1">
-                                    <div class="text-h4">👀</div>
-                                    <div>
-                                        <h3 class="text-h6 font-weight-black">Review File Structure</h3>
-                                        <p class="text-body-2 opacity-70">
-                                            We found <strong>{{ csvHeaders.length }} columns</strong> starting at row
-                                            <v-chip size="x-small" color="primary" variant="flat"
-                                                class="font-weight-black mx-1">{{
-                                                    detectedHeaderRow + 1 }}</v-chip>.
-                                        </p>
-                                    </div>
-                                </v-card>
-
-                                <v-table v-if="previewRows.length > 0"
-                                    class="premium-table border rounded-xl overflow-hidden">
-                                    <thead>
+                            <div v-if="previewRows.length > 0" class="relative overflow-x-auto border rounded-xl bg-card max-h-[300px]">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="text-[10px] font-black text-muted-foreground uppercase bg-muted/50 border-b sticky top-0 z-10">
                                         <tr>
-                                            <th v-for="h in csvHeaders" :key="h"
-                                                class="text-uppercase text-tiny font-weight-black opacity-60">
+                                            <th v-for="h in csvHeaders" :key="h" class="p-3">
                                                 {{ h }}
                                             </th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        <tr v-for="(row, idx) in previewRows.slice(0, 3)" :key="idx">
-                                            <td v-for="h in csvHeaders" :key="h" class="text-caption opacity-80">{{
-                                                row[h] }}</td>
-                                        </tr>
-                                    </tbody>
-                                </v-table>
-                            </div>
-                        </v-window-item>
-
-                        <!-- Step 3: Column Mapping -->
-                        <v-window-item :value="3">
-                            <v-row>
-                                <!-- Transaction Details Mapping -->
-                                <v-col cols="12" md="7">
-                                    <v-card variant="outlined"
-                                        class="rounded-xl border-opacity-5 pa-4 h-100 bg-surface shadow-sm">
-                                        <h4 class="text-subtitle-1 font-weight-black mb-6 d-flex align-center gap-2">
-                                            <FileText :size="20" class="text-primary" />
-                                            Transaction Details
-                                        </h4>
-
-                                        <div class="mapping-grid-premium">
-                                            <div v-for="field in detailFields" :key="field.key"
-                                                class="mapping-item-row mb-4 d-flex align-center">
-                                                <div class="field-info-panel d-flex align-center ga-3 flex-grow-1">
-                                                    <div class="field-icon-box">{{ field.icon }}</div>
-                                                    <div class="flex-grow-1">
-                                                        <div class="text-caption font-weight-black">{{ field.label }}
-                                                        </div>
-                                                        <div class="text-tiny opacity-60 line-clamp-1">{{ field.desc
-                                                        }}</div>
-                                                    </div>
-                                                </div>
-                                                <div class="mapping-arrow mx-4 opacity-30">
-                                                    <v-icon size="small">ArrowRight</v-icon>
-                                                </div>
-                                                <div class="field-select-panel" style="width: 200px;">
-                                                    <v-select v-model="mapping[field.key]" :items="csvHeaders"
-                                                        placeholder="Choose column..." variant="outlined"
-                                                        density="comfortable" flat class="premium-select-field-small"
-                                                        hide-details>
-                                                        <template v-if="field.optional" v-slot:prepend-item>
-                                                            <v-list-item value="" title="-- No Column --"></v-list-item>
-                                                        </template>
-                                                    </v-select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </v-card>
-                                </v-col>
-
-                                <!-- Financials Mapping -->
-                                <v-col cols="12" md="5">
-                                    <v-card variant="outlined"
-                                        class="rounded-xl border-opacity-5 pa-4 h-100 bg-surface shadow-sm text-surface">
-                                        <h4 class="text-subtitle-1 font-weight-black mb-4 d-flex align-center gap-2">
-                                            <Coins :size="20" class="text-success" />
-                                            Financials
-                                        </h4>
-
-                                        <v-btn-toggle v-model="mapping.mode" mandatory color="primary" variant="tonal"
-                                            class="rounded-xl mb-6 w-100 d-flex" density="compact">
-                                            <v-btn value="single"
-                                                class="flex-grow-1 font-weight-bold text-caption">Single Column</v-btn>
-                                            <v-btn value="split"
-                                                class="flex-grow-1 font-weight-bold text-caption">Debit/Credit
-                                                Split</v-btn>
-                                        </v-btn-toggle>
-
-                                        <div v-if="mapping.mode === 'single'" class="mapping-item-row">
-                                            <div class="field-info-panel d-flex align-center ga-3 flex-grow-1">
-                                                <div class="field-icon-box">💵</div>
-                                                <div class="flex-grow-1">
-                                                    <div class="text-caption font-weight-black">Amount</div>
-                                                    <v-select v-model="mapping.amount" :items="csvHeaders"
-                                                        placeholder="Amount column" variant="outlined"
-                                                        density="comfortable" flat
-                                                        class="premium-select-field-small mt-2" hide-details></v-select>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div v-else class="d-flex flex-column gap-4">
-                                            <div class="field-info-panel d-flex align-center ga-3">
-                                                <div class="field-icon-box">➖</div>
-                                                <div class="flex-grow-1">
-                                                    <div class="text-caption font-weight-black">Debit (Out)</div>
-                                                    <v-select v-model="splitMapping.debit" :items="csvHeaders"
-                                                        variant="outlined" density="comfortable" flat
-                                                        class="premium-select-field-small mt-2" hide-details></v-select>
-                                                </div>
-                                            </div>
-                                            <div class="field-info-panel d-flex align-center ga-3">
-                                                <div class="field-icon-box">➕</div>
-                                                <div class="flex-grow-1">
-                                                    <div class="text-caption font-weight-black">Credit (In)</div>
-                                                    <v-select v-model="splitMapping.credit" :items="csvHeaders"
-                                                        variant="outlined" density="comfortable" flat
-                                                        class="premium-select-field-small mt-2" hide-details></v-select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </v-card>
-                                </v-col>
-                            </v-row>
-                        </v-window-item>
-
-                        <!-- Step 4: Final Verification -->
-                        <v-window-item :value="4">
-                            <div
-                                class="verify-header pa-3 d-flex align-center justify-space-between bg-primary-lighten-5 rounded-lg mb-4">
-                                <span class="text-subtitle-2 font-weight-black d-flex align-center">
-                                    <CheckCircle2 :size="20" class="mr-2" />
-                                    {{ selectedTxns.size }} of {{ parsedTxns.length }} transactions selected
-                                </span>
-                                <v-btn size="x-small" variant="tonal" color="primary"
-                                    class="font-weight-black rounded-pill" @click="toggleAllVerify">
-                                    {{ selectedTxns.size < parsedTxns.length ? 'Select All' : 'Deselect All' }} </v-btn>
-                            </div>
-
-                            <div class="table-scroll-container border rounded-xl overflow-hidden bg-surface">
-                                <v-table class="premium-table verify-table" height="400px" fixed-header>
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center px-4" style="width: 50px;">
-                                                <v-checkbox-btn :model-value="selectedTxns.size === parsedTxns.length"
-                                                    color="primary" hide-details
-                                                    @update:model-value="toggleAllVerify"></v-checkbox-btn>
-                                            </th>
-                                            <th class="font-weight-black text-tiny opacity-60">DATE</th>
-                                            <th class="font-weight-black text-tiny opacity-60">REF #</th>
-                                            <th class="font-weight-black text-tiny opacity-60">RECIPIENT / SOURCE</th>
-                                            <th class="font-weight-black text-tiny opacity-60 text-right">AMOUNT</th>
-                                            <th class="text-center" style="width: 50px;"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="(txn, idx) in parsedTxns" :key="idx"
-                                            :class="{ 'disabled-row': !selectedTxns.has(idx) }">
-                                            <td class="text-center px-4">
-                                                <v-checkbox-btn :model-value="selectedTxns.has(idx)"
-                                                    @update:model-value="toggleSelection(idx)" color="primary"
-                                                    hide-details></v-checkbox-btn>
-                                            </td>
-                                            <td class="text-caption">{{ txn.date }}</td>
-                                            <td class="text-caption opacity-50">{{ txn.external_id || txn.ref_id || '-'
-                                            }}</td>
-                                            <td>
-                                                <div class="font-weight-bold text-caption text-surface">{{ txn.recipient
-                                                    || '-' }}</div>
-                                                <div class="text-tiny opacity-60 line-clamp-1">{{ txn.description }}
-                                                </div>
-                                            </td>
-                                            <td class="text-right font-weight-black"
-                                                :class="txn.type === 'DEBIT' ? 'text-error' : 'text-success'">
-                                                {{ formatAmount(txn.amount) }}
-                                            </td>
-                                            <td class="text-center">
-                                                <v-btn icon size="x-small" variant="text" color="error"
-                                                    @click="removeTxn(idx)">
-                                                    <Trash2 :size="16" />
-                                                </v-btn>
+                                    <tbody class="divide-y divide-border/40">
+                                        <tr v-for="(row, idx) in previewRows.slice(0, 3)" :key="idx" class="hover:bg-muted/10">
+                                            <td v-for="h in csvHeaders" :key="h" class="p-3 text-xs text-muted-foreground/90 font-mono">
+                                                {{ row[h] }}
                                             </td>
                                         </tr>
                                     </tbody>
-                                </v-table>
+                                </table>
                             </div>
-                        </v-window-item>
+                        </div>
+                    </div>
 
-                        <!-- Step 5: Success Results -->
-                        <v-window-item :value="5">
-                            <div class="d-flex flex-column align-center justify-center py-10 text-center">
-                                <div class="success-icon-wrapper mb-6">
-                                    <CheckCircle :size="100" class="text-success" />
+                    <!-- Step 3: Column Mapping -->
+                    <div v-else-if="step === 3" class="space-y-6 animate-in fade-in">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                            <!-- Transaction Details Mapping -->
+                            <div class="col-span-12 md:col-span-7 rounded-xl border bg-card p-4 shadow-sm flex flex-col">
+                                <h4 class="text-base font-black mb-6 flex items-center gap-2">
+                                    <FileText class="h-5 w-5 text-primary" />
+                                    Transaction Details
+                                </h4>
+
+                                <div class="space-y-4 flex-grow">
+                                    <div v-for="field in detailFields" :key="field.key"
+                                        class="flex items-center justify-between border-b border-border/40 pb-3 last:border-0 last:pb-0 gap-4">
+                                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                                            <div class="w-9 h-9 flex items-center justify-center bg-muted rounded-lg text-lg shrink-0">
+                                                {{ field.icon }}
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-xs font-bold">{{ field.label }}</div>
+                                                <div class="text-[10px] text-muted-foreground truncate" :title="field.desc">{{ field.desc }}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex items-center gap-2 shrink-0">
+                                            <span class="text-muted-foreground/30 text-xs">→</span>
+                                            <Select v-model="(mapping as any)[field.key]">
+                                                <SelectTrigger class="w-[180px] h-9 text-xs">
+                                                    <SelectValue placeholder="Choose column..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem v-if="field.optional" value="none">-- No Column --</SelectItem>
+                                                    <SelectItem v-for="h in csvHeaders" :key="h" :value="h">{{ h }}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
                                 </div>
-                                <h2 class="text-h4 font-weight-black mb-2">Import Successful!</h2>
-                                <p class="text-h6 opacity-70 mb-8">Successfully imported {{ importResult?.imported }}
-                                    transactions to your
-                                    account.</p>
+                            </div>
 
-                                <v-alert v-if="importResult?.errors?.length > 0" type="warning" variant="tonal"
-                                    class="rounded-xl w-100 max-w-600 text-left">
-                                    <h4 class="font-weight-black text-subtitle-2 mb-2">Errors Enountered ({{
-                                        importResult.errors.length }})</h4>
-                                    <ul class="text-caption opacity-80 pl-4">
+                            <!-- Financials Mapping -->
+                            <div class="col-span-12 md:col-span-5 rounded-xl border bg-card p-4 shadow-sm flex flex-col">
+                                <h4 class="text-base font-black mb-4 flex items-center gap-2">
+                                    <Coins class="h-5 w-5 text-emerald-500" />
+                                    Financials
+                                </h4>
+
+                                <div class="flex bg-muted p-1 rounded-lg w-full mb-6 shrink-0">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        class="flex-grow text-xs font-bold rounded-md transition-all h-8"
+                                        :class="mapping.mode === 'single' ? 'bg-background shadow-sm' : 'text-muted-foreground'"
+                                        @click="mapping.mode = 'single'"
+                                    >
+                                        Single Column
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        class="flex-grow text-xs font-bold rounded-md transition-all h-8"
+                                        :class="mapping.mode === 'split' ? 'bg-background shadow-sm' : 'text-muted-foreground'"
+                                        @click="mapping.mode = 'split'"
+                                    >
+                                        Debit/Credit Split
+                                    </Button>
+                                </div>
+
+                                <div v-if="mapping.mode === 'single'" class="flex-grow flex flex-col justify-center">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 flex items-center justify-center bg-muted rounded-lg text-lg shrink-0">💵</div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-xs font-bold">Amount</div>
+                                            <Select v-model="mapping.amount">
+                                                <SelectTrigger class="w-full h-9 text-xs mt-2">
+                                                    <SelectValue placeholder="Amount column" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem v-for="h in csvHeaders" :key="h" :value="h">{{ h }}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div v-else class="flex-grow flex flex-col justify-center space-y-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 flex items-center justify-center bg-muted rounded-lg text-lg shrink-0">➖</div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-xs font-bold">Debit (Out)</div>
+                                            <Select v-model="splitMapping.debit">
+                                                <SelectTrigger class="w-full h-9 text-xs mt-2">
+                                                    <SelectValue placeholder="Debit column" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem v-for="h in csvHeaders" :key="h" :value="h">{{ h }}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 flex items-center justify-center bg-muted rounded-lg text-lg shrink-0">➕</div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-xs font-bold">Credit (In)</div>
+                                            <Select v-model="splitMapping.credit">
+                                                <SelectTrigger class="w-full h-9 text-xs mt-2">
+                                                    <SelectValue placeholder="Credit column" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem v-for="h in csvHeaders" :key="h" :value="h">{{ h }}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Final Verification -->
+                    <div v-else-if="step === 4" class="space-y-6 animate-in fade-in">
+                        <div class="flex items-center justify-between bg-primary/5 border border-primary/10 p-3 rounded-lg text-sm text-foreground font-bold">
+                            <span class="flex items-center">
+                                <CheckCircle2 class="mr-2 h-5 w-5 text-primary" />
+                                {{ selectedTxns.size }} of {{ parsedTxns.length }} transactions selected
+                            </span>
+                            <Button variant="outline" size="sm" class="font-bold rounded-full h-8 px-4" @click="toggleAllVerify">
+                                {{ selectedTxns.size < parsedTxns.length ? 'Select All' : 'Deselect All' }}
+                            </Button>
+                        </div>
+
+                        <div class="relative overflow-auto border rounded-xl bg-card max-h-[350px]">
+                            <table class="w-full text-sm text-left">
+                                <thead class="text-[10px] font-black text-muted-foreground uppercase bg-muted/50 sticky top-0 z-10 border-b">
+                                    <tr>
+                                        <th class="p-4 text-center w-[50px]">
+                                            <Checkbox :checked="selectedTxns.size === parsedTxns.length" @update:checked="toggleAllVerify" />
+                                        </th>
+                                        <th class="p-3">DATE</th>
+                                        <th class="p-3">REF #</th>
+                                        <th class="p-3">RECIPIENT / SOURCE</th>
+                                        <th class="p-3 text-right">AMOUNT</th>
+                                        <th class="p-3 text-center w-[50px]"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border/40">
+                                    <tr v-for="(txn, idx) in parsedTxns" :key="idx"
+                                        class="transition-colors hover:bg-muted/10"
+                                        :class="{ 'opacity-40 bg-muted/5': !selectedTxns.has(idx) }">
+                                        <td class="p-4 text-center">
+                                            <Checkbox :checked="selectedTxns.has(idx)" @update:checked="toggleSelection(idx)" />
+                                        </td>
+                                        <td class="p-3 text-xs">{{ txn.date }}</td>
+                                        <td class="p-3 text-xs text-muted-foreground/80 font-mono">{{ txn.external_id || txn.ref_id || '-' }}</td>
+                                        <td class="p-3">
+                                            <div class="font-bold text-xs truncate max-w-[200px]" :title="txn.recipient">{{ txn.recipient || '-' }}</div>
+                                            <div class="text-[10px] text-muted-foreground truncate max-w-[200px]" :title="txn.description">{{ txn.description }}</div>
+                                        </td>
+                                        <td class="p-3 text-right font-black text-xs"
+                                            :class="txn.type === 'DEBIT' ? 'text-red-500' : 'text-emerald-500'">
+                                            {{ formatAmount(txn.amount) }}
+                                        </td>
+                                        <td class="p-3 text-center">
+                                            <Button variant="ghost" size="icon" class="h-8 w-8 text-destructive hover:bg-destructive/10" @click="removeTxn(idx)">
+                                                <Trash2 class="h-4 w-4" />
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: Success Results -->
+                    <div v-else-if="step === 5" class="space-y-6 animate-in fade-in">
+                        <div class="flex flex-col items-center justify-center py-10 text-center space-y-6">
+                            <div class="h-20 w-20 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-inner">
+                                <CheckCircle class="h-12 w-12 animate-bounce" />
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-black mb-1">Import Successful!</h2>
+                                <p class="text-base text-muted-foreground">
+                                    Successfully imported <strong class="text-foreground font-extrabold">{{ importResult?.imported }}</strong> transactions to your account.
+                                </p>
+                            </div>
+
+                            <Alert v-if="importResult?.errors?.length > 0" variant="destructive" class="w-full max-w-[600px] text-left rounded-xl">
+                                <AlertTitle class="font-black text-sm mb-2">Errors Encountered ({{ importResult.errors.length }})</AlertTitle>
+                                <AlertDescription>
+                                    <ul class="list-disc pl-4 text-xs space-y-1">
                                         <li v-for="err in importResult.errors" :key="err">{{ err }}</li>
                                     </ul>
-                                </v-alert>
+                                </AlertDescription>
+                            </Alert>
 
-                                <v-btn color="primary" variant="flat" size="large" rounded="pill"
-                                    class="mt-8 font-weight-black px-12" @click="close">
-                                    Done & Close
-                                </v-btn>
-                            </div>
-                        </v-window-item>
-                    </v-window>
+                            <Button class="px-12 rounded-full h-11 font-bold shadow-md shadow-primary/20" @click="close">
+                                Done & Close
+                            </Button>
+                        </div>
+                    </div>
                 </div>
-            </v-card-text>
+            </div>
 
-            <v-divider class="opacity-5"></v-divider>
-
-            <v-card-actions v-if="step < 5" class="pa-4 bg-surface px-6">
-                <v-btn v-if="step > 1" variant="tonal" rounded="pill" class="font-weight-black" @click="step--">
+            <!-- Footer Actions -->
+            <div v-if="step < 5" class="flex items-center gap-3 p-4 bg-muted/20 border-t sticky bottom-0 z-20">
+                <Button v-if="step > 1" variant="outline" class="rounded-xl h-10 px-6 font-bold" @click="step--">
                     Back
-                </v-btn>
-                <v-btn v-else variant="text" rounded="pill" class="font-weight-black" @click="close">
+                </Button>
+                <Button v-else variant="ghost" class="rounded-xl h-10 px-6 font-bold" @click="close">
                     Close
-                </v-btn>
-                <v-spacer></v-spacer>
+                </Button>
+                <div class="flex-grow"></div>
 
-                <v-btn v-if="step === 1" color="primary" variant="flat" rounded="pill" class="font-weight-black px-8"
-                    :disabled="!selectedAccount || !file" @click="step = 2">
+                <Button v-if="step === 1" class="rounded-xl h-10 px-8 font-bold" :disabled="!selectedAccount || !file" @click="step = 2">
                     Next: Preview File
-                </v-btn>
+                </Button>
 
-                <v-btn v-if="step === 2" color="primary" variant="flat" rounded="pill" class="font-weight-black px-8"
-                    @click="step = 3">
+                <Button v-if="step === 2" class="rounded-xl h-10 px-8 font-bold" @click="step = 3">
                     Yes, Looks Good
-                </v-btn>
+                </Button>
 
-                <v-btn v-if="step === 3" color="primary" variant="flat" rounded="pill" class="font-weight-black px-8"
-                    @click="parseFile">
+                <Button v-if="step === 3" class="rounded-xl h-10 px-8 font-bold" @click="parseFile">
                     Next: Verify List
-                </v-btn>
+                </Button>
 
-                <v-btn v-if="step === 4" color="primary" variant="flat" rounded="pill" class="font-weight-black px-8"
-                    @click="importSelected" :disabled="selectedTxns.size === 0">
+                <Button v-if="step === 4" class="rounded-xl h-10 px-8 font-bold animate-pulse" @click="importSelected" :disabled="selectedTxns.size === 0">
                     Import {{ selectedTxns.size }} Transactions
-                </v-btn>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
+                </Button>
+            </div>
+        </DialogContent>
+    </Dialog>
 </template>
-
-<style scoped>
-.premium-import-card {
-    background: rgb(var(--v-theme-surface));
-}
-
-.modal-header-premium {
-    background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #4338ca 100%);
-    box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.2);
-}
-
-.stepper-nav {
-    background: white;
-}
-
-.step-circle {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: rgba(var(--v-theme-on-surface), 0.1);
-    color: rgba(var(--v-theme-on-surface), 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 800;
-    transition: all 0.3s ease;
-}
-
-.step-circle.active {
-    background: rgb(var(--v-theme-primary));
-    color: white;
-    box-shadow: 0 0 0 4px rgba(var(--v-theme-primary), 0.1);
-}
-
-.step-label {
-    color: rgba(var(--v-theme-on-surface), 0.4);
-    transition: all 0.3s ease;
-}
-
-.step-label.active {
-    color: rgb(var(--v-theme-primary));
-}
-
-.step-divider {
-    width: 32px;
-    height: 2px;
-    background: rgba(var(--v-theme-on-surface), 0.1);
-    transition: all 0.3s ease;
-}
-
-.step-divider.active {
-    background: rgb(var(--v-theme-primary));
-}
-
-.premium-select-field :deep(.v-field) {
-    border-radius: 12px !important;
-    background: white !important;
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
-
-.premium-file-field :deep(.v-field) {
-    border-radius: 12px !important;
-    background: white !important;
-    border: 1px dashed rgb(var(--v-theme-primary));
-}
-
-.premium-table {
-    background: rgb(var(--v-theme-surface));
-}
-
-.premium-table th {
-    background: rgba(var(--v-theme-on-surface), 0.02) !important;
-    height: 40px !important;
-}
-
-.premium-table td {
-    height: 48px !important;
-}
-
-.field-icon-box {
-    width: 36px;
-    height: 36px;
-    background: rgba(var(--v-theme-on-surface), 0.05);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-}
-
-.premium-select-field-small :deep(.v-field) {
-    border-radius: 8px !important;
-    background: white !important;
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
-
-.disabled-row {
-    opacity: 0.4;
-    background: rgba(var(--v-theme-on-surface), 0.05);
-}
-
-.success-icon-wrapper {
-    animation: bounce 1s ease infinite alternate;
-}
-
-@keyframes bounce {
-    from {
-        transform: translateY(0);
-    }
-
-    to {
-        transform: translateY(-10px);
-    }
-}
-
-.line-clamp-1 {
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.bg-primary-lighten-5 {
-    background-color: rgba(var(--v-theme-primary), 0.1);
-}
-
-.text-tiny {
-    font-size: 10px;
-}
-</style>

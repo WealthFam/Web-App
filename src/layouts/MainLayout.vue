@@ -1,1415 +1,371 @@
 <script setup lang="ts">
-import {
-    LayoutDashboard,
-    Wallet,
-    PieChart,
-    Sparkles,
-    Coins,
-    Settings,
-    Bell,
-    LogOut,
-    User as UserIcon,
-    Target,
-    Layers,
-    Landmark,
-    Tags,
-    Menu,
-    Moon,
-    Sun,
-    Users,
-    ChevronDown,
-    Search,
-    RefreshCw,
-    ShieldCheck,
-    Zap,
-    Eye,
-    EyeOff,
-    Cpu,
-    Briefcase,
-    X,
-    Bot
-} from 'lucide-vue-next'
-import StrategicOptimizer from '@/views/insights/components/StrategicOptimizer.vue'
-import { ref, onMounted, computed, watch } from 'vue'
-import { useSettingsStore } from '@/stores/settings'
-import { useAuthStore } from '@/stores/auth'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useTheme } from 'vuetify'
-import { aiApi } from '@/api/client'
-import ToastContainer from '@/components/ToastContainer.vue'
-import GlobalSearch from '@/components/common/GlobalSearch.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useSettingsStore } from '@/stores/settings'
+import { 
+  LayoutDashboard, Wallet, PieChart, Sparkles, Coins, 
+  Bell, Target, Layers, Landmark, Tags, 
+  Menu, Moon, Sun, Users, ChevronDown, Search, RefreshCw, 
+  ShieldCheck, Eye, EyeOff, Briefcase, Settings, LogOut
+} from 'lucide-vue-next'
 import { useWebSockets } from '@/composables/useWebSockets'
+
+// Shadcn UI components
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Input } from '@/components/ui/input'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+
+const router = useRouter()
+const route = useRoute()
+const auth = useAuthStore()
+const settingsStore = useSettingsStore()
 
 const { notifications, clearNotifications } = useWebSockets()
 const unreadCount = computed(() => notifications.value.length)
 
-// Bell Ring Animation State
-const isBellRinging = ref(false)
-watch(unreadCount, (newVal, oldVal) => {
-    if (newVal > oldVal) {
-        isBellRinging.value = true
-        setTimeout(() => {
-            isBellRinging.value = false
-        }, 1000)
-    }
-})
-
-const auth = useAuthStore()
-const settingsStore = useSettingsStore()
-const router = useRouter()
-const route = useRoute()
-const theme = useTheme()
-
-// AI Status Logic
-const showAiDialog = ref(false)
-const isRefreshingAi = ref(false)
-const aiStatus = ref({
-    is_enabled: false,
-    has_api_key: false,
-    status: 'disabled',
-    error_message: null
-})
-
-async function fetchAiStatus() {
-    isRefreshingAi.value = true
-    try {
-        const res = await aiApi.getStatus()
-        aiStatus.value = res.data
-    } catch (e) {
-        console.error("Failed to fetch AI status", e)
-    } finally {
-        isRefreshingAi.value = false
-    }
-}
-
-// Privacy Masking Factor Toggle
-function toggleMasking() {
-    settingsStore.toggleMasking()
-}
-
-// Version info
-const appVersion = __APP_VERSION__
-const appBuild = __APP_BUILD__
-
-// Navigation State
-const drawer = ref(true)
-const rail = ref(true)
-
-// AI Agent State
-const showAgent = ref(false)
-const disableAiAgent = import.meta.env.VITE_DISABLE_AI_AGENT === 'true'
-
 // Theme Toggle
+const isDark = ref(document.documentElement.classList.contains('dark'))
 function toggleTheme() {
-    theme.global.name.value = theme.global.current.value.dark ? 'wealthFamTheme' : 'wealthFamDark'
+  isDark.value = !isDark.value
+  if (isDark.value) {
+    document.documentElement.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+  }
 }
 
-// Global Search State
-const showSearch = ref(false)
-
-onMounted(() => {
-    fetchAiStatus() // Single fetch on load to initialize the status badge
-    
-    // Handle deep linking to search if needed
-    if (route.query.search === 'true') showSearch.value = true
-})
-
-// User Menu State
-const selectedAvatar = ref(localStorage.getItem('user_avatar') || 'default')
-
-const AVATARS: Record<string, string> = {
-    'default': '👤',
-    'male': '👨‍💼',
-    'female': '👩‍💼',
-    'kid': '🧒'
-}
-
+// Navigation structure
 interface NavItem {
-    title: string
-    icon: any
-    to?: string
-    children?: NavItem[]
-    adultOnly?: boolean
+  title: string
+  icon: any
+  to?: string
+  children?: NavItem[]
+  adultOnly?: boolean
 }
 
 const navItems = computed(() => {
-    const rawItems: NavItem[] = [
-        { title: 'Dashboard', icon: LayoutDashboard, to: '/' },
-        { title: 'Transactions', icon: Wallet, to: '/transactions' },
-        {
-            title: 'Banking',
-            icon: Landmark,
-            children: [
-                { title: 'Accounts', icon: Briefcase, to: '/accounts', adultOnly: true },
-                { title: 'Statements', icon: RefreshCw, to: '/statements', adultOnly: true },
-            ]
-        },
-        {
-            title: 'Planning',
-            icon: PieChart,
-            children: [
-                { title: 'Insights', icon: Sparkles, to: '/insights' },
-                { title: 'Budgets', icon: PieChart, to: '/budgets' },
-                { title: 'Categories', icon: Tags, to: '/categories' },
-                { title: 'Expense Groups', icon: Layers, to: '/expense-groups' },
-            ]
-        },
-        {
-            title: 'Wealth',
-            icon: Coins,
-            children: [
-                { title: 'Mutual Funds', icon: Coins, to: '/mutual-funds' },
-                { title: 'Financial Goals', icon: Target, to: '/investment-goals' },
-                { title: 'Loans', icon: Landmark, to: '/loans' },
-            ]
-        },
-        {
-            title: 'System',
-            icon: Settings,
-            children: [
-                { title: 'Vault', icon: ShieldCheck, to: '/vault' },
-                { title: 'Settings', icon: Settings, to: '/settings' },
-            ]
-        }
-    ]
+  const rawItems: NavItem[] = [
+    { title: 'Dashboard', icon: LayoutDashboard, to: '/' },
+    { title: 'Transactions', icon: Wallet, to: '/transactions' },
+    { title: 'Accounts', icon: Briefcase, to: '/accounts', adultOnly: true },
+    { title: 'Statements', icon: RefreshCw, to: '/statements', adultOnly: true },
+    { title: 'Insights', icon: Sparkles, to: '/insights' },
+    { title: 'Budgets', icon: PieChart, to: '/budgets' },
+    { title: 'Categories', icon: Tags, to: '/categories' },
+    { title: 'Expense Groups', icon: Layers, to: '/expense-groups' },
+    { title: 'Mutual Funds', icon: Coins, to: '/mutual-funds' },
+    { title: 'Goals', icon: Target, to: '/investment-goals' },
+    { title: 'Loans', icon: Landmark, to: '/loans' },
+    { title: 'Vault', icon: ShieldCheck, to: '/vault' }
+  ]
 
-    // Deep filter for adultOnly items
-    return rawItems.map(item => {
-        if (item.children) {
-            const filteredChildren = item.children.filter(child => {
-                if (auth.user?.role === 'CHILD' && child.adultOnly) return false
-                return true
-            })
-            return { ...item, children: filteredChildren }
-        }
-        return item
-    }).filter(item => {
-        // If it's a group, keep it only if it has children after filtering
-        if (item.children) return item.children.length > 0
-        // If it's a flat item, check adultOnly
-        if (auth.user?.role === 'CHILD' && item.adultOnly) return false
-        return true
-    })
+  return rawItems.filter(item => {
+    if (auth.user?.role === 'CHILD' && item.adultOnly) return false
+    return true
+  })
 })
 
 function logout() {
-    auth.logout()
-    router.push('/login')
+  auth.logout()
+  router.push('/login')
 }
 
-
-watch(() => auth.user, () => {
-    // Zero background calls on login. Status is only fetched manually via the UI.
-}, { immediate: true })
-
-// Hyper-Premium Sidebar Interactions
-const mouseX = ref(0)
-const mouseY = ref(0)
-const openedGroups = ref<string[]>([])
-
-function handleMouseMove(e: MouseEvent) {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    mouseX.value = e.clientX - rect.left
-    mouseY.value = e.clientY - rect.top
+// Check if a navigation route is currently active (including subpaths)
+const isRouteActive = (itemTo: string) => {
+  if (!itemTo) return false
+  if (itemTo === '/') {
+    return route.path === '/'
+  }
+  return route.path.startsWith(itemTo)
 }
+
+// Mobile sidebar state
+const mobileMenuOpen = ref(false)
+
+// Hover state for sidebar collapse/expand
+const isHovered = ref(false)
+
+// Expose compile-time version and build info to template
+const appVersion = __APP_VERSION__
+const appBuild = __APP_BUILD__
+
+// Compute the current page title dynamically for the top bar header breadcrumb
+const pageTitle = computed(() => {
+  const path = route.path
+  if (path === '/') return 'Dashboard'
+  if (path.startsWith('/transactions')) return 'Transactions'
+  if (path.startsWith('/accounts')) return 'Accounts'
+  if (path.startsWith('/statements')) return 'Statements'
+  if (path.startsWith('/insights')) return 'Insights'
+  if (path.startsWith('/budgets')) return 'Budgets'
+  if (path.startsWith('/categories')) return 'Categories'
+  if (path.startsWith('/expense-groups')) return 'Expense Groups'
+  if (path.startsWith('/mutual-funds')) return 'Mutual Funds'
+  if (path.startsWith('/investment-goals')) return 'Goals'
+  if (path.startsWith('/loans')) return 'Loans'
+  if (path.startsWith('/vault')) return 'Vault'
+  if (path.startsWith('/settings')) return 'Settings'
+  return 'WealthFam'
+})
+
 </script>
 
 <template>
-    <v-app>
-        <!-- Background Animated Blobs -->
-        <div class="layout-blobs">
-            <div class="blob b1"></div>
-            <div class="blob b2"></div>
-            <div class="blob b3"></div>
+  <div class="flex min-h-screen w-full bg-muted/30">
+    <!-- Desktop Sidebar -->
+    <aside 
+      class="fixed inset-y-0 left-0 z-20 hidden flex-col border-r bg-background/85 backdrop-blur-md sm:flex shadow-sm transition-all duration-300 ease-in-out overflow-hidden"
+      :class="isHovered ? 'w-64' : 'w-16'"
+      @mouseenter="isHovered = true"
+      @mouseleave="isHovered = false"
+    >
+      <!-- Brand Header -->
+      <div 
+        class="flex h-16 items-center border-b justify-between shrink-0 bg-background/50 transition-all duration-300"
+        :class="isHovered ? 'px-6' : 'px-4 justify-center'"
+      >
+        <router-link to="/" class="flex items-center gap-2.5 font-bold text-foreground hover:opacity-90 transition-opacity min-w-0">
+          <img src="/logo.png" class="h-8 w-8 object-contain shrink-0" alt="WealthFam Logo" />
+          <div 
+            class="flex flex-col transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden"
+            :class="isHovered ? 'w-auto opacity-100' : 'w-0 opacity-0'"
+          >
+            <span class="text-base font-black leading-none tracking-tight">WealthFam</span>
+            <span class="text-[9px] font-black uppercase text-primary tracking-widest mt-0.5">Track your finances</span>
+          </div>
+        </router-link>
+      </div>
+
+      <!-- Navigation links -->
+      <div class="flex-1 overflow-auto py-4">
+        <nav class="grid items-start px-2 text-sm font-semibold gap-1">
+          <router-link
+            v-for="item in navItems"
+            :key="item.to"
+            :to="item.to!"
+            class="flex items-center rounded-xl transition-all group relative whitespace-nowrap overflow-hidden h-10"
+            :class="[
+              isRouteActive(item.to!) 
+                ? 'bg-primary/10 text-primary font-extrabold shadow-sm' 
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 font-medium',
+              isHovered ? 'px-4 gap-3 w-full' : 'px-0 justify-center w-10 mx-auto gap-0'
+            ]"
+            :title="!isHovered ? item.title : ''"
+          >
+            <component 
+              :is="item.icon" 
+              class="h-4.5 w-4.5 transition-transform group-hover:scale-110 duration-200 shrink-0" 
+            />
+            <span 
+              class="transition-all duration-300 ease-in-out"
+              :class="isHovered ? 'opacity-100 w-auto ml-1' : 'opacity-0 w-0 overflow-hidden'"
+            >
+              {{ item.title }}
+            </span>
+            <span v-if="isRouteActive(item.to!) && isHovered" class="absolute right-4 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary animate-in fade-in"></span>
+          </router-link>
+        </nav>
+      </div>
+
+      <!-- Version footer -->
+      <div 
+        class="mt-auto border-t bg-muted/10 shrink-0 py-3.5 transition-all duration-300 text-center select-none"
+        :class="isHovered ? 'px-4' : 'px-1'"
+      >
+        <div 
+          class="text-xs font-bold text-muted-foreground/50 hover:text-muted-foreground/80 transition-colors truncate cursor-default"
+          :title="`WealthFam v${appVersion} (Build ${appBuild})`"
+        >
+          <span v-if="isHovered">v{{ appVersion }} <span class="text-[10px] font-medium opacity-75">({{ appBuild }})</span></span>
+          <span v-else class="text-[10px] tracking-wider font-extrabold uppercase">v{{ appVersion.split('.').slice(0, 2).join('.') }}</span>
+        </div>
+      </div>
+    </aside>
+
+    <div 
+      class="flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out"
+      :class="isHovered ? 'sm:pl-64' : 'sm:pl-16'"
+    >
+      <!-- Top Header -->
+      <header class="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background/80 backdrop-blur-md px-6 shadow-sm shrink-0">
+        <!-- Left Section: Mobile Menu Toggle & Dynamic Breadcrumb -->
+        <div class="flex items-center gap-4 flex-1 min-w-[200px]">
+          <Sheet v-model:open="mobileMenuOpen">
+            <SheetTrigger as-child>
+              <Button variant="outline" size="icon" class="sm:hidden h-9 w-9 rounded-xl border-muted-foreground/20">
+                <Menu class="h-4 w-4" />
+                <span class="sr-only">Toggle Menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" class="sm:max-w-xs p-0 flex flex-col h-full bg-background border-r">
+              <div class="flex h-16 items-center border-b px-6 bg-background/50">
+                <router-link to="/" class="flex items-center gap-2.5 font-bold" @click="mobileMenuOpen = false">
+                  <img src="/logo.png" class="h-8 w-8 object-contain shrink-0 mr-2" alt="WealthFam Logo" />
+                  <span class="text-base font-black">WealthFam</span>
+                </router-link>
+              </div>
+              <div class="flex-1 overflow-auto py-4">
+                <nav class="grid items-start px-3 text-sm font-semibold gap-1">
+                  <router-link
+                    v-for="item in navItems"
+                    :key="item.to"
+                    :to="item.to!"
+                    class="flex items-center gap-3 rounded-xl px-4 h-10 text-muted-foreground hover:text-foreground hover:bg-muted/55 transition-all"
+                    :class="{ 'bg-primary text-primary-foreground font-bold shadow-md': isRouteActive(item.to!) }"
+                    @click="mobileMenuOpen = false"
+                  >
+                    <component :is="item.icon" class="h-4.5 w-4.5" />
+                    {{ item.title }}
+                  </router-link>
+                </nav>
+              </div>
+              <!-- Version footer -->
+              <div class="p-4 border-t bg-muted/15 mt-auto text-center select-none">
+                <div class="text-xs font-bold text-muted-foreground/50">
+                  WealthFam v{{ appVersion }} <span class="text-[10px] font-medium opacity-75">(Build {{ appBuild }})</span>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <!-- Dynamic Page Title (Breadcrumb style) -->
+          <h1 class="text-sm font-black tracking-tight text-foreground/80 hidden sm:block">{{ pageTitle }}</h1>
         </div>
 
-        <!-- Header / App Bar -->
-        <v-app-bar flat height="72" class="premium-header" border="b">
-            <template v-slot:prepend>
-                <v-btn icon variant="text" color="slate-600" @click.stop="rail = !rail" class="d-none d-lg-flex">
-                    <Menu :size="20" />
-                </v-btn>
-                <v-app-bar-nav-icon class="d-lg-none" @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
-            </template>
+        <!-- Center Section: Centered Search with Keyboard Hint -->
+        <div class="flex-1 hidden md:flex justify-center max-w-[360px] mx-auto w-full">
+          <div class="relative w-full">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="search"
+              placeholder="Search transactions, accounts..."
+              class="w-full rounded-xl bg-muted/40 border-none pl-9 pr-10 h-9 text-xs focus-visible:ring-1 focus-visible:ring-primary transition-all"
+            />
+            <kbd class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-0.5 rounded border bg-background px-1.5 font-mono text-[9px] font-medium text-muted-foreground sm:flex">
+              ⌘K
+            </kbd>
+          </div>
+        </div>
 
-            <router-link to="/" class="brand-link">
-                <v-img src="/logo.png" width="36" height="36" class="mr-3 logo-theme-aware" />
-                <div class="brand-details d-none d-sm-block">
-                    <span class="brand-name">WealthFam</span>
-                    <span class="brand-tag">Premium Finance</span>
+        <!-- Right Section: Side Actions & Premium User Menu -->
+        <div class="flex items-center justify-end gap-2.5 flex-1 min-w-[200px]">
+          <!-- Member Selector (if applicable) -->
+          <DropdownMenu v-if="auth.familyMembers.length > 0">
+            <DropdownMenuTrigger as-child>
+              <Button variant="outline" size="sm" class="hidden md:flex gap-2 rounded-full h-8 px-4 font-bold border-muted-foreground/20">
+                <Users class="h-3.5 w-3.5 text-primary" />
+                <span>{{ auth.selectedMemberName || 'All Members' }}</span>
+                <ChevronDown class="h-3 w-3 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="w-48 rounded-xl shadow-lg border">
+              <DropdownMenuLabel class="text-xs font-bold text-muted-foreground uppercase px-3 py-2">Filter Family</DropdownMenuLabel>
+              <DropdownMenuItem @click="auth.selectMember(null)" :class="{ 'bg-primary/5 font-bold text-primary': auth.selectedMemberId === null }" class="rounded-lg mx-1 my-0.5 cursor-pointer">
+                All Members
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                v-for="member in auth.familyMembers" 
+                :key="member.id"
+                @click="auth.selectMember(member.id)"
+                :class="{ 'bg-primary/5 font-bold text-primary': auth.selectedMemberId === member.id }"
+                class="rounded-lg mx-1 my-0.5 cursor-pointer"
+              >
+                {{ member.full_name || member.email.split('@')[0] }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <!-- Privacy Mask Toggle -->
+          <Button variant="ghost" size="icon" @click="settingsStore.toggleMasking" class="h-9 w-9 rounded-xl hover:bg-muted" :class="{'text-primary bg-primary/10 hover:bg-primary/15': settingsStore.isMasked}">
+            <component :is="settingsStore.isMasked ? EyeOff : Eye" class="h-4.5 w-4.5" />
+            <span class="sr-only">Toggle Privacy Mask</span>
+          </Button>
+
+          <!-- Theme Toggle -->
+          <Button variant="ghost" size="icon" @click="toggleTheme" class="h-9 w-9 rounded-xl hover:bg-muted">
+            <component :is="isDark ? Sun : Moon" class="h-4.5 w-4.5" />
+            <span class="sr-only">Toggle theme</span>
+          </Button>
+
+          <!-- Notifications -->
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button variant="ghost" size="icon" class="h-9 w-9 rounded-xl hover:bg-muted relative" :class="{'text-primary bg-primary/10': unreadCount > 0}">
+                <Bell class="h-4.5 w-4.5" :class="{'animate-bounce': unreadCount > 0}" />
+                <span v-if="unreadCount > 0" class="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-destructive animate-pulse"></span>
+                <span class="sr-only">Toggle notifications</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="w-80 rounded-2xl shadow-xl border p-2">
+              <DropdownMenuLabel class="flex items-center justify-between px-3 py-2 font-black text-sm text-foreground">
+                Alerts
+                <Button variant="ghost" size="sm" class="h-auto px-2.5 py-1 text-xs rounded-lg font-bold" @click="clearNotifications">Clear All</Button>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator class="my-1" />
+              <div v-if="notifications.length > 0" class="max-h-[300px] overflow-y-auto space-y-1">
+                <DropdownMenuItem v-for="note in notifications" :key="note.id" class="flex flex-col items-start gap-1 p-3 cursor-default rounded-xl hover:bg-muted/40">
+                  <div class="font-bold text-xs text-foreground">{{ note.title }}</div>
+                  <div class="text-[10px] text-muted-foreground">{{ note.body }}</div>
+                </DropdownMenuItem>
+              </div>
+              <div v-else class="p-8 text-center text-xs text-muted-foreground">
+                No new family notifications
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <!-- Premium User Menu -->
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <button class="flex items-center gap-2.5 rounded-xl border border-muted-foreground/15 bg-background/55 hover:bg-muted/40 px-3 py-1.5 h-10 transition-all select-none shadow-sm cursor-pointer hover:shadow-md active:scale-[0.98] outline-none">
+                <!-- Avatar circle with gradient -->
+                <div class="h-6.5 w-6.5 rounded-lg bg-gradient-to-tr from-primary to-primary/60 text-primary-foreground font-black text-xs flex items-center justify-center shadow-sm">
+                  {{ (auth.user?.email || 'A')[0].toUpperCase() }}
                 </div>
-            </router-link>
-
-            <v-spacer></v-spacer>
-
-            <!-- Centered Header Search Trigger -->
-            <div class="header-search-container d-none d-md-flex align-center justify-center">
-                <v-text-field readonly flat hide-details density="compact" variant="solo-filled" rounded="pill"
-                    placeholder="Search for anything..." class="centered-search-field" @click="showSearch = true">
-                    <template v-slot:prepend-inner>
-                        <Search :size="18" class="text-medium-emphasis mr-1" />
-                    </template>
-                    <template v-slot:append-inner>
-                        <div class="cmd-k-hint-v2">⌘K</div>
-                    </template>
-                </v-text-field>
-            </div>
-
-            <v-spacer></v-spacer>
-
-            <div class="d-flex align-center pr-2">
-                <!-- Mobile Search Icon -->
-                <v-btn icon color="slate-600" class="d-md-none mr-2" @click="showSearch = true">
-                    <Search :size="20" />
-                </v-btn>
-
-                <!-- Date Chip (Desktop) -->
-                <div class="date-chip-v2 d-none d-md-flex mr-4">
-                    <div class="pulse-dot"></div>
-                    {{ new Date().toLocaleDateString(undefined, {
-                        weekday: 'short', day: 'numeric', month: 'short'
-                    }) }}
+                <!-- Profile text block -->
+                <div class="flex flex-col text-left hidden sm:flex">
+                  <span class="text-xs font-bold text-foreground leading-tight truncate max-w-[100px]">
+                    {{ auth.user?.full_name || auth.user?.email.split('@')[0] }}
+                  </span>
+                  <span class="text-[9px] uppercase tracking-wider text-muted-foreground/75 font-semibold leading-none mt-0.5">
+                    {{ auth.user?.role || 'User' }}
+                  </span>
                 </div>
-
-                <!-- Global Member Selection -->
-                <v-menu offset="12" transition="scale-transition" v-if="auth.user && auth.user.role !== 'CHILD'">
-                    <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" variant="tonal" color="primary" class="text-none font-weight-black mr-2 px-4"
-                            height="42" rounded="pill" elevation="0" border="thin">
-                            <template v-slot:prepend>
-                                <v-avatar v-if="auth.selectedMemberId" size="24" color="primary-lighten-5" class="mr-1">
-                                    <span class="text-caption font-weight-black text-primary"
-                                        style="font-size: 0.6rem !important;">{{
-                                            auth.selectedMemberName.charAt(0).toUpperCase() }}</span>
-                                </v-avatar>
-                                <Users v-else :size="16" class="text-primary mr-1" />
-                            </template>
-                            {{ auth.selectedMemberName }}
-                            <ChevronDown :size="14" class="ml-2 opacity-50" />
-                        </v-btn>
-                    </template>
-                    <v-card width="260" rounded="xl" elevation="10" border>
-                        <v-list density="compact" nav>
-                            <v-list-item @click="auth.selectMember(null)" :active="auth.selectedMemberId === null"
-                                color="primary">
-                                <template v-slot:prepend>
-                                    <Users :size="18" class="mr-3" />
-                                </template>
-                                <v-list-item-title class="font-weight-bold">All Members</v-list-item-title>
-                            </v-list-item>
-                            <v-divider class="my-2"></v-divider>
-                            <v-list-item v-for="user in auth.familyMembers" :key="user.id"
-                                @click="auth.selectMember(user.id)" :active="auth.selectedMemberId === user.id"
-                                color="primary">
-                                <template v-slot:prepend>
-                                    <v-avatar size="28" color="primary-lighten-5" class="mr-3">
-                                        <span class="text-caption font-weight-black text-primary">{{ (user.full_name ||
-                                            user.email).charAt(0).toUpperCase() }}</span>
-                                    </v-avatar>
-                                </template>
-                                <v-list-item-title class="font-weight-bold">{{ user.full_name ||
-                                    user.email.split('@')[0]
-                                    }}</v-list-item-title>
-                            </v-list-item>
-                        </v-list>
-                    </v-card>
-                </v-menu>
-
-                <!-- Privacy Mask Toggle -->
-                <v-tooltip location="bottom">
-                    <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" icon size="42" color="slate-600" class="mr-2" @click="toggleMasking"
-                            rounded="pill" :variant="settingsStore.isMasked ? 'tonal' : 'tonal'" border="thin"
-                            :class="{ 'bg-primary-lighten-5': settingsStore.isMasked }">
-                            <component :is="settingsStore.isMasked ? EyeOff : Eye" :size="20"
-                                :class="{ 'text-primary': settingsStore.isMasked }" />
-                        </v-btn>
-                    </template>
-                    <span>{{ settingsStore.isMasked ? 'Privacy Mask Enabled' : 'Enable Privacy Mask' }}</span>
-                </v-tooltip>
-
-                <!-- Strategic AI Advisor Toggle -->
-                <v-tooltip v-if="!disableAiAgent" location="bottom">
-                    <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" icon size="42" color="primary" class="mr-2 advisor-btn"
-                            @click="showAgent = true" variant="tonal" rounded="pill" border="thin">
-                            <Bot :size="20" class="text-primary" />
-                            <div class="advisor-ping"></div>
-                        </v-btn>
-                    </template>
-                    <span>Strategic AI Advisor</span>
-                </v-tooltip>
-
-                <!-- AI Status Badge -->
-                <v-tooltip location="bottom">
-                    <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" icon size="42" color="slate-600" class="mr-2" @click="showAiDialog = true"
-                            variant="tonal" rounded="pill" border="thin">
-                            <div class="ai-status-container">
-                                <Cpu :size="20" :class="{
-                                    'text-success': aiStatus.status === 'healthy',
-                                    'text-error': aiStatus.status === 'error',
-                                    'text-medium-emphasis': aiStatus.status === 'disabled'
-                                }" />
-                                <div v-if="aiStatus.status === 'healthy'" class="ai-pulse"></div>
-                            </div>
-                        </v-btn>
-                    </template>
-                    <span>AI Intelligence Center</span>
-                </v-tooltip>
-
-                <!-- AI Intelligence Center Modal -->
-                <v-dialog v-model="showAiDialog" max-width="500" transition="dialog-bottom-transition">
-                    <v-card rounded="xl" border class="ai-center-card">
-                        <v-toolbar color="transparent" class="px-4">
-                            <v-toolbar-title class="pa-0" style="overflow: visible;">
-                                <div class="d-flex align-center flex-grow-1" style="line-height: 1;">
-                                    <Sparkles :size="20" class="mr-2 text-primary" />
-                                    <span class="text-h6 font-weight-black" style="white-space: nowrap;">AI Configuration</span>
-                                </div>
-                            </v-toolbar-title>
-                            <v-spacer></v-spacer>
-                            <v-btn icon @click="showAiDialog = false" variant="tonal" color="primary" rounded="pill" size="small">
-                                <X :size="18" />
-                            </v-btn>
-                        </v-toolbar>
-
-                        <v-card-text class="pa-6">
-                            <!-- Status Hero Section -->
-                            <div class="status-hero mb-8 pa-6 rounded-xl text-center" :class="aiStatus.status">
-                                <div class="status-icon-container mb-4">
-                                    <Cpu :size="48" :class="{
-                                        'text-success': aiStatus.status === 'healthy',
-                                        'text-error': aiStatus.status === 'error',
-                                        'text-slate-400': aiStatus.status === 'disabled'
-                                    }" />
-                                    <div v-if="aiStatus.status === 'healthy'" class="status-glow"></div>
-                                </div>
-                                <h3 class="text-h5 font-weight-black mb-1 uppercase letter-spacing-1">
-                                    {{ aiStatus.status === 'healthy' ? 'System Online' : aiStatus.status === 'error' ? 'Connection Interrupted' : 'Intelligence Disabled' }}
-                                </h3>
-                                <p class="text-caption opacity-70 font-weight-bold">
-                                    {{ aiStatus.status === 'healthy' ? 'Your financial co-pilot is active and analyzing.' : aiStatus.status === 'error' ? 'Validation failed. Check your API configuration.' : 'AI features are currently switched off.' }}
-                                </p>
-                            </div>
-
-                            <!-- Error Alert -->
-                            <v-alert v-if="aiStatus.error_message" type="error" variant="tonal" rounded="lg" class="mb-6 border-thin"
-                                density="comfortable">
-                                <template v-slot:prepend>
-                                    <ShieldCheck :size="20" class="mr-2" />
-                                </template>
-                                <div class="text-caption font-weight-bold line-height-1-4">
-                                    {{ aiStatus.error_message }}
-                                </div>
-                            </v-alert>
-
-                            <!-- Setup / Instructions -->
-                            <div class="setup-section mb-6">
-                                <div class="text-overline font-weight-black text-primary mb-3">Setup Guide</div>
-                                <v-list density="compact" class="pa-0 bg-transparent">
-                                    <v-list-item class="px-0 mb-2">
-                                        <template v-slot:prepend>
-                                            <div class="step-number mr-4">1</div>
-                                        </template>
-                                        <v-list-item-title class="text-caption font-weight-bold">Get your Google Gemini API Key</v-list-item-title>
-                                        <v-list-item-subtitle class="text-tiny">Visit AI Studio to generate a free key.</v-list-item-subtitle>
-                                    </v-list-item>
-                                    <v-list-item class="px-0 mb-2">
-                                        <template v-slot:prepend>
-                                            <div class="step-number mr-4">2</div>
-                                        </template>
-                                        <v-list-item-title class="text-caption font-weight-bold">Update System Settings</v-list-item-title>
-                                        <v-list-item-subtitle class="text-tiny">Paste your key in the AI Settings tab.</v-list-item-subtitle>
-                                    </v-list-item>
-                                    <v-list-item class="px-0">
-                                        <template v-slot:prepend>
-                                            <div class="step-number mr-4">3</div>
-                                        </template>
-                                        <v-list-item-title class="text-caption font-weight-bold">Run Validation</v-list-item-title>
-                                        <v-list-item-subtitle class="text-tiny">Use the button below to re-verify connectivity.</v-list-item-subtitle>
-                                    </v-list-item>
-                                </v-list>
-                            </div>
-
-                            <!-- Actions -->
-                            <div class="d-flex flex-column gap-2">
-                                <v-btn block color="primary" height="48" rounded="pill" elevation="0" 
-                                    @click="fetchAiStatus" :loading="isRefreshingAi" class="text-none font-weight-black">
-                                    <template v-slot:prepend>
-                                        <RefreshCw :size="18" :class="{ 'spin': isRefreshingAi }" />
-                                    </template>
-                                    Re-validate Connection
-                                </v-btn>
-                                <v-btn block variant="tonal" height="44" rounded="pill" to="/settings?tab=ai" 
-                                    @click="showAiDialog = false" class="text-none font-weight-black mt-2">
-                                    <template v-slot:prepend>
-                                        <Settings :size="18" />
-                                    </template>
-                                    Open AI Settings
-                                </v-btn>
-                            </div>
-                        </v-card-text>
-                    </v-card>
-                </v-dialog>
-
-                <!-- Strategic AI Advisor Modal -->
-                <v-dialog v-model="showAgent" max-width="700" transition="dialog-bottom-transition">
-                    <v-card rounded="xl" border class="ai-agent-modal overflow-hidden">
-                        <v-toolbar color="transparent" class="px-4 border-b">
-                            <v-toolbar-title class="pa-0" style="overflow: visible;">
-                                <div class="d-flex align-center">
-                                    <div class="agent-avatar-mini mr-3">
-                                        <Bot :size="18" class="text-white" />
-                                    </div>
-                                    <div>
-                                        <div class="text-h6 font-weight-black line-height-1">Strategic Advisor</div>
-                                        <div class="text-tiny font-weight-bold text-success">Intelligence Engine Active</div>
-                                    </div>
-                                </div>
-                            </v-toolbar-title>
-                            <v-spacer></v-spacer>
-                            <v-btn icon @click="showAgent = false" variant="tonal" color="primary" rounded="pill" size="small">
-                                <X :size="18" />
-                            </v-btn>
-                        </v-toolbar>
-                        
-                        <div class="agent-chat-container">
-                            <StrategicOptimizer />
-                        </div>
-                    </v-card>
-                </v-dialog>
-
-
-                <!-- Theme Toggle -->
-                <v-btn icon @click="toggleTheme" color="slate-600" class="mr-2" size="42" variant="tonal" rounded="pill" border="thin">
-                    <component :is="theme.global.current.value.dark ? Sun : Moon" :size="20" />
-                </v-btn>
-
-                <!-- Real-time Notifications Bell -->
-                <v-menu offset="12" transition="scale-transition">
-                    <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" icon color="slate-600" class="mr-2" size="42" variant="tonal" rounded="pill" border="thin">
-                            <v-badge v-if="unreadCount > 0" :content="unreadCount" color="error" overlap
-                                location="top right" offset-x="2" offset-y="2">
-                                <Bell :size="20" :class="{ 'bell-ring': isBellRinging }" />
-                            </v-badge>
-                            <Bell v-else :size="20" :class="{ 'bell-ring': isBellRinging }" />
-                        </v-btn>
-                    </template>
-                    <v-card width="350" rounded="xl" elevation="10" border class="premium-popup">
-                        <div class="pa-4 d-flex justify-space-between align-center border-b">
-                            <span class="text-subtitle-1 font-weight-black">Notifications</span>
-                            <v-btn variant="text" size="x-small" color="primary" class="text-none font-weight-black"
-                                @click="clearNotifications">Clear All</v-btn>
-                        </div>
-                        <v-list v-if="notifications.length > 0" class="pa-2 overflow-y-auto" max-height="400">
-                            <v-list-item v-for="note in notifications" :key="note.id" rounded="lg" class="mb-1 pa-3">
-                                <template v-slot:prepend>
-                                    <v-avatar size="32" color="primary-lighten-5" class="mr-3">
-                                        <Zap v-if="note.category === 'MILESTONE'" :size="16" class="text-success" />
-                                        <Bell v-else :size="16" class="text-primary" />
-                                    </v-avatar>
-                                </template>
-                                <v-list-item-title class="font-weight-black text-caption">{{ note.title
-                                    }}</v-list-item-title>
-                                <v-list-item-subtitle class="text-tiny line-height-1-2 opacity-60 mt-1">{{ note.body
-                                    }}</v-list-item-subtitle>
-                            </v-list-item>
-                        </v-list>
-                        <div v-else class="pa-10 text-center opacity-40">
-                            <Bell :size="32" class="mb-2" />
-                            <p class="text-caption font-weight-black">No new alerts</p>
-                        </div>
-                    </v-card>
-                </v-menu>
-
-                <!-- User Profile Menu -->
-                <v-menu offset="12" transition="scale-transition" v-if="auth.user">
-                    <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" variant="tonal" class="profile-btn border-thin" rounded="pill" height="42">
-                            <v-avatar size="28" class="mr-2 avatar-glow">
-                                <span class="avatar-emoji" style="font-size: 1rem;">{{ AVATARS[selectedAvatar] }}</span>
-                            </v-avatar>
-                            <span class="user-display-name font-weight-black d-none d-sm-inline">{{ auth.user.email.split('@')[0]
-                            }}</span>
-                        </v-btn>
-                    </template>
-
-                    <v-card width="280" class="premium-popup">
-                        <v-list class="pa-4">
-                            <v-list-item class="mb-4 pa-0">
-                                <template v-slot:prepend>
-                                    <v-avatar size="56" class="mr-4 avatar-glow">
-                                        <span class="text-h5">{{ AVATARS[selectedAvatar] }}</span>
-                                    </v-avatar>
-                                </template>
-                                <v-list-item-title class="text-h6 font-weight-bold">{{ auth.user.email.split('@')[0]
-                                    }}</v-list-item-title>
-                                <v-list-item-subtitle class="text-primary font-weight-medium">Family
-                                    Admin</v-list-item-subtitle>
-                            </v-list-item>
-
-                            <v-divider class="mb-4"></v-divider>
-
-                            <v-list-item link to="/settings" rounded="lg" class="mb-1">
-                                <template v-slot:prepend>
-                                    <UserIcon :size="18" class="mr-4 text-slate-500" />
-                                </template>
-                                <v-list-item-title>Profile Settings</v-list-item-title>
-                            </v-list-item>
-
-                            <v-list-item link @click="logout" rounded="lg" class="text-red-500">
-                                <template v-slot:prepend>
-                                    <LogOut :size="18" class="mr-4 text-red-500" />
-                                </template>
-                                <v-list-item-title class="font-weight-bold">Sign Out</v-list-item-title>
-                            </v-list-item>
-                        </v-list>
-                    </v-card>
-                </v-menu>
-            </div>
-        </v-app-bar>
-
-        <!-- Side Navigation -->
-        <v-navigation-drawer v-model="drawer" :rail="rail" permanent floating class="aether-drawer" width="280"
-            :rail-width="rail ? 88 : 280" @mousemove="handleMouseMove"
-            :style="{ '--mouse-x': mouseX + 'px', '--mouse-y': mouseY + 'px' }">
-            <v-list nav class="px-0 py-4" v-model:opened="openedGroups">
-                <template v-for="(item, index) in navItems" :key="item.title">
-                    <!-- RAIL MODE (Strictly Collapsed) -->
-                    <template v-if="rail">
-                        <!-- Group with Floating Menu -->
-                        <v-menu v-if="item.children" open-on-hover location="right" offset="12"
-                            transition="slide-x-transition">
-                            <template v-slot:activator="{ props }">
-                                <v-list-item v-bind="props" class="nav-item-aether rail-mode-item mb-1" link
-                                    :active="item.children?.some(c => route.path === c.to)"
-                                    :style="{ transitionDelay: `${index * 40}ms` }">
-                                    <div class="rail-item-content">
-                                        <component :is="item.icon" :size="20" class="nav-icon" />
-                                        <span class="rail-label-tiny">{{ item.title }}</span>
-                                    </div>
-                                </v-list-item>
-                            </template>
-                            <v-card width="230" class="premium-popup pa-2">
-                                <div class="px-3 py-2 text-tiny font-weight-black opacity-40 uppercase letter-spacing-1">
-                                    {{ item.title }}</div>
-                                <v-list density="compact" nav class="pa-0">
-                                    <v-list-item v-for="child in item.children" :key="child.title" :to="child.to"
-                                        :active="route.path === child.to" class="nav-item-child-floating mb-1" link>
-                                        <template v-slot:prepend>
-                                            <component :is="child.icon" :size="16" class="mr-3 opacity-60" />
-                                        </template>
-                                        <v-list-item-title class="text-caption font-weight-bold">{{ child.title }}
-                                        </v-list-item-title>
-                                    </v-list-item>
-                                </v-list>
-                            </v-card>
-                        </v-menu>
-
-                        <!-- Flat Item with Tooltip -->
-                        <v-tooltip v-else :text="item.title" location="right" offset="12">
-                            <template v-slot:activator="{ props }">
-                                <v-list-item v-bind="props" :to="item.to" :active="route.path === item.to"
-                                    class="nav-item-aether rail-mode-item mb-1" link
-                                    :style="{ transitionDelay: `${index * 40}ms` }">
-                                    <div class="rail-item-content">
-                                        <component :is="item.icon" :size="20" class="nav-icon" />
-                                        <span class="rail-label-tiny">{{ item.title }}</span>
-                                    </div>
-                                </v-list-item>
-                            </template>
-                        </v-tooltip>
-                    </template>
-
-                    <!-- EXPANDED MODE -->
-                    <template v-else>
-                        <!-- Group Item -->
-                        <v-list-group v-if="item.children" :value="item.title" class="nav-group-aether mb-1">
-                            <template v-slot:activator="{ props }">
-                                <v-list-item v-bind="props" class="nav-item-aether" link
-                                    :active="item.children?.some(c => route.path === c.to)">
-                                    <div class="nav-item-content-horizontal">
-                                        <component :is="item.icon" :size="20" class="nav-icon mr-4" />
-                                        <v-list-item-title class="nav-title">{{ item.title }}</v-list-item-title>
-                                    </div>
-                                </v-list-item>
-                            </template>
-
-                            <v-list-item v-for="child in item.children" :key="child.title" :to="child.to"
-                                :active="route.path === child.to" class="nav-item-aether nav-item-child mb-1" link>
-                                <div class="nav-item-content-horizontal">
-                                    <component :is="child.icon" :size="18" class="nav-icon mr-4 ml-4" />
-                                    <v-list-item-title class="nav-title-child">{{ child.title }}
-                                    </v-list-item-title>
-                                </div>
-                            </v-list-item>
-                        </v-list-group>
-
-                        <!-- Flat Item -->
-                        <v-list-item v-else :to="item.to" :active="route.path === item.to"
-                            class="nav-item-aether mb-1" link :style="{ transitionDelay: `${index * 40}ms` }">
-                            <div class="nav-item-content-horizontal">
-                                <component :is="item.icon" :size="20" class="nav-icon mr-4" />
-                                <v-list-item-title class="nav-title">{{ item.title }}</v-list-item-title>
-                            </div>
-                        </v-list-item>
-                    </template>
-                </template>
-            </v-list>
-
-            <template v-slot:append>
-                <div class="sidebar-footer border-t pa-6">
-                    <div v-if="!rail" class="footer-content">
-                        <span class="os-label">WealthFam Core OS</span>
-                        <div class="build-info">v{{ appVersion }}-{{ appBuild }}</div>
-                    </div>
-                    <div v-else class="text-center">
-                        <span class="text-primary font-weight-bold">v{{ appVersion.split('.')[0] }}</span>
-                    </div>
+                <ChevronDown class="h-3 w-3 text-muted-foreground/70" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="w-56 rounded-2xl shadow-xl border p-1.5 mt-2">
+              <DropdownMenuLabel class="font-normal px-3 py-2.5 border-b mb-1">
+                <div class="flex flex-col space-y-1">
+                  <p class="text-xs font-bold text-foreground leading-none">
+                    {{ auth.user?.full_name || 'Family Member' }}
+                  </p>
+                  <p class="text-[10px] leading-none text-muted-foreground truncate">
+                    {{ auth.user?.email }}
+                  </p>
                 </div>
-            </template>
-        </v-navigation-drawer>
+              </DropdownMenuLabel>
+              <DropdownMenuItem @click="router.push('/settings')" class="flex items-center gap-2 rounded-xl cursor-pointer px-3 py-2 text-xs font-semibold hover:bg-muted/60">
+                <Settings class="h-4 w-4 text-muted-foreground" />
+                <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator class="my-1" />
+              <DropdownMenuItem @click="logout" class="flex items-center gap-2 rounded-xl cursor-pointer text-destructive focus:bg-destructive focus:text-destructive-foreground px-3 py-2 text-xs font-semibold">
+                <LogOut class="h-4 w-4" />
+                <span>Sign out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
 
-        <!-- Content -->
-        <v-main class="layout-main">
-            <div class="page-shell">
-                <slot></slot>
-            </div>
-        </v-main>
-
-        <ToastContainer />
-        <GlobalSearch v-model="showSearch" />
-    </v-app>
+      <!-- Main Content Area -->
+      <main class="flex-1 p-4 sm:p-6 sm:px-8">
+        <slot></slot>
+      </main>
+    </div>
+  </div>
 </template>
-
-<style scoped>
-.layout-blobs {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 0;
-    background: rgb(var(--v-theme-background));
-    pointer-events: none;
-    overflow: hidden;
-}
-
-.blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(100px);
-    opacity: 0.12;
-}
-
-.b1 {
-    width: 800px;
-    height: 800px;
-    background: rgb(var(--v-theme-primary));
-    top: -200px;
-    left: -100px;
-    animation: orbit 30s infinite linear;
-}
-
-.b2 {
-    width: 700px;
-    height: 700px;
-    background: rgb(var(--v-theme-secondary));
-    bottom: -200px;
-    right: 0;
-    animation: orbit 25s infinite linear reverse;
-}
-
-.b3 {
-    width: 500px;
-    height: 500px;
-    background: rgb(var(--v-theme-accent));
-    top: 30%;
-    right: 20%;
-    animation: orbit 20s infinite linear;
-}
-
-@keyframes orbit {
-    from {
-        transform: rotate(0deg) translateX(100px) rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg) translateX(100px) rotate(-360deg);
-    }
-}
-
-.premium-header {
-    background: rgba(var(--v-theme-surface), 0.7) !important;
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    z-index: 1000 !important;
-    border-bottom: 1px solid rgba(var(--v-border-color), 0.08) !important;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
-}
-
-.brand-link {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    color: inherit;
-    margin-left: 1rem;
-    transition: transform 0.3s ease;
-}
-
-.brand-link:hover {
-    transform: scale(1.02);
-}
-
-.logo-theme-aware {
-    filter: drop-shadow(0 0 2px rgba(var(--v-theme-primary), 0.1));
-    mix-blend-mode: multiply;
-    /* Removes white background in Light Mode */
-}
-
-:where(.v-theme--dark, .v-theme--wealthFamDark) .logo-theme-aware {
-    filter: invert(1) brightness(1.2) saturate(1.2);
-    mix-blend-mode: screen;
-    /* Removes black space (inverted white) in Dark Mode */
-}
-
-.brand-name {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: 950;
-    color: rgb(var(--v-theme-on-surface));
-    letter-spacing: -0.05em;
-    line-height: 1;
-    background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #6366f1 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.brand-tag {
-    display: block;
-    font-size: 0.6rem;
-    font-weight: 800;
-    color: rgb(var(--v-theme-on-surface), 0.4);
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    margin-top: 1px;
-}
-
-
-.profile-btn {
-    background: rgba(var(--v-theme-on-surface), 0.05) !important;
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-    transition: all 0.2s;
-}
-
-.profile-btn:hover {
-    background: #f8fafc !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-}
-
-.avatar-glow {
-    background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.1) 0%, rgba(var(--v-theme-secondary), 0.1) 100%);
-    border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-    box-shadow: 0 0 15px rgba(var(--v-theme-primary), 0.1);
-}
-
-.avatar-emoji {
-    font-size: 1.2rem;
-}
-
-.user-display-name {
-    font-weight: 700;
-    color: rgb(var(--v-theme-on-surface));
-    /* text-slate-800 */
-    font-size: 0.875rem;
-}
-
-.premium-popup {
-    border-radius: 1.25rem !important;
-    border: 1px solid rgba(var(--v-border-color), 0.2) !important;
-    background: rgba(var(--v-theme-surface), 0.9) !important;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1) !important;
-}
-
-.layout-main {
-    transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Aether V3 Architecture (Vuetify-Native, Minimal CSS) */
-.aether-drawer {
-    background: rgba(var(--v-theme-surface), 0.7) !important;
-    backdrop-filter: blur(28px) saturate(190%) !important;
-    border-right: 1px solid rgba(var(--v-theme-on-surface), 0.1) !important;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    position: relative;
-    overflow: visible !important;
-}
-
-/* Cursor-Reactive Light Sweep Overlay */
-.aether-drawer::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y),
-            rgba(var(--v-theme-primary), 0.08),
-            transparent 40%);
-    z-index: 10;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-}
-
-.aether-drawer:hover::after {
-    opacity: 1;
-}
-
-.aether-drawer :deep(.v-navigation-drawer__content) {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    z-index: 1;
-}
-
-.aether-drawer :deep(.v-navigation-drawer__content)::-webkit-scrollbar {
-    display: none;
-}
-
-
-
-.rail-item-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-}
-
-.rail-label-tiny {
-    font-size: 0.45rem;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-top: 2px;
-    opacity: 0.6;
-    transition: all 0.3s ease;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-align: center;
-}
-
-.nav-title {
-    font-size: 0.7rem;
-    font-weight: 900;
-    text-align: left;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    opacity: 0.8;
-}
-
-.nav-item-content-horizontal {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    width: 100%;
-}
-
-.nav-item-aether {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    border-radius: 0 !important;
-    min-height: 52px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    padding: 0 24px !important;
-}
-
-/* Ensure rail mode stays centered */
-.rail-mode-item {
-    padding: 0 !important;
-    min-height: 64px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-.nav-item-aether.v-list-item--active .nav-title {
-    opacity: 1;
-    color: rgb(var(--v-theme-primary));
-}
-
-/* Hover State */
-.nav-item-aether:not(.v-list-item--active):hover {
-    background: rgba(var(--v-theme-primary), 0.1) !important;
-    transform: translateX(4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.nav-item-aether:hover :deep(.nav-icon) {
-    color: rgb(var(--v-theme-primary)) !important;
-    transform: scale(1.1);
-}
-
-/* Infinite Edge Selection (Active State) */
-.nav-item-aether.v-list-item--active {
-    background: transparent !important;
-}
-
-.nav-item-aether.v-list-item--active::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    /* Flush with edges */
-    background: linear-gradient(90deg,
-            rgba(var(--v-theme-primary), 0.3) 0%,
-            rgba(var(--v-theme-primary), 0.1) 100%);
-    border-left: 4px solid rgb(var(--v-theme-primary));
-    /* Bold accent bar */
-    box-shadow: inset 20px 0 30px -15px rgba(var(--v-theme-primary), 0.15);
-    z-index: 0;
-    animation: aetherPulse 4s infinite alternate cubic-bezier(0.45, 0.05, 0.55, 0.95);
-}
-
-@keyframes aetherPulse {
-    0% {
-        opacity: 0.8;
-        filter: brightness(1);
-    }
-
-    100% {
-        opacity: 1;
-        filter: brightness(1.25);
-    }
-}
-
-/* Reset rail active inset for Infinite Edge */
-.rail-mode-item.v-list-item--active::before {
-    inset: 0;
-}
-
-.nav-item-aether.v-list-item--active :deep(.nav-icon) {
-    color: rgb(var(--v-theme-primary)) !important;
-    filter: drop-shadow(0 0 5px rgba(var(--v-theme-primary), 0.4));
-}
-
-.nav-item-aether.v-list-item--active :deep(.nav-title) {
-    color: rgb(var(--v-theme-primary)) !important;
-    font-weight: 800 !important;
-}
-
-.nav-icon {
-    color: rgb(var(--v-theme-on-surface), 0.6);
-    transition: all 0.3s ease;
-}
-
-.nav-title {
-    font-size: 0.875rem;
-    font-weight: 600;
-}
-
-/* Group & Child Refinements */
-.nav-group-aether :deep(.v-list-group__items) {
-    --v-list-group-items-padding: 0;
-}
-
-.nav-item-child {
-    min-height: 44px !important;
-    padding-left: 32px !important;
-}
-
-.nav-title-child {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    opacity: 0.7;
-    letter-spacing: 0.02em;
-}
-
-.nav-item-child.v-list-item--active .nav-title-child {
-    opacity: 1;
-    color: rgb(var(--v-theme-primary));
-}
-
-/* Sub-pulse for children */
-.nav-item-child.v-list-item--active::before {
-    border-left-width: 2px; /* Thinner for children */
-    box-shadow: inset 10px 0 20px -10px rgba(var(--v-theme-primary), 0.1);
-}
-
-/* Floating Menu Child Refinements */
-.nav-item-child-floating {
-    min-height: 40px !important;
-    border-radius: 8px !important;
-    transition: all 0.2s ease;
-    margin-bottom: 2px;
-}
-
-.nav-item-child-floating:hover {
-    background: rgba(var(--v-theme-primary), 0.08) !important;
-    transform: translateX(4px);
-}
-
-.nav-item-child-floating.v-list-item--active {
-    background: rgba(var(--v-theme-primary), 0.12) !important;
-    color: rgb(var(--v-theme-primary)) !important;
-}
-
-.nav-item-child-floating.v-list-item--active :deep(.v-list-item-title) {
-    font-weight: 800 !important;
-}
-
-.letter-spacing-1 {
-    letter-spacing: 0.1em !important;
-}
-
-.text-tiny {
-    font-size: 0.65rem !important;
-}
-
-.nav-group-aether :deep(.v-list-item__append) {
-    margin-left: 4px;
-}
-
-.nav-group-aether :deep(.v-list-item__append .v-icon) {
-    font-size: 1.1rem;
-    opacity: 0.4;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.nav-group-aether.v-list-group--active :deep(.v-list-item__append .v-icon) {
-    opacity: 0.8;
-    color: rgb(var(--v-theme-primary));
-}
-
-.sidebar-footer {
-    border-top: 1px solid rgba(var(--v-theme-on-surface), 0.05) !important;
-    opacity: 0.5;
-}
-
-/* Main Layout Overrides */
-.layout-main {
-    z-index: 1;
-    background: transparent !important;
-}
-
-.page-shell {
-    padding: 2rem;
-    max-width: 1600px;
-    margin: 0 auto;
-}
-
-@media (max-width: 600px) {
-    .page-shell {
-        padding: 1rem;
-    }
-}
-
-
-.os-label {
-    font-size: 0.65rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: rgb(var(--v-theme-on-surface), 0.3);
-}
-
-.build-info {
-    font-size: 0.6rem;
-    font-weight: 700;
-    color: rgb(var(--v-theme-on-surface), 0.2);
-    letter-spacing: 0.05em;
-}
-
-.date-chip-v2 {
-    display: flex;
-    align-items: center;
-    height: 42px;
-    gap: 8px;
-    padding: 0 16px;
-    background: rgba(var(--v-theme-primary), 0.05);
-    border-radius: 24px;
-    font-size: 0.75rem;
-    font-weight: 900;
-    color: rgb(var(--v-theme-primary));
-    border: 1px solid rgba(var(--v-theme-primary), 0.1);
-}
-
-.pulse-dot {
-    width: 6px;
-    height: 6px;
-    background: #22c55e;
-    border-radius: 50%;
-    box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
-    animation: pulse-green 2s infinite;
-}
-
-@keyframes pulse-green {
-    0% {
-        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-    }
-
-    70% {
-        box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
-    }
-
-    100% {
-        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-    }
-}
-
-.header-search-container {
-    flex: 1;
-    max-width: 480px;
-    margin: 0 24px;
-}
-
-.centered-search-field :deep(.v-field) {
-    height: 42px !important;
-    min-height: 42px !important;
-    background: rgba(var(--v-theme-on-surface), 0.05) !important;
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-    cursor: pointer !important;
-    font-weight: 700;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.centered-search-field :deep(.v-field):hover {
-    background: rgba(var(--v-theme-on-surface), 0.08) !important;
-    border-color: rgba(var(--v-theme-primary), 0.3) !important;
-}
-
-.centered-search-field :deep(input) {
-    cursor: pointer !important;
-}
-
-.cmd-k-hint-v2 {
-    font-size: 0.75rem;
-    font-weight: 800;
-    padding: 2px 8px;
-    background: rgba(var(--v-theme-on-surface), 0.1);
-    color: rgb(var(--v-theme-on-surface), 0.6);
-    border-radius: 6px;
-    letter-spacing: 0.05em;
-}
-
-.last-sync-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: rgb(var(--v-theme-on-surface), 0.6);
-    white-space: nowrap;
-}
-
-.spin-sync {
-    animation: fa-spin 2s infinite linear;
-}
-
-@keyframes fa-spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-.sync-btn {
-    transition: transform 0.2s;
-}
-
-.sync-btn:active {
-    transform: scale(0.9);
-}
-
-@keyframes bell-ring {
-
-    0%,
-    100% {
-        transform: rotate(0deg);
-    }
-
-    10%,
-    30%,
-    50%,
-    70%,
-    90% {
-        transform: rotate(15deg);
-    }
-
-    20%,
-    40%,
-    60%,
-    80% {
-        transform: rotate(-15deg);
-    }
-}
-
-.bell-ring {
-    animation: bell-ring 0.6s ease-in-out;
-    transform-origin: top center;
-    color: var(--v-theme-error) !important;
-}
-.ai-status-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.ai-pulse {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    background: rgb(var(--v-theme-success));
-    border-radius: 50%;
-    top: -2px;
-    right: -2px;
-    box-shadow: 0 0 0 rgba(var(--v-theme-success), 0.4);
-    animation: ai-pulse-anim 2s infinite;
-}
-
-@keyframes ai-pulse-anim {
-    0% {
-        box-shadow: 0 0 0 0 rgba(var(--v-theme-success), 0.7);
-    }
-
-    70% {
-        box-shadow: 0 0 0 6px rgba(var(--v-theme-success), 0);
-    }
-
-    100% {
-        box-shadow: 0 0 0 0 rgba(var(--v-theme-success), 0);
-    }
-}
-.advisor-btn {
-    position: relative;
-    background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.1) 0%, rgba(var(--v-theme-primary), 0.05) 100%) !important;
-}
-
-.advisor-ping {
-    position: absolute;
-    width: 6px;
-    height: 6px;
-    background: rgb(var(--v-theme-primary));
-    border-radius: 50%;
-    top: 6px;
-    right: 6px;
-    box-shadow: 0 0 0 rgba(var(--v-theme-primary), 0.4);
-    animation: advisor-ping-anim 2s infinite;
-}
-
-@keyframes advisor-ping-anim {
-    0% { box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0.7); }
-    70% { box-shadow: 0 0 0 6px rgba(var(--v-theme-primary), 0); }
-    100% { box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0); }
-}
-
-.ai-agent-modal {
-    background: rgba(var(--v-theme-surface), 0.85) !important;
-    backdrop-filter: blur(25px) saturate(180%) !important;
-    height: 85vh;
-}
-
-.agent-avatar-mini {
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #6366f1 100%);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 10px rgba(var(--v-theme-primary), 0.3);
-}
-
-.agent-chat-container {
-    height: calc(85vh - 64px);
-    overflow: hidden;
-}
-
-/* Override internal component border/background when in modal */
-.agent-chat-container :deep(.strategic-optimizer) {
-    height: 100% !important;
-    border: none !important;
-    background: transparent !important;
-    backdrop-filter: none !important;
-}
-
-.agent-chat-container :deep(.optimizer-header) {
-    display: none !important;
-}
-
-.ai-center-card {
-    background: rgba(var(--v-theme-surface), 0.8) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    overflow: hidden;
-}
-
-.status-hero {
-    transition: all 0.4s ease;
-    border: 1px solid rgba(var(--v-border-color), 0.05);
-}
-
-.status-hero.healthy {
-    background: linear-gradient(135deg, rgba(var(--v-theme-success), 0.05) 0%, rgba(var(--v-theme-success), 0.1) 100%);
-    border-color: rgba(var(--v-theme-success), 0.2);
-}
-
-.status-hero.error {
-    background: linear-gradient(135deg, rgba(var(--v-theme-error), 0.05) 0%, rgba(var(--v-theme-error), 0.1) 100%);
-    border-color: rgba(var(--v-theme-error), 0.2);
-}
-
-.status-hero.disabled {
-    background: rgba(var(--v-theme-on-surface), 0.03);
-    border-color: rgba(var(--v-theme-on-surface), 0.1);
-}
-
-.status-icon-container {
-    position: relative;
-    display: inline-block;
-}
-
-.status-glow {
-    position: absolute;
-    inset: -10px;
-    background: radial-gradient(circle, rgba(var(--v-theme-success), 0.3) 0%, transparent 70%);
-    filter: blur(8px);
-    z-index: -1;
-}
-
-.step-number {
-    width: 24px;
-    height: 24px;
-    background: rgb(var(--v-theme-primary));
-    color: white;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 950;
-}
-
-.text-tiny {
-    font-size: 0.75rem;
-    opacity: 0.6;
-}
-
-.spin {
-    animation: spin-refresh 1s linear infinite;
-}
-
-@keyframes spin-refresh {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-.gap-2 {
-    gap: 8px;
-}
-</style>

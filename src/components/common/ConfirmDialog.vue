@@ -1,46 +1,39 @@
 <script setup lang="ts">
 import { useConfirmStore } from '@/stores/confirm'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { AlertCircle } from 'lucide-vue-next'
 
 const confirm = useConfirmStore()
 </script>
 
 <template>
-  <v-dialog v-model="confirm.isOpen" max-width="400" persistent>
-    <v-card class="rounded-xl elevation-24 border" style="background: rgba(var(--v-theme-surface), 0.95); backdrop-filter: blur(10px);">
-      <v-card-title class="text-h6 font-weight-bold pt-4 px-6 mb-2">
-        <v-icon color="warning" class="mr-2 mb-1">mdi-alert-circle-outline</v-icon>
-        {{ confirm.title }}
-      </v-card-title>
-      
-      <v-card-text class="text-body-1 px-6 pb-6 text-medium-emphasis">
-        {{ confirm.message }}
-      </v-card-text>
-      
-      <v-divider></v-divider>
-      
-      <v-card-actions class="pa-4 bg-surface-light">
-        <v-spacer></v-spacer>
-        <v-btn 
-          color="medium-emphasis" 
-          variant="text" 
-          class="text-none font-weight-bold px-4 mr-2 rounded-lg"
-          @click="confirm.cancel()"
-        >
+  <Dialog :open="confirm.isOpen" @update:open="(val) => { if (!val) confirm.cancel() }">
+    <DialogContent class="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle class="flex items-center gap-2">
+          <AlertCircle class="h-5 w-5 text-warning" />
+          {{ confirm.title }}
+        </DialogTitle>
+        <DialogDescription class="pt-2">
+          {{ confirm.message }}
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter class="sm:justify-end gap-2 mt-4">
+        <Button variant="outline" @click="confirm.cancel()">
           {{ confirm.cancelText }}
-        </v-btn>
-        
-        <v-btn 
-          color="error" 
-          variant="flat" 
-          class="text-none font-weight-bold px-6 rounded-lg elevation-2"
-          @click="confirm.agree()"
-        >
+        </Button>
+        <Button variant="destructive" @click="confirm.agree()">
           {{ confirm.confirmText }}
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
-
-<style scoped>
-</style>

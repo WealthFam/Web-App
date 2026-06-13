@@ -1,89 +1,6 @@
-<template>
-    <MainLayout>
-        <v-container fluid class="page-container dashboard-page">
-            <!-- Animated Mesh Background (Consistent with Categories.vue) -->
-            <div class="mesh-blob blob-1"
-                style="background: rgba(var(--v-theme-primary), 0.1); width: 600px; height: 600px; top: -200px; right: -100px;">
-            </div>
-            <div class="mesh-blob blob-2"
-                style="background: rgba(var(--v-theme-secondary), 0.05); width: 400px; height: 400px; bottom: -100px; left: -100px;">
-            </div>
-
-            <div class="relative-pos z-10">
-                <!-- Header (Title left, Tabs & Actions right) -->
-                <v-row class="mb-10 align-center">
-                    <v-col cols="12" md="6">
-                        <h1 class="text-h4 font-weight-black mb-1">Insights</h1>
-                        <p class="text-subtitle-2 text-on-surface opacity-70 font-weight-bold d-flex align-center">
-                            Strategy and forecasting
-                            <v-chip v-if="authStore.selectedMemberId" size="x-small" color="primary" variant="flat"
-                                class="ml-3 font-weight-black letter-spacing-1">
-                                MEMBER FILTER ACTIVE
-                            </v-chip>
-                        </p>
-                    </v-col>
-
-                    <v-col cols="12" md="6" class="d-flex justify-md-end align-center gap-3">
-                        <!-- Segmented Tab Switcher (Match Categories.vue) -->
-                        <div class="glass-card pa-1 border rounded-pill d-flex"
-                            style="background: rgba(var(--v-theme-surface), 0.5); height: 48px;">
-                            <v-btn variant="flat" rounded="pill" height="40"
-                                class="text-none font-weight-black px-6 letter-spacing-1"
-                                :color="activeTab === 0 ? 'primary' : 'transparent'"
-                                :class="activeTab !== 0 ? 'text-medium-emphasis' : 'elevation-2'"
-                                @click="activeTab = 0">
-                                <template v-slot:prepend>
-                                    <BarChart3 :size="18" />
-                                </template>
-                                Analytics
-                            </v-btn>
-                            <v-btn variant="flat" rounded="pill" height="40"
-                                class="text-none font-weight-black px-6 letter-spacing-1"
-                                :color="activeTab === 1 ? 'primary' : 'transparent'"
-                                :class="activeTab !== 1 ? 'text-medium-emphasis' : 'elevation-2'"
-                                @click="activeTab = 1">
-                                <template v-slot:prepend>
-                                    <RefreshCw :size="18" />
-                                </template>
-                                Recurring
-                            </v-btn>
-                            <v-btn variant="flat" rounded="pill" height="40"
-                                class="text-none font-weight-black px-6 letter-spacing-1"
-                                :color="activeTab === 2 ? 'primary' : 'transparent'"
-                                :class="activeTab !== 2 ? 'text-medium-emphasis' : 'elevation-2'"
-                                @click="activeTab = 2">
-                                <template v-slot:prepend>
-                                    <Users :size="18" />
-                                </template>
-                                Family Wealth
-                            </v-btn>
-                        </div>
-                    </v-col>
-                </v-row>
-
-                <v-window v-model="activeTab" class="bg-transparent overflow-visible">
-                    <!-- ANALYTICS TAB -->
-                    <v-window-item :value="0">
-                        <AnalyticsTab :selected-account="selectedAccount" />
-                    </v-window-item>
-
-                    <!-- RECURRING TAB -->
-                    <v-window-item :value="1">
-                        <RecurringTab />
-                    </v-window-item>
-
-                    <!-- FAMILY CIRCLE TAB -->
-                    <v-window-item :value="2">
-                        <FamilyWealthTab />
-                    </v-window-item>
-                </v-window>
-            </div>
-        </v-container>
-    </MainLayout>
-</template>
-
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { useFinanceStore } from '@/stores/finance'
 import { useAuthStore } from '@/stores/auth'
@@ -92,22 +9,31 @@ import RecurringTab from '@/views/insights/RecurringTab.vue'
 import FamilyWealthTab from '@/views/insights/FamilyWealthTab.vue'
 import { BarChart3, RefreshCw, Users } from 'lucide-vue-next'
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
+
 const store = useFinanceStore()
 const authStore = useAuthStore()
-
-import { useRoute } from 'vue-router'
 const route = useRoute()
 
-const activeTab = ref(0)
+// We map numeric values from the original to string values for shadcn Tabs
+const activeTab = ref('analytics')
 const selectedAccount = ref('')
+
+// Mapping for backward compatibility with route queries
+const tabMap: Record<number, string> = {
+    0: 'analytics',
+    1: 'recurring',
+    2: 'family'
+}
+
 
 onMounted(() => {
     store.fetchAll(authStore.selectedMemberId || undefined)
 
-    // Handle deep linking to tabs
     if (route.query.tab) {
-        const tab = parseInt(route.query.tab as string)
-        if (!isNaN(tab)) activeTab.value = tab
+        const tabIdx = parseInt(route.query.tab as string)
+        if (!isNaN(tabIdx) && tabMap[tabIdx]) activeTab.value = tabMap[tabIdx]
     }
 })
 
@@ -118,53 +44,63 @@ watch(() => authStore.selectedMemberId, () => {
 
 watch(() => route.query.tab, (newTab) => {
     if (newTab !== undefined) {
-        const tab = parseInt(newTab as string)
-        if (!isNaN(tab)) activeTab.value = tab
+        const tabIdx = parseInt(newTab as string)
+        if (!isNaN(tabIdx) && tabMap[tabIdx]) activeTab.value = tabMap[tabIdx]
     }
 })
 </script>
 
-<style scoped>
-.dashboard-page {
-    position: relative;
-    min-height: calc(100vh - 64px);
-}
+<template>
+  <MainLayout>
+    <div class="flex-1 space-y-6 relative overflow-hidden">
+      <!-- Animated Mesh Background -->
+      <div class="absolute w-[600px] h-[600px] bg-primary/10 rounded-full blur-[80px] -top-[200px] -right-[100px] opacity-15 animate-pulse -z-10 pointer-events-none"></div>
+      <div class="absolute w-[400px] h-[400px] bg-secondary/10 rounded-full blur-[80px] -bottom-[100px] -left-[100px] opacity-15 animate-pulse -z-10 pointer-events-none" style="animation-delay: -5s"></div>
 
-.mesh-blob {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.15;
-    border-radius: 50%;
-}
+      <Tabs v-model="activeTab" class="w-full">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-3xl font-bold tracking-tight mb-1">Insights</h1>
+            <p class="text-muted-foreground font-medium flex items-center gap-3">
+              Strategy and forecasting
+              <Badge v-if="authStore.selectedMemberId" variant="default" class="text-[10px] tracking-widest px-2 h-5">
+                MEMBER FILTER ACTIVE
+              </Badge>
+            </p>
+          </div>
 
-.relative-pos {
-    position: relative;
-}
+          <div class="overflow-x-auto pb-2 md:pb-0">
+            <TabsList class="h-11">
+              <TabsTrigger value="analytics" class="flex items-center gap-2 px-4">
+                <BarChart3 class="h-4 w-4" />
+                <span>Analytics</span>
+              </TabsTrigger>
+              <TabsTrigger value="recurring" class="flex items-center gap-2 px-4">
+                <RefreshCw class="h-4 w-4" />
+                <span>Recurring</span>
+              </TabsTrigger>
+              <TabsTrigger value="family" class="flex items-center gap-2 px-4">
+                <Users class="h-4 w-4" />
+                <span>Family Wealth</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
-.z-10 {
-    z-index: 10;
-}
-
-.gap-3 {
-    gap: 12px;
-}
-
-.account-select-premium :deep(.v-field__outline) {
-    --v-field-border-opacity: 0.1;
-    transition: border-color 0.3s ease;
-}
-
-.account-select-premium:hover :deep(.v-field__outline) {
-    --v-field-border-opacity: 0.4;
-    border-color: rgb(var(--v-theme-primary)) !important;
-}
-
-.glass-card {
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
-
-:deep(.v-window) {
-    overflow: visible !important;
-}
-</style>
+        <!-- Content -->
+        <div class="mt-6">
+          <TabsContent value="analytics" class="m-0 border-none p-0 outline-none">
+            <AnalyticsTab :selected-account="selectedAccount" />
+          </TabsContent>
+          <TabsContent value="recurring" class="m-0 border-none p-0 outline-none">
+            <RecurringTab />
+          </TabsContent>
+          <TabsContent value="family" class="m-0 border-none p-0 outline-none">
+            <FamilyWealthTab />
+          </TabsContent>
+        </div>
+      </Tabs>
+    </div>
+  </MainLayout>
+</template>

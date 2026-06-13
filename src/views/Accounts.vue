@@ -1,367 +1,3 @@
-<template>
-    <MainLayout>
-        <v-container fluid class="page-container dashboard-page py-6">
-            <!-- Animated Mesh Background -->
-            <div class="mesh-blob blob-1"></div>
-            <div class="mesh-blob blob-2"></div>
-            <div class="mesh-blob blob-3"></div>
-
-            <div class="relative-pos z-10">
-                <!-- Header Section -->
-                <v-row class="mb-6 align-center">
-                    <v-col cols="12" md="4">
-                        <div class="d-flex align-center">
-                            <h1 class="text-h6 font-weight-black text-content">Financial Sources</h1>
-                        </div>
-                        <p class="text-subtitle-2 text-medium-emphasis font-weight-bold mt-1 opacity-70">
-                            Managing {{ verifiedAccounts.length }} active capital streams
-                        </p>
-                    </v-col>
-
-                    <v-col cols="12" md="8" class="d-flex flex-column flex-md-row align-md-center justify-end gap-3">
-                        <!-- Navigation Tabs -->
-                        <div class="premium-pill-tabs flex-grow-1 flex-md-grow-0 d-flex overflow-x-auto">
-                            <v-tabs v-model="activeTab" color="primary" density="comfortable" hide-slider show-arrows class="rounded-xl">
-                                <v-tab value="approved" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center gap-2">
-                                        <Landmark :size="16" />
-                                        <span>Approved</span>
-                                    </div>
-                                </v-tab>
-                                <v-tab value="triage" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center gap-2">
-                                        <AlertCircle :size="16" />
-                                        <span>Triage</span>
-                                        <v-chip v-if="untrustedAccounts.length > 0" size="x-small" color="primary" class="ml-1 font-weight-black">
-                                            {{ untrustedAccounts.length }}
-                                        </v-chip>
-                                    </div>
-                                </v-tab>
-                            </v-tabs>
-                        </div>
-                    </v-col>
-                </v-row>
-
-                <!-- Account Summary Grid -->
-                <v-row class="mb-10">
-                    <v-col cols="12" sm="6" md="3">
-                        <v-hover v-slot="{ isHovering, props }">
-                            <v-card v-bind="props" class="m3-card metric-card pa-6 h-100 d-flex flex-column" :class="{ 'raised': isHovering }" rounded="xl" elevation="1">
-                                <div class="d-flex justify-space-between align-start mb-6">
-                                    <v-avatar class="premium-gradient-primary elevation-2" rounded="lg" size="48">
-                                        <Scale :size="24" color="white" />
-                                    </v-avatar>
-                                </div>
-                                <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Net Liquid Assets</div>
-                                <div class="text-h4 font-weight-black text-primary mb-1">{{ formatAmount(accountMetrics.total) }}</div>
-                                <div class="mt-auto text-caption font-weight-bold opacity-60">Total available capital</div>
-                            </v-card>
-                        </v-hover>
-                    </v-col>
-                    <v-col cols="12" sm="6" md="3">
-                        <v-hover v-slot="{ isHovering, props }">
-                            <v-card v-bind="props" class="m3-card metric-card pa-6 h-100 d-flex flex-column" :class="{ 'raised': isHovering }" rounded="xl" elevation="1">
-                                <div class="d-flex justify-space-between align-start mb-6">
-                                    <v-avatar class="premium-gradient-success elevation-2" rounded="lg" size="48">
-                                        <Landmark :size="24" color="white" />
-                                    </v-avatar>
-                                </div>
-                                <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Bank Balances</div>
-                                <div class="text-h4 font-weight-black text-success mb-1">{{ formatAmount(accountMetrics.bank) }}</div>
-                                <div class="mt-auto text-caption font-weight-bold opacity-60">Cash in hand</div>
-                            </v-card>
-                        </v-hover>
-                    </v-col>
-                    <v-col cols="12" sm="6" md="3">
-                        <v-hover v-slot="{ isHovering, props }">
-                            <v-card v-bind="props" class="m3-card metric-card pa-6 h-100 d-flex flex-column" :class="{ 'raised': isHovering }" rounded="xl" elevation="1">
-                                <div class="d-flex justify-space-between align-start mb-6">
-                                    <v-avatar class="premium-gradient-error elevation-2" rounded="lg" size="48">
-                                        <CreditCard :size="24" color="white" />
-                                    </v-avatar>
-                                </div>
-                                <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Active Credit Debt</div>
-                                <div class="text-h4 font-weight-black text-error mb-1">{{ formatAmount(accountMetrics.credit) }}</div>
-                                <div class="mt-auto text-caption font-weight-bold opacity-60">Utilized limits</div>
-                            </v-card>
-                        </v-hover>
-                    </v-col>
-                    <v-col cols="12" sm="6" md="3">
-                        <v-hover v-slot="{ isHovering, props }">
-                            <v-card v-bind="props" class="m3-card metric-card pa-6 h-100 d-flex flex-column" :class="{ 'raised': isHovering }" rounded="xl" elevation="1">
-                                <div class="d-flex justify-space-between align-start mb-6">
-                                    <v-avatar class="premium-gradient-warning elevation-2" rounded="lg" size="48">
-                                        <Zap :size="24" color="white" />
-                                    </v-avatar>
-                                    <div class="text-h5 font-weight-black text-warning">{{ totalUtilization.toFixed(0) }}%</div>
-                                </div>
-                                <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Credit Utilization</div>
-                                <v-progress-linear :model-value="totalUtilization" color="warning" class="mt-2 mb-2" rounded height="6"></v-progress-linear>
-                                <div class="mt-auto text-caption font-weight-bold opacity-60">Weighted average</div>
-                            </v-card>
-                        </v-hover>
-                    </v-col>
-                </v-row>
-
-                <!-- Premium Toolbar -->
-                <v-card class="premium-glass-card mb-6 border-thin premium-toolbar" rounded="xl">
-                    <v-row no-gutters class="align-center">
-                        <!-- Account Type Selector -->
-                        <v-col cols="12" md="3" class="px-2">
-                            <v-autocomplete
-                                v-model="selectedType"
-                                :items="accountTypeItems"
-                                placeholder="All Asset Types"
-                                variant="solo-filled"
-                                flat
-                                density="compact"
-                                hide-details
-                                rounded="pill"
-                                bg-color="surface"
-                                class="font-weight-black text-caption custom-autocomplete"
-                            >
-                                <template v-slot:prepend-inner>
-                                    <v-icon size="16" class="text-primary opacity-60 mr-1">mdi-filter-variant</v-icon>
-                                </template>
-                            </v-autocomplete>
-                        </v-col>
-
-                        <!-- Global Search -->
-                        <v-col cols="12" md="6" class="px-2">
-                            <v-text-field
-                                v-model="searchQuery"
-                                placeholder="Search by name, institution or mask..."
-                                variant="solo-filled"
-                                flat
-                                density="compact"
-                                hide-details
-                                rounded="pill"
-                                clearable
-                                bg-color="surface"
-                                class="search-input"
-                            >
-                                <template v-slot:prepend-inner>
-                                    <Search :size="18" class="text-primary opacity-60" />
-                                </template>
-                            </v-text-field>
-                        </v-col>
-
-                        <v-spacer></v-spacer>
-
-                        <!-- Add Source CTA -->
-                        <v-col cols="12" md="auto" class="d-flex align-center ga-3">
-                            <div class="d-flex ga-2 bg-surface pa-1 rounded-pill border-thin shadow-sm">
-                                <v-btn variant="text" size="small" rounded="pill" color="primary"
-                                    class="text-none font-weight-black px-4" @click="openCreateAccountModal">
-                                    <template v-slot:prepend>
-                                        <Plus :size="14" />
-                                    </template>
-                                    Add Source
-                                </v-btn>
-                            </div>
-                        </v-col>
-                    </v-row>
-                </v-card>
-
-                <!-- CONTENT AREA -->
-                <v-window v-model="activeTab" class="overflow-visible">
-                    <!-- Approved Tab -->
-                    <v-window-item value="approved">
-                        <v-row>
-                            <v-col v-for="acc in filteredAccounts" :key="acc.id" cols="12" md="6" lg="4">
-                                <AccountCard 
-                                    :account="acc" 
-                                    :intelligence="getIntelligenceForAccount(acc.id)" 
-                                    @view="handleViewAccount"
-                                    @edit="openEditAccountModal" 
-                                    @pay-bill="openPayBillModal" 
-                                    @delete="deleteAccountRequest" 
-                                />
-                            </v-col>
-                            
-                            <!-- Empty State -->
-                            <v-col v-if="filteredAccounts.length === 0 && !loading" cols="12" class="text-center py-12">
-                                <v-avatar size="120" color="primary-lighten-5" class="mb-6">
-                                    <Search :size="64" class="text-primary opacity-30" />
-                                </v-avatar>
-                                <h3 class="text-h4 font-weight-black opacity-60 mb-2">No matching sources</h3>
-                                <p class="text-subtitle-1 opacity-40 mb-8">Try adjusting your filters or search query</p>
-                                <v-btn color="primary" variant="tonal" height="44" rounded="pill" class="px-8 font-weight-bold" @click="resetFilters">
-                                    <v-icon class="mr-2">mdi-refresh</v-icon> Clear all filters
-                                </v-btn>
-                            </v-col>
-
-                            <!-- Add Placeholder Card -->
-                            <v-col v-if="!searchQuery && !auth.selectedMemberId && (selectedType === 'all' || selectedType === 'bank')" cols="12" md="6" lg="4">
-                                <v-card class="add-account-placeholder h-100 pa-8 d-flex flex-column align-center justify-center" @click="openCreateAccountModal">
-                                    <v-avatar color="primary-lighten-5" size="64" class="mb-4">
-                                        <Plus :size="32" class="text-primary" />
-                                    </v-avatar>
-                                    <div class="text-h6 font-weight-bold">Add Source</div>
-                                    <div class="text-caption text-medium-emphasis">Link a new bank, card or loan</div>
-                                </v-card>
-                            </v-col>
-                        </v-row>
-                    </v-window-item>
-
-                    <!-- Triage Tab -->
-                    <v-window-item value="triage">
-                        <div class="mb-6">
-                            <h3 class="text-h5 font-weight-black d-flex align-center gap-2 mb-1">
-                                <AlertCircle :size="24" class="text-warning" />
-                                Detected Sources
-                            </h3>
-                            <p class="text-subtitle-2 text-medium-emphasis">Verify accounts detected from your financial messages</p>
-                        </div>
-
-                        <v-row v-if="untrustedAccounts.length > 0">
-                            <v-col v-for="acc in untrustedAccounts" :key="acc.id" cols="12" md="6" lg="4">
-                                <v-card class="premium-glass-card untrusted-card" elevation="0">
-                                    <div class="pa-5">
-                                        <div class="d-flex justify-space-between align-start mb-4">
-                                            <div class="acc-icon-circle warning">
-                                                <AlertCircle :size="24" />
-                                            </div>
-                                            <div class="d-flex gap-2">
-                                                <v-btn icon size="small" color="success" variant="tonal" @click="openEditAccountModal(acc, true)">
-                                                    <Check :size="18" />
-                                                    <v-tooltip activator="parent" location="top">Verify Source</v-tooltip>
-                                                </v-btn>
-                                                <v-btn icon size="small" color="error" variant="tonal" @click="deleteAccountRequest(acc)">
-                                                    <X :size="18" />
-                                                    <v-tooltip activator="parent" location="top">Reject & Delete</v-tooltip>
-                                                </v-btn>
-                                            </div>
-                                        </div>
-                                        <div class="text-h6 font-weight-bold mb-1">{{ acc.name }}</div>
-                                        <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-4">
-                                            {{ getAccountTypeLabel(acc.type) }} • {{ acc.account_mask ? `**${acc.account_mask}` : 'New Source' }}
-                                        </div>
-                                        <div class="d-flex justify-space-between align-end">
-                                            <div>
-                                                <div class="text-caption font-weight-bold text-medium-emphasis">Opening Balance</div>
-                                                <div class="text-h5 font-weight-black">{{ formatAmount(acc.balance) }}</div>
-                                            </div>
-                                            <v-btn variant="plain" class="text-none font-weight-black" color="primary" @click="openEditAccountModal(acc)">
-                                                Review Details
-                                            </v-btn>
-                                        </div>
-                                    </div>
-                                </v-card>
-                            </v-col>
-                        </v-row>
-
-                        <!-- Empty Triage -->
-                        <div v-else class="text-center py-12">
-                            <v-avatar size="120" color="success-lighten-5" class="mb-6">
-                                <Check :size="64" class="text-success opacity-30" />
-                            </v-avatar>
-                            <h3 class="text-h4 font-weight-black opacity-60 mb-2">All clear!</h3>
-                            <p class="text-subtitle-1 opacity-40">No unverified sources require attention</p>
-                        </div>
-                    </v-window-item>
-                </v-window>
-
-                <!-- Modals -->
-                <AccountEditModal v-model="showAccountModal" :account="editingAccount" :family-members="familyMembers" @saved="fetchData" @delete="deleteAccountRequest" />
-                
-                <v-dialog v-model="showAccountDeleteConfirm" max-width="480">
-                    <v-card class="rounded-xl overflow-hidden border-error">
-                        <div class="bg-error-lighten-5 pa-8 text-center border-b">
-                            <v-avatar color="error" size="80" class="mb-4 elevation-4">
-                                <Trash2 :size="40" class="text-white" />
-                            </v-avatar>
-                            <h3 class="text-h4 font-weight-black text-error mb-1">Delete Account?</h3>
-                            <div class="text-subtitle-2 font-weight-bold text-error uppercase ls-1">Irreversible Action</div>
-                        </div>
-                        
-                        <v-card-text class="pa-8">
-                            <p class="text-body-1 mb-6 text-center">
-                                You are about to permanently delete <strong class="text-error">{{ accountToDelete?.name }}</strong>.
-                            </p>
-                            
-                            <v-card variant="flat" class="pa-4 rounded-xl bg-grey-lighten-4 mb-8 border d-flex align-center gap-4">
-                                <div class="stat-icon-wrapper red">
-                                    <AlertTriangle :size="20" />
-                                </div>
-                                <div>
-                                    <div class="text-h6 font-weight-black">{{ accountTxCount }}</div>
-                                    <div class="text-caption font-weight-bold text-medium-emphasis uppercase ls-1">Historical Transactions</div>
-                                </div>
-                            </v-card>
-
-                            <div class="bg-red-lighten-5 pa-4 rounded-lg mb-8 d-flex gap-3 align-center">
-                                <v-icon color="error" size="small">mdi-alert-octagon</v-icon>
-                                <span class="text-caption text-error font-weight-bold">Warning: This will also remove the account from all family reports and linked budget cycles.</span>
-                            </div>
-
-                            <div class="d-flex gap-3">
-                                <v-btn variant="tonal" height="44" class="flex-grow-1 rounded-xl font-weight-bold text-none" @click="showAccountDeleteConfirm = false">
-                                    <v-icon class="mr-1">mdi-arrow-left</v-icon> Keep Account
-                                </v-btn>
-                                <v-btn color="error" height="44" class="flex-grow-1 rounded-xl font-weight-black text-none" elevation="4" :loading="isDeletingAccount" @click="confirmAccountDelete">
-                                    <Trash2 :size="18" class="mr-1" /> Confirm Delete
-                                </v-btn>
-                            </div>
-                        </v-card-text>
-                    </v-card>
-                </v-dialog>
-
-                <!-- Pay Bill Modal -->
-                <v-dialog v-model="showPayBillModal" max-width="450" persistent>
-                    <v-card class="no-hover pa-8" rounded="xl" elevation="24" color="white">
-                        <v-avatar color="primary" variant="tonal" size="72" class="mb-4 mx-auto elevation-2 d-flex">
-                            <CreditCard :size="36" />
-                        </v-avatar>
-                        <h3 class="text-h5 font-weight-black text-center mb-1">Pay Credit Bill</h3>
-                        <p class="text-subtitle-2 font-weight-medium opacity-60 text-center mb-6">
-                            {{ payBillTarget?.name }} · Outstanding <strong class="text-error">{{ formatAmount(payBillTarget?.balance || 0) }}</strong>
-                        </p>
-
-                        <v-form @submit.prevent="handlePayBillSubmit">
-                            <v-autocomplete
-                                v-model="payBillForm.source_account_id"
-                                label="Pay From"
-                                :items="bankAccountsItems"
-                                variant="outlined"
-                                rounded="xl"
-                                class="mb-4"
-                                placeholder="Select bank account"
-                            ></v-autocomplete>
-
-                            <v-row dense>
-                                <v-col cols="6">
-                                    <v-text-field v-model.number="payBillForm.amount" label="Amount" type="number" variant="outlined" rounded="xl" class="mb-4" prefix="₹"></v-text-field>
-                                </v-col>
-                                <v-col cols="6">
-                                    <v-text-field v-model="payBillForm.date" label="Date" type="date" variant="outlined" rounded="xl" class="mb-4"></v-text-field>
-                                </v-col>
-                            </v-row>
-
-                            <div class="d-flex align-center justify-space-between pa-3 rounded-xl mb-6" style="background: rgba(var(--v-theme-on-surface), 0.03);">
-                                <div>
-                                    <div class="text-subtitle-2 font-weight-bold">Record Transaction</div>
-                                    <div class="text-caption text-medium-emphasis">Debit from source account</div>
-                                </div>
-                                <v-switch v-model="payBillForm.record_transaction" color="primary" hide-details density="compact"></v-switch>
-                            </div>
-
-                            <div class="d-flex ga-3 justify-center">
-                                <v-btn variant="text" rounded="pill" class="text-none font-weight-bold px-6" height="44" @click="showPayBillModal = false">
-                                    Cancel
-                                </v-btn>
-                                <v-btn type="submit" color="primary" rounded="pill" class="text-none font-weight-black px-8 elevation-4" height="44" :loading="submittingPayBill">
-                                    Confirm Payment
-                                </v-btn>
-                            </div>
-                        </v-form>
-                    </v-card>
-                </v-dialog>
-            </div>
-        </v-container>
-    </MainLayout>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -376,6 +12,18 @@ import {
 } from 'lucide-vue-next'
 import AccountCard from '@/components/finance/AccountCard.vue'
 import AccountEditModal from '@/components/finance/AccountEditModal.vue'
+
+// shadcn-vue components
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Switch } from '@/components/ui/switch'
 
 const notify = useNotificationStore()
 const router = useRouter()
@@ -479,7 +127,6 @@ const accountTypeItems = computed(() => [
     { title: '👛 Wallets', value: 'wallet' },
     { title: '📁 Other', value: 'other' }
 ])
-
 
 // --- Methods ---
 async function fetchData() {
@@ -586,172 +233,335 @@ watch(() => auth.selectedMemberId, () => {
 onMounted(fetchData)
 </script>
 
-<style scoped>
-.acc-icon-circle {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.acc-icon-circle.warning {
-    background: #fffbeb;
-    color: #d97706;
-}
+<template>
+  <MainLayout>
+    <div class="flex-1 space-y-6 relative overflow-hidden">
+      <!-- Animated Mesh Background -->
+      <div class="absolute w-[600px] h-[600px] bg-primary/10 rounded-full blur-[80px] -top-[200px] -right-[100px] opacity-15 animate-pulse -z-10 pointer-events-none"></div>
+      <div class="absolute w-[400px] h-[400px] bg-secondary/10 rounded-full blur-[80px] -bottom-[100px] -left-[100px] opacity-15 animate-pulse -z-10 pointer-events-none" style="animation-delay: -5s"></div>
+      <div class="absolute w-[300px] h-[300px] bg-success/10 rounded-full blur-[80px] top-[40%] left-[30%] opacity-15 animate-pulse -z-10 pointer-events-none" style="animation-delay: -8s"></div>
 
-.stat-icon-wrapper {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.metric-card {
-    cursor: default;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.metric-card.raised {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px -10px rgba(var(--v-theme-primary), 0.15) !important;
-    border-color: rgba(var(--v-theme-primary), 0.3) !important;
-}
+      <Tabs v-model="activeTab" class="w-full">
+        <!-- Header & Tabs -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-3xl font-bold tracking-tight">Financial Sources</h1>
+            <p class="text-muted-foreground mt-1">Managing {{ verifiedAccounts.length }} active capital streams</p>
+          </div>
+          
+          <div class="overflow-x-auto pb-2 md:pb-0">
+            <TabsList class="h-11">
+              <TabsTrigger value="approved" class="flex items-center gap-2 px-4">
+                <Landmark class="h-4 w-4" />
+                <span>Approved</span>
+              </TabsTrigger>
+              <TabsTrigger value="triage" class="flex items-center gap-2 px-4">
+                <AlertCircle class="h-4 w-4" />
+                <span>Triage</span>
+                <Badge v-if="untrustedAccounts.length > 0" variant="secondary" class="ml-1 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px]">
+                  {{ untrustedAccounts.length }}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
-.premium-gradient-primary { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important; }
-.premium-gradient-success { background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%) !important; }
-.premium-gradient-error { background: linear-gradient(135deg, #f43f5e 0%, #fb923c 100%) !important; }
-.premium-gradient-warning { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; }
+        <!-- Account Summary Grid -->
+        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+          <Card class="overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">
+            <CardContent class="p-6 flex flex-col h-full">
+              <div class="flex justify-between items-start mb-6">
+                <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                  <Scale class="h-6 w-6 text-white" />
+                </div>
+              </div>
+              <div class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Net Liquid Assets</div>
+              <div class="text-2xl font-black text-primary mb-1 truncate">{{ formatAmount(accountMetrics.total) }}</div>
+              <div class="mt-auto text-xs font-bold text-muted-foreground">Total available capital</div>
+            </CardContent>
+          </Card>
 
-.stat-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: rgba(var(--v-theme-on-surface), 0.2);
-}
-.stat-dot.active {
-    background: rgb(var(--v-theme-success));
-    box-shadow: 0 0 0 2px rgba(var(--v-theme-success), 0.2);
-    animation: pulse 2s infinite;
-}
+          <Card class="overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">
+            <CardContent class="p-6 flex flex-col h-full">
+              <div class="flex justify-between items-start mb-6">
+                <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <Landmark class="h-6 w-6 text-white" />
+                </div>
+              </div>
+              <div class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Bank Balances</div>
+              <div class="text-2xl font-black text-emerald-500 mb-1 truncate">{{ formatAmount(accountMetrics.bank) }}</div>
+              <div class="mt-auto text-xs font-bold text-muted-foreground">Cash in hand</div>
+            </CardContent>
+          </Card>
 
-/* Mesh Background */
-.mesh-blob {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.15;
-    z-index: 1;
-    border-radius: 50%;
-    animation: blob-float 20s infinite alternate;
-}
+          <Card class="overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">
+            <CardContent class="p-6 flex flex-col h-full">
+              <div class="flex justify-between items-start mb-6">
+                <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-rose-500 to-orange-400 flex items-center justify-center shadow-lg shadow-rose-500/20">
+                  <CreditCard class="h-6 w-6 text-white" />
+                </div>
+              </div>
+              <div class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Active Credit Debt</div>
+              <div class="text-2xl font-black text-rose-500 mb-1 truncate">{{ formatAmount(accountMetrics.credit) }}</div>
+              <div class="mt-auto text-xs font-bold text-muted-foreground">Utilized limits</div>
+            </CardContent>
+          </Card>
 
-.blob-1 {
-    background: rgb(var(--v-theme-primary));
-    width: 600px;
-    height: 600px;
-    top: -200px;
-    right: -100px;
-}
+          <Card class="overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">
+            <CardContent class="p-6 flex flex-col h-full">
+              <div class="flex justify-between items-start mb-6">
+                <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500 to-red-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                  <Zap class="h-6 w-6 text-white" />
+                </div>
+                <div class="text-xl font-black text-amber-500">{{ totalUtilization.toFixed(0) }}%</div>
+              </div>
+              <div class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Credit Utilization</div>
+              <Progress :model-value="totalUtilization" class="h-1.5 mb-2 bg-amber-500/20 [&>div]:bg-amber-500" />
+              <div class="mt-auto text-xs font-bold text-muted-foreground">Weighted average</div>
+            </CardContent>
+          </Card>
+        </div>
 
-.blob-2 {
-    background: rgb(var(--v-theme-secondary));
-    width: 400px;
-    height: 400px;
-    bottom: -100px;
-    left: -100px;
-    animation-delay: -5s;
-}
+        <!-- Premium Toolbar -->
+        <Card class="mb-6">
+          <CardContent class="p-3 flex flex-col md:flex-row items-center gap-4">
+            <div class="w-full md:w-1/4">
+              <Select v-model="selectedType">
+                <SelectTrigger class="h-9 w-full rounded-full bg-muted/50 border-none">
+                  <SelectValue placeholder="All Asset Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="opt in accountTypeItems" :key="opt.value" :value="opt.value">{{ opt.title }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-.blob-3 {
-    background: rgb(var(--v-theme-success));
-    width: 300px;
-    height: 300px;
-    top: 40%;
-    left: 30%;
-    animation-delay: -8s;
-}
+            <div class="relative w-full md:w-1/2">
+              <Search class="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input 
+                v-model="searchQuery" 
+                placeholder="Search by name, institution or mask..." 
+                class="pl-9 h-9 rounded-full bg-muted/50 border-none w-full" 
+              />
+            </div>
 
-@keyframes blob-float {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(20px, -20px) scale(1.1); }
-}
+            <div class="w-full md:w-auto flex justify-end flex-1">
+              <Button @click="openCreateAccountModal" class="rounded-full gap-2 px-6">
+                <Plus class="h-4 w-4" /> Add Source
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-.relative-pos { position: relative; }
-.z-10 { z-index: 10; }
+        <!-- CONTENT AREA -->
+        <TabsContent value="approved" class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div v-for="acc in filteredAccounts" :key="acc.id">
+              <AccountCard 
+                  :account="acc" 
+                  :intelligence="getIntelligenceForAccount(acc.id)" 
+                  @view="handleViewAccount"
+                  @edit="openEditAccountModal" 
+                  @pay-bill="openPayBillModal" 
+                  @delete="deleteAccountRequest" 
+              />
+            </div>
+            
+            <!-- Empty State -->
+            <div v-if="filteredAccounts.length === 0 && !loading" class="col-span-full text-center py-12 animate-in fade-in">
+                <div class="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6 text-primary">
+                    <Search class="h-12 w-12 opacity-50" />
+                </div>
+                <h3 class="text-2xl font-black mb-2">No matching sources</h3>
+                <p class="text-muted-foreground mb-8">Try adjusting your filters or search query</p>
+                <Button variant="outline" @click="resetFilters" class="rounded-full px-8">
+                    Clear all filters
+                </Button>
+            </div>
 
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(var(--v-theme-success), 0.4); }
-    70% { box-shadow: 0 0 0 6px rgba(var(--v-theme-success), 0); }
-    100% { box-shadow: 0 0 0 0 rgba(var(--v-theme-success), 0); }
-}
+            <!-- Add Placeholder Card -->
+            <div v-if="!searchQuery && !auth.selectedMemberId && (selectedType === 'all' || selectedType === 'bank')" class="h-full">
+                <div @click="openCreateAccountModal" class="h-full min-h-[200px] border-2 border-dashed border-border/50 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all hover:border-primary hover:bg-primary/5 p-8 text-center">
+                    <div class="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">
+                        <Plus class="h-8 w-8" />
+                    </div>
+                    <div class="text-lg font-bold">Add Source</div>
+                    <div class="text-sm text-muted-foreground mt-1">Link a new bank, card or loan</div>
+                </div>
+            </div>
+          </div>
+        </TabsContent>
 
-.untrusted-card {
-    border-left: 4px solid rgb(var(--v-theme-warning)) !important;
-}
+        <TabsContent value="triage" class="space-y-6">
+          <div class="mb-6">
+              <h3 class="text-2xl font-black flex items-center gap-2 mb-1">
+                  <AlertCircle class="h-6 w-6 text-amber-500" />
+                  Detected Sources
+              </h3>
+              <p class="text-muted-foreground">Verify accounts detected from your financial messages</p>
+          </div>
 
-.add-account-placeholder {
-    border: 2px dashed rgba(var(--v-border-color), 0.2);
-    background: transparent !important;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-.add-account-placeholder:hover {
-    border-color: rgb(var(--v-theme-primary));
-    background: rgba(var(--v-theme-primary), 0.05) !important;
-}
+          <div v-if="untrustedAccounts.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card v-for="acc in untrustedAccounts" :key="acc.id" class="border-l-4 border-l-amber-500 relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-md">
+                  <CardContent class="p-5">
+                      <div class="flex justify-between items-start mb-4">
+                          <div class="h-12 w-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                              <AlertCircle class="h-6 w-6" />
+                          </div>
+                          <div class="flex gap-2">
+                              <TooltipProvider>
+                                  <Tooltip>
+                                      <TooltipTrigger as-child>
+                                          <Button variant="ghost" size="icon" class="h-8 w-8 text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600" @click="openEditAccountModal(acc, true)">
+                                              <Check class="h-4 w-4" />
+                                          </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>Verify Source</p></TooltipContent>
+                                  </Tooltip>
+                              </TooltipProvider>
 
-/* Premium Tabs */
-.premium-pill-tabs {
-    background: rgba(var(--v-theme-surface), 0.6);
-    backdrop-filter: blur(10px);
-    padding: 6px;
-    border-radius: 24px;
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
+                              <TooltipProvider>
+                                  <Tooltip>
+                                      <TooltipTrigger as-child>
+                                          <Button variant="ghost" size="icon" class="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600" @click="deleteAccountRequest(acc)">
+                                              <X class="h-4 w-4" />
+                                          </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>Reject & Delete</p></TooltipContent>
+                                  </Tooltip>
+                              </TooltipProvider>
+                          </div>
+                      </div>
+                      <div class="text-lg font-bold mb-1 truncate" :title="acc.name">{{ acc.name }}</div>
+                      <div class="text-[10px] font-bold uppercase text-muted-foreground tracking-wider mb-4">
+                          {{ getAccountTypeLabel(acc.type) }} • {{ acc.account_mask ? `**${acc.account_mask}` : 'New Source' }}
+                      </div>
+                      <div class="flex justify-between items-end">
+                          <div>
+                              <div class="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Opening Balance</div>
+                              <div class="text-xl font-black">{{ formatAmount(acc.balance) }}</div>
+                          </div>
+                          <Button variant="link" class="text-primary font-bold px-0 h-auto" @click="openEditAccountModal(acc)">
+                              Review Details
+                          </Button>
+                      </div>
+                  </CardContent>
+              </Card>
+          </div>
 
-.premium-tab {
-    text-transform: none !important;
-    letter-spacing: 0;
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: rgb(var(--v-theme-on-surface), 0.6);
-    transition: all 0.3s ease;
-    min-width: 120px;
-}
+          <!-- Empty Triage -->
+          <div v-else class="text-center py-16 animate-in fade-in">
+              <div class="h-24 w-24 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-6 text-emerald-500">
+                  <Check class="h-12 w-12" />
+              </div>
+              <h3 class="text-2xl font-black mb-2">All clear!</h3>
+              <p class="text-muted-foreground">No unverified sources require attention</p>
+          </div>
+        </TabsContent>
+      </Tabs>
 
-.premium-tab.v-tab--selected {
-    background: rgb(var(--v-theme-primary));
-    color: white !important;
-    box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3);
-}
+      <!-- Modals -->
+      <AccountEditModal v-model="showAccountModal" :account="editingAccount" :family-members="familyMembers" @saved="fetchData" @delete="deleteAccountRequest" />
+      
+      <!-- Delete Confirm Dialog -->
+      <Dialog :open="showAccountDeleteConfirm" @update:open="val => showAccountDeleteConfirm = val">
+        <DialogContent class="sm:max-w-[480px] p-0 overflow-hidden border-red-500">
+          <div class="bg-red-50 p-8 text-center border-b border-red-100">
+              <div class="h-20 w-20 rounded-full bg-red-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/20 text-white">
+                  <Trash2 class="h-10 w-10" />
+              </div>
+              <h3 class="text-2xl font-black text-red-600 mb-1">Delete Account?</h3>
+              <div class="text-xs font-bold text-red-500 uppercase tracking-widest">Irreversible Action</div>
+          </div>
+          
+          <div class="p-8">
+              <p class="text-sm mb-6 text-center text-muted-foreground">
+                  You are about to permanently delete <strong class="text-red-500">{{ accountToDelete?.name }}</strong>.
+              </p>
+              
+              <div class="bg-muted p-4 rounded-xl mb-6 border flex items-center gap-4">
+                  <div class="h-12 w-12 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 shrink-0">
+                      <AlertTriangle class="h-5 w-5" />
+                  </div>
+                  <div>
+                      <div class="text-xl font-black">{{ accountTxCount }}</div>
+                      <div class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Historical Transactions</div>
+                  </div>
+              </div>
 
-.search-field :deep(.v-field__outline),
-.type-selector :deep(.v-field__outline) {
-    display: none;
-}
+              <div class="bg-red-50 p-4 rounded-lg mb-8 flex gap-3 items-center border border-red-100">
+                  <AlertTriangle class="h-5 w-5 text-red-500 shrink-0" />
+                  <span class="text-xs text-red-600 font-bold">Warning: This will also remove the account from all family reports and linked budget cycles.</span>
+              </div>
 
-.search-field :deep(.v-field),
-.type-selector :deep(.v-field) {
-    background: rgba(var(--v-theme-on-surface), 0.03) !important;
-}
+              <div class="flex gap-3">
+                  <Button variant="outline" class="flex-1 rounded-xl h-11" @click="showAccountDeleteConfirm = false">
+                      Keep Account
+                  </Button>
+                  <Button variant="destructive" class="flex-1 rounded-xl h-11" :disabled="isDeletingAccount" @click="confirmAccountDelete">
+                      Confirm Delete
+                  </Button>
+              </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
-.gap-4 { gap: 16px; }
-.ls-1 { letter-spacing: 0.05em; }
+      <!-- Pay Bill Modal -->
+      <Dialog :open="showPayBillModal" @update:open="val => showPayBillModal = val">
+        <DialogContent class="sm:max-w-[450px]">
+          <DialogHeader class="text-center pt-4">
+            <div class="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 text-primary">
+                <CreditCard class="h-8 w-8" />
+            </div>
+            <DialogTitle class="text-xl font-black text-center">Pay Credit Bill</DialogTitle>
+            <DialogDescription class="text-center">
+              {{ payBillTarget?.name }} · Outstanding <strong class="text-red-500">{{ formatAmount(payBillTarget?.balance || 0) }}</strong>
+            </DialogDescription>
+          </DialogHeader>
 
-.line-height-1 { line-height: 1; }
+          <form @submit.prevent="handlePayBillSubmit" class="space-y-4 py-4">
+            <div class="space-y-2">
+                <label class="text-sm font-bold">Pay From</label>
+                <Select v-model="payBillForm.source_account_id">
+                    <SelectTrigger class="w-full rounded-xl">
+                        <SelectValue placeholder="Select bank account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem v-for="opt in bankAccountsItems" :key="opt.value" :value="opt.value">{{ opt.title }}</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
 
-.btn-primary-glow {
-    box-shadow: 0 4px 15px rgba(var(--v-theme-primary), 0.3);
-}
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label class="text-sm font-bold">Amount (₹)</label>
+                    <Input type="number" v-model="payBillForm.amount" class="rounded-xl" />
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-bold">Date</label>
+                    <Input type="date" v-model="payBillForm.date" class="rounded-xl" />
+                </div>
+            </div>
 
-.no-hover:hover {
-    transform: none !important;
-    box-shadow: none !important;
-}
+            <div class="flex items-center justify-between p-4 rounded-xl bg-muted/50 border mb-6 mt-4">
+                <div>
+                    <div class="text-sm font-bold">Record Transaction</div>
+                    <div class="text-xs text-muted-foreground">Debit from source account</div>
+                </div>
+                <Switch :checked="payBillForm.record_transaction" @update:checked="(val: boolean) => payBillForm.record_transaction = val" />
+            </div>
 
-.border-b {
-    border-bottom: 1px solid rgba(var(--v-border-color), 0.1);
-}
-</style>
+            <div class="flex gap-3 justify-center pt-2">
+                <Button type="button" variant="ghost" class="rounded-full px-6 h-11" @click="showPayBillModal = false">
+                    Cancel
+                </Button>
+                <Button type="submit" class="rounded-full px-8 h-11 shadow-md shadow-primary/20" :disabled="submittingPayBill">
+                    Confirm Payment
+                </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  </MainLayout>
+</template>

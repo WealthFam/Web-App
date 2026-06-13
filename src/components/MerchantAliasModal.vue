@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue'
 import { financeApi } from '@/api/client'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Loader2 } from 'lucide-vue-next'
 
 const props = defineProps<{
     modelValue: boolean
@@ -73,43 +84,46 @@ async function save() {
 </script>
 
 <template>
-    <v-dialog v-model="isOpen" max-width="500">
-        <v-card class="rounded-xl">
-            <v-card-title class="d-flex justify-space-between align-center pa-4 border-b">
-                <span class="text-h6 font-weight-bold">New Merchant Alias</span>
-                <v-btn icon="X" variant="text" density="comfortable" @click="isOpen = false"></v-btn>
-            </v-card-title>
-            <v-card-text class="pa-6">
-                <v-form @submit.prevent="save">
-                    <v-text-field v-model="form.pattern" label="Raw Text Pattern" placeholder="e.g. AMZN MKTP"
-                        variant="outlined" class="mb-4" hint="Matches if this text appears in description"
-                        persistent-hint required readonly></v-text-field>
+    <Dialog v-model:open="isOpen">
+        <DialogContent class="sm:max-w-[500px]">
+            <DialogHeader>
+                <DialogTitle class="text-xl font-bold">New Merchant Alias</DialogTitle>
+            </DialogHeader>
+            <form @submit.prevent="save" class="space-y-6 pt-4">
+                <div class="space-y-2">
+                    <label class="text-sm font-bold text-foreground">Raw Text Pattern</label>
+                    <Input v-model="form.pattern" placeholder="e.g. AMZN MKTP" required readonly class="bg-muted" />
+                    <p class="text-xs text-muted-foreground mt-1">Matches if this text appears in description</p>
+                </div>
 
-                    <v-text-field v-model="form.alias" label="Clean Merchant Name" placeholder="e.g. Amazon"
-                        variant="outlined" class="mb-6" required></v-text-field>
+                <div class="space-y-2">
+                    <label class="text-sm font-bold text-foreground">Clean Merchant Name</label>
+                    <Input v-model="form.alias" placeholder="e.g. Amazon" required />
+                </div>
 
-                    <v-checkbox v-model="form.update_past" color="primary" hide-details class="mb-2">
-                        <template v-slot:label>
-                            <div>
-                                <div class="font-weight-bold">Update past transactions?</div>
-                                <div class="text-caption text-medium-emphasis" v-if="impact !== null">
-                                    Will update approx. <strong>{{ impact }}</strong> transactions
-                                </div>
-                                <div class="text-caption text-medium-emphasis" v-else>
-                                    Select to verify impact on history
-                                </div>
-                            </div>
-                        </template>
-                    </v-checkbox>
-
-                    <div class="d-flex justify-end gap-3 pt-4">
-                        <v-btn variant="text" @click="isOpen = false">Cancel</v-btn>
-                        <v-btn type="submit" color="primary" :loading="loading">
-                            Create Rule
-                        </v-btn>
+                <div class="flex items-start space-x-3 space-y-0 pt-2">
+                    <Checkbox id="update-past" :checked="form.update_past" @update:checked="(val: boolean) => form.update_past = val" />
+                    <div class="grid gap-1.5 leading-none">
+                        <label for="update-past" class="text-sm font-bold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                            Update past transactions?
+                        </label>
+                        <p class="text-xs text-muted-foreground" v-if="impact !== null">
+                            Will update approx. <strong class="text-primary font-bold">{{ impact }}</strong> transactions
+                        </p>
+                        <p class="text-xs text-muted-foreground" v-else>
+                            Select to verify impact on history
+                        </p>
                     </div>
-                </v-form>
-            </v-card-text>
-        </v-card>
-    </v-dialog>
+                </div>
+
+                <DialogFooter class="flex gap-3 justify-end pt-4">
+                    <Button type="button" variant="ghost" @click="isOpen = false">Cancel</Button>
+                    <Button type="submit" :disabled="loading">
+                        <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
+                        Create Rule
+                    </Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
 </template>

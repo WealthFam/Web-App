@@ -126,26 +126,34 @@ export function useTransactionHelpers(
      * Computed property for category dropdown options (flattened hierarchy)
      */
     const categoryOptions = computed(() => {
-        const options: Array<{ title: string; value: string }> = []
+        const options: Array<{ title: string; value: string; name: string; icon: string; depth: number }> = []
 
         // Assuming categories.value is a flat list with parent_id/parent_name
         categories.value.forEach(cat => {
             if (!cat.parent_id) {
                 // Top-level category
-                options.push({ title: `${cat.icon || '🏷️'} ${cat.name}`, value: cat.name })
+                options.push({ 
+                    title: `${cat.icon || '🏷️'} ${cat.name}`, 
+                    value: cat.name,
+                    name: cat.name,
+                    icon: cat.icon || '🏷️',
+                    depth: 0
+                })
 
                 // Add subcategories with parent prefix to ensure uniqueness in display
                 const subcats = categories.value.filter(c => c.parent_id === cat.id)
                 subcats.forEach(sub => {
                     options.push({
                         title: `　└ ${sub.icon || '🏷️'} ${cat.name} › ${sub.name}`,
-                        value: `${cat.name} › ${sub.name}` // Unique value for subcategories
+                        value: `${cat.name} › ${sub.name}`, // Unique value for subcategories
+                        name: `${cat.name} › ${sub.name}`,
+                        icon: sub.icon || '🏷️',
+                        depth: 1
                     })
                 })
             }
         })
 
-        // Ensure Uncategorized is an option if not present
         return options
     })
 

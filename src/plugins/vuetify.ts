@@ -27,6 +27,11 @@ const lucide: any = {
 }
 
 export default createVuetify({
+    defaults: {
+        global: {
+            density: 'compact'
+        }
+    },
     components,
     directives,
     icons: {

@@ -1,5 +1,88 @@
 @import './base.css';
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 10% 3.9%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, sans-serif !important;
+  }
+}
+
+
+@layer utilities {
+  #app .rounded-sm, body .rounded-sm { border-radius: calc(var(--radius) - 4px) !important; }
+  #app .rounded-md, body .rounded-md { border-radius: calc(var(--radius) - 2px) !important; }
+  #app .rounded-lg, body .rounded-lg { border-radius: var(--radius) !important; }
+  #app .rounded-xl, body .rounded-xl { border-radius: calc(var(--radius) + 4px) !important; }
+  #app .rounded-2xl, body .rounded-2xl { border-radius: calc(var(--radius) + 8px) !important; }
+  #app .rounded-3xl, body .rounded-3xl { border-radius: calc(var(--radius) + 12px) !important; }
+
+  /* Directional corner overrides to enforce consistent radius scales */
+  #app .rounded-t-sm, body .rounded-t-sm { border-top-left-radius: calc(var(--radius) - 4px) !important; border-top-right-radius: calc(var(--radius) - 4px) !important; }
+  #app .rounded-b-sm, body .rounded-b-sm { border-bottom-left-radius: calc(var(--radius) - 4px) !important; border-bottom-right-radius: calc(var(--radius) - 4px) !important; }
+  #app .rounded-t-md, body .rounded-t-md { border-top-left-radius: calc(var(--radius) - 2px) !important; border-top-right-radius: calc(var(--radius) - 2px) !important; }
+  #app .rounded-b-md, body .rounded-b-md { border-bottom-left-radius: calc(var(--radius) - 2px) !important; border-bottom-right-radius: calc(var(--radius) - 2px) !important; }
+  #app .rounded-t-lg, body .rounded-t-lg { border-top-left-radius: var(--radius) !important; border-top-right-radius: var(--radius) !important; }
+  #app .rounded-b-lg, body .rounded-b-lg { border-bottom-left-radius: var(--radius) !important; border-bottom-right-radius: var(--radius) !important; }
+  #app .rounded-t-xl, body .rounded-t-xl { border-top-left-radius: calc(var(--radius) + 4px) !important; border-top-right-radius: calc(var(--radius) + 4px) !important; }
+  #app .rounded-b-xl, body .rounded-b-xl { border-bottom-left-radius: calc(var(--radius) + 4px) !important; border-bottom-right-radius: calc(var(--radius) + 4px) !important; }
+  #app .rounded-t-2xl, body .rounded-t-2xl { border-top-left-radius: calc(var(--radius) + 8px) !important; border-top-right-radius: calc(var(--radius) + 8px) !important; }
+  #app .rounded-b-2xl, body .rounded-b-2xl { border-bottom-left-radius: calc(var(--radius) + 8px) !important; border-bottom-right-radius: calc(var(--radius) + 8px) !important; }
+}
+
 /* WealthFam Standard Design System - Categorization Toolbars */
 .premium-toolbar {
     height: 64px !important;
@@ -47,4 +130,36 @@
 @keyframes animate-in {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* Premium Modern SaaS Card Style */
+.premium-card {
+  position: relative;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border: 1px solid hsl(var(--border) / 0.6) !important;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.02), 0 1px 3px -1px rgba(0, 0, 0, 0.01) !important;
+  overflow: hidden;
+  background: hsl(var(--card)) !important;
+}
+
+.premium-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.35s;
+}
+
+.premium-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 16px 28px -12px rgba(99, 102, 241, 0.08), 0 8px 16px -8px rgba(99, 102, 241, 0.04) !important;
+  border-color: hsl(var(--primary) / 0.2) !important;
+}
+
+.dark .premium-card:hover {
+  box-shadow: 0 16px 28px -12px rgba(0, 0, 0, 0.45), 0 8px 16px -8px rgba(99, 102, 241, 0.08) !important;
+  border-color: hsl(var(--primary) / 0.35) !important;
+  background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.9) 100%) !important;
 }

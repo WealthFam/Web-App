@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Sparkles, Tag, ShieldCheck, History, EyeOff } from 'lucide-vue-next'
 
 const props = defineProps<{
     isOpen: boolean
@@ -24,195 +32,110 @@ function handleConfirm() {
 </script>
 
 <template>
-    <v-dialog :model-value="isOpen" @update:model-value="emit('close')" max-width="500px">
-        <v-card class="premium-modal overflow-hidden">
+    <Dialog :open="isOpen" @update:open="emit('close')">
+        <DialogContent class="sm:max-w-[500px] p-0 overflow-hidden rounded-3xl border-0 shadow-2xl">
             <!-- Header with Gradient -->
-            <div class="modal-header-gradient pa-6 text-white relative-pos">
-                <div class="d-flex align-center justify-space-between mb-2">
-                    <div class="d-flex align-center gap-3">
-                        <v-icon icon="Sparkles" size="32" class="header-icon-glow"></v-icon>
-                        <div>
-                            <h2 class="text-h5 font-weight-black mb-0">Smart Action</h2>
-                            <p class="text-caption opacity-80 font-weight-bold">Automate your categorization</p>
-                        </div>
+            <div class="bg-gradient-to-br from-primary to-indigo-600 p-6 text-white relative">
+                <div class="flex items-center gap-3">
+                    <div class="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center shadow-inner">
+                        <Sparkles class="h-6 w-6 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]" />
                     </div>
-                    <v-btn icon="X" variant="text" color="white" @click="emit('close')" density="compact"></v-btn>
+                    <div>
+                        <DialogTitle class="text-xl font-black text-white m-0">Smart Action</DialogTitle>
+                        <p class="text-xs text-white/80 font-bold mt-0.5">Automate your categorization</p>
+                    </div>
                 </div>
             </div>
 
-            <v-card-text class="pa-6 pt-8">
+            <div class="p-6 pt-8 space-y-6">
                 <!-- Info Section -->
-                <div class="info-banner mb-6 d-flex align-center gap-4 pa-4 rounded-xl">
-                    <div class="pattern-avatar d-flex align-center justify-center">
-                        <v-icon icon="Tag" color="primary"></v-icon>
+                <div class="bg-primary/5 border border-primary/10 flex items-center gap-4 p-4 rounded-xl">
+                    <div class="w-12 h-12 flex items-center justify-center bg-background rounded-2xl shadow-sm border shrink-0">
+                        <Tag class="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                        <div class="text-caption text-medium-emphasis font-weight-bold text-uppercase letter-spacing-1">
-                            Detected Pattern</div>
-                        <div class="text-subtitle-1 font-weight-black text-primary">"{{ data.pattern }}"</div>
+                        <div class="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Detected Pattern</div>
+                        <div class="text-base font-black text-primary">"{{ data.pattern }}"</div>
                     </div>
                 </div>
 
-                <div class="text-body-2 text-medium-emphasis mb-6">
-                    You've assigned <strong>{{ data.category }}</strong> to this transaction.
-                    <span v-if="hasSimilar">
-                        We found <strong>{{ data.count }}</strong> similar transactions in your history.
+                <div class="text-sm text-muted-foreground">
+                    You've assigned <strong class="text-foreground font-extrabold">{{ data.category }}</strong> to this transaction.
+                    <span v-if="hasSimilar" class="block mt-1">
+                        We found <strong class="text-foreground font-extrabold">{{ data.count }}</strong> similar transactions in your history.
                     </span>
                 </div>
 
                 <!-- Options -->
-                <div class="options-container d-flex flex-column gap-3">
-                    <v-hover v-slot="{ isHovering, props: hoverProps }">
-                        <div v-bind="hoverProps"
-                            class="option-pill d-flex align-center pa-4 rounded-xl transition-all cursor-pointer"
-                            :class="{ 'active': data.createRule, 'hover': isHovering }"
-                            @click="data.createRule = !data.createRule">
-                            <div class="option-icon-box mr-4">
-                                <v-icon icon="ShieldCheck"
-                                    :color="data.createRule ? 'primary' : 'medium-emphasis'"></v-icon>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="text-subtitle-2 font-weight-bold mb-0">Create Permanent Rule</div>
-                                <div class="text-caption opacity-70">Auto-categorize matching future transactions</div>
-                            </div>
-                            <v-checkbox-btn v-model="data.createRule" color="primary" density="compact"
-                                hide-details></v-checkbox-btn>
+                <div class="space-y-3">
+                    <!-- Option 1: Permanent Rule -->
+                    <div
+                        class="flex items-center p-4 rounded-xl border transition-all cursor-pointer select-none"
+                        :class="data.createRule 
+                            ? 'border-primary bg-primary/5' 
+                            : 'border-border/40 bg-card hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20'"
+                        @click="data.createRule = !data.createRule"
+                    >
+                        <div class="w-11 h-11 flex items-center justify-center rounded-xl mr-4 shrink-0 transition-colors"
+                            :class="data.createRule ? 'bg-primary/15' : 'bg-muted'"
+                        >
+                            <ShieldCheck class="h-5 w-5" :class="data.createRule ? 'text-primary' : 'text-muted-foreground'" />
                         </div>
-                    </v-hover>
+                        <div class="flex-grow min-w-0">
+                            <div class="text-sm font-bold text-foreground">Create Permanent Rule</div>
+                            <div class="text-xs text-muted-foreground mt-0.5">Auto-categorize matching future transactions</div>
+                        </div>
+                        <Checkbox :checked="data.createRule" @update:checked="(val: boolean) => data.createRule = val" class="ml-2" />
+                    </div>
 
-                    <v-hover v-slot="{ isHovering, props: hoverProps }" v-if="hasSimilar">
-                        <div v-bind="hoverProps"
-                            class="option-pill d-flex align-center pa-4 rounded-xl transition-all cursor-pointer"
-                            :class="{ 'active': data.applyToSimilar, 'hover': isHovering }"
-                            @click="data.applyToSimilar = !data.applyToSimilar">
-                            <div class="option-icon-box mr-4">
-                                <v-icon icon="History"
-                                    :color="data.applyToSimilar ? 'primary' : 'medium-emphasis'"></v-icon>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="text-subtitle-2 font-weight-bold mb-0">Apply to Past History</div>
-                                <div class="text-caption opacity-70">Update {{ data.count }} similar transactions now
-                                </div>
-                            </div>
-                            <v-checkbox-btn v-model="data.applyToSimilar" color="primary" density="compact"
-                                hide-details></v-checkbox-btn>
+                    <!-- Option 2: Apply to Past History (Conditionally Shown) -->
+                    <div v-if="hasSimilar"
+                        class="flex items-center p-4 rounded-xl border transition-all cursor-pointer select-none"
+                        :class="data.applyToSimilar 
+                            ? 'border-primary bg-primary/5' 
+                            : 'border-border/40 bg-card hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20'"
+                        @click="data.applyToSimilar = !data.applyToSimilar"
+                    >
+                        <div class="w-11 h-11 flex items-center justify-center rounded-xl mr-4 shrink-0 transition-colors"
+                            :class="data.applyToSimilar ? 'bg-primary/15' : 'bg-muted'"
+                        >
+                            <History class="h-5 w-5" :class="data.applyToSimilar ? 'text-primary' : 'text-muted-foreground'" />
                         </div>
-                    </v-hover>
+                        <div class="flex-grow min-w-0">
+                            <div class="text-sm font-bold text-foreground">Apply to Past History</div>
+                            <div class="text-xs text-muted-foreground mt-0.5">Update {{ data.count }} similar transactions now</div>
+                        </div>
+                        <Checkbox :checked="data.applyToSimilar" @update:checked="(val: boolean) => data.applyToSimilar = val" class="ml-2" />
+                    </div>
 
-                    <v-hover v-slot="{ isHovering, props: hoverProps }">
-                        <div v-bind="hoverProps"
-                            class="option-pill d-flex align-center pa-4 rounded-xl transition-all cursor-pointer"
-                            :class="{ 'active': data.excludeFromReports, 'hover': isHovering }"
-                            @click="data.excludeFromReports = !data.excludeFromReports">
-                            <div class="option-icon-box mr-4">
-                                <v-icon icon="EyeOff"
-                                    :color="data.excludeFromReports ? 'primary' : 'medium-emphasis'"></v-icon>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="text-subtitle-2 font-weight-bold mb-0">Exclude from Reports</div>
-                                <div class="text-caption opacity-70">Don't count matching transactions in analytics
-                                </div>
-                            </div>
-                            <v-checkbox-btn v-model="data.excludeFromReports" color="primary" density="compact"
-                                hide-details></v-checkbox-btn>
+                    <!-- Option 3: Exclude from Reports -->
+                    <div
+                        class="flex items-center p-4 rounded-xl border transition-all cursor-pointer select-none"
+                        :class="data.excludeFromReports 
+                            ? 'border-primary bg-primary/5' 
+                            : 'border-border/40 bg-card hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20'"
+                        @click="data.excludeFromReports = !data.excludeFromReports"
+                    >
+                        <div class="w-11 h-11 flex items-center justify-center rounded-xl mr-4 shrink-0 transition-colors"
+                            :class="data.excludeFromReports ? 'bg-primary/15' : 'bg-muted'"
+                        >
+                            <EyeOff class="h-5 w-5" :class="data.excludeFromReports ? 'text-primary' : 'text-muted-foreground'" />
                         </div>
-                    </v-hover>
+                        <div class="flex-grow min-w-0">
+                            <div class="text-sm font-bold text-foreground">Exclude from Reports</div>
+                            <div class="text-xs text-muted-foreground mt-0.5">Don't count matching transactions in analytics</div>
+                        </div>
+                        <Checkbox :checked="data.excludeFromReports" @update:checked="(val: boolean) => data.excludeFromReports = val" class="ml-2" />
+                    </div>
                 </div>
-            </v-card-text>
+            </div>
 
-            <v-divider class="opacity-10"></v-divider>
-
-            <v-card-actions class="pa-6 bg-surface">
-                <v-spacer></v-spacer>
-                <v-btn variant="text" color="medium-emphasis" class="px-6 rounded-xl font-weight-bold"
-                    @click="emit('close')">Skip</v-btn>
-                <v-btn color="primary" class="px-8 rounded-xl font-weight-black shadow-primary" @click="handleConfirm">
+            <div class="p-6 bg-muted/30 border-t flex justify-end gap-3">
+                <Button type="button" variant="ghost" class="px-6 rounded-xl font-bold" @click="emit('close')">Skip</Button>
+                <Button type="button" class="px-8 rounded-xl font-bold shadow-md shadow-primary/20" @click="handleConfirm">
                     Approve Action
-                </v-btn>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
+                </Button>
+            </div>
+        </DialogContent>
+    </Dialog>
 </template>
-
-<style scoped>
-.premium-modal {
-    border-radius: 28px !important;
-    background: rgb(var(--v-theme-surface)) !important;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-}
-
-.modal-header-gradient {
-    background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #6366f1 100%);
-}
-
-.header-icon-glow {
-    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
-}
-
-.info-banner {
-    background: rgba(var(--v-theme-primary), 0.05);
-    border: 1px solid rgba(var(--v-theme-primary), 0.1);
-}
-
-.pattern-avatar {
-    width: 48px;
-    height: 48px;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.options-container {
-    perspective: 1000px;
-}
-
-.option-pill {
-    border: 2px solid rgba(var(--v-border-color), 0.05);
-    background: rgba(var(--v-theme-surface), 1);
-}
-
-.option-pill.hover {
-    border-color: rgba(var(--v-theme-primary), 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.05);
-}
-
-.option-pill.active {
-    border-color: rgb(var(--v-theme-primary));
-    background: rgba(var(--v-theme-primary), 0.02);
-}
-
-.option-icon-box {
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f8fafc;
-    border-radius: 12px;
-}
-
-.option-pill.active .option-icon-box {
-    background: rgba(var(--v-theme-primary), 0.1);
-}
-
-.letter-spacing-1 {
-    letter-spacing: 1px;
-}
-
-.shadow-primary {
-    box-shadow: 0 4px 14px 0 rgba(var(--v-theme-primary), 0.39) !important;
-}
-
-.relative-pos {
-    position: relative;
-}
-
-.gap-3 {
-    gap: 12px;
-}
-
-.gap-4 {
-    gap: 16px;
-}
-</style>

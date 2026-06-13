@@ -10,6 +10,8 @@ import {
     FileText
 } from 'lucide-vue-next'
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 // Child Components
 import EmailSettings from './settings/EmailSettings.vue'
 import FamilySettings from './settings/FamilySettings.vue'
@@ -28,181 +30,68 @@ onMounted(() => {
 </script>
 
 <template>
-    <MainLayout>
-        <v-container fluid class="page-container dashboard-page">
-            <!-- Animated Mesh Background -->
-            <div class="mesh-blob blob-1"></div>
-            <div class="mesh-blob blob-2"></div>
-            <div class="mesh-blob blob-3"></div>
+  <MainLayout>
+    <div class="flex-1 space-y-6 relative overflow-hidden">
+      <!-- Animated Mesh Background -->
+      <div class="absolute w-[600px] h-[600px] bg-primary/10 rounded-full blur-[80px] -top-[200px] -right-[100px] opacity-15 animate-pulse -z-10 pointer-events-none"></div>
+      <div class="absolute w-[400px] h-[400px] bg-secondary/10 rounded-full blur-[80px] -bottom-[100px] -left-[100px] opacity-15 animate-pulse -z-10 pointer-events-none" style="animation-delay: -5s"></div>
+      <div class="absolute w-[300px] h-[300px] bg-emerald-500/10 rounded-full blur-[80px] top-[40%] left-[30%] opacity-15 animate-pulse -z-10 pointer-events-none" style="animation-delay: -8s"></div>
 
-            <div class="relative-pos z-10">
-                <!-- Premium Header -->
-                <v-row class="mb-6 align-center">
-                    <v-col cols="12" md="4">
-                        <div class="d-flex align-center">
-                            <h1 class="text-h6 font-weight-black text-content">Settings</h1>
-                        </div>
-                        <p class="text-subtitle-2 text-medium-emphasis font-weight-bold mt-1 opacity-70">
-                            Manage your family configuration and system preferences
-                        </p>
-                    </v-col>
+      <Tabs v-model="activeTab" class="w-full">
+        <!-- Header & Tabs -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-3xl font-bold tracking-tight">Settings</h1>
+            <p class="text-muted-foreground mt-1">Manage your family configuration and system preferences</p>
+          </div>
+          
+          <div class="overflow-x-auto pb-2 md:pb-0">
+            <TabsList class="h-11">
+              <TabsTrigger value="tenants" class="flex items-center gap-2 px-4">
+                <Users class="h-4 w-4" />
+                <span>Family</span>
+              </TabsTrigger>
+              <TabsTrigger value="emails" class="flex items-center gap-2 px-4">
+                <Mail class="h-4 w-4" />
+                <span>Emails</span>
+              </TabsTrigger>
+              <TabsTrigger value="ai" class="flex items-center gap-2 px-4">
+                <Bot class="h-4 w-4" />
+                <span>AI Integration</span>
+              </TabsTrigger>
+              <TabsTrigger value="devices" class="flex items-center gap-2 px-4">
+                <Smartphone class="h-4 w-4" />
+                <span>Devices</span>
+              </TabsTrigger>
+              <TabsTrigger value="parser" class="flex items-center gap-2 px-4">
+                <FileText class="h-4 w-4" />
+                <span>Parser Engine</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
-                    <v-col cols="12" md="8" class="d-flex flex-column flex-md-row align-md-center justify-end gap-3">
-                        <!-- Navigation Tabs -->
-                        <div class="premium-pill-tabs flex-grow-1 flex-md-grow-0 d-flex overflow-x-auto">
-                            <v-tabs v-model="activeTab" color="primary" density="compact" hide-slider show-arrows
-                                class="rounded-xl">
-                                <v-tab value="tenants" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center gap-2">
-                                        <Users :size="16" />
-                                        <span>Family</span>
-                                    </div>
-                                </v-tab>
-                                <v-tab value="emails" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center gap-2">
-                                        <Mail :size="16" />
-                                        <span>Emails</span>
-                                    </div>
-                                </v-tab>
-                                <v-tab value="ai" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center gap-2">
-                                        <Bot :size="16" />
-                                        <span>AI Integration</span>
-                                    </div>
-                                </v-tab>
-                                <v-tab value="devices" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center gap-2">
-                                        <Smartphone :size="16" />
-                                        <span>Devices</span>
-                                    </div>
-                                </v-tab>
-                                <v-tab value="parser" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center gap-2">
-                                        <FileText :size="16" />
-                                        <span>Parser Engine</span>
-                                    </div>
-                                </v-tab>
-                            </v-tabs>
-                        </div>
-                    </v-col>
-                </v-row>
+        <!-- Tab Contents -->
+        <TabsContent value="tenants" class="space-y-6">
+          <FamilySettings />
+        </TabsContent>
 
-                <!-- CONTENT AREA -->
-                <v-window v-model="activeTab" class="overflow-visible">
-                    <v-window-item value="tenants">
-                        <FamilySettings />
-                    </v-window-item>
+        <TabsContent value="emails" class="space-y-6">
+          <EmailSettings />
+        </TabsContent>
 
-                    <v-window-item value="emails">
-                        <EmailSettings />
-                    </v-window-item>
+        <TabsContent value="ai" class="space-y-6">
+          <AISettings />
+        </TabsContent>
 
-                    <v-window-item value="ai">
-                        <AISettings />
-                    </v-window-item>
+        <TabsContent value="devices" class="space-y-6">
+          <DevicesSettings />
+        </TabsContent>
 
-                    <v-window-item value="devices">
-                        <DevicesSettings />
-                    </v-window-item>
-
-                    <v-window-item value="parser">
-                        <ParserSettings />
-                    </v-window-item>
-                </v-window>
-            </div>
-        </v-container>
-    </MainLayout>
+        <TabsContent value="parser" class="space-y-6">
+          <ParserSettings />
+        </TabsContent>
+      </Tabs>
+    </div>
+  </MainLayout>
 </template>
-
-<style scoped>
-.settings-page {
-    position: relative;
-    min-height: calc(100vh - 64px);
-}
-
-.mesh-blob {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.15;
-    border-radius: 50%;
-    z-index: 0;
-    animation: blob-float 10s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.blob-1 {
-    background: rgb(var(--v-theme-primary));
-    width: 600px;
-    height: 600px;
-    top: -200px;
-    right: -100px;
-}
-
-.blob-2 {
-    background: rgb(var(--v-theme-secondary));
-    width: 400px;
-    height: 400px;
-    bottom: -100px;
-    left: -100px;
-    animation-delay: -5s;
-}
-
-.blob-3 {
-    background: rgb(var(--v-theme-success));
-    width: 300px;
-    height: 300px;
-    top: 40%;
-    left: 30%;
-    animation-delay: -8s;
-}
-
-@keyframes blob-float {
-    0% {
-        transform: translate(0, 0) scale(1);
-    }
-
-    100% {
-        transform: translate(20px, -20px) scale(1.1);
-    }
-}
-
-.relative-pos {
-    position: relative;
-}
-
-.z-10 {
-    z-index: 10;
-}
-
-.gap-2 {
-    gap: 8px;
-}
-
-.gap-3 {
-    gap: 12px;
-}
-
-/* Premium Tabs */
-.premium-pill-tabs {
-    background: rgba(var(--v-theme-surface), 0.6);
-    backdrop-filter: blur(10px);
-    padding: 6px;
-    border-radius: 24px;
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
-
-.premium-tab {
-    text-transform: none !important;
-    letter-spacing: 0;
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: rgba(var(--v-theme-on-surface), 0.6);
-    transition: all 0.3s ease;
-    min-width: 120px;
-}
-
-.premium-tab.v-tab--selected {
-    background: rgb(var(--v-theme-primary));
-    color: white !important;
-    box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3);
-}
-</style>
