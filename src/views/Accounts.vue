@@ -43,60 +43,60 @@
                 </v-row>
 
                 <!-- Account Summary Grid -->
-                <v-row class="mb-10">
+                <v-row class="mb-5">
                     <v-col cols="12" sm="6" md="3">
                         <v-hover v-slot="{ isHovering, props }">
-                            <v-card v-bind="props" class="m3-card metric-card pa-6 h-100 d-flex flex-column" :class="{ 'raised': isHovering }" rounded="xl" elevation="1">
-                                <div class="d-flex justify-space-between align-start mb-6">
-                                    <v-avatar class="premium-gradient-primary elevation-2" rounded="lg" size="48">
-                                        <Scale :size="24" color="white" />
+                            <v-card v-bind="props" class="m3-card metric-card pa-4 h-100 d-flex flex-column" :class="{ 'raised': isHovering }" rounded="xl" elevation="1">
+                                <div class="d-flex justify-space-between align-start mb-3">
+                                    <v-avatar class="premium-gradient-primary elevation-2" rounded="lg" size="40">
+                                        <Scale :size="20" color="white" />
                                     </v-avatar>
                                 </div>
                                 <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Net Liquid Assets</div>
-                                <div class="text-h4 font-weight-black text-primary mb-1">{{ formatAmount(accountMetrics.total) }}</div>
+                                <div class="text-h5 font-weight-black text-primary mb-1">{{ formatAmount(accountMetrics.total) }}</div>
                                 <div class="mt-auto text-caption font-weight-bold opacity-60">Total available capital</div>
                             </v-card>
                         </v-hover>
                     </v-col>
                     <v-col cols="12" sm="6" md="3">
                         <v-hover v-slot="{ isHovering, props }">
-                            <v-card v-bind="props" class="m3-card metric-card pa-6 h-100 d-flex flex-column" :class="{ 'raised': isHovering }" rounded="xl" elevation="1">
-                                <div class="d-flex justify-space-between align-start mb-6">
-                                    <v-avatar class="premium-gradient-success elevation-2" rounded="lg" size="48">
-                                        <Landmark :size="24" color="white" />
+                            <v-card v-bind="props" class="m3-card metric-card pa-4 h-100 d-flex flex-column" :class="{ 'raised': isHovering }" rounded="xl" elevation="1">
+                                <div class="d-flex justify-space-between align-start mb-3">
+                                    <v-avatar class="premium-gradient-success elevation-2" rounded="lg" size="40">
+                                        <Landmark :size="20" color="white" />
                                     </v-avatar>
                                 </div>
                                 <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Bank Balances</div>
-                                <div class="text-h4 font-weight-black text-success mb-1">{{ formatAmount(accountMetrics.bank) }}</div>
+                                <div class="text-h5 font-weight-black text-success mb-1">{{ formatAmount(accountMetrics.bank) }}</div>
                                 <div class="mt-auto text-caption font-weight-bold opacity-60">Cash in hand</div>
                             </v-card>
                         </v-hover>
                     </v-col>
                     <v-col cols="12" sm="6" md="3">
                         <v-hover v-slot="{ isHovering, props }">
-                            <v-card v-bind="props" class="m3-card metric-card pa-6 h-100 d-flex flex-column" :class="{ 'raised': isHovering }" rounded="xl" elevation="1">
-                                <div class="d-flex justify-space-between align-start mb-6">
-                                    <v-avatar class="premium-gradient-error elevation-2" rounded="lg" size="48">
-                                        <CreditCard :size="24" color="white" />
+                            <v-card v-bind="props" class="m3-card metric-card pa-4 h-100 d-flex flex-column" :class="{ 'raised': isHovering }" rounded="xl" elevation="1">
+                                <div class="d-flex justify-space-between align-start mb-3">
+                                    <v-avatar class="premium-gradient-error elevation-2" rounded="lg" size="40">
+                                        <CreditCard :size="20" color="white" />
                                     </v-avatar>
                                 </div>
                                 <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Active Credit Debt</div>
-                                <div class="text-h4 font-weight-black text-error mb-1">{{ formatAmount(accountMetrics.credit) }}</div>
+                                <div class="text-h5 font-weight-black text-error mb-1">{{ formatAmount(accountMetrics.credit) }}</div>
                                 <div class="mt-auto text-caption font-weight-bold opacity-60">Utilized limits</div>
                             </v-card>
                         </v-hover>
                     </v-col>
                     <v-col cols="12" sm="6" md="3">
                         <v-hover v-slot="{ isHovering, props }">
-                            <v-card v-bind="props" class="m3-card metric-card pa-6 h-100 d-flex flex-column" :class="{ 'raised': isHovering }" rounded="xl" elevation="1">
-                                <div class="d-flex justify-space-between align-start mb-6">
-                                    <v-avatar class="premium-gradient-warning elevation-2" rounded="lg" size="48">
-                                        <Zap :size="24" color="white" />
+                            <v-card v-bind="props" class="m3-card metric-card pa-4 h-100 d-flex flex-column" :class="{ 'raised': isHovering }" rounded="xl" elevation="1">
+                                <div class="d-flex justify-space-between align-start mb-3">
+                                    <v-avatar class="premium-gradient-warning elevation-2" rounded="lg" size="40">
+                                        <Zap :size="20" color="white" />
                                     </v-avatar>
-                                    <div class="text-h5 font-weight-black text-warning">{{ totalUtilization.toFixed(0) }}%</div>
+                                    <div class="text-subtitle-1 font-weight-black text-warning">{{ totalUtilization.toFixed(0) }}%</div>
                                 </div>
                                 <div class="text-overline opacity-60 font-weight-black letter-spacing-1">Credit Utilization</div>
-                                <v-progress-linear :model-value="totalUtilization" color="warning" class="mt-2 mb-2" rounded height="6"></v-progress-linear>
+                                <v-progress-linear :model-value="totalUtilization" color="warning" class="mt-2 mb-2" rounded height="4"></v-progress-linear>
                                 <div class="mt-auto text-caption font-weight-bold opacity-60">Weighted average</div>
                             </v-card>
                         </v-hover>

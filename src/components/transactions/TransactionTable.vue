@@ -123,10 +123,10 @@
                         <span>🔄</span>
                     </template>
                     <template v-else-if="Number(item.amount) > 0">
-                        <ArrowDownLeft :size="16" class="mt-1" />
+                        <ArrowUpRight :size="16" class="mt-1" />
                     </template>
                     <template v-else>
-                        <ArrowUpRight :size="16" class="mt-1" />
+                        <ArrowDownLeft :size="16" class="mt-1" />
                     </template>
                     {{ formatAmount(Math.abs(Number(item.amount))) }}
                 </div>

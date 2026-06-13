@@ -2,9 +2,9 @@
     <MainLayout>
         <v-container fluid class="page-container dashboard-page">
             <!-- Header -->
-            <v-row class="mb-10 align-center">
+            <v-row class="mb-5 align-center">
                 <v-col cols="12" md="6">
-                    <h1 class="text-h4 font-weight-black mb-1 letter-spacing-tight">Budgets & Activity</h1>
+                    <h1 class="text-h5 font-weight-black mb-1 letter-spacing-tight">Budgets & Activity</h1>
                     <p class="text-subtitle-2 text-on-surface opacity-60 font-weight-bold">
                         Personal finance intelligence and monthly limits
                     </p>
@@ -37,19 +37,19 @@
 
             <!-- Premium Skeleton Loading State -->
             <div v-if="loading">
-                <v-row class="mb-10">
+                <v-row class="mb-5">
                     <v-col cols="12">
                         <PremiumSkeleton type="hero" height="360" glass />
                     </v-col>
                 </v-row>
 
-                <v-row class="mb-10">
+                <v-row class="mb-5">
                     <v-col v-for="i in 4" :key="`summary-skel-${i}`" cols="12" sm="6" lg="3">
                         <PremiumSkeleton type="stat-card" glass />
                     </v-col>
                 </v-row>
 
-                <div class="mb-10">
+                <div class="mb-5">
                     <div class="d-flex align-center ga-3 mb-6">
                         <v-skeleton-loader type="avatar" size="44"></v-skeleton-loader>
                         <v-skeleton-loader type="heading" width="200"></v-skeleton-loader>

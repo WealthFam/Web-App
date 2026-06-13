@@ -429,9 +429,9 @@ function getAccountName(account_id: string) {
 
             <div class="relative-pos z-10">
                 <!-- Header -->
-                <div class="d-flex align-center justify-space-between mb-8">
+                <div class="d-flex align-center justify-space-between mb-4">
                     <div>
-                        <h1 class="text-h4 font-weight-black mb-1 gradient-text">Account Statements</h1>
+                        <h1 class="text-h5 font-weight-black mb-1 gradient-text">Account Statements</h1>
                         <p class="text-slate-500 font-weight-medium">Automated reconciliation and transaction discovery</p>
                     </div>
                     <div class="d-flex gap-3">

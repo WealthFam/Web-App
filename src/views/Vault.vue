@@ -7,7 +7,7 @@
 
             <div class="relative-pos z-10">
                 <!-- Header Actions -->
-                <v-row class="mb-6 align-center">
+                <v-row class="mb-4 align-center">
                     <v-col cols="12" md="6">
                         <div class="d-flex align-center ga-3">
                             <div class="icon-box primary-glow">
@@ -71,7 +71,7 @@
                 </v-row>
 
                 <!-- Breadcrumbs -->
-                <v-row class="mb-4">
+                <v-row class="mb-2">
                     <v-col cols="12">
                         <div class="d-flex align-center ga-2 breadcrumb-container">
                             <v-btn variant="text" density="compact" class="text-none px-2 font-weight-bold"
@@ -90,7 +90,7 @@
                 </v-row>
 
                 <!-- Filters & Search -->
-                <v-row class="mb-6">
+                <v-row class="mb-4">
                     <v-col cols="12">
                         <div class="glass-card pa-3 d-flex align-center flex-wrap ga-4">
                             <v-btn-toggle v-model="filterType" mandatory color="primary" rounded="pill"

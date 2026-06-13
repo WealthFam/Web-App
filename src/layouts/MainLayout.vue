@@ -224,7 +224,7 @@ function handleMouseMove(e: MouseEvent) {
         </div>
 
         <!-- Header / App Bar -->
-        <v-app-bar flat height="72" class="premium-header" border="b">
+        <v-app-bar flat height="60" class="premium-header" border="b">
             <template v-slot:prepend>
                 <v-btn icon variant="text" color="slate-600" @click.stop="rail = !rail" class="d-none d-lg-flex">
                     <Menu :size="20" />
@@ -573,7 +573,7 @@ function handleMouseMove(e: MouseEvent) {
 
         <!-- Side Navigation -->
         <v-navigation-drawer v-model="drawer" :rail="rail" permanent floating class="aether-drawer" width="280"
-            :rail-width="rail ? 88 : 280" @mousemove="handleMouseMove"
+            :rail-width="rail ? 72 : 280" @mousemove="handleMouseMove"
             :style="{ '--mouse-x': mouseX + 'px', '--mouse-y': mouseY + 'px' }">
             <v-list nav class="px-0 py-4" v-model:opened="openedGroups">
                 <template v-for="(item, index) in navItems" :key="item.title">
@@ -923,7 +923,7 @@ function handleMouseMove(e: MouseEvent) {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     border-radius: 0 !important;
-    min-height: 52px !important;
+    min-height: 44px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-start !important;
@@ -933,7 +933,7 @@ function handleMouseMove(e: MouseEvent) {
 /* Ensure rail mode stays centered */
 .rail-mode-item {
     padding: 0 !important;
-    min-height: 64px !important;
+    min-height: 56px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;

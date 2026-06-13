@@ -279,8 +279,8 @@
                             item.is_transfer ? 'opacity-70 text-medium-emphasis grayscale' : ''
                         ]">
                             <span v-if="item.is_transfer">🔄</span>
-                            <span v-else-if="Number(item.amount) > 0">↓</span>
-                            <span v-else>↑</span>
+                            <span v-else-if="Number(item.amount) > 0">↑</span>
+                            <span v-else>↓</span>
                             {{ formatAmount(Math.abs(Number(item.amount))) }}
                         </div>
                     </div>

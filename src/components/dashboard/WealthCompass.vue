@@ -82,9 +82,9 @@
       <!-- Savings Rate -->
       <v-col cols="6" sm="3">
         <div class="compass-stat-item text-center d-flex flex-column align-center ga-1">
-          <v-progress-circular :model-value="savingsRate" :size="70" :width="8" color="success"
+          <v-progress-circular :model-value="savingsRate" :size="60" :width="6" color="success"
             class="mb-1 compass-progress">
-            <span class="text-caption font-weight-black">{{ savingsRate }}%</span>
+            <span class="text-caption font-weight-black" style="font-size: 0.75rem !important;">{{ savingsRate }}%</span>
           </v-progress-circular>
           <div class="text-overline font-weight-black opacity-60">Savings Rate</div>
           <div class="text-caption font-weight-black text-success mt-n1">
@@ -96,9 +96,9 @@
       <!-- Investment Growth -->
       <v-col cols="6" sm="3">
         <div class="compass-stat-item text-center d-flex flex-column align-center ga-1">
-          <v-progress-circular :model-value="minMax(investmentGrowth, 0, 100)" :size="70" :width="8" color="primary"
+          <v-progress-circular :model-value="minMax(investmentGrowth, 0, 100)" :size="60" :width="6" color="primary"
             class="mb-1 compass-progress">
-            <span class="text-caption font-weight-black">{{ investmentGrowth }}%</span>
+            <span class="text-caption font-weight-black" style="font-size: 0.75rem !important;">{{ investmentGrowth }}%</span>
           </v-progress-circular>
           <div class="text-overline font-weight-black opacity-60">Portfolio</div>
           <div class="text-caption font-weight-black text-primary mt-n1">
@@ -110,9 +110,9 @@
       <!-- Debt Utility -->
       <v-col cols="6" sm="3">
         <div class="compass-stat-item text-center d-flex flex-column align-center ga-1">
-          <v-progress-circular :model-value="100 - creditUtilization" :size="70" :width="8" color="warning"
+          <v-progress-circular :model-value="100 - creditUtilization" :size="60" :width="6" color="warning"
             class="mb-1 compass-progress">
-            <span class="text-caption font-weight-black">{{ (100 - creditUtilization).toFixed(0) }}%</span>
+            <span class="text-caption font-weight-black" style="font-size: 0.75rem !important;">{{ (100 - creditUtilization).toFixed(0) }}%</span>
           </v-progress-circular>
           <div class="text-overline font-weight-black opacity-60">Credit Health</div>
           <div class="text-caption font-weight-black text-warning mt-n1">
@@ -124,9 +124,9 @@
       <!-- Budget Discipline -->
       <v-col cols="6" sm="3">
         <div class="compass-stat-item text-center d-flex flex-column align-center ga-1">
-          <v-progress-circular :model-value="budgetEfficiency" :size="70" :width="8" color="info"
+          <v-progress-circular :model-value="budgetEfficiency" :size="60" :width="6" color="info"
             class="mb-1 compass-progress">
-            <span class="text-caption font-weight-black">{{ budgetEfficiency }}%</span>
+            <span class="text-caption font-weight-black" style="font-size: 0.75rem !important;">{{ budgetEfficiency }}%</span>
           </v-progress-circular>
           <div class="text-overline font-weight-black opacity-60">Budgeting</div>
           <div class="text-caption font-weight-black text-info mt-n1">

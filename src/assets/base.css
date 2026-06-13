@@ -8,14 +8,14 @@
   min-height: calc(100vh - 64px);
   position: relative;
   overflow: hidden;
-  padding: 24px !important;
-  /* Default mobile padding */
+  padding: 16px !important;
+  /* Default mobile padding - reduced from 24px */
 }
 
 @media (min-width: 960px) {
   .page-container {
-    padding: 40px !important;
-    /* Tablet/Desktop padding */
+    padding: 24px !important;
+    /* Tablet/Desktop padding - reduced from 40px */
   }
 }
 
@@ -229,7 +229,7 @@ html, body, .hide-scrollbars, .no-scrollbar {
 .m3-card {
   background: rgb(var(--v-theme-surface)) !important;
   border: 1px solid rgba(var(--v-border-color), 0.12) !important;
-  border-radius: 24px !important;
+  border-radius: 16px !important; /* Reduced from 24px */
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
@@ -246,7 +246,7 @@ html, body, .hide-scrollbars, .no-scrollbar {
 .m3-list-item {
   background: rgba(var(--v-theme-on-surface), 0.02) !important;
   border: 1px solid rgba(var(--v-border-color), 0.04) !important;
-  border-radius: 16px !important;
+  border-radius: 12px !important; /* Reduced from 16px */
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
