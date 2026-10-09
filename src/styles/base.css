@@ -1,0 +1,64 @@
+/**
+ * Aether V4 Base Typography, Resets & Global Utilities
+ */
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--wf-color-text-primary);
+    background-color: var(--wf-color-background);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+  }
+
+  /* Accessible Focus Rings (Section 20) */
+  :focus-visible {
+    outline: 2px solid var(--wf-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Tabular Numbers for Financial Precision (Section 7.2) */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  -moz-font-feature-settings: 'tnum';
+  -webkit-font-feature-settings: 'tnum';
+  font-feature-settings: 'tnum';
+}
+
+/* Glassmorphism Surface Utility (Section 9.1) */
+.wf-glass-panel {
+  background: var(--wf-glass-bg);
+  backdrop-filter: blur(var(--wf-glass-blur));
+  -webkit-backdrop-filter: blur(var(--wf-glass-blur));
+  border: 1px solid var(--wf-glass-border);
+}
+
+/* Standard Page Layout Container (Section 6.1) */
+.wf-page-container {
+  max-width: var(--wf-container-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 768px) {
+  .wf-page-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .wf-page-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}

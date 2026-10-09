@@ -2,7 +2,20 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import apiClient from '@/api/client'
-import { Mail, Lock, Building, ArrowRight, Loader2 } from 'lucide-vue-next'
+import {
+  Mail,
+  Lock,
+  Building,
+  ArrowRight,
+  ShieldCheck,
+  TrendingUp,
+  PieChart,
+  Users,
+  Sparkles
+} from 'lucide-vue-next'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfInput from '@/components/ui/WfInput.vue'
+import WfAlert from '@/components/ui/WfAlert.vue'
 
 const router = useRouter()
 
@@ -14,213 +27,232 @@ const error = ref('')
 const loading = ref(false)
 
 async function handleRegister() {
-    if (password.value !== confirmPassword.value) {
-        error.value = "Passwords do not match"
-        return
-    }
+  if (password.value !== confirmPassword.value) {
+    error.value = "Passwords do not match."
+    return
+  }
 
-    loading.value = true
-    error.value = ''
+  loading.value = true
+  error.value = ''
 
-    try {
-        await apiClient.post('/auth/register', {
-            tenant: { name: familyName.value },
-            user: { email: email.value, password: password.value }
-        })
-        router.push('/login')
-    } catch (e: any) {
-        error.value = e.response?.data?.detail || 'Registration failed'
-    } finally {
-        loading.value = false
-    }
+  try {
+    await apiClient.post('/auth/register', {
+      tenant: { name: familyName.value },
+      user: { email: email.value, password: password.value }
+    })
+    router.push('/login')
+  } catch (e: any) {
+    error.value = e.response?.data?.detail || 'Registration failed. Please verify the information.'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
 <template>
-    <v-app>
-        <v-main class="bg-grey-lighten-4 d-flex align-center position-relative overflow-hidden"
-            style="min-height: 100vh;">
-            <!-- Animated Background Mesh -->
-            <div class="mesh-background">
-                <div class="mesh-blob blob-1"></div>
-                <div class="mesh-blob blob-2"></div>
-                <div class="mesh-blob blob-3"></div>
+  <div class="min-h-screen flex flex-col lg:flex-row bg-wf-background text-wf-text-primary">
+    <!-- LEFT SECTION: Brand Showcase & Value Props -->
+    <div class="relative hidden lg:flex lg:w-1/2 xl:w-7/12 flex-col justify-between p-12 xl:p-16 bg-slate-950 text-white overflow-hidden">
+      <!-- Ambient Glow Behind Elements -->
+      <div class="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div class="absolute -top-32 -left-32 w-96 h-96 bg-indigo-600/30 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/2 left-1/3 w-80 h-80 bg-sky-500/15 rounded-full blur-3xl"></div>
+        <!-- Grid pattern overlay -->
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:32px_32px]"></div>
+      </div>
+
+      <!-- Top Header / Logo -->
+      <div class="relative z-10 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-wf-lg bg-white/10 backdrop-blur-md border border-white/20 p-2 flex items-center justify-center">
+          <img src="/logo.png" alt="WealthFam Logo" class="w-full h-full object-contain" />
+        </div>
+        <div>
+          <span class="text-lg font-bold tracking-tight text-white">WealthFam</span>
+          <span class="text-xs text-indigo-400 font-mono ml-2 px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20">Aether V4</span>
+        </div>
+      </div>
+
+      <!-- Center Hero Visual & Features -->
+      <div class="relative z-10 max-w-xl my-auto py-12">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs text-indigo-200 mb-6">
+          <Sparkles class="w-3.5 h-3.5 text-indigo-400" />
+          <span>Sovereign Wealth Command Center</span>
+        </div>
+
+        <h2 class="text-3xl xl:text-4xl font-extrabold tracking-tight text-white leading-tight mb-4">
+          Start your family's journey to financial sovereignty.
+        </h2>
+
+        <p class="text-slate-400 text-sm xl:text-base leading-relaxed mb-10">
+          Create an isolated workspace for your household or family office. Connect accounts, track loans, model mutual fund growth, and eliminate spreadsheets.
+        </p>
+
+        <!-- Feature Highlights Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="p-4 rounded-wf-lg bg-white/5 border border-white/10 backdrop-blur-sm">
+            <div class="w-8 h-8 rounded-wf-md bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center mb-3">
+              <TrendingUp class="w-4 h-4 text-indigo-400" />
             </div>
+            <h4 class="text-sm font-semibold text-white mb-1">Single Dashboard</h4>
+            <p class="text-xs text-slate-400 leading-normal">Everything in one view: bank balances, mutual funds, investments & debt.</p>
+          </div>
 
-            <v-container class="position-relative" style="z-index: 10;" fluid>
-                <v-row align="center" justify="center">
-                    <v-col cols="12" sm="10" md="6" lg="5">
-                        <v-card class="pa-8 pa-sm-12 rounded-xl border elevation-0"
-                            style="background: rgba(var(--v-theme-surface), 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
-                            <div class="text-center mb-8">
-                                <v-avatar size="64" rounded="lg" class="elevation-2 mb-6 bg-white">
-                                    <v-img src="/logo.png" alt="WealthFam Logo" cover></v-img>
-                                </v-avatar>
-                                <h1 class="text-h5 font-weight-black text-slate-900 mb-2">Join WealthFam</h1>
-                                <p class="text-body-1 text-grey-darken-1 font-weight-medium">Start your family's journey
-                                    to financial freedom</p>
-                            </div>
+          <div class="p-4 rounded-wf-lg bg-white/5 border border-white/10 backdrop-blur-sm">
+            <div class="w-8 h-8 rounded-wf-md bg-purple-500/20 border border-purple-500/30 flex items-center justify-center mb-3">
+              <PieChart class="w-4 h-4 text-purple-400" />
+            </div>
+            <h4 class="text-sm font-semibold text-white mb-1">Zero Clutter</h4>
+            <p class="text-xs text-slate-400 leading-normal">High information density built specifically for financial clarity.</p>
+          </div>
 
-                            <v-form @submit.prevent="handleRegister">
-                                <v-text-field v-model="familyName" label="Family Name" placeholder="The Smiths"
-                                    variant="outlined" color="primary" required class="mb-4" rounded="lg"
-                                    hide-details="auto" density="comfortable">
-                                    <template v-slot:prepend-inner>
-                                        <Building :size="20" class="text-grey-lighten-1 mr-2" />
-                                    </template>
-                                </v-text-field>
+          <div class="p-4 rounded-wf-lg bg-white/5 border border-white/10 backdrop-blur-sm">
+            <div class="w-8 h-8 rounded-wf-md bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-3">
+              <Users class="w-4 h-4 text-emerald-400" />
+            </div>
+            <h4 class="text-sm font-semibold text-white mb-1">Household Members</h4>
+            <p class="text-xs text-slate-400 leading-normal">Add family members with fine-grained access and visibility.</p>
+          </div>
 
-                                <v-text-field v-model="email" label="Email Address" placeholder="admin@family.com"
-                                    variant="outlined" color="primary" required class="mb-6" rounded="lg"
-                                    hide-details="auto" density="comfortable">
-                                    <template v-slot:prepend-inner>
-                                        <Mail :size="20" class="text-grey-lighten-1 mr-2" />
-                                    </template>
-                                </v-text-field>
+          <div class="p-4 rounded-wf-lg bg-white/5 border border-white/10 backdrop-blur-sm">
+            <div class="w-8 h-8 rounded-wf-md bg-sky-500/20 border border-sky-500/30 flex items-center justify-center mb-3">
+              <ShieldCheck class="w-4 h-4 text-sky-400" />
+            </div>
+            <h4 class="text-sm font-semibold text-white mb-1">Private & Encrypted</h4>
+            <p class="text-xs text-slate-400 leading-normal">Self-hostable architecture with complete data sovereignty.</p>
+          </div>
+        </div>
+      </div>
 
-                                <v-row class="mb-4">
-                                    <v-col cols="12" sm="6" class="py-0">
-                                        <div class="mb-4 mb-sm-0">
-                                            <span
-                                                class="text-caption font-weight-bold text-uppercase tracking-wider text-grey-darken-2 d-block mb-1 px-1">Password</span>
-                                            <v-text-field v-model="password" placeholder="••••••••" variant="outlined"
-                                                color="primary" type="password" required rounded="lg"
-                                                hide-details="auto" density="comfortable">
-                                                <template v-slot:prepend-inner>
-                                                    <Lock :size="20" class="text-grey-lighten-1 mr-2" />
-                                                </template>
-                                            </v-text-field>
-                                        </div>
-                                    </v-col>
-                                    <v-col cols="12" sm="6" class="py-0">
-                                        <div>
-                                            <span
-                                                class="text-caption font-weight-bold text-uppercase tracking-wider text-grey-darken-2 d-block mb-1 px-1">Confirm</span>
-                                            <v-text-field v-model="confirmPassword" placeholder="••••••••"
-                                                variant="outlined" color="primary" type="password" required rounded="lg"
-                                                hide-details="auto" density="comfortable">
-                                                <template v-slot:prepend-inner>
-                                                    <Lock :size="20" class="text-grey-lighten-1 mr-2" />
-                                                </template>
-                                            </v-text-field>
-                                        </div>
-                                    </v-col>
-                                </v-row>
+      <!-- Bottom Status -->
+      <div class="relative z-10 flex items-center justify-between text-xs text-slate-500 border-t border-white/10 pt-6">
+        <span>© 2026 WealthFam Enterprise</span>
+        <div class="flex items-center gap-1.5 text-slate-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>End-to-End Encrypted</span>
+        </div>
+      </div>
+    </div>
 
-                                <v-expand-transition>
-                                    <v-alert v-if="error" type="error" variant="tonal" class="mb-6 rounded-lg"
-                                        density="comfortable">
-                                        {{ error }}
-                                    </v-alert>
-                                </v-expand-transition>
+    <!-- RIGHT SECTION: Register Form -->
+    <div class="flex-1 flex flex-col justify-between p-6 sm:p-12 xl:p-16 relative z-10 bg-wf-surface">
+      <!-- Mobile Logo Header -->
+      <div class="lg:hidden flex items-center gap-3 mb-8">
+        <div class="w-9 h-9 rounded-wf-md bg-white border border-wf-border p-1.5 flex items-center justify-center shadow-sm">
+          <img src="/logo.png" alt="WealthFam Logo" class="w-full h-full object-contain" />
+        </div>
+        <span class="text-base font-bold tracking-tight text-wf-text-primary">WealthFam</span>
+      </div>
 
-                                <v-btn type="submit" color="primary" size="x-large" block
-                                    class="rounded-pill font-weight-black text-none elevation-4 mt-2" :loading="loading"
-                                    style="height: 56px;">
-                                    <div class="d-flex align-center gap-2">
-                                        Get Started
-                                        <ArrowRight :size="20" />
-                                    </div>
-                                    <template v-slot:loader>
-                                        <Loader2 :size="28" class="spinner" />
-                                    </template>
-                                </v-btn>
-                            </v-form>
+      <!-- Form Center Container -->
+      <div class="w-full max-w-md mx-auto my-auto py-8">
+        <div class="mb-8">
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-wf-text-primary mb-2">
+            Create family workspace
+          </h1>
+          <p class="text-sm text-wf-text-secondary">
+            Set up your administrative profile to begin.
+          </p>
+        </div>
 
-                            <div class="text-center mt-10">
-                                <p class="text-body-2 text-grey-darken-1 font-weight-medium">
-                                    Already have an account?
-                                    <router-link to="/login" class="text-primary text-decoration-none font-weight-bold">
-                                        Sign In
-                                    </router-link>
-                                </p>
-                            </div>
-                        </v-card>
+        <form @submit.prevent="handleRegister" class="space-y-4">
+          <WfInput
+            v-model="familyName"
+            label="Family / Household Name"
+            placeholder="e.g. The Smiths or Sharma Family"
+            required
+            autocomplete="organization"
+          >
+            <template #prepend>
+              <Building class="w-4 h-4 text-wf-text-muted" />
+            </template>
+          </WfInput>
 
-                        <div class="text-center mt-8 overflow-hidden">
-                            <p class="text-overline tracking-widest text-grey-darken-1" style="opacity: 0.7;">
-                                Securely organized. Beautifully managed.
-                            </p>
-                        </div>
-                    </v-col>
-                </v-row>
-            </v-container>
-        </v-main>
-    </v-app>
+          <WfInput
+            v-model="email"
+            label="Admin Email Address"
+            placeholder="admin@family.com"
+            type="email"
+            required
+            autocomplete="email"
+          >
+            <template #prepend>
+              <Mail class="w-4 h-4 text-wf-text-muted" />
+            </template>
+          </WfInput>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <WfInput
+              v-model="password"
+              label="Password"
+              placeholder="••••••••"
+              type="password"
+              required
+              autocomplete="new-password"
+            >
+              <template #prepend>
+                <Lock class="w-4 h-4 text-wf-text-muted" />
+              </template>
+            </WfInput>
+
+            <WfInput
+              v-model="confirmPassword"
+              label="Confirm Password"
+              placeholder="••••••••"
+              type="password"
+              required
+              autocomplete="new-password"
+            >
+              <template #prepend>
+                <Lock class="w-4 h-4 text-wf-text-muted" />
+              </template>
+            </WfInput>
+          </div>
+
+          <!-- Error Alert -->
+          <div v-if="error" class="pt-1">
+            <WfAlert variant="error">
+              {{ error }}
+            </WfAlert>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="pt-2">
+            <WfButton
+              type="submit"
+              variant="primary"
+              size="lg"
+              block
+              :loading="loading"
+              class="h-11 font-semibold shadow-sm"
+            >
+              <span>Get Started</span>
+              <ArrowRight class="w-4 h-4" />
+            </WfButton>
+          </div>
+        </form>
+
+        <!-- Login Link -->
+        <div class="mt-8 pt-6 border-t border-wf-border text-center">
+          <p class="text-xs sm:text-sm text-wf-text-secondary">
+            Already have an account?
+            <router-link
+              to="/login"
+              class="font-semibold text-wf-primary hover:text-wf-primary-hover hover:underline ml-1"
+            >
+              Sign In
+            </router-link>
+          </p>
+        </div>
+      </div>
+
+      <!-- Trust Notice -->
+      <div class="w-full max-w-md mx-auto text-center pt-4">
+        <div class="inline-flex items-center gap-1.5 text-xs text-wf-text-muted">
+          <ShieldCheck class="w-3.5 h-3.5" />
+          <span>Protected by multi-tenant workspace isolation</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
-
-<style scoped>
-/* Mesh Background Animation preserved for premium feel */
-.mesh-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 0;
-    background: radial-gradient(circle at 50% 50%, rgb(var(--v-theme-surface)) 0%, rgba(var(--v-theme-on-surface), 0.05) 100%);
-}
-
-.mesh-blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.4;
-}
-
-.blob-1 {
-    width: 600px;
-    height: 600px;
-    background: rgb(var(--v-theme-primary));
-    top: -150px;
-    left: -150px;
-    animation: float 20s infinite alternate;
-}
-
-.blob-2 {
-    width: 500px;
-    height: 500px;
-    background: rgb(var(--v-theme-secondary));
-    bottom: -100px;
-    right: -100px;
-    animation: float 25s infinite alternate-reverse;
-}
-
-.blob-3 {
-    width: 400px;
-    height: 400px;
-    background: rgb(var(--v-theme-info));
-    top: 40%;
-    right: 15%;
-    animation: float 18s infinite alternate;
-}
-
-@keyframes float {
-    0% {
-        transform: translateY(0) scale(1);
-    }
-
-    100% {
-        transform: translateY(40px) scale(1.1);
-    }
-}
-
-.spinner {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Custom gap utility */
-.gap-2 {
-    gap: 0.5rem;
-}
-</style>

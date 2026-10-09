@@ -1,0 +1,33 @@
+/**
+ * Aether V4 Theme Overrides
+ * Explicit Dark Mode tokens (Section 4.3)
+ */
+
+[data-theme="dark"],
+.dark,
+.v-theme--wealthFamDark,
+.v-theme--dark {
+  --wf-color-background: #090D16;
+  --wf-color-surface: #111827;
+  --wf-color-surface-variant: #1E293B;
+  --wf-color-surface-muted: #334155;
+
+  --wf-color-text-primary: #F8FAFC;
+  --wf-color-text-secondary: #94A3B8;
+  --wf-color-text-muted: #64748B;
+
+  --wf-color-border: #1E293B;
+  --wf-color-border-subtle: #141D2D;
+  --wf-color-divider: #1E293B;
+
+  --wf-color-primary-light: rgba(99, 102, 241, 0.15);
+  --wf-color-secondary-light: rgba(168, 85, 247, 0.15);
+  --wf-color-success-light: rgba(16, 185, 129, 0.15);
+  --wf-color-error-light: rgba(239, 68, 68, 0.15);
+  --wf-color-warning-light: rgba(245, 158, 11, 0.15);
+  --wf-color-info-light: rgba(59, 130, 246, 0.15);
+
+  --wf-glass-bg: rgba(17, 24, 39, 0.75);
+  --wf-glass-blur: 20px;
+  --wf-glass-border: rgba(30, 41, 59, 0.7);
+}

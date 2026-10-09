@@ -1,0 +1,64 @@
+/**
+ * Aether V4 / WealthCore Design Tokens
+ * Canonical source of truth for WealthFam visual system.
+ */
+
+:root {
+  /* Brand Palette */
+  --wf-color-primary: #6366F1;
+  --wf-color-primary-hover: #4F46E5;
+  --wf-color-primary-light: #EEF2FF;
+  --wf-color-primary-rgb: 99, 102, 241;
+
+  --wf-color-secondary: #A855F7;
+  --wf-color-secondary-hover: #9333EA;
+  --wf-color-secondary-light: #FAF5FF;
+  --wf-color-secondary-rgb: 168, 85, 247;
+
+  /* Neutrals & Surfaces - Light Mode Default */
+  --wf-color-background: #F8FAFC;
+  --wf-color-surface: #FFFFFF;
+  --wf-color-surface-variant: #F1F5F9;
+  --wf-color-surface-muted: #E2E8F0;
+
+  /* Typography Colors */
+  --wf-color-text-primary: #0F172A;
+  --wf-color-text-secondary: #475569;
+  --wf-color-text-muted: #94A3B8;
+
+  /* Borders & Dividers */
+  --wf-color-border: #E2E8F0;
+  --wf-color-border-subtle: #F1F5F9;
+  --wf-color-divider: #E2E8F0;
+
+  /* Semantics */
+  --wf-color-success: #10B981;
+  --wf-color-success-light: #ECFDF5;
+  --wf-color-error: #EF4444;
+  --wf-color-error-light: #FEF2F2;
+  --wf-color-warning: #F59E0B;
+  --wf-color-warning-light: #FFFBEB;
+  --wf-color-info: #3B82F6;
+  --wf-color-info-light: #EFF6FF;
+
+  /* Radius Scale (Section 8.2) */
+  --wf-radius-xs: 2px;
+  --wf-radius-sm: 4px;
+  --wf-radius-md: 8px;
+  --wf-radius-lg: 12px;
+  --wf-radius-xl: 16px;
+  --wf-radius-2xl: 24px;
+  --wf-radius-pill: 9999px;
+
+  /* Sizing Defaults (Section 8.1) */
+  --wf-sidebar-width: 240px;
+  --wf-sidebar-collapsed-width: 68px;
+  --wf-control-height-compact: 38px;
+  --wf-control-height-standard: 42px;
+  --wf-container-max-width: 1600px;
+
+  /* Elevation & Glass Tokens (Section 9 & 16) */
+  --wf-glass-bg: rgba(255, 255, 255, 0.75);
+  --wf-glass-blur: 20px;
+  --wf-glass-border: rgba(226, 232, 240, 0.8);
+}
