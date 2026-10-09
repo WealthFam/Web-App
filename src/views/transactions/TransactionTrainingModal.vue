@@ -65,13 +65,6 @@
                             </v-col>
                         </v-row>
                     </div>
-
-                    <div class="ai-hint-futuristic mt-3 pa-2.5 rounded-lg d-flex align-top gap-2.5">
-                        <div class="hint-icon-wrap">
-                            <Bot :size="14" class="text-primary" />
-                        </div>
-                        <p class="text-micro-nano text-medium-emphasis leading-tight mb-0">Detected action. Mapping vector.</p>
-                    </div>
                 </div>
 
                 <!-- Right Column: Learning Form -->
@@ -80,24 +73,6 @@
                         <div class="d-flex align-center gap-2">
                             <TrendingUp :size="15" class="text-primary" />
                             <span class="text-caption font-weight-black opacity-60">Annotation Details</span>
-                        </div>
-                        <div class="d-flex align-center gap-1.5">
-                            <v-btn variant="tonal" density="compact" color="primary" rounded="lg" 
-                                class="px-2 text-micro-nano font-weight-black" :loading="isAutoParsing"
-                                @click="handleAutoParse">
-                                <template v-slot:prepend>
-                                    <Sparkles :size="12" class="mr-1" />
-                                </template>
-                                AI AUTO-PARSE
-                            </v-btn>
-                            <v-btn variant="flat" density="compact" color="secondary" rounded="lg" 
-                                class="px-2 text-micro-nano font-weight-black forensic-btn" :loading="isForensicParsing"
-                                @click="handleForensicParse">
-                                <template v-slot:prepend>
-                                    <Microscope :size="12" class="mr-1" />
-                                </template>
-                                FORENSIC
-                            </v-btn>
                         </div>
                     </div>
 
@@ -184,10 +159,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { Bot, Brain, X, Fingerprint, TrendingUp, Sparkles, Microscope } from 'lucide-vue-next'
-import { aiApi, mobileApi } from '@/api/client'
-import { useNotificationStore } from '@/stores/notification'
+import { computed } from 'vue'
+import { Brain, X, Fingerprint, TrendingUp } from 'lucide-vue-next'
 
 const props = defineProps<{
     modelValue: boolean
@@ -268,55 +241,6 @@ const highlightedContent = computed<MessageChunk[]>(() => {
 
     return temp
 })
-
-const notify = useNotificationStore()
-const isAutoParsing = ref(false)
-const isForensicParsing = ref(false)
-
-const handleAutoParse = async () => {
-    if (!props.selectedMessage?.id) return
-    isAutoParsing.value = true
-    try {
-        const res = await aiApi.autoParseTrainingMessage(props.selectedMessage.id)
-        applyParsedData(res.data)
-        notify.success('AI Precision extraction complete')
-    } catch (e) {} finally {
-        isAutoParsing.value = false
-    }
-}
-
-const handleForensicParse = async () => {
-    const content = props.selectedMessage?.raw_content || props.selectedMessage?.raw_message
-    if (!content) return
-    
-    isForensicParsing.value = true
-    try {
-        const res = await mobileApi.forensicParse(content)
-        applyParsedData(res.data)
-        notify.success('AI Forensic Trace complete')
-    } catch (e) {} finally {
-        isForensicParsing.value = false
-    }
-}
-
-const applyParsedData = (data: any) => {
-    if (!data) return
-    if (data.amount !== undefined) props.labelForm.amount = data.amount
-    if (data.recipient) props.labelForm.recipient = data.recipient
-    if (data.date) {
-        try {
-            const d = new Date(data.date)
-            if (!isNaN(d.getTime())) {
-                props.labelForm.date = d.toISOString().substring(0, 16)
-            }
-        } catch (e) {
-            props.labelForm.date = data.date
-        }
-    }
-    if (data.account_mask) props.labelForm.account_mask = data.account_mask
-    if (data.ref_id) props.labelForm.ref_id = data.ref_id
-    if (data.type) props.labelForm.type = data.type
-}
 </script>
 
 <style scoped>
@@ -464,7 +388,7 @@ const applyParsedData = (data: any) => {
     font-weight: 600;
 }
 
-.ai-hint-futuristic {
+.hint-futuristic {
     background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.12) 0%, rgba(var(--v-theme-primary), 0.02) 100%);
     border-left: 3px solid rgb(var(--v-theme-primary));
 }

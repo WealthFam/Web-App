@@ -101,7 +101,7 @@
                                         <div v-for="(item, idx) in sandboxResult.results" :key="idx" class="border rounded-lg pa-3 mb-3 bg-white shadow-sm animate-in">
                                             <div class="d-flex justify-space-between align-center mb-2">
                                                 <div class="d-flex align-center gap-2">
-                                                    <v-chip size="x-small" :color="item.metadata.parser_used.includes('AI') ? 'purple' : 'primary'" variant="flat" class="font-weight-bold">
+                                                    <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">
                                                         {{ item.metadata.parser_used }}
                                                     </v-chip>
                                                 </div>
@@ -226,105 +226,28 @@
             </v-expand-transition>
         </v-card>
 
-        <v-row class="mb-12">
-            <!-- Parser Configuration -->
-            <v-col cols="12" md="8">
-                <v-card class="premium-glass-card h-100" elevation="0">
-                    <v-card-title class="d-flex align-center gap-3 py-4 px-6 border-b">
-                        <v-avatar color="primary" variant="tonal" size="40" rounded>
-                            <BrainCircuit :size="24" class="text-primary" />
-                        </v-avatar>
-                        <span class="text-h6 font-weight-bold">Parser AI Configuration</span>
-                    </v-card-title>
-                    <v-card-text class="pa-6">
-                        <v-alert v-if="appAiMatch" color="success" variant="tonal" class="mb-6" rounded="lg">
-                            <template v-slot:prepend>
-                                <Sparkles :size="24" class="mr-3" />
-                            </template>
-                            <div class="d-flex align-center justify-space-between w-100">
-                                <span class="font-weight-medium">Synced with App
-                                    Intelligence</span>
-                                <v-btn variant="text" density="comfortable" color="success"
-                                    class="font-weight-bold text-uppercase" @click="handleSync">
-                                    Force Resync
-                                </v-btn>
-                            </div>
-                        </v-alert>
-
-                        <v-alert v-else color="amber-lighten-5" theme="light" class="mb-6 border-amber" rounded="lg">
-                            <template v-slot:prepend>
-                                <span class="text-h5 mr-3">⚠️</span>
-                            </template>
-                            <div class="d-flex align-center justify-space-between w-100">
-                                <span class="text-amber-darken-4 font-weight-medium">Config out of sync with App</span>
-                                <v-btn color="amber-darken-3" size="small" variant="flat" class="font-weight-bold"
-                                    @click="handleSync">
-                                    Fix Now
-                                </v-btn>
-                            </div>
-                        </v-alert>
-
-                        <p class="text-body-2 text-medium-emphasis mb-6">
-                            The Parser Engine runs as a separate microservice. Sync your main application's AI settings
-                            (Model & API Key) to
-                            ensure consistent parsing.
-                        </p>
-
-                        <div class="bg-grey-lighten-4 rounded-xl pa-4 mb-6 border">
-                            <v-row>
-                                <v-col cols="6">
-                                    <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase mb-1">
-                                        Current Model</div>
-                                    <div class="font-mono text-body-2 font-weight-bold">{{ parserAiForm.model_name ||
-                                        'Not Configured' }}</div>
-                                </v-col>
-                                <v-col cols="6">
-                                    <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase mb-1">
-                                        AI Status</div>
-                                    <v-chip :color="parserAiForm.is_enabled ? 'success' : 'grey'" size="small"
-                                        variant="flat" class="font-weight-bold">
-                                        {{ parserAiForm.is_enabled ? 'ENABLED' : 'DISABLED' }}
-                                    </v-chip>
-                                </v-col>
-                            </v-row>
+        <!-- Performance Breakdown -->
+        <v-card class="premium-glass-card mb-12" elevation="0">
+            <v-card-title class="d-flex align-center gap-3 py-4 px-6 border-b">
+                <v-avatar color="amber-lighten-5" variant="flat" size="40" rounded>
+                    <Activity :size="24" class="text-amber-darken-3" />
+                </v-avatar>
+                <span class="text-h6 font-weight-bold">Parser Performance</span>
+            </v-card-title>
+            <v-card-text class="pa-6">
+                <div v-if="parserStats?.parser_performance" class="d-flex flex-column gap-4">
+                    <div v-for="(count, parser) in parserStats.parser_performance" :key="parser">
+                        <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
+                            <span>{{ parser }}</span>
+                            <span class="text-medium-emphasis">{{ count }} hits</span>
                         </div>
-
-                        <v-btn block color="primary" size="large" :loading="isSyncing" @click="handleSync"
-                            class="font-weight-bold">
-                            <template v-slot:prepend>
-                                <RefreshCw :size="18" class="mr-1" :class="{ 'spin': isSyncing }" />
-                            </template>
-                            {{ isSyncing ? 'Syncing...' : 'Sync AI Config to Parser' }}
-                        </v-btn>
-                    </v-card-text>
-                </v-card>
-            </v-col>
-
-            <!-- Performance Breakdown -->
-            <v-col cols="12" md="4">
-                <v-card class="glass-card h-100" elevation="0">
-                    <v-card-title class="d-flex align-center gap-3 py-4 px-6 border-b">
-                        <v-avatar color="amber-lighten-5" variant="flat" size="40" rounded>
-                            <Activity :size="24" class="text-amber-darken-3" />
-                        </v-avatar>
-                        <span class="text-h6 font-weight-bold">Performance</span>
-                    </v-card-title>
-                    <v-card-text class="pa-6">
-                        <div v-if="parserStats?.parser_performance" class="d-flex flex-column gap-4">
-                            <div v-for="(count, parser) in parserStats.parser_performance" :key="parser">
-                                <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
-                                    <span>{{ parser }}</span>
-                                    <span class="text-medium-emphasis">{{ count }} hits</span>
-                                </div>
-                                <v-progress-linear :model-value="(count / parserStats.summary.total_processed * 100)"
-                                    color="primary" height="6" rounded></v-progress-linear>
-                            </div>
-                        </div>
-                        <div v-else class="text-center text-medium-emphasis py-4">No performance data available</div>
-                    </v-card-text>
-                </v-card>
-            </v-col>
-        </v-row>
+                        <v-progress-linear :model-value="(count / parserStats.summary.total_processed * 100)"
+                            color="primary" height="6" rounded></v-progress-linear>
+                    </div>
+                </div>
+                <div v-else class="text-center text-medium-emphasis py-4">No performance data available</div>
+            </v-card-text>
+        </v-card>
 
         <!-- Parser History -->
         <v-card class="premium-glass-card mb-12" elevation="0">
@@ -490,13 +413,9 @@
                             </td>
                             <td>
                                 <div class="d-flex flex-column gap-1">
-                                    <v-chip v-if="pattern.is_ai_generated" size="x-small" color="secondary"
-                                        variant="tonal" class="font-weight-bold w-fit">
-                                        AI
-                                    </v-chip>
-                                    <v-chip v-else size="x-small" color="grey" variant="tonal"
+                                    <v-chip size="x-small" color="grey" variant="tonal"
                                         class="font-weight-bold w-fit">
-                                        Manual
+                                        Rule
                                     </v-chip>
                                     <span class="text-caption font-mono text-disabled">{{ pattern.id.substring(0, 8)
                                         }}</span>
@@ -698,29 +617,21 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue'
 import {
-    CheckCircle, Zap, ShieldCheck, BrainCircuit, Activity, RefreshCw, ClipboardList, Edit2, Trash2, Sparkles, Search, X, XCircle
+    CheckCircle, Zap, ShieldCheck, Activity, RefreshCw, ClipboardList, Edit2, Trash2, Search, X, XCircle
 } from 'lucide-vue-next'
 import { parserApi, financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
 import { useConfirmStore } from '@/stores/confirm'
-import { useAiStore } from '@/stores/ai'
 import { useCurrency } from '@/composables/useCurrency'
 
-const aiStore = useAiStore()
 const { formatAmount } = useCurrency()
 const notify = useNotificationStore()
 const confirmDialog = useConfirmStore()
 
 // --- Internal State ---
 const parserStatus = ref({ isOnline: false })
-const isSyncing = ref(false)
 const parserStats = ref<any>(null)
 const parserLogs = ref<any[]>([])
-const parserAiForm = ref({
-    is_enabled: false,
-    model_name: 'models/gemini-1.5-flash',
-    api_key: ''
-})
 const parserLogPagination = ref({ limit: 10, skip: 0, total: 0 })
 
 // --- Pattern Management State ---
@@ -759,58 +670,27 @@ const calculateSuccessRate = computed(() => {
     return Math.round((success / parserStats.value.summary.total_processed) * 100)
 })
 
-const appAiMatch = computed(() => {
-    // Check if app Gemini config matches parser Gemini config
-    return aiStore.aiForm.model_name === parserAiForm.value.model_name &&
-        aiStore.aiForm.is_enabled === parserAiForm.value.is_enabled
-})
-
 // --- Methods ---
 const fetchParserData = async (sourceFilter?: string, resetSkip = false) => {
     if (resetSkip) parserLogPagination.value.skip = 0
 
     try {
-        const [health, stats, logs, config] = await Promise.all([
+        const [health, stats, logs] = await Promise.all([
             parserApi.getHealth(),
             parserApi.getStats(),
             parserApi.getLogs({
                 limit: parserLogPagination.value.limit,
                 offset: parserLogPagination.value.skip,
                 source: sourceFilter
-            }),
-            parserApi.getAiConfig()
+            })
         ])
         parserStatus.value.isOnline = health.data?.status === 'ok'
         parserStats.value = stats.data || null
         parserLogs.value = logs.data?.logs || []
         parserLogPagination.value.total = logs.data?.total || 0
-
-        parserAiForm.value = {
-            is_enabled: config.data.is_enabled || false,
-            model_name: config.data.model_name || 'models/gemini-1.5-flash',
-            api_key: ''
-        }
     } catch (e) {
         parserStatus.value.isOnline = false
         console.error("Failed to fetch parser data", e)
-    }
-}
-
-async function handleSync() {
-    if (!aiStore.aiForm.has_api_key && !aiStore.aiForm.api_key) {
-        notify.warning("App AI is not configured.")
-        return
-    }
-
-    try {
-        isSyncing.value = true
-        await financeApi.syncAiToParser()
-        notify.success("Synced App AI Settings to Parser")
-        fetchParserData()
-    } catch (e) {
-        notify.error("Sync failed: Check if parser microservice is online")
-    } finally {
-        isSyncing.value = false
     }
 }
 
@@ -985,9 +865,6 @@ async function testParser() {
 
 onMounted(() => {
     fetchParserData()
-    if (!aiStore.aiForm.model_name) {
-        aiStore.fetchAiSettings()
-    }
     loadPatterns()
     loadAliases()
 })

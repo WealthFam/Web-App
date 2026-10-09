@@ -375,37 +375,10 @@
             </v-col>
         </v-row>
 
-        <!-- Insights Row -->
+        <!-- Market Velocity Row -->
         <v-row class="mb-12">
-            <!-- AI Advisor CTA -->
-            <v-col cols="12" md="6">
-                <v-card class="premium-glass-card h-100 rounded-24 transition-all hover-glow border-primary-glow"
-                    @click="router.push({ name: 'portfolio-analysis' })" style="cursor: pointer">
-                    <v-card-text class="pa-8 d-flex flex-column h-100">
-                        <div class="d-flex align-center justify-space-between mb-6">
-                            <div class="pa-4 rounded-20 bg-primary-lighten d-flex align-center justify-center">
-                                <Sparkles class="text-primary" :size="28" />
-                            </div>
-                            <v-btn icon variant="tonal" color="primary" class="rounded-xl">
-                                <ExternalLink :size="20" />
-                            </v-btn>
-                        </div>
-                        <h3 class="text-h5 font-weight-black mb-2 text-content">AI Advisor</h3>
-                        <p class="text-body-2 text-medium-emphasis mb-6 opacity-80">
-                            Analyze category exposure, rebalancing guardrails, and AI-driven growth detection for your
-                            complete
-                            portfolio.
-                        </p>
-                        <v-spacer></v-spacer>
-                        <div class="d-flex align-center gap-2">
-                            <div class="analysis-status-pill">AI ANALYSIS READY</div>
-                        </div>
-                    </v-card-text>
-                </v-card>
-            </v-col>
-
             <!-- Top Performance Snapshot -->
-            <v-col cols="12" md="6">
+            <v-col cols="12">
                 <v-card class="premium-glass-card h-100 pa-0 overflow-hidden rounded-24" elevation="0">
                     <div class="pa-8 d-flex align-center justify-space-between">
                         <div>
@@ -653,10 +626,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import {
-    TrendingUp, TrendingDown, Clock, Search, Target, Sparkles,
-    ExternalLink, Eye as EyeIconMain, ChevronDown, ChevronRight,
+    TrendingUp, TrendingDown, Clock, Search, Target,
+    Eye as EyeIconMain, ChevronDown, ChevronRight,
     Trash2, Activity, Briefcase, RefreshCcw, Settings, Calendar, RefreshCw
 } from 'lucide-vue-next'
 
@@ -673,9 +645,6 @@ import PortfolioDonutChart from './components/PortfolioDonutChart.vue'
 import LinkGoalModal from './modals/LinkGoalModal.vue'
 import DeleteHoldingDeepDiveModal from './modals/DeleteHoldingDeepDiveModal.vue'
 
-
-
-const router = useRouter()
 const mfStore = useMutualFundStore()
 const authStore = useAuthStore()
 const { formatAmount } = useCurrency()

@@ -10,7 +10,7 @@ import { useCurrency } from '@/composables/useCurrency'
 import {
     History, Shield, Edit2, ChevronLeft, Check, TrendingUp,
     Target, Briefcase, Globe, Fingerprint, AlertCircle, Search,
-    Sparkles, Zap, RefreshCw, ZapOff
+    Zap, RefreshCw, ZapOff
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import InvestModal from './mutual-funds/modals/InvestModal.vue'
@@ -44,9 +44,9 @@ const showDeleteTxnModal = ref(false)
 const activeTransaction = ref<any>(null)
 const isManagementLoading = ref(false)
 const isTimelineLoading = ref(true)
-const isAiLoading = ref(false)
-const aiInsights = ref<any>(null)
-const aiError = ref<string | null>(null)
+const isInsightsLoading = ref(false)
+const fundInsights = ref<any>(null)
+const insightsError = ref<string | null>(null)
 const benchmarkData = ref<any[]>([]);
 const benchmarksData = ref<any[]>([])
 const selectedBenchmarkSymbols = ref<string[]>(['120716']) // Default to Nifty 50
@@ -174,21 +174,21 @@ async function handleSingleDelete(txnId: string) {
 function refreshAll() {
     fetchHoldingDetails()
     fetchPerformanceTimeline()
-    fetchAiInsights()
+    fetchFundInsights()
 }
 
-async function fetchAiInsights(forceRefresh: boolean = false) {
-    isAiLoading.value = true
-    aiError.value = null
+async function fetchFundInsights(forceRefresh: boolean = false) {
+    isInsightsLoading.value = true
+    insightsError.value = null
     try {
         const res = await financeApi.getHoldingInsights(holdingId, forceRefresh)
-        aiInsights.value = res.data?.insights
-        aiError.value = null
+        fundInsights.value = res.data?.insights
+        insightsError.value = null
     } catch (e: any) {
-        console.error("Failed to fetch AI insights", e)
-        aiError.value = e.response?.data?.detail || "AI Advisor is temporarily overwhelmed. Please try again later."
+        console.error("Failed to fetch insights", e)
+        insightsError.value = e.response?.data?.detail || "Fund insights are currently unavailable."
     } finally {
-        isAiLoading.value = false
+        isInsightsLoading.value = false
     }
 }
 
@@ -227,8 +227,8 @@ async function fetchPerformanceTimeline() {
 }
 
 const formattedSummary = computed(() => {
-    if (!aiInsights.value?.summary) return ''
-    return marked.parse(aiInsights.value.summary)
+    if (!fundInsights.value?.summary) return ''
+    return marked.parse(fundInsights.value.summary)
 })
 
 const getInsightColor = (type: string) => {
@@ -256,7 +256,7 @@ const getInsightBorderColor = (type: string) => {
 onMounted(() => {
     fetchHoldingDetails()
     fetchPerformanceTimeline()
-    fetchAiInsights()
+    fetchFundInsights()
 })
 
 function formatDate(dateStr: string) {
@@ -640,46 +640,46 @@ function isImageUrl(url: string) {
                             </div>
                         </v-card>
 
-                        <!-- AI Advisor Insights -->
+                        <!-- Fund Insights -->
                         <v-card class="premium-glass-card pa-0 mb-6 overflow-hidden" rounded="xl" v-if="holding">
                             <div class="pa-6 pb-0">
                                 <div class="d-flex align-center justify-space-between mb-4">
                                     <h3
                                         class="text-subtitle-1 font-weight-black text-content d-flex align-center gap-2">
-                                        <Sparkles :size="20" class="text-primary" /> AI Advisor
+                                        <TrendingUp :size="20" class="text-primary" /> Fund Analysis
                                     </h3>
                                     <v-btn icon variant="text" size="small" color="primary"
-                                        @click="fetchAiInsights(true)" :loading="isAiLoading">
-                                        <RefreshCw :size="16" :class="{ 'animate-spin': isAiLoading }" />
+                                        @click="fetchFundInsights(true)" :loading="isInsightsLoading">
+                                        <RefreshCw :size="16" :class="{ 'animate-spin': isInsightsLoading }" />
                                     </v-btn>
                                 </div>
 
                                 <!-- Loading State -->
-                                <div v-if="isAiLoading" class="py-8 d-flex flex-column align-center justify-center">
+                                <div v-if="isInsightsLoading" class="py-8 d-flex flex-column align-center justify-center">
                                     <v-progress-circular indeterminate color="primary" size="32" width="3" />
-                                    <div class="text-caption mt-4 font-weight-bold opacity-40">Synthesizing Brief...
+                                    <div class="text-caption mt-4 font-weight-bold opacity-40">Calculating Analysis...
                                     </div>
                                 </div>
 
                                 <!-- Error State -->
-                                <div v-else-if="aiError && !aiInsights"
+                                <div v-else-if="insightsError && !fundInsights"
                                     class="py-8 px-6 d-flex flex-column align-center text-center">
                                     <div class="pa-4 rounded-circle bg-warning-light mb-4">
                                         <ZapOff :size="28" class="text-warning" />
                                     </div>
-                                    <div class="text-body-2 font-weight-bold text-content mb-2">Advisor Overwhelmed
+                                    <div class="text-body-2 font-weight-bold text-content mb-2">Analysis Unavailable
                                     </div>
-                                    <div class="text-caption opacity-60 mb-4">{{ aiError }}</div>
+                                    <div class="text-caption opacity-60 mb-4">{{ insightsError }}</div>
                                     <v-btn variant="tonal" size="small" color="primary" rounded="pill"
-                                        @click="fetchAiInsights(true)">
+                                        @click="fetchFundInsights(true)">
                                         Retry Analysis
                                     </v-btn>
                                 </div>
 
-                                <template v-else-if="aiInsights">
+                                <template v-else-if="fundInsights">
                                     <!-- Highlights Grid -->
                                     <div class="d-flex flex-column gap-3 mb-6">
-                                        <div v-for="insight in aiInsights.highlights" :key="insight.id"
+                                        <div v-for="insight in fundInsights.highlights" :key="insight.id"
                                             class="pa-4 rounded-xl border transition-all hover-translate-x" :style="{
                                                 background: getInsightColor(insight.type),
                                                 borderColor: getInsightBorderColor(insight.type)
@@ -701,16 +701,16 @@ function isImageUrl(url: string) {
                                     </div>
 
                                     <!-- Summary Content -->
-                                    <div class="pa-6 pt-0 mf-ai-markdown" v-html="formattedSummary"></div>
+                                    <div class="pa-6 pt-0 mf-insights-markdown" v-html="formattedSummary"></div>
 
                                     <!-- Suggestions Section -->
                                     <div class="pa-6 pt-0"
-                                        v-if="aiInsights.suggestions && aiInsights.suggestions.length">
+                                        v-if="fundInsights.suggestions && fundInsights.suggestions.length">
                                         <v-divider class="mb-4" opacity="5" />
                                         <div class="text-overline font-weight-black text-primary mb-3">Tactical Moves
                                         </div>
                                         <div class="d-flex flex-column gap-3">
-                                            <div v-for="suggestion in aiInsights.suggestions" :key="suggestion.id"
+                                            <div v-for="suggestion in fundInsights.suggestions" :key="suggestion.id"
                                                 class="d-flex gap-2">
                                                 <Zap :size="14" class="text-primary mt-1 flex-shrink-0" />
                                                 <div>
@@ -718,7 +718,7 @@ function isImageUrl(url: string) {
                                                         suggestion.title }}</div>
                                                     <div class="text-caption font-weight-medium opacity-60">{{
                                                         suggestion.content }}</div>
-                                                </div>
+                                                    </div>
                                             </div>
                                         </div>
                                     </div>
@@ -869,14 +869,14 @@ function isImageUrl(url: string) {
     letter-spacing: 0.5px;
 }
 
-/* AI Markdown Styling */
-.mf-ai-markdown {
+/* Insights Markdown Styling */
+.mf-insights-markdown {
     font-size: 0.85rem;
     line-height: 1.6;
     color: rgba(var(--v-theme-on-surface), 0.8);
 }
 
-.mf-ai-markdown :deep(h3) {
+.mf-insights-markdown :deep(h3) {
     font-size: 0.95rem;
     font-weight: 800;
     margin-top: 1.25rem;
@@ -895,21 +895,21 @@ function isImageUrl(url: string) {
     margin-left: 8px;
 }
 
-.mf-ai-markdown :deep(strong) {
+.mf-insights-markdown :deep(strong) {
     color: rgb(var(--v-theme-primary));
     font-weight: 900;
 }
 
-.mf-ai-markdown :deep(p) {
+.mf-insights-markdown :deep(p) {
     margin-bottom: 0.75rem;
 }
 
-.mf-ai-markdown :deep(ul) {
+.mf-insights-markdown :deep(ul) {
     padding-left: 1.25rem;
     margin-bottom: 0.75rem;
 }
 
-.mf-ai-markdown :deep(li) {
+.mf-insights-markdown :deep(li) {
     margin-bottom: 4px;
 }
 </style>

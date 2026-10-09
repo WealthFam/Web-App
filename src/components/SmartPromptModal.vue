@@ -30,9 +30,9 @@ function handleConfirm() {
             <div class="modal-header-gradient pa-6 text-white relative-pos">
                 <div class="d-flex align-center justify-space-between mb-2">
                     <div class="d-flex align-center gap-3">
-                        <v-icon icon="Sparkles" size="32" class="header-icon-glow"></v-icon>
+                        <v-icon icon="Tag" size="32" class="header-icon-glow"></v-icon>
                         <div>
-                            <h2 class="text-h5 font-weight-black mb-0">Smart Action</h2>
+                            <h2 class="text-h5 font-weight-black mb-0">Rule Action</h2>
                             <p class="text-caption opacity-80 font-weight-bold">Automate your categorization</p>
                         </div>
                     </div>

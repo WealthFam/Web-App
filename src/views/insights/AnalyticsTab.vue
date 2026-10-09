@@ -68,94 +68,6 @@
         </v-card>
 
         <v-row>
-            <!-- AI Insight Card -->
-            <v-col cols="12">
-                <v-card class="premium-ai-card" rounded="xl" elevation="10">
-                    <div class="ai-card-inner">
-                        <div class="d-flex align-center justify-space-between mb-6">
-                            <div class="d-flex align-center">
-                                <div class="ai-glow-icon mr-4">
-                                    <Sparkles :size="24" color="white" />
-                                </div>
-                                <div>
-                                    <h3 class="text-h6 font-weight-black text-white">Financial Insights</h3>
-                                    <p class="text-caption text-blue-lighten-4 opacity-70">AI-driven spending vectors
-                                        and
-                                        strategy</p>
-                                </div>
-                            </div>
-                            <v-btn variant="tonal" color="white" rounded="pill" :loading="generatingAI"
-                                height="44" @click="generateAIInsights(true)" class="text-none font-weight-bold px-6">
-                                <template v-slot:prepend>
-                                    <Sparkles :size="18" />
-                                </template>
-                                {{ aiInsights ? 'Update Strategy' : 'Generate Insights' }}
-                            </v-btn>
-                        </div>
-
-                        <v-expand-transition>
-                            <div v-if="aiInsights" class="ai-markdown-container premium-scroll">
-                                <div class="markdown-content" v-html="marked(aiInsights)"></div>
-                            </div>
-                            <div v-else-if="generatingAI" class="ai-loading-state py-8">
-                                <div class="premium-loader mb-4">
-                                    <div class="loader-circle"></div>
-                                    <Sparkles :size="32" class="loader-icon sparkles-animate" />
-                                </div>
-                                <div class="text-center">
-                                    <p class="text-h6 font-weight-bold text-white mb-1">Synthesizing Strategy</p>
-                                    <p class="text-caption text-blue-lighten-4 opacity-70">Correlating patterns from
-                                        your
-                                        spending vectors...</p>
-                                </div>
-                            </div>
-                            <div v-else-if="aiError" class="ai-error-state text-center py-8 px-6">
-                                <div class="error-glow-container mb-6 mx-auto">
-                                    <v-icon :color="aiError.includes('Quota') ? 'warning' : 'error'" size="42"
-                                        class="error-icon-animate">
-                                        {{ aiError.includes('Quota') ? 'mdi-clock-outline' : 'mdi-shield-alert-outline'
-                                        }}
-                                    </v-icon>
-                                </div>
-                                <h4 class="text-h5 font-weight-black text-white mb-2">
-                                    {{ aiError.includes('Quota') ? 'Quota Limit Reached' : 'Intelligence Paused' }}
-                                </h4>
-                                <p class="text-body-1 text-blue-lighten-4 opacity-80 mb-6 max-w-md mx-auto">
-                                    {{ aiError }}
-                                </p>
-                                <div class="d-flex justify-center gap-3">
-                                    <v-btn variant="flat" color="primary" rounded="xl" @click="generateAIInsights"
-                                        class="text-none px-6">
-                                        Retry Connection
-                                    </v-btn>
-                                    <v-btn variant="text" color="white" rounded="xl" to="/settings" class="text-none">
-                                        AI Settings
-                                    </v-btn>
-                                </div>
-                            </div>
-                            <div v-else class="ai-empty-state text-center py-6">
-                                <div class="brain-glow-container mb-4">
-                                    <Brain :size="56" class="text-white brain-animate" />
-                                </div>
-                                <p class="text-h6 font-weight-black text-white mb-1">
-                                    {{ hasData ? 'Analysis Ready' : 'Awaiting Data' }}
-                                </p>
-                                <p class="text-body-2 text-blue-lighten-4 opacity-70">
-                                    {{ hasData 
-                                        ? 'Ready to generate smart optimization tips based on your spending patterns.' 
-                                        : 'Connect your accounts or record transactions to enable AI-driven financial insights.' 
-                                    }}
-                                </p>
-                            </div>
-                        </v-expand-transition>
-                    </div>
-                    <div class="ai-background-blobs">
-                        <div class="blob-blue"></div>
-                        <div class="blob-purple"></div>
-                    </div>
-                </v-card>
-            </v-col>
-
             <!-- Summary Cards -->
             <v-col cols="12" sm="6" md="3">
                 <v-card rounded="xl" class="stat-glass-card stat-income h-100">
@@ -592,13 +504,12 @@
 </template>
 
 <script setup lang="ts">
-import { marked } from 'marked'
 import { ref, onMounted, computed, watch } from 'vue'
 import { useTheme } from 'vuetify'
 import {
     TrendingUp, TrendingDown, Scale,
     CalendarRange, ArrowRight, RefreshCcw, Filter, BarChart2,
-    ShieldAlert, Sparkles, Brain, ChevronDown, Wallet
+    ShieldAlert, ChevronDown, Wallet
 } from 'lucide-vue-next'
 
 import { financeApi } from '@/api/client'
@@ -708,14 +619,6 @@ const timeRangeOptions = [
 
 // Data from store
 const analyticsData = computed(() => insightsStore.analyticsData)
-const aiInsights = computed(() => insightsStore.aiInsights)
-const generatingAI = computed(() => insightsStore.generatingAI)
-const hasData = computed(() => {
-    return analyticsData.value && (
-        (analyticsData.value.income && analyticsData.value.income > 0) || 
-        (analyticsData.value.expense_total && analyticsData.value.expense_total > 0)
-    )
-})
 
 const forecastData = ref<any[]>([])
 const budgets = ref<any[]>([])
@@ -790,18 +693,12 @@ watch([localSelectedAccount, selectedTimeRange, startDate, endDate, () => authSt
     fetchFilteredTransactions()
 })
 const budgetHistory = ref<any[]>([])
-const aiError = ref<string | null>(null)
 const showExcludedDetails = ref(false)
 
 onMounted(async () => {
     // Initial fetch
     handleTimeRangeChange('this-month')
     fetchFilteredTransactions() // Ensure table loads on initial mount
-    
-    // Attempt to load cached AI insights on load
-    setTimeout(() => {
-        generateAIInsights(false)
-    }, 1000) // Delay slightly to ensure analytics data is loaded for context if needed
 })
 
 // Watch for global member filter change
@@ -899,61 +796,6 @@ async function fetchAnalyticsData() {
         console.error(e)
     }
 }
-
-async function generateAIInsights(forceRefresh: boolean = true) {
-    aiError.value = null
-    try {
-        const timeContext = selectedTimeRange.value === 'custom'
-            ? `from ${startDate.value} to ${endDate.value}`
-            : `for ${selectedTimeRange.value.replace('-', ' ')}`
-
-        const velocity = budgetHistory.value.length > 0 ? `Spending velocity is currently showing a ${overallBudget.value?.percentage > 80 ? 'HIGH' : 'STABLE'} trend relative to the monthly cycle.` : ''
-
-        const promptData = {
-            income: analyticsData.value.income,
-            expense_total: analyticsData.value.expense_total,
-            investment_total: analyticsData.value.investment_total,
-            net: analyticsData.value.net,
-            categories: analyticsData.value.categories,
-            investment_breakdown: analyticsData.value.investment_breakdown,
-            merchants: analyticsData.value.merchants,
-            accounts: analyticsData.value.accounts,
-            types: analyticsData.value.types,
-            credit: analyticsData.value.credit,
-            patterns: analyticsData.value.patterns,
-            budgets: budgets.value.map((b: any) => ({
-                category: b.category,
-                limit: b.amount_limit,
-                spent: b.spent,
-                percent: b.percentage,
-                status: b.percentage > 100 ? 'EXCEEDED' : (b.percentage > 80 ? 'CRITICAL' : 'OK')
-            })),
-            velocity_context: velocity,
-            timeframe_filter: timeContext,
-            account_filtered: props.selectedAccount ? "Yes" : "No",
-            member_context: authStore.selectedMemberId ? "Filtered by specific member" : "Global view"
-        }
-        await insightsStore.generateAIInsights(promptData, forceRefresh)
-        aiError.value = null
-    } catch (e: any) {
-        console.error("AI Insight Error:", e)
-        const rawMsg = e.response?.data?.detail || e.message || ""
-
-        // Final fallback Mapping
-        if (rawMsg.includes("Quota") || rawMsg.includes("429") || rawMsg.includes("RESOURCE_EXHAUSTED")) {
-            aiError.value = "Your API quota has been reached. Please try again in a few minutes or switch the model in settings."
-        } else if (rawMsg.includes("Authentication") || rawMsg.includes("401") || rawMsg.includes("API Key")) {
-            aiError.value = "Authentication failed. Please verify your Gemini API key in settings."
-        } else if (rawMsg.length > 100) {
-            // If message is too long or contains bits of code/json
-            aiError.value = "The intelligence service is temporarily unavailable. This usually happens during high demand or config sync."
-        } else {
-            aiError.value = rawMsg || "Failed to connect to the intelligence service."
-        }
-    }
-}
-
-const overallBudget = computed(() => budgets.value.find((b: any) => b.category === 'OVERALL'))
 
 
 const categoryOptions = computed(() => {
@@ -1053,108 +895,6 @@ const forecastChartData = computed(() => ({
 </script>
 
 <style scoped>
-/* AI Premium Card (Midnight Variant to match Budget Hero) */
-.premium-ai-card {
-    background: #0f172a !important;
-    position: relative;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-.ai-background-blobs {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1;
-    pointer-events: none;
-}
-
-.blob-blue {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.15;
-    background: rgba(59, 130, 246, 0.2);
-    width: 600px;
-    height: 600px;
-    top: -200px;
-    right: -100px;
-    border-radius: 50%;
-    animation: blob-float 20s infinite alternate;
-}
-
-.blob-purple {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.1;
-    background: rgba(139, 92, 246, 0.1);
-    width: 400px;
-    height: 400px;
-    bottom: -100px;
-    left: -100px;
-    border-radius: 50%;
-    animation: blob-float 20s infinite alternate-reverse;
-    animation-delay: -5s;
-}
-
-@keyframes blob-float {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(20px, -20px) scale(1.1); }
-}
-
-.ai-card-inner {
-    position: relative;
-    z-index: 2;
-    padding: 32px;
-}
-
-.ai-glow-icon {
-    width: 48px;
-    height: 48px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
-}
-
-.ai-markdown-container {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 16px;
-    padding: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.markdown-content {
-    color: #e2e8f0;
-    line-height: 1.7;
-    font-size: 0.95rem;
-}
-
-.markdown-content :deep(h4) {
-    color: #fff;
-    margin: 1.5rem 0 0.5rem 0;
-    font-weight: 800;
-}
-
-.markdown-content :deep(strong) {
-    color: #38bdf8;
-    font-weight: 700;
-}
-
-.ai-background-blobs .blob-blue,
-.ai-background-blobs .blob-purple {
-    position: absolute;
-    filter: blur(60px);
-    opacity: 0.4;
-    border-radius: 50%;
-}
 
 .blob-blue {
     width: 300px;
@@ -1367,67 +1107,7 @@ const forecastChartData = computed(() => ({
     height: 32px !important;
 }
 
-/* Premium AI States */
-.ai-loading-state,
-.ai-error-state,
-.ai-empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 200px;
-}
 
-.premium-loader {
-    position: relative;
-    width: 80px;
-    height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.loader-circle {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border: 3px solid rgba(255, 255, 255, 0.1);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-}
-
-.loader-icon {
-    z-index: 1;
-    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
-}
-
-.sparkles-animate {
-    animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.brain-animate {
-    animation: brain-bounce 3s ease-in-out infinite;
-}
-
-.error-glow-icon {
-    width: 64px;
-    height: 64px;
-    background: rgba(239, 68, 68, 0.2);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.brain-glow-container {
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 50%;
-    box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
-}
 
 @keyframes spin {
     to {

@@ -174,8 +174,8 @@
                         <v-btn v-else color="secondary" height="48" rounded="pill"
                             class="font-weight-black px-10 shadow-secondary hover-lift" :loading="isProcessing"
                             @click="handlePreview">
-                            START AI SCAN
-                            <Sparkles :size="20" class="ml-2" />
+                            START SCAN
+                            <Search :size="20" class="ml-2" />
                         </v-btn>
                     </v-col>
                 </v-row>
@@ -351,7 +351,7 @@
 import { ref, computed, watch } from 'vue'
 import {
     FileText, Mail, CheckCircle, ArrowRight, AlertTriangle,
-    HelpCircle, Sparkles, Search, CornerDownRight, Clock, Info
+    HelpCircle, Search, CornerDownRight, Clock, Info
 } from 'lucide-vue-next'
 
 import { useNotificationStore } from '@/stores/notification'

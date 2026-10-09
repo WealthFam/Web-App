@@ -5,7 +5,6 @@ import MainLayout from '@/layouts/MainLayout.vue'
 import {
     Mail,
     Users,
-    Bot,
     Smartphone,
     FileText
 } from 'lucide-vue-next'
@@ -13,7 +12,6 @@ import {
 // Child Components
 import EmailSettings from './settings/EmailSettings.vue'
 import FamilySettings from './settings/FamilySettings.vue'
-import AISettings from './settings/AISettings.vue'
 import DevicesSettings from './settings/DevicesSettings.vue'
 import ParserSettings from './settings/ParserSettings.vue'
 
@@ -64,12 +62,6 @@ onMounted(() => {
                                         <span>Emails</span>
                                     </div>
                                 </v-tab>
-                                <v-tab value="ai" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center gap-2">
-                                        <Bot :size="16" />
-                                        <span>AI Integration</span>
-                                    </div>
-                                </v-tab>
                                 <v-tab value="devices" class="premium-tab" rounded="xl">
                                     <div class="d-flex align-center gap-2">
                                         <Smartphone :size="16" />
@@ -95,10 +87,6 @@ onMounted(() => {
 
                     <v-window-item value="emails">
                         <EmailSettings />
-                    </v-window-item>
-
-                    <v-window-item value="ai">
-                        <AISettings />
                     </v-window-item>
 
                     <v-window-item value="devices">

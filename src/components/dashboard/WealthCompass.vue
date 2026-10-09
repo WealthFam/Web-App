@@ -19,7 +19,7 @@
     <v-dialog v-model="showInfo" max-width="500" transition="dialog-bottom-transition">
       <v-card rounded="xl" class="pa-4">
         <v-card-title class="d-flex align-center font-weight-black">
-          <Sparkles :size="24" class="text-primary mr-3" />
+          <Compass :size="24" class="text-primary mr-3" />
           Understanding Wealth Compass
         </v-card-title>
         <v-card-text class="py-4">
@@ -145,7 +145,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Compass, Info, Sparkles, TrendingUp, BarChart3, ShieldCheck, Target } from 'lucide-vue-next'
+import { Compass, Info, TrendingUp, BarChart3, ShieldCheck, Target } from 'lucide-vue-next'
 import { useCurrency } from '@/composables/useCurrency'
 
 const props = defineProps<{

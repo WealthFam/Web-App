@@ -134,7 +134,7 @@
                             :class="{ 'raised': isHovering }" rounded="xl" @click="router.push('/mutual-funds')">
                             <div class="d-flex justify-space-between align-center mb-6">
                                 <v-avatar class="premium-gradient-success elevation-2" rounded="lg" size="48">
-                                    <Sparkles :size="24" color="white" />
+                                    <Briefcase :size="24" color="white" />
                                 </v-avatar>
                                 <div class="ml-auto">
                                     <Sparkline v-if="netWorthTrend.length > 1" :data="netWorthTrend"
@@ -188,7 +188,7 @@
                     </v-hover>
                 </v-col>
 
-                <!-- MIDDLE ROW: Wealth Compass & AI Intelligence -->
+                <!-- MIDDLE ROW: Wealth Compass & Financial Intelligence -->
                 <v-col cols="12" lg="8">
                     <WealthCompass :metrics="metrics" :portfolio="mfPortfolio" class="h-100" />
                 </v-col>
@@ -199,23 +199,23 @@
                             <div class="d-flex align-center">
                                 <h2 class="text-h6 font-weight-black d-flex align-center mb-0">
                                     <Zap :size="20" class="text-primary mr-2" />
-                                    AI Intelligence
+                                    Financial Intelligence
                                 </h2>
-                                <v-chip v-if="isAiCached" size="small" color="warning" class="ml-3 font-weight-bold"
+                                <v-chip v-if="isInsightsCached" size="small" color="warning" class="ml-3 font-weight-bold"
                                     variant="tonal">
                                     Cached
                                 </v-chip>
                             </div>
                             <div class="d-flex align-center">
-                                <v-btn v-if="aiInsights" icon variant="text" size="small" color="primary"
-                                    @click="forceRefreshAi" :loading="refreshingAi">
+                                <v-btn v-if="budgetInsights" icon variant="text" size="small" color="primary"
+                                    @click="forceRefreshInsights" :loading="refreshingInsights">
                                     <RefreshCw :size="16" />
                                 </v-btn>
-                                <Loader2 v-if="!aiInsights" :size="20" class="rotate-anim opacity-40" />
+                                <Loader2 v-if="!budgetInsights" :size="20" class="rotate-anim opacity-40" />
                             </div>
                         </div>
 
-                        <div v-if="aiInsights" class="ai-content flex-grow-1">
+                        <div v-if="budgetInsights" class="insights-content flex-grow-1">
                             <div v-for="(insight, idx) in formattedInsights" :key="idx"
                                 class="insight-pill mb-2 pa-2 px-3 border rounded-lg bg-surface-variant-opacity">
                                 <div class="d-flex align-center">
@@ -231,11 +231,11 @@
                             </div>
                         </div>
                         <div v-else class="text-center py-12 opacity-40 flex-grow-1 d-flex flex-column justify-center">
-                            <p class="text-caption font-weight-black">Analyzing your financial DNA...</p>
+                            <p class="text-caption font-weight-black">Analyzing current financial patterns...</p>
                         </div>
 
-                        <!-- Gradient background glow for AI -->
-                        <div class="ai-glow"></div>
+                        <!-- Gradient background glow -->
+                        <div class="intelligence-glow"></div>
                     </v-card>
                 </v-col>
 
@@ -429,8 +429,7 @@ import {
     Activity,
     Landmark,
     Wallet,
-    PieChart,
-    Sparkles,
+    Briefcase,
     CalendarClock,
     CreditCard,
     TrendingUp,
@@ -438,7 +437,8 @@ import {
     RefreshCw,
     Zap,
     Loader2,
-    ArrowRight
+    ArrowRight,
+    PieChart
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -459,7 +459,7 @@ const sixMonthInvestmentTrend = computed(() => dashboardStore.sixMonthInvestment
 const sixMonthLabels = computed(() => dashboardStore.sixMonthLabels || [])
 const projectedBudgetTrend = computed(() => dashboardStore.projectedBudgetTrend || [])
 const projectedBudgetLabels = computed(() => dashboardStore.projectedBudgetLabels || [])
-const aiInsights = computed(() => dashboardStore.aiInsights)
+const budgetInsights = computed(() => dashboardStore.budgetInsights)
 const loading = computed(() => dashboardStore.loading)
 
 const accounts = computed(() => financeStore.accounts)
@@ -489,31 +489,31 @@ const netWorthChange = computed(() => {
 })
 
 const formattedInsights = computed(() => {
-    if (!aiInsights.value) return []
+    if (!budgetInsights.value) return []
     // If its a string (classic bullet points), try to parse or just wrap
-    if (typeof aiInsights.value === 'string') {
-        return aiInsights.value.split('\n').filter((l: string) => l.trim()).map((l: string) => {
+    if (typeof budgetInsights.value === 'string') {
+        return budgetInsights.value.split('\n').filter((l: string) => l.trim()).map((l: string) => {
             const clean = l.replace(/^[-*•]\s+/, '')
-            return { icon: '✨', title: 'Observation', content: clean }
+            return { icon: '📊', title: 'Observation', content: clean }
         }).slice(0, 3)
     }
     // If its structured (array from backend)
-    if (Array.isArray(aiInsights.value)) return aiInsights.value.slice(0, 3)
+    if (Array.isArray(budgetInsights.value)) return budgetInsights.value.slice(0, 3)
     return []
 })
 
-const isAiCached = computed(() => {
-    if (Array.isArray(aiInsights.value)) {
-        return aiInsights.value.some((i: any) => i.is_cached)
+const isInsightsCached = computed(() => {
+    if (Array.isArray(budgetInsights.value)) {
+        return budgetInsights.value.some((i: any) => i.is_cached)
     }
     return false
 })
 
-const refreshingAi = ref(false)
-async function forceRefreshAi() {
-    refreshingAi.value = true
-    await dashboardStore.fetchAiInsights(true)
-    refreshingAi.value = false
+const refreshingInsights = ref(false)
+async function forceRefreshInsights() {
+    refreshingInsights.value = true
+    await dashboardStore.fetchBudgetInsights(true)
+    refreshingInsights.value = false
 }
 
 const creditSummary = computed(() => {
@@ -625,7 +625,7 @@ watch(() => auth.selectedMemberId, async () => {
     border: 1px solid rgba(var(--v-border-color), 0.1) !important;
 }
 
-.ai-glow {
+.intelligence-glow {
     position: absolute;
     top: -50px;
     right: -50px;

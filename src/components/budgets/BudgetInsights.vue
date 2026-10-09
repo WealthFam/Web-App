@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Sparkles, RefreshCw } from 'lucide-vue-next'
+import { TrendingUp, RefreshCw } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 
 defineProps<{
@@ -18,11 +18,11 @@ const router = useRouter()
   <div class="mb-10">
     <div class="d-flex align-center ga-3 mb-6">
       <v-avatar color="primary" variant="tonal" size="44">
-        <Sparkles class="text-primary" :size="24" />
+        <TrendingUp class="text-primary" :size="24" />
       </v-avatar>
       <div>
-        <h2 class="text-h6 font-weight-black line-height-1 mb-1">AI Intelligence</h2>
-        <p class="text-caption font-weight-bold opacity-60">Smart financial analysis & recommendations</p>
+        <h2 class="text-h6 font-weight-black line-height-1 mb-1">Budget Insights</h2>
+        <p class="text-caption font-weight-bold opacity-60">Financial analysis & recommendations</p>
       </div>
       <v-spacer></v-spacer>
       <v-btn v-if="insights.length === 0" variant="tonal" color="primary" rounded="pill" size="small" :loading="loading" @click="emit('analyze')" class="text-none px-6 font-weight-bold">
@@ -44,13 +44,13 @@ const router = useRouter()
         <div class="d-flex align-start ga-4">
           <v-avatar size="48" :color="insight.type === 'danger' ? 'error' : (insight.type === 'warning' ? 'warning' : 'primary')"
             variant="tonal" rounded="lg">
-            <span class="text-h5">{{ insight.icon || '✨' }}</span>
+            <span class="text-h5">{{ insight.icon || '📊' }}</span>
           </v-avatar>
           <div class="flex-grow-1">
             <div class="d-flex justify-space-between align-start">
               <h4 class="text-h6 font-weight-black line-height-1 mb-2">{{ insight.title }}</h4>
               <v-chip size="small" variant="outlined" :color="insight.type === 'danger' ? 'error' : 'primary'" class="font-weight-black">
-                {{ insight.action ? 'Action Required' : 'AI Insight' }}
+                {{ insight.action ? 'Action Required' : 'Insight' }}
               </v-chip>
             </div>
             <p class="text-body-1 font-weight-medium opacity-80 line-height-relaxed">{{ insight.content }}</p>

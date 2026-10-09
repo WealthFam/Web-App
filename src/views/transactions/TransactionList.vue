@@ -243,10 +243,6 @@
                                 {{ item.external_id }}
                             </v-chip>
 
-                            <v-chip v-if="item.is_ai_parsed" size="x-small" color="primary" variant="tonal"
-                                class="font-weight-bold">
-                                ✨ AI
-                            </v-chip>
                             <v-chip v-if="item.is_transfer" size="x-small" color="success" variant="tonal"
                                 class="font-weight-bold">
                                 🔄 Transfer

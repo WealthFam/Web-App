@@ -127,17 +127,17 @@
                         </v-col>
                     </v-row>
 
-                    <!-- AI Insights & Strategic Simulations -->
+                    <!-- Strategic Insights & Simulations -->
                     <v-card class="premium-glass-card mb-10 insights-glow" elevation="0">
                         <div
                             class="pa-6 d-flex flex-column flex-md-row justify-space-between align-md-center gap-4 insights-header-bg border-b">
                             <div class="d-flex align-center gap-4">
                                 <div class="primary-glow-box shadow-primary">
-                                    <Sparkles :size="24" class="text-primary" />
+                                    <TrendingUp :size="24" class="text-primary" />
                                 </div>
                                 <div>
                                     <h3 class="text-h5 font-weight-black text-content letter-spacing-negative-1 mb-1">
-                                        Strategic AI Debt Shredder</h3>
+                                        Strategic Debt Optimization</h3>
                                     <p
                                         class="text-caption font-weight-bold text-medium-emphasis letter-spacing-1 text-uppercase">
                                         Advanced simulations to save interest & close your debt faster</p>
@@ -318,9 +318,8 @@
 
                         <div v-if="insights" class="pa-8 pt-6 border-b bg-primary bg-opacity-2">
                             <div class="d-flex align-center gap-3 mb-6">
-                                <Sparkles :size="20" class="text-primary" />
-                                <span class="text-caption font-weight-black text-uppercase letter-spacing-1">Deep
-                                    Analysis Report</span>
+                                <TrendingUp :size="20" class="text-primary" />
+                                <span class="text-caption font-weight-black text-uppercase letter-spacing-1">Optimization Report</span>
                             </div>
                             <div class="markdown-body premium-markdown" v-html="renderedInsights"></div>
                         </div>
@@ -525,7 +524,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { Pie, Bar, Line } from 'vue-chartjs'
 import { marked } from 'marked'
 import PremiumSkeleton from '@/components/common/PremiumSkeleton.vue'
-import { ChevronLeft, Sparkles, X, ChevronDown, TrendingUp, Calendar, Activity, Landmark, Wallet, CalendarClock, Target } from 'lucide-vue-next'
+import { ChevronLeft, X, ChevronDown, TrendingUp, Calendar, Activity, Landmark, Wallet, CalendarClock, Target } from 'lucide-vue-next'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement)
 
@@ -784,10 +783,10 @@ const generateInsights = async () => {
         const response = await api.getLoanInsights(id)
         insights.value = response.data.insights
         simulations.value = response.data.simulations
-        notificationStore.success("AI Analysis complete!")
+        notificationStore.success("Optimization report generated!")
     } catch (e) {
         console.error("Failed to generate insights", e)
-        notificationStore.error("Failed to generate AI insights. Please check if AI is enabled in settings.")
+        notificationStore.error("Failed to generate debt optimization analysis.")
     } finally {
         insightLoading.value = false
     }

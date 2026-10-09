@@ -71,8 +71,8 @@
                         @set-limit="openSetBudgetModal(false)" 
                     />
 
-                    <!-- AI Insights Section -->
-                    <BudgetAiInsights 
+                    <!-- Budget Insights Section -->
+                    <BudgetInsights 
                         :insights="insights" 
                         :loading="loadingInsights" 
                         @analyze="fetchInsights" 
@@ -200,7 +200,7 @@ import {
 import { computed, onMounted, ref, watch } from 'vue'
 
 import { financeApi } from '@/api/client'
-import BudgetAiInsights from '@/components/budgets/BudgetAiInsights.vue'
+import BudgetInsights from '@/components/budgets/BudgetInsights.vue'
 import BudgetCategoryCard from '@/components/budgets/BudgetCategoryCard.vue'
 import BudgetHero from '@/components/budgets/BudgetHero.vue'
 import BudgetSummaryCards from '@/components/budgets/BudgetSummaryCards.vue'
@@ -386,7 +386,7 @@ async function fetchInsights() {
         const userId = authStore.selectedMemberId || undefined
         await budgetStore.fetchInsights(year, month, userId)
     } catch (e) {
-        notify.error("Failed to generate AI insights")
+        notify.error("Failed to generate budget insights")
     } finally {
         loadingInsights.value = false
     }

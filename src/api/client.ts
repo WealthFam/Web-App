@@ -21,12 +21,6 @@ const parserClient = axios.create({
     baseURL: import.meta.env.VITE_PARSER_API_URL || '/parser',
     headers: { 'Content-Type': 'application/json' },
 })
-
-// 3. AI Agent (Strategic Optimizer) Client
-const agentClient = axios.create({
-    baseURL: import.meta.env.VITE_AGENT_API_URL || '/agent',
-    headers: { 'Content-Type': 'application/json' },
-})
 // -----------------------
 
 // Request interceptor for API calls
@@ -296,7 +290,6 @@ export const financeApi = {
         return response.data.data // Extract array from envelope
     },
     deleteSpamFilter: (id: string) => apiClient.delete(`/ingestion/training/spam/${id}`),
-    syncAiToParser: () => apiClient.post('/ingestion/ai/sync-to-parser'),
     getIngestionEvents: (params?: { limit?: number, skip?: number, device_id?: string }) => apiClient.get('/ingestion/events', { params }),
     bulkDeleteEvents: (ids: string[]) => apiClient.post('/ingestion/events/bulk-delete', { event_ids: ids }),
     getEmailLogs: (params?: { limit?: number, skip?: number, config_id?: string }) => apiClient.get('/ingestion/email/logs', { params }),
@@ -420,8 +413,6 @@ export const parserApi = {
     getLogs: (params?: { limit?: number, offset?: number, source?: string, status?: string }) =>
         parserClient.get('/logs', { params }),
     getLogDetail: (id: string) => parserClient.get(`/logs/${id}`),
-    getAiConfig: () => parserClient.get('/config/ai'),
-    updateAiConfig: (data: any) => parserClient.post('/config/ai', data),
     getAliases: () => parserClient.get('/config/aliases'),
     createAlias: (pattern: string, alias: string) => parserClient.post('/config/aliases', { pattern, alias }),
     deleteAlias: (id: string) => parserClient.delete(`/config/aliases/${id}`),
@@ -429,19 +420,6 @@ export const parserApi = {
     createPattern: (data: any) => parserClient.post('/patterns', data),
     updatePattern: (id: string, data: any) => parserClient.put(`/patterns/${id}`, data),
     deletePattern: (id: string) => parserClient.delete(`/patterns/${id}`),
-}
-
-export const aiApi = {
-    getSettings: () => apiClient.get('/ingestion/ai/settings'),
-    getStatus: () => apiClient.get('/ingestion/ai/status', { skipNotification: true }),
-    updateSettings: (data: any) => apiClient.post('/ingestion/ai/settings', data),
-    testConnection: (content: string) => apiClient.post('/ingestion/ai/test', { content }),
-    listModels: (provider: string, apiKey?: string) => apiClient.get('/ingestion/ai/models', { params: { provider, api_key: apiKey } }),
-    generateSummaryInsights: (summary_data: any, forceRefresh: boolean = false) => apiClient.post('/ingestion/ai/generate-insights', { summary_data, force_refresh: forceRefresh }, { skipNotification: true }),
-    getAliases: () => apiClient.get('/ingestion/ai/aliases'),
-    createAlias: (pattern: string, alias: string) => apiClient.post('/ingestion/ai/aliases', { pattern, alias }),
-    deleteAlias: (id: string) => apiClient.delete(`/ingestion/ai/aliases/${id}`),
-    autoParseTrainingMessage: (id: string) => apiClient.post(`/ingestion/ai/training/${id}/auto-parse`)
 }
 
 export const mobileApi = {
@@ -455,24 +433,4 @@ export const mobileApi = {
     testNotification: (id: string) => apiClient.post(`/mobile/devices/${id}/test-notification`),
     deleteDevice: (id: string) => apiClient.delete(`/mobile/devices/${id}`),
     getAlerts: () => apiClient.get<any[]>('/mobile/alerts'),
-    forensicParse: (content: string) => apiClient.post('/mobile/ai/forensic-parse', { content }),
-}
-
-// Request interceptor for Agent calls
-agentClient.interceptors.request.use(
-    async (config) => {
-        const token = localStorage.getItem('access_token')
-        if (token && config.headers) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    },
-    (error) => {
-        return Promise.reject(error)
-    }
-)
-
-export const agentApi = {
-    chat: (message: string, threadId?: string) => 
-        agentClient.post<{ response: string, status: string }>('/chat', { message, thread_id: threadId }),
 }

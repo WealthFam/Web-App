@@ -21,8 +21,8 @@
                     <div class="d-flex gap-3 align-center">
                         <v-btn color="primary" variant="tonal" rounded="pill" height="44" class="px-6 font-weight-bold"
                             @click="generatePortfolioInsights" :loading="insightLoading">
-                            <Sparkles :size="18" class="mr-2" />
-                            AI Analysis
+                            <TrendingUp :size="18" class="mr-2" />
+                            Repayment Strategy
                         </v-btn>
                         <v-btn color="primary" variant="flat" rounded="pill" height="44" class="px-6 font-weight-bold"
                             @click="openAddModal">
@@ -280,12 +280,12 @@
                 </v-card>
             </v-dialog>
 
-            <!-- AI Insights Modal -->
+            <!-- Strategy Insights Modal -->
             <v-dialog v-model="showInsightModal" max-width="700">
                 <v-card rounded="xl" class="premium-glass-modal elevation-24">
                     <div class="px-6 pt-6 pb-2 d-flex justify-space-between align-center">
                         <div class="d-flex align-center gap-2">
-                            <Sparkles :size="24" class="text-primary" />
+                            <TrendingUp :size="24" class="text-primary" />
                             <h2 class="text-h5 font-weight-black text-content">Debt Strategy</h2>
                         </div>
                         <v-btn icon variant="text" @click="showInsightModal = false" density="comfortable"
@@ -323,7 +323,7 @@ import { financeApi as api } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
 import { useCurrency } from '@/composables/useCurrency'
 import PremiumSkeleton from '@/components/common/PremiumSkeleton.vue'
-import { Sparkles, Plus, Landmark, Calendar, X, ChevronDown } from 'lucide-vue-next'
+import { TrendingUp, Plus, Landmark, Calendar, X, ChevronDown } from 'lucide-vue-next'
 import { marked } from 'marked'
 import { useLoanStore } from '@/stores/finance/loans'
 
@@ -450,7 +450,7 @@ const generatePortfolioInsights = async () => {
         portfolioInsights.value = res.data.insights
     } catch (e) {
         console.error("Failed to generate insights", e)
-        notificationStore.error("AI Analysis failed. Please try again.")
+        notificationStore.error("Analysis failed. Please try again.")
         showInsightModal.value = false
     } finally {
         insightLoading.value = false
