@@ -42,16 +42,6 @@
                                         </v-chip>
                                     </div>
                                 </v-tab>
-                                <v-tab value="training" class="premium-tab" rounded="xl" @click="fetchTriage">
-                                    <div class="d-flex align-center gap-2">
-                                        <Target :size="16" />
-                                        <span>Training</span>
-                                        <v-chip v-if="trainingPagination.total > 0" size="x-small" color="primary"
-                                            class="ml-1 font-weight-black">
-                                            {{ trainingPagination.total }}
-                                        </v-chip>
-                                    </div>
-                                </v-tab>
                                 <v-tab value="heatmap" class="premium-tab" rounded="xl">
                                     <div class="d-flex align-center gap-2">
                                         <MapIcon :size="16" />
@@ -115,85 +105,22 @@
                             activeSubTab: 'pending', accounts, categories,
                             triageTransactions, triagePagination, triageSearchQuery,
                             triageSourceFilter, triageSortKey, triageSortOrder,
-                            unparsedMessages, trainingPagination, trainingSearchQuery,
-                            trainingSortKey, trainingSortOrder,
                             // Confirmation States
-                            showDiscardConfirm, showTrainingDiscardConfirm, createIgnoreRule,
-                            triageIdToDiscard, trainingIdToDiscard,
-                            showLabelForm, selectedMessage, labelForm
+                            showDiscardConfirm, createIgnoreRule,
+                            triageIdToDiscard
                         }" v-model:selectedTriageIds="selectedTriageIds"
-                            v-model:selectedTrainingIds="selectedTrainingIds"
                             @update:activeSubTab="activeTriageSubTab = $event"
                             @update:triageSearchQuery="triageSearchQuery = $event"
                             @update:triageSourceFilter="triageSourceFilter = $event as any"
                             @update:triageSortKey="triageSortKey = $event"
                             @update:triageSortOrder="triageSortOrder = $event"
                             @update:triagePagination="triagePagination = $event; fetchTriage()"
-                            @update:trainingSearchQuery="trainingSearchQuery = $event"
-                            @update:trainingSortKey="trainingSortKey = $event"
-                            @update:trainingSortOrder="trainingSortOrder = $event"
-                            @update:trainingPagination="trainingPagination = $event; fetchTriage()"
                             @update:showDiscardConfirm="showDiscardConfirm = $event"
-                            @update:showTrainingDiscardConfirm="showTrainingDiscardConfirm = $event"
                             @update:createIgnoreRule="createIgnoreRule = $event" @approveTriage="approveTriage"
                             @rejectTriage="rejectTriage" @bulkRejectTriage="handleBulkRejectTriage"
-                            @startLabeling="startLabeling" @dismissTraining="dismissTraining"
-                            @bulkDismissTraining="handleBulkDismissTraining" @confirmDiscard="confirmDiscard"
-                            @confirmTrainingDiscard="confirmTrainingDiscard"
+                            @confirmDiscard="confirmDiscard"
                             @confirmBulkDiscard="handleBulkRejectTriage"
-                            @confirmBulkTrainingDiscard="handleConfirmGlobalTrainingDismiss"
-                            @refreshTriage="() => { fetchTriage(); fetchData(); }"
-                            @update:showLabelForm="showLabelForm = $event" @handleLabelSubmit="handleLabelSubmit"
-                            :training-sender-filter="trainingSenderFilter" :training-subject-filter="trainingSubjectFilter"
-                            :spam-filters="spamFilters" :show-spam-manager="showSpamManager"
-                            @update:trainingSenderFilter="trainingSenderFilter = $event"
-                            @update:trainingSubjectFilter="trainingSubjectFilter = $event"
-                            @update:showSpamManager="showSpamManager = $event"
-                            @markAsSpam="markAsSpam" @findSimilar="findSimilar"
-                            @removeSpamFilter="removeSpamFilter" @fetchSpamFilters="fetchSpamFilters" />
-                    </v-window-item>
-
-                    <v-window-item value="training">
-                        <TransactionTriage v-bind="{
-                            activeSubTab: 'training', accounts, categories,
-                            triageTransactions, triagePagination, triageSearchQuery,
-                            triageSourceFilter, triageSortKey, triageSortOrder,
-                            unparsedMessages, trainingPagination, trainingSearchQuery,
-                            trainingSortKey, trainingSortOrder,
-                            // Confirmation States
-                            showDiscardConfirm, showTrainingDiscardConfirm, createIgnoreRule,
-                            triageIdToDiscard, trainingIdToDiscard,
-                            showLabelForm, selectedMessage, labelForm
-                        }" v-model:selectedTriageIds="selectedTriageIds"
-                            v-model:selectedTrainingIds="selectedTrainingIds"
-                            @update:activeSubTab="activeTriageSubTab = $event"
-                            @update:triageSearchQuery="triageSearchQuery = $event"
-                            @update:triageSourceFilter="triageSourceFilter = $event as any"
-                            @update:triageSortKey="triageSortKey = $event"
-                            @update:triageSortOrder="triageSortOrder = $event"
-                            @update:triagePagination="triagePagination = $event; fetchTriage()"
-                            @update:trainingSearchQuery="trainingSearchQuery = $event"
-                            @update:trainingSortKey="trainingSortKey = $event"
-                            @update:trainingSortOrder="trainingSortOrder = $event"
-                            @update:trainingPagination="trainingPagination = $event; fetchTriage()"
-                            @update:showDiscardConfirm="showDiscardConfirm = $event"
-                            @update:showTrainingDiscardConfirm="showTrainingDiscardConfirm = $event"
-                            @update:createIgnoreRule="createIgnoreRule = $event" @approveTriage="approveTriage"
-                            @rejectTriage="rejectTriage" @bulkRejectTriage="handleBulkRejectTriage"
-                            @startLabeling="startLabeling" @dismissTraining="dismissTraining"
-                            @bulkDismissTraining="handleBulkDismissTraining" @confirmDiscard="confirmDiscard"
-                            @confirmTrainingDiscard="confirmTrainingDiscard"
-                            @confirmBulkDiscard="handleBulkRejectTriage"
-                            @confirmBulkTrainingDiscard="handleConfirmGlobalTrainingDismiss"
-                            @refreshTriage="() => { fetchTriage(); fetchData(); }"
-                            @update:showLabelForm="showLabelForm = $event" @handleLabelSubmit="handleLabelSubmit"
-                            :training-sender-filter="trainingSenderFilter" :training-subject-filter="trainingSubjectFilter"
-                            :spam-filters="spamFilters" :show-spam-manager="showSpamManager"
-                            @update:trainingSenderFilter="trainingSenderFilter = $event"
-                            @update:trainingSubjectFilter="trainingSubjectFilter = $event"
-                            @update:showSpamManager="showSpamManager = $event"
-                            @markAsSpam="markAsSpam" @findSimilar="findSimilar"
-                            @removeSpamFilter="removeSpamFilter" @fetchSpamFilters="fetchSpamFilters" />
+                            @refreshTriage="() => { fetchTriage(); fetchData(); }" />
                     </v-window-item>
 
                     <v-window-item value="heatmap">
@@ -265,8 +192,7 @@ import {
     LayoutList,
     Inbox,
     Map as MapIcon,
-    Activity,
-    Target
+    Activity
 } from 'lucide-vue-next'
 import SpendingForecastChart from '@/components/SpendingForecastChart.vue'
 
@@ -295,8 +221,8 @@ const expenseGroups = computed(() => groupStore.groups)
 
 // UI State
 const showImportModal = ref(false)
-const activeTab = ref<'list' | 'analytics' | 'pending' | 'training' | 'heatmap'>('list')
-const activeTriageSubTab = ref<'pending' | 'training'>('pending')
+const activeTab = ref<'list' | 'analytics' | 'pending' | 'heatmap'>('list')
+const activeTriageSubTab = ref<string>('pending')
 
 
 
@@ -374,42 +300,16 @@ const {
     triageSortKey,
     triageSortOrder,
     selectedTriageIds,
-    unparsedMessages,
-    trainingPagination,
-    trainingSearchQuery,
-    trainingSortKey,
-    trainingSortOrder,
-    trainingSenderFilter,
-    trainingSubjectFilter,
-    selectedTrainingIds,
     fetchTriage,
     approveTriage,
     rejectTriage,
     handleBulkRejectTriage,
-    startLabeling,
-    dismissTraining,
-    handleBulkDismissTraining,
-    showLabelForm,
-    labelForm,
-    handleLabelSubmit,
-    selectedMessage,
-    // Spam
-    spamFilters,
-    showSpamManager,
-    markAsSpam,
-    fetchSpamFilters,
-    removeSpamFilter,
-    findSimilar,
     // Confirmation States
     showDiscardConfirm,
-    showTrainingDiscardConfirm,
     createIgnoreRule,
     triageIdToDiscard,
-    trainingIdToDiscard,
     // Methods
-    confirmDiscard,
-    confirmTrainingDiscard,
-    handleConfirmGlobalTrainingDismiss
+    confirmDiscard
 } = useTriageState(accounts, categories, showSmartPrompt, smartPromptData, fetchData)
 
 // Initialize Modals Composable

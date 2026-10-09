@@ -345,246 +345,6 @@
                     </div>
                 </div>
             </v-window-item>
-
-            <!-- TRAINING TAB -->
-            <v-window-item value="training">
-                <v-alert type="info" variant="tonal" class="mb-6 rounded-xl" border="start" density="comfortable">
-                    <template v-slot:prepend>
-                        <Info :size="18" class="mr-2 text-info" />
-                    </template>
-                    <strong>Interactive Training</strong>: These messages look like transactions but could
-                    not be parsed. Label them to help the system learn!
-                </v-alert>
-
-                <!-- Training Toolbar -->
-                <v-card class="premium-glass-card mb-4 pa-3 no-hover" style="border-radius: 20px !important;">
-                    <v-row align="center" no-gutters class="gap-3 px-2">
-                        <!-- Left: Selection Group -->
-                        <v-col cols="auto" class="d-flex align-center gap-2">
-                            <v-checkbox-btn
-                                :model-value="selectedTrainingIds.length === unparsedMessages.length && unparsedMessages.length > 0"
-                                @update:model-value="toggleSelectAllTraining" color="primary" label="All"
-                                hide-details density="comfortable" class="ml-1 font-weight-black"></v-checkbox-btn>
-
-                            <v-fade-transition>
-                                <v-tooltip v-if="selectedTrainingIds.length > 0"
-                                    :text="`Dismiss ${selectedTrainingIds.length} selected messages`" location="top"
-                                    open-delay="400">
-                                    <template v-slot:activator="{ props }">
-                                        <v-btn v-bind="props" color="error" variant="tonal" size="small" height="40"
-                                            @click="emit('bulkDismissTraining')" rounded="lg" class="font-weight-black">
-                                            <template v-slot:prepend>
-                                                <Trash2 :size="16" />
-                                            </template>
-                                            Dismiss ({{ selectedTrainingIds.length }})
-                                        </v-btn>
-                                    </template>
-                                </v-tooltip>
-                            </v-fade-transition>
-                        </v-col>
-
-                        <v-divider vertical class="d-none d-md-block mx-1" />
-
-                        <!-- Center: Search Group -->
-                        <v-col cols="12" md="3" class="d-flex align-center">
-                            <v-text-field :model-value="trainingSearchQuery"
-                                @update:model-value="emit('update:trainingSearchQuery', $event)"
-                                placeholder="Search sender, subject..." hide-details density="comfortable"
-                                variant="outlined" rounded="lg" bg-color="surface" color="primary" clearable>
-                                <template v-slot:prepend-inner>
-                                    <Search :size="18" class="text-medium-emphasis mr-1" />
-                                </template>
-                            </v-text-field>
-                        </v-col>
-
-                        <v-spacer></v-spacer>
-
-                        <!-- Right: Filter & Sort Group -->
-                        <v-col cols="12" md="auto" class="d-flex align-center gap-2">
-                            <v-fade-transition>
-                                <v-btn v-if="trainingSenderFilter" variant="tonal" color="primary" size="small" height="40" 
-                                    class="rounded-lg px-3 font-weight-black text-none" @click="emit('update:trainingSenderFilter', null)">
-                                    <ScanSearch :size="16" class="mr-2" />
-                                    Similar: {{ trainingSenderFilter }}
-                                    <X :size="14" class="ml-2 opacity-50" />
-                                </v-btn>
-                            </v-fade-transition>
-
-                            <v-tooltip text="Manage Spam Filters" location="top" open-delay="400">
-                                <template v-slot:activator="{ props }">
-                                    <v-btn v-bind="props" variant="tonal" color="error" size="small" height="40" width="40" class="rounded-lg" 
-                                        @click="emit('update:showSpamManager', true); emit('fetchSpamFilters')">
-                                        <ShieldOff :size="18" />
-                                    </v-btn>
-                                </template>
-                            </v-tooltip>
-
-                            <v-autocomplete :model-value="trainingSortKey"
-                                @update:model-value="emit('update:trainingSortKey', $event)"
-                                :items="[{ title: 'By Date', value: 'created_at' }, { title: 'By Sender', value: 'sender' }]"
-                                item-title="title" item-value="value" hide-details density="comfortable"
-                                variant="outlined" label="Sort" style="width: 140px" rounded="lg"
-                                class="font-weight-bold" bg-color="surface" color="primary"></v-autocomplete>
-
-                            <v-tooltip :text="`Sort by ${trainingSortOrder === 'asc' ? 'Descending' : 'Ascending'}`"
-                                location="top" open-delay="400">
-                                <template v-slot:activator="{ props }">
-                                    <v-btn v-bind="props"
-                                        @click="emit('update:trainingSortOrder', trainingSortOrder === 'asc' ? 'desc' : 'asc')"
-                                        variant="tonal" size="small" height="40" width="40" color="primary"
-                                        class="rounded-lg">
-                                        <ArrowUp v-if="trainingSortOrder === 'asc'" :size="18" />
-                                        <ArrowDown v-else :size="18" />
-                                    </v-btn>
-                                </template>
-                            </v-tooltip>
-
-                            <v-tooltip text="Refresh training data" location="top" open-delay="400">
-                                <template v-slot:activator="{ props }">
-                                    <v-btn v-bind="props" variant="text" size="small" height="40" width="40" class="rounded-lg"
-                                        @click="emit('refreshTriage')">
-                                        <RefreshCcw :size="18" />
-                                    </v-btn>
-                                </template>
-                            </v-tooltip>
-                        </v-col>
-                    </v-row>
-                </v-card>
-
-                <!-- Training Grid -->
-                <v-row>
-                    <v-col v-for="msg in sortedTrainingMessages" :key="msg.id" cols="12" md="6" lg="6">
-                        <v-card class="premium-glass-card training-card" variant="flat">
-                            <!-- Dynamic Accent Glow (Primary for Training) -->
-                            <div class="card-glow-accent triage-glow"></div>
-
-                            <div class="card-modern-header px-4 pt-4 pb-2">
-                                <div class="d-flex align-center gap-3 overflow-hidden">
-                                    <v-checkbox-btn v-model="selectedTrainingIds" :value="msg.id" color="primary"
-                                        density="comfortable" hide-details class="mt-n1"></v-checkbox-btn>
-
-                                    <div class="flex-grow-1 min-width-0">
-                                        <div
-                                            class="text-subtitle-2 font-weight-black text-truncate modern-header-title mb-1">
-                                            {{ msg.sender || 'Unknown Sender' }}
-                                        </div>
-                                        <div class="d-flex flex-wrap align-center gap-2 text-caption opacity-70">
-                                            <span class="font-weight-bold">{{ formatDate(msg.created_at).day }}</span>
-                                            <span class="opacity-30">•</span>
-                                            <span class="text-uppercase tracking-wider font-weight-black opacity-50">{{
-                                                msg.source }}</span>
-                                            <v-chip v-if="msg.latitude" size="x-small" color="primary" variant="tonal" class="rounded-pill font-weight-bold" density="compact">
-                                                <MapPin :size="10" class="mr-1" /> GPS
-                                            </v-chip>
-                                            <v-chip color="primary" size="x-small" variant="flat" class="ml-auto uppercase px-1 px-sm-2">Needs
-                                                Training</v-chip>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <v-card-text class="flex-grow-1 px-4 py-2 d-flex flex-column gap-3">
-                                <div v-if="msg.subject" class="text-caption font-weight-bold opacity-60">
-                                    Subject: <span class="text-on-surface opacity-100">{{ msg.subject }}</span>
-                                </div>
-
-                                <div class="modern-message-container training-message-box pa-3">
-                                    <div class="text-caption message-content training-content">
-                                        {{ msg.raw_content }}
-                                    </div>
-                                </div>
-                            </v-card-text>
-
-                            <div class="modern-card-footer px-3 py-2 d-flex align-center gap-1 border-t mt-auto">
-                                <v-tooltip text="Dismiss this message" location="top" open-delay="400">
-                                    <template v-slot:activator="{ props }">
-                                        <v-btn v-bind="props" variant="tonal" color="grey" size="small"
-                                            class="rounded-lg footer-action-btn"
-                                            @click="emit('dismissTraining', msg.id)">
-                                            <Trash2 :size="16" />
-                                        </v-btn>
-                                    </template>
-                                </v-tooltip>
-                                <v-tooltip text="Mark as spam (block future)" location="top" open-delay="400">
-                                    <template v-slot:activator="{ props }">
-                                        <v-btn v-bind="props" variant="tonal" color="error" size="small"
-                                            class="rounded-lg footer-action-btn"
-                                            @click="emit('markAsSpam', msg.id)">
-                                            <ShieldAlert :size="16" />
-                                        </v-btn>
-                                    </template>
-                                </v-tooltip>
-                                <v-tooltip text="Find similar messages from this sender" location="top" open-delay="400">
-                                    <template v-slot:activator="{ props }">
-                                        <v-btn v-bind="props" variant="tonal" color="primary" size="small"
-                                            class="rounded-lg footer-action-btn"
-                                            @click="msg.sender ? emit('findSimilar', msg.sender) : null">
-                                            <ScanSearch :size="16" />
-                                        </v-btn>
-                                    </template>
-                                </v-tooltip>
-                                <v-spacer></v-spacer>
-                                <v-tooltip text="Label this message as a transaction to train the system" location="top"
-                                    open-delay="400">
-                                    <template v-slot:activator="{ props }">
-                                        <v-btn v-bind="props" color="primary" variant="tonal" size="small"
-                                            class="rounded-lg footer-action-btn" @click="emit('startLabeling', msg)">
-                                            <Sparkles :size="16" />
-                                        </v-btn>
-                                    </template>
-                                </v-tooltip>
-                            </div>
-                        </v-card>
-                    </v-col>
-                </v-row>
-
-                <!-- Empty State -->
-                <div v-if="trainingPagination.total === 0" class="text-center py-16 animate-in">
-                    <v-avatar size="100" color="success" variant="tonal" class="mb-6">
-                        <ShieldCheck :size="48" />
-                    </v-avatar>
-                    <h3 class="text-h4 font-weight-black">All Clear!</h3>
-                    <p class="text-subtitle-1 text-medium-emphasis mt-2">No unparsed messages waiting for training.</p>
-                </div>
-
-                <v-divider class="border-opacity-10"></v-divider>
-                <div v-if="trainingPagination.total > 0" class="d-flex align-center justify-end py-3 px-4 triage-footer">
-                    <div class="d-flex align-center mr-8">
-                        <span class="text-caption text-medium-emphasis mr-2">Rows per page:</span>
-                        <v-menu>
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" variant="text" size="small" density="compact"
-                                    class="text-caption font-weight-black px-1 no-hover-effect">
-                                    {{ trainingPagination.limit }}
-                                    <ChevronDown :size="14" class="ml-1 opacity-60" />
-                                </v-btn>
-                            </template>
-                            <v-list density="compact" class="rounded-lg border" elevation="2">
-                                <v-list-item v-for="size in [12, 24, 60]" :key="size"
-                                    @click="handleTrainingPaginationLimitChange(size)" :active="trainingPagination.limit === size" color="primary">
-                                    <v-list-item-title class="text-caption font-weight-bold">{{ size }}</v-list-item-title>
-                                </v-list-item>
-                            </v-list>
-                        </v-menu>
-                    </div>
-                    
-                    <div class="text-caption font-weight-bold text-medium-emphasis mr-6">
-                        {{ trainingPagination.skip + 1 }}-{{ Math.min(trainingPagination.skip + trainingPagination.limit, trainingPagination.total) }} of {{ trainingPagination.total }}
-                    </div>
-
-                    <div class="d-flex align-center gap-1">
-                        <v-btn icon variant="text" size="small" :disabled="trainingPagination.skip === 0" 
-                            @click="trainingCurrentPage--">
-                            <ChevronLeft :size="18" />
-                        </v-btn>
-                        <v-btn icon variant="text" size="small" 
-                            :disabled="trainingPagination.skip + trainingPagination.limit >= trainingPagination.total"
-                            @click="trainingCurrentPage++">
-                            <ChevronRight :size="18" />
-                        </v-btn>
-                    </div>
-                </div>
-            </v-window-item>
         </v-window>
 
         <!-- Details Modal -->
@@ -745,116 +505,18 @@
                 </v-card-text>
             </v-card>
         </v-dialog>
-
-        <!-- Discard Confirmation Dialog (Training) -->
-        <v-dialog :model-value="showTrainingDiscardConfirm"
-            @update:model-value="emit('update:showTrainingDiscardConfirm', $event)" max-width="400">
-            <v-card class="rounded-xl border border-error">
-                <v-card-text class="pa-6 text-center">
-                    <v-avatar color="error" variant="tonal" size="56" class="mb-4">
-                        <Trash2 :size="28" />
-                    </v-avatar>
-                    <div class="text-h6 font-weight-black mb-2">
-                        {{ trainingIdToDiscard ? 'Dismiss Message?' : `Dismiss ${selectedTrainingIds.length} Messages?` }}
-                    </div>
-                    <p class="text-body-2 text-medium-emphasis mb-6">
-                        This action will permanently remove these unparsed messages from training.
-                    </p>
-                    
-                    <v-checkbox :model-value="createIgnoreRule"
-                        @update:model-value="emit('update:createIgnoreRule', !!$event)"
-                        label="Don't show this sender again" color="error" density="compact" hide-details
-                        class="mb-6 font-weight-bold d-flex justify-center"></v-checkbox>
-
-                    <div class="d-flex gap-3 justify-center">
-                        <v-tooltip text="Keep these messages" location="bottom" open-delay="400">
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" variant="tonal" @click="emit('update:showTrainingDiscardConfirm', false)"
-                                    rounded="lg" class="px-6 font-weight-bold text-none">Cancel</v-btn>
-                            </template>
-                        </v-tooltip>
-                        <v-tooltip text="Dismiss these messages and clear them from training" location="bottom"
-                            open-delay="400">
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" color="error" variant="elevated" rounded="lg" class="px-6 font-weight-bold text-none"
-                                    @click="trainingIdToDiscard ? emit('confirmTrainingDiscard') : emit('confirmBulkTrainingDiscard')">
-                                    Dismiss
-                                </v-btn>
-                            </template>
-                        </v-tooltip>
-                    </div>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
-
-        <!-- Training Modal -->
-        <TransactionTrainingModal :model-value="showLabelForm"
-            @update:model-value="emit('update:showLabelForm', $event)" :selected-message="selectedMessage"
-            :label-form="labelForm" :categories="categories" @submit="emit('handleLabelSubmit')" />
-
-        <!-- Spam Manager Modal -->
-        <v-dialog :model-value="showSpamManager" @update:model-value="emit('update:showSpamManager', $event)" max-width="600" transition="dialog-bottom-transition">
-            <v-card class="rounded-xl overflow-hidden">
-                <v-toolbar color="error" density="comfortable">
-                    <ShieldOff :size="20" class="ml-4 mr-2" />
-                    <v-toolbar-title class="text-subtitle-1 font-weight-bold">Spam Filter Management</v-toolbar-title>
-                    <v-spacer></v-spacer>
-                    <v-btn variant="text" @click="emit('update:showSpamManager', false)">
-                        <X :size="20" />
-                    </v-btn>
-                </v-toolbar>
-
-                <v-card-text class="pa-0" style="min-height: 400px; max-height: 70vh; overflow-y: auto;">
-                    <v-alert v-if="spamFilters.length === 0" type="info" variant="tonal" class="ma-4 rounded-lg">
-                        You haven't blocked any senders yet.
-                    </v-alert>
-
-                    <v-list v-else lines="two" class="bg-transparent">
-                        <v-list-item v-for="filter in spamFilters" :key="filter.id" class="border-b px-6">
-                            <template v-slot:prepend>
-                                <v-avatar color="error" variant="tonal" size="40">
-                                    <ShieldAlert :size="20" />
-                                </v-avatar>
-                            </template>
-                            
-                            <v-list-item-title class="font-weight-black">
-                                {{ filter.sender || 'Unknown Sender' }}
-                            </v-list-item-title>
-                            <v-list-item-subtitle class="text-caption opacity-70">
-                                <span v-if="filter.subject" class="d-block">Subject: {{ filter.subject }}</span>
-                                <span class="text-uppercase tracking-wider font-weight-bold d-inline-flex align-center gap-1">
-                                    <span class="opacity-50">Source:</span> {{ filter.source }}
-                                    <span class="mx-2 opacity-20">|</span>
-                                    <span class="opacity-50">Blocked:</span> <span class="text-error">{{ filter.count_blocked || 0 }} times</span>
-                                </span>
-                            </v-list-item-subtitle>
-
-                            <template v-slot:append>
-                                <v-btn variant="tonal" color="grey" size="small" rounded="lg" 
-                                    @click="emit('removeSpamFilter', filter.id)">
-                                    Unblock
-                                </v-btn>
-                            </template>
-                        </v-list-item>
-                    </v-list>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
     </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, reactive } from 'vue'
 import MerchantAliasModal from '@/components/MerchantAliasModal.vue'
-import TransactionTrainingModal from './TransactionTrainingModal.vue'
 import { useCurrency } from '@/composables/useCurrency'
 import {
     Search,
     ArrowUpNarrowWide,
     ArrowDownNarrowWide,
     ArrowLeftRight,
-    ArrowUp,
-    ArrowDown,
     Trash2,
     RotateCw,
     Landmark,
@@ -862,18 +524,16 @@ import {
     MapPin,
     Info,
     Check,
-    Sparkles,
     X,
     Zap,
     CheckCircle2,
-    ShieldCheck,
-    RefreshCcw,
     ChevronLeft,
     ChevronRight,
     ChevronDown,
-    ShieldOff,
-    ScanSearch
+    EyeOff,
+    Tag
 } from 'lucide-vue-next'
+
 export interface AccountItem {
     id: string
     name: string
@@ -906,19 +566,9 @@ export interface TriageTransaction {
     [key: string]: any
 }
 
-export interface UnparsedMessage {
-    id: string
-    created_at: string
-    sender?: string
-    source?: string
-    subject?: string
-    raw_content?: string
-    [key: string]: any
-}
-
 // Props
 const props = defineProps<{
-    activeSubTab: 'pending' | 'training'
+    activeSubTab?: string
     accounts: AccountItem[]
     categories: CategoryItem[]
     triageTransactions: TriageTransaction[]
@@ -927,70 +577,35 @@ const props = defineProps<{
     triageSourceFilter: string
     triageSortKey: string
     triageSortOrder: 'asc' | 'desc'
-    unparsedMessages: UnparsedMessage[]
-    trainingPagination: { total: number; limit: number; skip: number }
-    trainingSearchQuery: string
-    trainingSortKey: string
-    trainingSortOrder: 'asc' | 'desc'
-    trainingSenderFilter: string | null
-    trainingSubjectFilter: string | null
-    spamFilters: any[]
-    showSpamManager: boolean
     // Confirmation States
     showDiscardConfirm: boolean
-    showTrainingDiscardConfirm: boolean
     createIgnoreRule: boolean
     triageIdToDiscard: string | null
-    trainingIdToDiscard: string | null
-    // Training Modal Props
-    showLabelForm: boolean
-    selectedMessage: any
-    labelForm: any
 }>()
 
 // Emits
 const emit = defineEmits<{
-    'update:activeSubTab': [value: 'pending' | 'training']
+    'update:activeSubTab': [value: string]
     'update:triageSearchQuery': [value: string]
     'update:triageSourceFilter': [value: string]
     'update:triageSortKey': [value: string]
     'update:triageSortOrder': [value: 'asc' | 'desc']
     'update:triagePagination': [value: { total: number; limit: number; skip: number }]
-    'update:trainingSortKey': [value: string]
-    'update:trainingSortOrder': [value: 'asc' | 'desc']
-    'update:trainingPagination': [value: { total: number; limit: number; skip: number }]
-    'update:trainingSearchQuery': [value: string]
-    'update:trainingSenderFilter': [value: string | null]
-    'update:trainingSubjectFilter': [value: string | null]
-    'update:showSpamManager': [value: boolean]
     'approveTriage': [txn: TriageTransaction]
     'rejectTriage': [id: string]
     'bulkRejectTriage': []
-    'startLabeling': [msg: UnparsedMessage]
-    'dismissTraining': [id: string]
-    'bulkDismissTraining': []
-    'markAsSpam': [id: string]
-    'findSimilar': [sender: string]
-    'removeSpamFilter': [id: string]
-    'fetchSpamFilters': []
     'refreshTriage': []
     'update:showDiscardConfirm': [value: boolean]
-    'update:showTrainingDiscardConfirm': [value: boolean]
     'update:createIgnoreRule': [value: boolean]
     'confirmDiscard': []
-    'confirmTrainingDiscard': []
     'confirmBulkDiscard': []
-    'confirmBulkTrainingDiscard': []
-    'update:showLabelForm': [value: boolean]
-    'handleLabelSubmit': []
 }>()
 
 // Local State
 const selectedTriageIds = defineModel<string[]>('selectedTriageIds', { default: [] })
-const selectedTrainingIds = defineModel<string[]>('selectedTrainingIds', { default: [] })
 // Computed Interface for Tabs
 const activeTab = computed({
-    get: () => props.activeSubTab,
+    get: () => props.activeSubTab || 'pending',
     set: (val) => emit('update:activeSubTab', val)
 })
 
@@ -1044,24 +659,6 @@ const triageCurrentPage = computed({
     set: (val) => emit('update:triagePagination', { ...props.triagePagination, skip: (val - 1) * props.triagePagination.limit })
 })
 
-const trainingCurrentPage = computed({
-    get: () => Math.floor(props.trainingPagination.skip / props.trainingPagination.limit) + 1,
-    set: (val) => emit('update:trainingPagination', { ...props.trainingPagination, skip: (val - 1) * props.trainingPagination.limit })
-})
-
-const sortedTrainingMessages = computed(() => {
-    let messages = [...props.unparsedMessages]
-    const key = props.trainingSortKey as any
-    messages.sort((a, b) => {
-        const valA = a[key]
-        const valB = b[key]
-        if (valA < valB) return props.trainingSortOrder === 'asc' ? -1 : 1
-        if (valA > valB) return props.trainingSortOrder === 'asc' ? 1 : -1
-        return 0
-    })
-    return messages
-})
-
 // Methods
 function getAccountName(id: string) {
     const acc = props.accounts.find(a => a.id === id)
@@ -1112,22 +709,8 @@ function toggleSelectAllTriage() {
     }
 }
 
-function toggleSelectAllTraining() {
-    if (selectedTrainingIds.value.length === props.unparsedMessages.length && props.unparsedMessages.length > 0) {
-        selectedTrainingIds.value = []
-    } else {
-        selectedTrainingIds.value = props.unparsedMessages.map(m => m.id)
-    }
-}
-
-
-
 function handleTriagePaginationLimitChange(newLimit: number) {
     emit('update:triagePagination', { ...props.triagePagination, limit: newLimit, skip: 0 })
-}
-
-function handleTrainingPaginationLimitChange(newLimit: number) {
-    emit('update:trainingPagination', { ...props.trainingPagination, limit: newLimit, skip: 0 })
 }
 
 const showAliasModal = ref(false)
@@ -1209,17 +792,6 @@ const { formatAmount } = useCurrency()
     box-shadow: 0 0 15px rgba(var(--v-theme-success), 0.4);
 }
 
-.training-glow {
-    background: linear-gradient(90deg, rgba(var(--v-theme-warning), 0.8), transparent) !important;
-    box-shadow: 0 0 15px rgba(var(--v-theme-warning), 0.4) !important;
-}
-
-.modern-header-title {
-    color: rgba(var(--v-theme-on-surface), 0.9);
-    letter-spacing: -0.3px;
-    line-height: 1.2;
-}
-
 .amount-hero-section {
     background: rgba(var(--v-theme-on-surface), 0.02);
     border-top: 1px solid rgba(var(--v-border-color), 0.05);
@@ -1242,25 +814,15 @@ const { formatAmount } = useCurrency()
     overflow: hidden;
 }
 
-.training-message-box {
-    background: rgba(var(--v-theme-warning), 0.03) !important;
-    border: 1px solid rgba(var(--v-theme-warning), 0.1) !important;
-}
-
 .message-content {
     line-height: 1.5;
     color: rgba(var(--v-theme-on-surface), 0.7);
     font-style: italic;
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
-}
-
-.training-content {
-    font-family: 'Fira Code', monospace !important;
-    font-style: normal !important;
-    -webkit-line-clamp: 5 !important;
 }
 
 .tactile-toggle-group {

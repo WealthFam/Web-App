@@ -275,21 +275,11 @@ export const financeApi = {
     updateTenant: (id: string, data: any) => apiClient.put(`/auth/tenants/${id}`, data),
     logoutAll: () => apiClient.post('/auth/logout-all'),
 
-    // Triage & Training
+    // Triage
     getTriage: (params?: { limit?: number, skip?: number, sort_by?: string, sort_order?: string }) => apiClient.get('/ingestion/triage', { params }),
     approveTriage: (id: string, data: { category?: string, is_transfer?: boolean, to_account_id?: string, create_rule?: boolean, exclude_from_reports?: boolean }) => apiClient.post(`/ingestion/triage/${id}/approve`, data),
     rejectTriage: (id: string, createIgnoreRule: boolean = false) => apiClient.delete(`/ingestion/triage/${id}`, { params: { create_ignore_rule: createIgnoreRule } }),
     bulkRejectTriage: (ids: string[], createIgnoreRules: boolean = false) => apiClient.post('/ingestion/triage/bulk-reject', { pending_ids: ids, create_ignore_rules: createIgnoreRules }),
-    getTraining: (params?: any) => apiClient.get('/ingestion/training', { params }),
-    labelMessage: (id: string, data: any) => apiClient.post(`/ingestion/training/${id}/label`, data),
-    dismissTrainingMessage: (id: string, createRule: boolean = false) => apiClient.post(`/ingestion/training/${id}/dismiss`, { create_rule: createRule }),
-    bulkDismissTraining: (ids: string[], createRule: boolean = false) => apiClient.post('/ingestion/training/bulk-dismiss', { ids, create_rule: createRule }),
-    markAsSpam: (id: string) => apiClient.post(`/ingestion/training/${id}/mark-as-spam`),
-    getSpamFilters: async (params?: { limit?: number, skip?: number }) => {
-        const response = await apiClient.get('/ingestion/training/spam', { params })
-        return response.data.data // Extract array from envelope
-    },
-    deleteSpamFilter: (id: string) => apiClient.delete(`/ingestion/training/spam/${id}`),
     getIngestionEvents: (params?: { limit?: number, skip?: number, device_id?: string }) => apiClient.get('/ingestion/events', { params }),
     bulkDeleteEvents: (ids: string[]) => apiClient.post('/ingestion/events/bulk-delete', { event_ids: ids }),
     getEmailLogs: (params?: { limit?: number, skip?: number, config_id?: string }) => apiClient.get('/ingestion/email/logs', { params }),
