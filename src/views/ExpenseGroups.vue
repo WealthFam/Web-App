@@ -1,251 +1,14 @@
-<template>
-    <MainLayout>
-        <v-container fluid class="page-container dashboard-page">
-            <!-- Animated Mesh Background -->
-            <div class="mesh-blob blob-1"
-                style="background: rgba(var(--v-theme-primary), 0.1); width: 600px; height: 600px; top: -200px; right: -100px;">
-            </div>
-            <div class="mesh-blob blob-2"
-                style="background: rgba(var(--v-theme-secondary), 0.05); width: 400px; height: 400px; bottom: -100px; left: -100px;">
-            </div>
-
-            <div class="relative-pos z-10">
-                <!-- Premium Header -->
-                <v-row class="mb-6 align-center">
-                    <v-col cols="12" md="4">
-                        <div class="d-flex align-center">
-                            <h1 class="text-h6 font-weight-black text-content">Expense Groups</h1>
-                        </div>
-                        <p class="text-subtitle-2 text-medium-emphasis font-weight-bold mt-1 opacity-70">
-                            Organize and track your family's spending buckets
-                        </p>
-                    </v-col>
-
-                    <v-col cols="12" md="8" class="d-flex flex-column flex-md-row align-md-center justify-end ga-3">
-                        <!-- Navigation Tabs (Pill style) -->
-                        <div class="premium-pill-tabs flex-grow-1 flex-md-grow-0 d-flex overflow-x-auto">
-                            <v-tabs v-model="showArchived" color="primary" density="comfortable" hide-slider show-arrows
-                                class="rounded-xl">
-                                <v-tab :value="false" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center ga-2">
-                                        <Activity :size="16" />
-                                        <span>Active</span>
-                                        <v-chip v-if="!showArchived" size="x-small" color="primary"
-                                            class="ml-1 font-weight-black">
-                                            {{ filteredGroups.length }}
-                                        </v-chip>
-                                    </div>
-                                </v-tab>
-                                <v-tab :value="true" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center ga-2">
-                                        <Archive :size="16" />
-                                        <span>Archived</span>
-                                        <v-chip v-if="showArchived" size="x-small" color="primary"
-                                            class="ml-1 font-weight-black">
-                                            {{ filteredGroups.length }}
-                                        </v-chip>
-                                    </div>
-                                </v-tab>
-                            </v-tabs>
-                        </div>
-                    </v-col>
-                </v-row>
-
-                <!-- Filter Bar -->
-                <div class="d-flex flex-column flex-sm-row ga-4 mb-8">
-                    <v-text-field v-model="searchQuery" placeholder="Search groups..." variant="outlined"
-                        density="comfortable" hide-details class="flex-grow-1" bg-color="surface" rounded="lg">
-                        <template v-slot:prepend-inner>
-                            <Search :size="18" class="text-primary mr-2" />
-                        </template>
-                    </v-text-field>
-
-                    <div style="width: 160px">
-                        <v-select v-model="selectedYear" :items="yearOptions" item-title="label" item-value="value"
-                            variant="outlined" density="comfortable" hide-details rounded="lg" bg-color="surface">
-                        </v-select>
-                    </div>
-                </div>
-
-                <!-- Loading State -->
-                <div v-if="loading" class="d-flex justify-center align-center py-16">
-                    <v-progress-circular indeterminate color="primary" size="64" width="6" />
-                </div>
-
-                <!-- Empty State -->
-                <div v-else-if="filteredGroups.length === 0"
-                    class="elevation-2 d-flex flex-column align-center justify-center py-16 px-10 text-center mx-auto rounded-xl border-dashed"
-                    style="max-width: 600px; margin-top: 50px; background: rgba(var(--v-theme-primary), 0.03); border: 2px dashed rgba(var(--v-theme-primary), 0.2) !important;">
-                    <v-avatar color="primary" variant="tonal" size="100" class="mb-8">
-                        <Wallet :size="50" class="text-primary" />
-                    </v-avatar>
-                    <h3 class="text-h4 font-weight-black mb-1 text-primary">No Groups Found</h3>
-                    <p class="text-subtitle-1 text-medium-emphasis font-weight-bold mb-8 opacity-70">
-                        Organize your finances by creating spending buckets for trips, projects, or categories.
-                    </p>
-                    <v-btn color="primary" variant="flat" rounded="pill" height="52"
-                        class="px-10 font-weight-black elevation-8 group-on-hover-scale" @click="openAddModal">
-                        <Plus :size="20" class="mr-2" />
-                        Create Your First Group
-                    </v-btn>
-                </div>
-
-                <!-- Groups Grid -->
-                <v-row v-else class="pb-16">
-                    <!-- Add New Group Card -->
-                    <v-col v-if="!showArchived" cols="12" sm="6" md="4" lg="4">
-                        <v-card @click="openAddModal"
-                            class="elevation-0 d-flex flex-column align-center justify-center h-100 cursor-pointer border-dashed border-primary group premium-add-card"
-                            style="border-width: 2px !important; min-height: 280px;" rounded="xl">
-                            <v-avatar color="primary" size="64" class="mb-4 elevation-8 group-on-hover-scale"
-                                style="box-shadow: 0 0 20px rgba(var(--v-theme-primary), 0.3)">
-                                <Plus :size="36" color="white" stroke-width="3" />
-                            </v-avatar>
-                            <span class="text-h6 font-weight-black text-primary">New Group</span>
-                            <span class="text-caption font-weight-bold opacity-60 text-medium-emphasis">Add expense
-                                bucket</span>
-                        </v-card>
-                    </v-col>
-
-                    <!-- Existing Groups -->
-                    <v-col v-for="group in filteredGroups" :key="group.id" cols="12" sm="6" md="4" lg="4">
-                        <v-card rounded="xl" class="elevation-2 group h-100 d-flex flex-column overflow-hidden"
-                            @click="openEditModal(group)">
-                            <div class="pa-5 d-flex justify-space-between align-start">
-                                <v-avatar :style="{ background: generateColor(group.name).bg }" rounded="lg" size="52"
-                                    class="elevation-2 border-thin">
-                                    <span class="text-h5" :style="{ color: generateColor(group.name).text }">
-                                        {{ group.icon || group.name.charAt(0).toUpperCase() }}
-                                    </span>
-                                </v-avatar>
-
-                                <div class="d-flex ga-1">
-                                    <v-btn icon variant="text" size="x-small" color="medium-emphasis"
-                                        class="bg-surface-lighten-1 elevation-1" @click.stop="openEditModal(group)">
-                                        <Pencil :size="14" />
-                                    </v-btn>
-                                    <v-btn icon variant="text" size="x-small" color="error"
-                                        class="bg-error-lighten-5 elevation-1" @click.stop="confirmDelete(group)">
-                                        <Trash2 :size="14" />
-                                    </v-btn>
-                                </div>
-                            </div>
-
-                            <div class="px-5 pb-5 flex-grow-1 d-flex flex-column">
-                                <div class="d-flex justify-space-between align-center mb-1">
-                                    <h3 class="text-h6 font-weight-black text-truncate pr-2">{{ group.name }}</h3>
-                                    <v-chip size="x-small" variant="tonal" color="primary" class="font-weight-black">
-                                        {{ group.start_date ? formatDateShort(group.start_date) : '?' }} - {{
-                                            group.end_date ?
-                                        formatDateShort(group.end_date) : '?' }}
-                                    </v-chip>
-                                </div>
-
-                                <div class="text-caption text-medium-emphasis line-clamp-2 mb-4 opacity-70"
-                                    style="min-height: 2.6em">
-                                    {{ group.description || 'No description provided' }}
-                                </div>
-
-                                <v-spacer />
-
-                                <!-- Financial Section -->
-                                <div v-if="Number(group.budget) > 0" class="mt-4">
-                                    <div class="d-flex justify-space-between align-end mb-2">
-                                        <div>
-                                            <div
-                                                class="text-tiny font-weight-black opacity-50 text-uppercase letter-spacing-1 mb-1">
-                                                Total Spent</div>
-                                            <span class="text-h5 font-weight-black">{{ formatAmount(group.total_spend ||
-                                                0) }}</span>
-                                        </div>
-                                        <div class="text-right">
-                                            <div
-                                                class="text-tiny font-weight-black opacity-50 text-uppercase letter-spacing-1 mb-1">
-                                                Consumed</div>
-                                            <span class="text-subtitle-1 font-weight-black"
-                                                :class="getBudgetColor(group)">
-                                                {{ getBudgetPercentage(group).toFixed(0) }}%
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <v-progress-linear :model-value="Math.max(0, getBudgetPercentage(group))"
-                                        :color="getBudgetColorCode(group)" height="10" rounded="pill"
-                                        class="elevation-0 bg-grey-lighten-4 mb-3" />
-
-                                    <div class="d-flex justify-space-between text-tiny font-weight-bold">
-                                        <div class="d-flex flex-column">
-                                            <span class="opacity-50 text-uppercase"
-                                                style="font-size: 0.65rem">Balance</span>
-                                            <span
-                                                :class="parseFloat(group.budget) - (group.total_spend || 0) < 0 ? 'text-error' : 'text-success'">
-                                                {{ formatAmount(Math.max(0, parseFloat(group.budget) -
-                                                (group.total_spend || 0))) }}
-                                            </span>
-                                        </div>
-                                        <div class="d-flex flex-column align-end">
-                                            <span class="opacity-50 text-uppercase"
-                                                style="font-size: 0.65rem">Target</span>
-                                            <span class="text-high-emphasis">{{ formatAmount(group.budget) }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div v-else class="mt-4 pt-4 border-t-dashed">
-                                    <div class="d-flex justify-space-between align-center">
-                                        <div>
-                                            <div
-                                                class="text-tiny font-weight-black opacity-50 text-uppercase letter-spacing-1 mb-1">
-                                                Total Spent</div>
-                                            <span class="text-h5 font-weight-black">{{ formatAmount(group.total_spend ||
-                                                0) }}</span>
-                                        </div>
-                                        <v-chip size="small" variant="tonal" color="medium-emphasis"
-                                            class="font-weight-black">
-                                            No Budget Set
-                                        </v-chip>
-                                    </div>
-                                </div>
-                            </div>
-                        </v-card>
-                    </v-col>
-                </v-row>
-            </div>
-
-            <!-- Expense Group Modal Component -->
-            <ExpenseGroupModal v-model="showModal" :is-editing="isEditing" :group-data="selectedGroup"
-                @saved="fetchGroups" />
-
-            <!-- Delete Confirmation -->
-            <v-dialog v-model="showDeleteConfirm" max-width="400">
-                <v-card rounded="xl" class="pa-6 text-center bg-surface elevation-24">
-                    <div class="d-flex justify-center mb-6">
-                        <div class="bg-error-lighten-5 border-error pa-4 rounded-circle">
-                            <Trash2 :size="32" class="text-error" />
-                        </div>
-                    </div>
-                    <h3 class="text-h5 font-weight-black mb-2">Delete Group?</h3>
-                    <p class="text-medium-emphasis mb-8 px-4">
-                        Are you sure you want to delete <strong class="text-high-emphasis">{{ groupToDelete?.name
-                            }}</strong>?
-                        This action cannot be undone.
-                    </p>
-                    <div class="d-flex ga-3 justify-center">
-                        <v-btn variant="text" rounded="lg" height="48" class="px-6 font-weight-bold"
-                            @click="showDeleteConfirm = false">Cancel</v-btn>
-                        <v-btn color="error" variant="flat" rounded="lg" height="48" class="px-6 font-weight-bold"
-                            @click="doDelete">Delete Group</v-btn>
-                    </div>
-                </v-card>
-            </v-dialog>
-        </v-container>
-    </MainLayout>
-</template>
-
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Plus, Wallet, Pencil, Search, Activity, Archive } from 'lucide-vue-next'
+import {
+    Plus, Wallet, Pencil, Search, Activity, Archive, Trash2,
+    Calendar, Layers, TrendingDown, Target, X,
+    RefreshCw
+} from 'lucide-vue-next'
 import MainLayout from '@/layouts/MainLayout.vue'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfModal from '@/components/ui/WfModal.vue'
 import ExpenseGroupModal from '@/components/groups/ExpenseGroupModal.vue'
 import { financeApi } from '@/api/client'
 import { useCurrency } from '@/composables/useCurrency'
@@ -253,22 +16,23 @@ import { useNotificationStore } from '@/stores/notification'
 
 const notify = useNotificationStore()
 const { formatAmount } = useCurrency()
+
 const loading = ref(true)
 const expenseGroups = ref<any[]>([])
 const searchQuery = ref('')
 const showArchived = ref(false)
-
 const selectedYear = ref<string>('All')
+
 const showDeleteConfirm = ref(false)
 const groupToDelete = ref<any>(null)
 const selectedGroup = ref<any>(null)
 const showModal = ref(false)
 const isEditing = ref(false)
+const isDeleting = ref(false)
 
 const yearOptions = computed(() => {
     const currentYear = new Date().getFullYear()
-    const years = []
-    years.push({ label: 'All Years', value: 'All' })
+    const years = [{ label: 'All Years', value: 'All' }]
     for (let y = currentYear + 1; y >= 2018; y--) {
         years.push({ label: y.toString(), value: y.toString() })
     }
@@ -287,7 +51,7 @@ const filteredGroups = computed(() => {
     }
 
     if (searchQuery.value) {
-        const q = searchQuery.value.toLowerCase()
+        const q = searchQuery.value.toLowerCase().trim()
         result = result.filter(g =>
             g.name.toLowerCase().includes(q) ||
             (g.description && g.description.toLowerCase().includes(q))
@@ -297,14 +61,33 @@ const filteredGroups = computed(() => {
     return result
 })
 
+// Metrics for the summary ribbon
+const metrics = computed(() => {
+    const activeList = expenseGroups.value.filter(g => g.is_active)
+    const totalSpend = filteredGroups.value.reduce((sum, g) => sum + (g.total_spend || 0), 0)
+    const totalBudget = activeList.reduce((sum, g) => sum + (Number(g.budget) || 0), 0)
+    const budgetedSpend = activeList
+        .filter(g => Number(g.budget) > 0)
+        .reduce((sum, g) => sum + (g.total_spend || 0), 0)
+    const utilization = totalBudget > 0 ? Math.round((budgetedSpend / totalBudget) * 100) : 0
+
+    return {
+        totalSpend,
+        totalBudget,
+        activeCount: activeList.length,
+        archivedCount: expenseGroups.value.filter(g => !g.is_active).length,
+        utilization
+    }
+})
+
 const fetchGroups = async () => {
     loading.value = true
     try {
         const res = await financeApi.getExpenseGroups()
-        expenseGroups.value = res.data
+        expenseGroups.value = res.data || []
     } catch (e) {
-        console.error("Failed to fetch expense groups", e)
-        notify.error("Failed to load expense groups")
+        console.error('Failed to fetch expense groups', e)
+        notify.error('Failed to load expense groups')
     } finally {
         loading.value = false
     }
@@ -324,7 +107,8 @@ const openEditModal = (group: any) => {
 
 const formatDateShort = (dateStr: string) => {
     if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const parts = dateStr.split('T')[0].split('-').map(Number)
+    return new Date(parts[0], parts[1] - 1, parts[2]).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric'
     })
@@ -335,20 +119,9 @@ const getBudgetPercentage = (group: any) => {
     return Math.min(100, ((group.total_spend || 0) / group.budget) * 100)
 }
 
-const getBudgetColorCode = (group: any) => {
-    if (!group.budget) return '#cbd5e1'
-    const pct = getBudgetPercentage(group)
-    if (pct >= 100) return '#ef4444'
-    if (pct >= 80) return '#f97316'
-    return '#10b981'
-}
-
-const getBudgetColor = (group: any) => {
-    if (!group.budget) return 'text-medium-emphasis'
-    const pct = getBudgetPercentage(group)
-    if (pct >= 100) return 'text-error'
-    if (pct >= 80) return 'text-warning'
-    return 'text-success'
+const getConsumedReal = (group: any) => {
+    if (!group.budget || group.budget === 0) return 0
+    return Math.round(((group.total_spend || 0) / group.budget) * 100)
 }
 
 const confirmDelete = (group: any) => {
@@ -358,13 +131,15 @@ const confirmDelete = (group: any) => {
 
 const doDelete = async () => {
     if (!groupToDelete.value) return
+    isDeleting.value = true
     try {
         await financeApi.deleteExpenseGroup(groupToDelete.value.id)
-        notify.success("Group deleted")
+        notify.success('Expense group deleted')
         fetchGroups()
     } catch (e) {
-        notify.error("Failed to delete group")
+        notify.error('Failed to delete group')
     } finally {
+        isDeleting.value = false
         showDeleteConfirm.value = false
         groupToDelete.value = null
     }
@@ -374,8 +149,9 @@ const generateColor = (name: string) => {
     const colors = ['#eff6ff', '#f0fdf4', '#fef2f2', '#fff7ed', '#f0f9ff', '#faf5ff']
     const textColors = ['#1d4ed8', '#15803d', '#b91c1c', '#c2410c', '#0369a1', '#7e22ce']
     let hash = 0
-    for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash)
+    const str = name || 'default'
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash)
     }
     const index = Math.abs(hash) % colors.length
     return { bg: colors[index], text: textColors[index] }
@@ -386,127 +162,376 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.dashboard-page {
-    position: relative;
-    min-height: calc(100vh - 64px);
-}
+<template>
+    <MainLayout>
+        <div class="max-w-[1600px] mx-auto space-y-6 pb-12">
+            <!-- HEADER: Title, Subtitle, & Segmented Tab Controls -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-wf-lg bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs">
+                        <Layers class="w-5 h-5 text-wf-primary" />
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary">
+                                Expense Groups
+                            </h1>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
+                                {{ metrics.activeCount }} Active
+                            </span>
+                        </div>
+                        <p class="text-xs text-wf-text-secondary">
+                            Organize and track your family's spending buckets, trips, and dedicated budgets.
+                        </p>
+                    </div>
+                </div>
 
-.relative-pos {
-    position: relative;
-}
+                <!-- Segmented Control: Active vs Archived -->
+                <div class="flex items-center p-1 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs self-start sm:self-auto">
+                    <button
+                        type="button"
+                        @click="showArchived = false"
+                        class="px-3.5 py-1.5 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5"
+                        :class="[
+                            !showArchived
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'
+                        ]"
+                    >
+                        <Activity class="w-3.5 h-3.5" />
+                        <span>Active</span>
+                        <span class="px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-surface-variant text-wf-text-secondary">
+                            {{ metrics.activeCount }}
+                        </span>
+                    </button>
 
-.z-10 {
-    z-index: 10;
-}
+                    <button
+                        type="button"
+                        @click="showArchived = true"
+                        class="px-3.5 py-1.5 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5"
+                        :class="[
+                            showArchived
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'
+                        ]"
+                    >
+                        <Archive class="w-3.5 h-3.5" />
+                        <span>Archived</span>
+                        <span class="px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-surface-variant text-wf-text-secondary">
+                            {{ metrics.archivedCount }}
+                        </span>
+                    </button>
+                </div>
+            </div>
 
-.elevation-1 {
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
-}
+            <!-- METRIC OVERVIEW RIBBON -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+                <WfCard class="p-3.5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">Total Group Spending</span>
+                        <div class="w-7 h-7 rounded-wf-sm bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center">
+                            <TrendingDown class="w-3.5 h-3.5" />
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="text-lg font-bold text-wf-text-primary tracking-tight">
+                            {{ formatAmount(metrics.totalSpend) }}
+                        </span>
+                        <p class="text-[10px] text-wf-text-muted mt-0.5">Across current view buckets</p>
+                    </div>
+                </WfCard>
 
-.elevation-2 {
-    background: rgba(var(--v-theme-surface), 0.7) !important;
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(128, 128, 128, 0.15) !important;
-    box-shadow: none !important;
-}
+                <WfCard class="p-3.5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">Total Target Budget</span>
+                        <div class="w-7 h-7 rounded-wf-sm bg-indigo-50 dark:bg-indigo-950/40 text-wf-primary flex items-center justify-center">
+                            <Target class="w-3.5 h-3.5" />
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="text-lg font-bold text-wf-text-primary tracking-tight">
+                            {{ formatAmount(metrics.totalBudget) }}
+                        </span>
+                        <p class="text-[10px] text-wf-text-muted mt-0.5">Allocated active limits</p>
+                    </div>
+                </WfCard>
 
-.elevation-2:hover {
-    border-color: rgba(var(--v-theme-primary), 0.3) !important;
-    background: rgba(var(--v-theme-surface), 0.85) !important;
-    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1) !important;
-}
+                <WfCard class="p-3.5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">Active Buckets</span>
+                        <div class="w-7 h-7 rounded-wf-sm bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center">
+                            <Layers class="w-3.5 h-3.5" />
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="text-lg font-bold text-wf-text-primary tracking-tight">
+                            {{ metrics.activeCount }}
+                        </span>
+                        <p class="text-[10px] text-wf-text-muted mt-0.5">Currently tracking</p>
+                    </div>
+                </WfCard>
 
-.text-tiny {
-    font-size: 0.75rem;
-    letter-spacing: 0.025em;
-}
+                <WfCard class="p-3.5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">Budget Utilization</span>
+                        <div class="w-7 h-7 rounded-wf-sm bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center">
+                            <Wallet class="w-3.5 h-3.5" />
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <div class="flex items-baseline gap-1.5">
+                            <span class="text-lg font-bold tracking-tight" :class="metrics.utilization >= 100 ? 'text-rose-600' : metrics.utilization >= 80 ? 'text-amber-600' : 'text-emerald-600'">
+                                {{ metrics.utilization }}%
+                            </span>
+                            <span class="text-[10px] text-wf-text-muted">consumed</span>
+                        </div>
+                        <p class="text-[10px] text-wf-text-muted mt-0.5">Of active budgeted targets</p>
+                    </div>
+                </WfCard>
+            </div>
 
-.line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
+            <!-- TOOLBAR: Search, Year Filter, and Action Buttons -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                    <!-- Search Input -->
+                    <div class="relative flex items-center h-8 px-2.5 rounded-wf-sm bg-wf-surface border border-wf-border focus-within:border-wf-primary shadow-2xs w-full sm:w-64">
+                        <Search class="w-3.5 h-3.5 text-wf-text-muted shrink-0 mr-2" />
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Search expense buckets..."
+                            class="w-full bg-transparent text-xs text-wf-text-primary focus:outline-none placeholder:text-wf-text-muted"
+                        />
+                        <button
+                            v-if="searchQuery"
+                            @click="searchQuery = ''"
+                            class="text-wf-text-muted hover:text-wf-text-primary ml-1"
+                        >
+                            <X class="w-3.5 h-3.5" />
+                        </button>
+                    </div>
 
-/* Mesh Background */
-.mesh-blob {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.15;
-    z-index: 1;
-    border-radius: 50%;
-    animation: blob-float 20s infinite alternate;
-}
+                    <!-- Year Dropdown Filter -->
+                    <div class="flex items-center h-8 px-2.5 rounded-wf-sm bg-wf-surface border border-wf-border shadow-2xs">
+                        <Calendar class="w-3.5 h-3.5 text-wf-text-muted shrink-0 mr-2" />
+                        <select
+                            v-model="selectedYear"
+                            class="bg-transparent text-xs font-semibold text-wf-text-primary focus:outline-none cursor-pointer"
+                        >
+                            <option v-for="y in yearOptions" :key="y.value" :value="y.value">
+                                {{ y.label }}
+                            </option>
+                        </select>
+                    </div>
+                </div>
 
-.blob-1 {
-    background: rgb(var(--v-theme-primary));
-    width: 600px;
-    height: 600px;
-    top: -200px;
-    right: -100px;
-}
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <WfButton
+                        variant="primary"
+                        size="sm"
+                        @click="openAddModal"
+                        class="shadow-xs"
+                    >
+                        <Plus class="w-3.5 h-3.5 mr-1" />
+                        <span>Add Bucket</span>
+                    </WfButton>
+                </div>
+            </div>
 
-.blob-2 {
-    background: rgb(var(--v-theme-secondary));
-    width: 400px;
-    height: 400px;
-    bottom: -100px;
-    left: -100px;
-    animation-delay: -5s;
-}
+            <!-- LOADING STATE -->
+            <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-3">
+                <RefreshCw class="w-7 h-7 text-wf-primary animate-spin" />
+                <span class="text-xs font-semibold text-wf-text-secondary">Loading expense groups...</span>
+            </div>
 
-@keyframes blob-float {
-    0% {
-        transform: translate(0, 0) scale(1);
-    }
+            <!-- EMPTY STATE -->
+            <div
+                v-else-if="filteredGroups.length === 0"
+                class="flex flex-col items-center justify-center py-16 px-6 text-center rounded-wf-xl border border-dashed border-wf-border bg-wf-surface-variant/30 max-w-xl mx-auto space-y-4"
+            >
+                <div class="w-14 h-14 rounded-wf-xl bg-wf-primary-light flex items-center justify-center text-wf-primary border border-indigo-200 dark:border-indigo-900/50 shadow-2xs">
+                    <Wallet class="w-7 h-7" />
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-wf-text-primary">No Expense Groups Found</h3>
+                    <p class="text-xs text-wf-text-secondary max-w-sm mx-auto mt-1">
+                        {{ searchQuery ? 'No expense groups matched your search query.' : 'Organize your finances by creating dedicated spending buckets for vacations, projects, or special events.' }}
+                    </p>
+                </div>
+                <WfButton variant="primary" size="sm" @click="openAddModal">
+                    <Plus class="w-3.5 h-3.5 mr-1.5" />
+                    <span>Create Your First Bucket</span>
+                </WfButton>
+            </div>
 
-    100% {
-        transform: translate(20px, -20px) scale(1.1);
-    }
-}
+            <!-- GROUPS GRID -->
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Add New Group Dotted Card (Active view only) -->
+                <div
+                    v-if="!showArchived"
+                    @click="openAddModal"
+                    class="h-[230px] rounded-wf-lg border-2 border-dashed border-wf-border hover:border-wf-primary bg-wf-surface-variant/20 hover:bg-wf-primary-light/30 transition-all duration-200 flex flex-col items-center justify-center p-6 cursor-pointer group text-center"
+                >
+                    <div class="w-11 h-11 rounded-wf-full bg-wf-primary text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform mb-3">
+                        <Plus class="w-5 h-5 stroke-[2.5]" />
+                    </div>
+                    <span class="text-sm font-bold text-wf-text-primary group-hover:text-wf-primary transition-colors">Create New Bucket</span>
+                    <span class="text-[11px] text-wf-text-muted mt-0.5">Track dedicated spend & budgets</span>
+                </div>
 
-/* Premium Tabs */
-.premium-pill-tabs {
-    background: rgba(var(--v-theme-surface), 0.6);
-    backdrop-filter: blur(10px);
-    padding: 6px;
-    border-radius: 24px;
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
+                <!-- Existing Group Cards -->
+                <WfCard
+                    v-for="group in filteredGroups"
+                    :key="group.id"
+                    class="p-4 flex flex-col justify-between hover:shadow-wf-card-hover transition-all duration-200 group/card border-wf-border cursor-pointer relative"
+                    @click="openEditModal(group)"
+                >
+                    <div class="space-y-3">
+                        <!-- Top Row: Icon Avatar & Quick Actions -->
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div
+                                    class="w-10 h-10 rounded-wf-md flex items-center justify-center text-xl shrink-0 shadow-2xs border border-wf-border"
+                                    :style="{ background: generateColor(group.name).bg }"
+                                >
+                                    <span>{{ group.icon || group.name.charAt(0).toUpperCase() }}</span>
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-bold text-wf-text-primary truncate">
+                                        {{ group.name }}
+                                    </h3>
+                                    <div class="flex items-center gap-1.5 text-[10px] text-wf-text-muted mt-0.5">
+                                        <Calendar class="w-3 h-3 text-wf-text-muted shrink-0" />
+                                        <span>
+                                            {{ group.start_date ? formatDateShort(group.start_date) : '?' }} – {{ group.end_date ? formatDateShort(group.end_date) : '?' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
 
-.premium-tab {
-    text-transform: none !important;
-    letter-spacing: 0;
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: rgb(var(--v-theme-on-surface), 0.6);
-    transition: all 0.3s ease;
-    min-width: 120px;
-}
+                            <!-- Edit and Delete Actions -->
+                            <div class="flex items-center gap-1 shrink-0 opacity-80 group-hover/card:opacity-100 transition-opacity" @click.stop>
+                                <button
+                                    type="button"
+                                    @click="openEditModal(group)"
+                                    class="p-1 rounded-wf-sm text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+                                    title="Edit Bucket"
+                                >
+                                    <Pencil class="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="confirmDelete(group)"
+                                    class="p-1 rounded-wf-sm text-wf-text-secondary hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                                    title="Delete Bucket"
+                                >
+                                    <Trash2 class="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </div>
 
-.premium-tab.v-tab--selected {
-    background: rgb(var(--v-theme-primary));
-    color: white !important;
-    box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3);
-}
+                        <!-- Description (Clamped) -->
+                        <p class="text-xs text-wf-text-secondary line-clamp-2 min-h-[2.4em]">
+                            {{ group.description || 'No specific objective notes provided.' }}
+                        </p>
+                    </div>
 
-.group {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid rgba(var(--v-border-color), 0.05);
-}
+                    <!-- Financial Section -->
+                    <div class="pt-3 border-t border-wf-border-subtle mt-3">
+                        <template v-if="Number(group.budget) > 0">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <div>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Total Spent</span>
+                                    <span class="text-sm font-bold text-wf-text-primary">
+                                        {{ formatAmount(group.total_spend || 0) }}
+                                    </span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Consumed</span>
+                                    <span
+                                        class="text-xs font-bold"
+                                        :class="getConsumedReal(group) >= 100 ? 'text-rose-600' : getConsumedReal(group) >= 80 ? 'text-amber-600' : 'text-emerald-600'"
+                                    >
+                                        {{ getConsumedReal(group) }}%
+                                    </span>
+                                </div>
+                            </div>
 
-.premium-add-card {
-    background: rgba(var(--v-theme-primary), 0.05) !important;
-    transition: all 0.3s ease;
-}
+                            <!-- Progress Bar -->
+                            <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-wf-pill overflow-hidden mb-2">
+                                <div
+                                    class="h-full rounded-wf-pill transition-all duration-300"
+                                    :class="getConsumedReal(group) >= 100 ? 'bg-rose-500' : getConsumedReal(group) >= 80 ? 'bg-amber-500' : 'bg-emerald-500'"
+                                    :style="{ width: `${getBudgetPercentage(group)}%` }"
+                                ></div>
+                            </div>
 
-.premium-add-card:hover {
-    background: rgba(var(--v-theme-primary), 0.1) !important;
-    transform: translateY(-4px);
-}
+                            <!-- Target & Left Footers -->
+                            <div class="flex items-center justify-between text-[10px] font-semibold text-wf-text-muted">
+                                <span>
+                                    Balance: 
+                                    <strong :class="parseFloat(group.budget) - (group.total_spend || 0) < 0 ? 'text-rose-600' : 'text-emerald-600'">
+                                        {{ formatAmount(Math.max(0, parseFloat(group.budget) - (group.total_spend || 0))) }}
+                                    </strong>
+                                </span>
+                                <span>
+                                    Target: <strong class="text-wf-text-primary">{{ formatAmount(group.budget) }}</strong>
+                                </span>
+                            </div>
+                        </template>
 
-.text-primary {
-    color: rgb(var(--v-theme-primary)) !important;
-}
-</style>
+                        <template v-else>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Total Spent</span>
+                                    <span class="text-sm font-bold text-wf-text-primary">
+                                        {{ formatAmount(group.total_spend || 0) }}
+                                    </span>
+                                </div>
+                                <span class="px-2 py-0.5 rounded-wf-pill text-[10px] font-semibold bg-wf-surface-variant text-wf-text-secondary border border-wf-border-subtle">
+                                    No Target Limit
+                                </span>
+                            </div>
+                        </template>
+                    </div>
+                </WfCard>
+            </div>
+        </div>
+
+        <!-- EXPENSE GROUP CREATE / EDIT MODAL -->
+        <ExpenseGroupModal
+            v-model="showModal"
+            :is-editing="isEditing"
+            :group-data="selectedGroup"
+            @saved="fetchGroups"
+        />
+
+        <!-- DELETE CONFIRMATION MODAL -->
+        <WfModal
+            v-model="showDeleteConfirm"
+            maxWidth="sm"
+        >
+            <div class="text-center space-y-4">
+                <div class="w-12 h-12 rounded-wf-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center mx-auto border border-rose-200 dark:border-rose-900/50 shadow-2xs">
+                    <Trash2 class="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-wf-text-primary">Delete Expense Bucket?</h3>
+                    <p class="text-xs text-wf-text-secondary mt-1 px-4">
+                        Are you sure you want to delete <strong class="text-wf-text-primary">{{ groupToDelete?.name }}</strong>? This action cannot be undone.
+                    </p>
+                </div>
+            </div>
+
+            <template #footer>
+                <WfButton variant="ghost" @click="showDeleteConfirm = false">
+                    Cancel
+                </WfButton>
+                <WfButton variant="danger" :disabled="isDeleting" @click="doDelete">
+                    <RefreshCw v-if="isDeleting" class="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    <span>Delete Bucket</span>
+                </WfButton>
+            </template>
+        </WfModal>
+    </MainLayout>
+</template>
