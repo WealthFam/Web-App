@@ -1,66 +1,12 @@
-<template>
-    <MainLayout>
-        <v-container fluid class="page-container dashboard-page">
-            <!-- Animated Mesh Background -->
-            <div class="mesh-blob blob-1"
-                style="background: rgba(var(--v-theme-primary), 0.1); width: 600px; height: 600px; top: -200px; right: -100px;">
-            </div>
-            <div class="mesh-blob blob-2"
-                style="background: rgba(var(--v-theme-secondary), 0.05); width: 400px; height: 400px; bottom: -100px; left: -100px;">
-            </div>
-
-            <div class="relative-pos z-10">
-                <!-- Header -->
-                <v-row class="mb-10 align-center">
-                    <v-col cols="12" md="6">
-                        <h1 class="text-h6 font-weight-black mb-1">Categories</h1>
-                        <p class="text-subtitle-2 text-on-surface opacity-70 font-weight-bold">
-                            Manage your spending categories and classification rules
-                        </p>
-                    </v-col>
-
-                    <v-col cols="12" md="6" class="d-flex justify-md-end align-center">
-                        <!-- Redesigned Tab Switcher (Segmented Control) -->
-                        <div class="glass-card pa-1 border rounded-pill d-flex"
-                            style="background: rgba(var(--v-theme-surface), 0.5)">
-                            <v-btn variant="flat" rounded="pill" height="40"
-                                class="text-none font-weight-black px-8 letter-spacing-1"
-                                :color="activeTab === 'categories' ? 'primary' : 'transparent'"
-                                :class="activeTab !== 'categories' ? 'text-disabled' : ''"
-                                @click="activeTab = 'categories'">
-                                Categories
-                            </v-btn>
-                            <v-btn variant="flat" rounded="pill" height="40"
-                                class="text-none font-weight-black px-8 letter-spacing-1"
-                                :color="activeTab === 'rules' ? 'primary' : 'transparent'"
-                                :class="activeTab !== 'rules' ? 'text-disabled' : ''" @click="activeTab = 'rules'">
-                                Rules
-                            </v-btn>
-                        </div>
-                    </v-col>
-                </v-row>
-
-                <v-window v-model="activeTab" class="bg-transparent overflow-visible">
-                    <v-window-item value="categories">
-                        <CategoriesTab />
-                    </v-window-item>
-                    <v-window-item value="rules">
-                        <RulesTab />
-                    </v-window-item>
-                </v-window>
-            </div>
-        </v-container>
-    </MainLayout>
-</template>
-
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { Tag, Sparkles } from 'lucide-vue-next'
 import MainLayout from '@/layouts/MainLayout.vue'
 import CategoriesTab from '@/views/categories/CategoriesTab.vue'
 import RulesTab from '@/views/categories/RulesTab.vue'
 import { useCategoriesStore } from '@/stores/finance/categories'
 
-const activeTab = ref('categories')
+const activeTab = ref<'categories' | 'rules'>('categories')
 const categoriesStore = useCategoriesStore()
 
 onMounted(() => {
@@ -68,6 +14,79 @@ onMounted(() => {
 })
 </script>
 
+<template>
+    <MainLayout>
+        <div class="max-w-[1600px] mx-auto space-y-5 pb-8">
+            <!-- HEADER: Title & Segmented Tab Switcher -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wf-border-subtle">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-wf-lg bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs">
+                        <Tag class="w-5 h-5 text-wf-primary" />
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary">
+                                Categories & Classification Rules
+                            </h1>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
+                                {{ categoriesStore.categoryStats.total }} Items
+                            </span>
+                        </div>
+                        <p class="text-xs text-wf-text-secondary">
+                            Manage spending taxonomies, parent-child hierarchies, and automated triage rules.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Segmented Control Switcher -->
+                <div class="flex items-center p-1 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs self-start sm:self-auto">
+                    <button
+                        type="button"
+                        @click="activeTab = 'categories'"
+                        class="px-3.5 py-1.5 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5"
+                        :class="[
+                            activeTab === 'categories'
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'
+                        ]"
+                    >
+                        <Tag class="w-3.5 h-3.5" />
+                        <span>Categories</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="activeTab = 'rules'"
+                        class="px-3.5 py-1.5 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5"
+                        :class="[
+                            activeTab === 'rules'
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'
+                        ]"
+                    >
+                        <Sparkles class="w-3.5 h-3.5" />
+                        <span>Rules & Triage</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT -->
+            <transition name="fade" mode="out-in">
+                <CategoriesTab v-if="activeTab === 'categories'" />
+                <RulesTab v-else />
+            </transition>
+        </div>
+    </MainLayout>
+</template>
+
 <style scoped>
-/* Vuetify handles the layout, minimal custom CSS needed */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
 </style>

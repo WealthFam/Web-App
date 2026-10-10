@@ -1,177 +1,12 @@
-<template>
-    <div class="hygiene-panel pb-12">
-        <v-toolbar color="transparent" class="px-2 premium-toolbar" height="64">
-            <h2 class="text-h6 font-weight-black d-flex align-center">
-                <v-avatar color="primary" variant="tonal" size="32" rounded="lg" class="mr-3 elevation-1">
-                    <ShieldAlert :size="20" />
-                </v-avatar>
-                Rule Hygiene
-            </h2>
-            <v-spacer></v-spacer>
-            <v-btn color="primary" variant="flat" @click="refreshAnalysis" :loading="rulesStore.analysisLoading" class="font-weight-bold text-none rounded-lg px-4 elevation-2">
-                <template v-slot:prepend>
-                    <Zap :size="18" />
-                </template>
-                Rescan Rules
-            </v-btn>
-        </v-toolbar>
-
-        <v-card v-if="!rulesStore.analysisResult && rulesStore.analysisLoading" variant="outlined" class="pa-8 border-dashed opacity-70 border-thin rounded-xl mx-4 mb-4 premium-glass-card" color="surface-variant">
-            <div class="d-flex flex-column align-center text-center justify-center py-8">
-                <v-progress-circular indeterminate color="primary" :size="40" width="4" class="mb-4" />
-                <span class="text-body-1 font-weight-black letter-spacing-1">RUNNING DEEP ANALYSIS...</span>
-                <span class="text-caption mt-1">Cross-referencing {{ rulesStore.totalRules }} active rules for overlaps</span>
-            </div>
-        </v-card>
-
-        <v-card v-else-if="!rulesStore.analysisResult?.issues?.length" variant="outlined" class="pa-8 border-thin rounded-xl mx-4 mb-4 premium-glass-card bg-green-lighten-5" color="success">
-            <div class="d-flex flex-column align-center text-center justify-center py-8 text-success">
-                <v-avatar color="success" variant="tonal" size="64" rounded="pill" class="mb-4 elevation-2">
-                    <ShieldCheck :size="40" />
-                </v-avatar>
-                <span class="text-h6 font-weight-black">Your rules are in top shape!</span>
-                <span class="text-body-2 font-weight-medium opacity-70 mt-1">No duplicates, conflicts, or redundancies detected.</span>
-            </div>
-        </v-card>
-
-        <div v-else class="px-4">
-            <v-alert
-                type="warning"
-                variant="tonal"
-                class="mb-6 rounded-xl font-weight-bold border-thin elevation-1"
-                border="start"
-                elevation="2"
-            >
-                <template v-slot:prepend>
-                    <AlertTriangle :size="24" class="mr-3 text-warning" />
-                </template>
-                Action Required: Found {{ rulesStore.analysisResult.issues.length }} potential hygiene issues that may cause categorization conflicts.
-            </v-alert>
-
-            <v-row dense>
-                <v-col cols="12" md="6" lg="4" v-for="(issue, index) in rulesStore.analysisResult.issues" :key="index">
-                    <v-card class="premium-glass-card h-100 rounded-xl overflow-hidden hover-card border-thin" :class="getConflictClass(issue.conflict_type)">
-                        <div class="pa-1" :class="`bg-${getConflictColor(issue.conflict_type)} opacity-30`" style="height: 3px;"></div>
-                        
-                        <v-card-text class="pa-4">
-                            <div class="d-flex align-start justify-space-between mb-3">
-                                <v-chip size="x-small" :color="getConflictColor(issue.conflict_type)" variant="flat" class="font-weight-black elevation-2 px-2">
-                                    <component :is="getConflictLucideIcon(issue.conflict_type)" :size="12" class="mr-1" />
-                                    {{ formatConflictType(issue.conflict_type) }}
-                                </v-chip>
-                            </div>
-
-                            <div class="d-flex align-center justify-center mb-3 ga-1">
-                                <v-sheet class="flex-grow-1 pa-2 rounded-lg border-thin text-center overflow-hidden" color="surface-light" border style="position: relative; z-index: 1;">
-                                    <div class="text-tiny font-weight-black opacity-60 mb-1 text-uppercase letter-spacing-1">Rule A</div>
-                                    <div class="font-weight-black text-caption text-truncate">
-                                        {{ issue.rule_a_name }}
-                                        <v-tooltip activator="parent" location="top">{{ issue.rule_a_name }}</v-tooltip>
-                                    </div>
-                                    <div class="text-tiny font-weight-bold text-primary mt-1">
-                                        {{ issue.rule_a_category }}
-                                        <v-tooltip activator="parent" location="bottom">{{ issue.rule_a_category }}</v-tooltip>
-                                    </div>
-                                </v-sheet>
-                                
-                                <div class="d-flex align-center justify-center flex-shrink-0" style="width: 40px; position: relative; z-index: 10;">
-                                    <v-chip color="primary" size="x-small" class="font-weight-black elevation-4 px-1" style="height: 20px; min-width: 32px; justify-content: center;">
-                                        VS
-                                    </v-chip>
-                                </div>
-                                
-                                <v-sheet class="flex-grow-1 pa-2 rounded-lg border-thin text-center overflow-hidden" color="surface-light" border style="position: relative; z-index: 1;">
-                                    <div class="text-tiny font-weight-black opacity-60 mb-1 text-uppercase letter-spacing-1">Rule B</div>
-                                    <div class="font-weight-black text-caption text-truncate">
-                                        {{ issue.rule_b_name }}
-                                        <v-tooltip activator="parent" location="top">{{ issue.rule_b_name }}</v-tooltip>
-                                    </div>
-                                    <div class="text-tiny font-weight-bold text-primary mt-1">
-                                        {{ issue.rule_b_category }}
-                                        <v-tooltip activator="parent" location="bottom">{{ issue.rule_b_category }}</v-tooltip>
-                                    </div>
-                                </v-sheet>
-                            </div>
-
-                            <v-sheet class="pa-3 rounded-lg border-thin bg-surface" border>
-                                <div class="text-caption font-weight-black text-primary mb-2 d-flex align-center letter-spacing-1">
-                                    <Tag :size="14" class="mr-2" />
-                                    COLLIDING KEYWORDS
-                                </div>
-                                <div class="d-flex flex-wrap gap-1">
-                                    <v-chip v-for="kw in issue.overlapping_keywords" :key="kw" size="x-small" variant="flat" :color="getConflictColor(issue.conflict_type)" class="font-weight-black px-2 elevation-1">
-                                        {{ kw }}
-                                    </v-chip>
-                                </div>
-                            </v-sheet>
-                        </v-card-text>
-                        
-                        <v-card-actions class="px-4 pb-4 pt-0 gap-2">
-                            <v-btn color="error" variant="outlined" size="small" class="text-none font-weight-black rounded-lg flex-grow-1" @click="confirmDelete(issue.rule_a_id, issue.rule_b_category)">
-                                <template v-slot:prepend>
-                                    <Trash2 :size="14" />
-                                </template>
-                                Delete A
-                            </v-btn>
-                            <v-btn color="error" variant="tonal" size="small" class="text-none font-weight-black rounded-lg flex-grow-1" @click="confirmDelete(issue.rule_b_id, issue.rule_a_category)">
-                                <template v-slot:prepend>
-                                    <Trash2 :size="14" />
-                                </template>
-                                Delete B
-                            </v-btn>
-                        </v-card-actions>
-                    </v-card>
-                </v-col>
-            </v-row>
-        </div>
-
-        <!-- Delete Confirmation Dialog -->
-        <v-dialog v-model="showDeleteConfirm" max-width="450px" persistent>
-            <v-card class="premium-glass-card no-hover text-center pa-8" rounded="xl" elevation="24">
-                <v-avatar color="error" variant="tonal" size="72" class="mb-6 mx-auto elevation-2">
-                    <Trash2 :size="40" />
-                </v-avatar>
-                <h3 class="text-h5 font-weight-black mb-2">Delete Classification Rule?</h3>
-                <p class="text-subtitle-2 font-weight-medium opacity-60 mb-6 px-4">
-                    Future transactions matched by this rule will become <strong>uncategorized</strong>.
-                </p>
-
-                <!-- Migration Option -->
-                <v-sheet v-if="migrationCategory" class="pa-4 rounded-xl border-thin bg-surface-light text-left mb-8 border-dashed" border>
-                    <v-checkbox
-                        v-model="shouldMigrate"
-                        color="primary"
-                        hide-details
-                        density="compact"
-                        class="mt-0"
-                    >
-                        <template v-slot:label>
-                            <div class="text-caption font-weight-bold">
-                                Migrate existing transactions to <span class="text-primary">{{ migrationCategory }}</span>?
-                            </div>
-                        </template>
-                    </v-checkbox>
-                    <div class="text-tiny opacity-60 ml-8 mt-1">
-                        Historical transactions matched by this rule will be moved to the kept rule's category.
-                    </div>
-                </v-sheet>
-
-                <div class="d-flex ga-3 justify-center">
-                    <v-btn variant="text" rounded="pill" class="text-none font-weight-bold px-6" height="44"
-                        @click="showDeleteConfirm = false">Cancel</v-btn>
-                    <v-btn color="error" rounded="pill" class="text-none font-weight-black px-8 elevation-4"
-                        height="44" @click="executeDelete">Yes, Delete</v-btn>
-                </div>
-            </v-card>
-        </v-dialog>
-    </div>
-</template>
-
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { ShieldAlert, ShieldCheck, Zap, Trash2, AlertTriangle, Tag, Copy, Layers, HelpCircle } from 'lucide-vue-next'
 import { useRulesStore } from '@/stores/finance/rules'
 import { useNotificationStore } from '@/stores/notification'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfModal from '@/components/ui/WfModal.vue'
+import WfAlert from '@/components/ui/WfAlert.vue'
 
 const rulesStore = useRulesStore()
 const notify = useNotificationStore()
@@ -212,30 +47,16 @@ const executeDelete = async () => {
     }
 }
 
-const getConflictColor = (type: string) => {
+const getConflictBadge = (type: string) => {
     switch(type) {
-        case 'EXACT_DUPLICATE': return 'warning'
-        case 'CONFLICT': return 'error'
-        case 'REDUNDANT': return 'info'
-        default: return 'primary'
-    }
-}
-
-const getConflictLucideIcon = (type: string) => {
-    switch(type) {
-        case 'EXACT_DUPLICATE': return Copy
-        case 'CONFLICT': return AlertTriangle
-        case 'REDUNDANT': return Layers
-        default: return HelpCircle
-    }
-}
-
-const getConflictClass = (type: string) => {
-    switch(type) {
-        case 'EXACT_DUPLICATE': return 'border-warning-thin'
-        case 'CONFLICT': return 'border-error-thin'
-        case 'REDUNDANT': return 'border-info-thin'
-        default: return ''
+        case 'EXACT_DUPLICATE':
+            return { color: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900/60', icon: Copy }
+        case 'CONFLICT':
+            return { color: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/60', icon: AlertTriangle }
+        case 'REDUNDANT':
+            return { color: 'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-950/60 dark:text-sky-400 dark:border-sky-900/60', icon: Layers }
+        default:
+            return { color: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700', icon: HelpCircle }
     }
 }
 
@@ -244,22 +65,199 @@ const formatConflictType = (type: string) => {
 }
 </script>
 
-<style scoped>
-.text-tiny {
-    font-size: 10px;
-    line-height: 1.2;
-}
-.gap-1 {
-    gap: 4px;
-}
-.hover-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.hover-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px -10px rgba(var(--v-theme-primary), 0.15) !important;
-}
-.border-warning-thin { border: 1px solid rgba(var(--v-theme-warning), 0.3); }
-.border-error-thin { border: 1px solid rgba(var(--v-theme-error), 0.3); }
-.border-info-thin { border: 1px solid rgba(var(--v-theme-info), 0.3); }
-</style>
+<template>
+    <div class="space-y-4">
+        <!-- Toolbar Ribbon -->
+        <WfCard variant="flat" padding="sm" radius="lg" class="border border-wf-border bg-wf-surface flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-wf-primary shrink-0">
+                    <ShieldAlert class="w-4 h-4" />
+                </div>
+                <div>
+                    <h2 class="text-xs font-bold text-wf-text-primary">Rule Hygiene & Collision Scanner</h2>
+                    <p class="text-[11px] text-wf-text-muted">Detect duplicate, overlapping, or conflicting categorization logic.</p>
+                </div>
+            </div>
+
+            <WfButton
+                variant="primary"
+                size="sm"
+                @click="refreshAnalysis"
+                :loading="rulesStore.analysisLoading"
+                class="h-8 px-3 text-xs font-semibold shadow-2xs"
+            >
+                <Zap class="w-3.5 h-3.5 mr-1" />
+                <span>Rescan Rules</span>
+            </WfButton>
+        </WfCard>
+
+        <!-- Loading Analysis State -->
+        <div v-if="!rulesStore.analysisResult && rulesStore.analysisLoading" class="p-16 text-center">
+            <div class="w-8 h-8 border-3 border-wf-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+            <h3 class="text-sm font-bold text-wf-text-primary uppercase tracking-wider">Running Deep Analysis...</h3>
+            <p class="text-xs text-wf-text-muted mt-0.5">Cross-referencing {{ rulesStore.totalRules }} active rules for overlaps and conflicts</p>
+        </div>
+
+        <!-- Clean Rules State -->
+        <div
+            v-else-if="!rulesStore.analysisResult?.issues?.length"
+            class="p-12 text-center flex flex-col items-center justify-center text-wf-text-muted bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 rounded-wf-lg"
+        >
+            <div class="w-12 h-12 rounded-wf-pill bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 flex items-center justify-center text-wf-success mb-2">
+                <ShieldCheck class="w-6 h-6" />
+            </div>
+            <h3 class="text-sm font-bold text-wf-text-primary">Your rules are in top shape!</h3>
+            <p class="text-xs text-wf-text-muted mt-0.5">No duplicates, collisions, or redundant expressions detected.</p>
+        </div>
+
+        <!-- Issues Found Grid -->
+        <div v-else class="space-y-4">
+            <WfAlert variant="warning">
+                Found {{ rulesStore.analysisResult.issues.length }} potential hygiene issues that may cause categorization conflicts.
+            </WfAlert>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <WfCard
+                    v-for="(issue, index) in rulesStore.analysisResult.issues"
+                    :key="index"
+                    variant="elevated"
+                    padding="md"
+                    radius="lg"
+                    class="flex flex-col justify-between border"
+                >
+                    <div>
+                        <!-- Header badge -->
+                        <div class="flex items-center justify-between mb-3">
+                            <span
+                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-sm text-[10px] font-bold border"
+                                :class="getConflictBadge(issue.conflict_type).color"
+                            >
+                                <component :is="getConflictBadge(issue.conflict_type).icon" class="w-3 h-3" />
+                                <span>{{ formatConflictType(issue.conflict_type) }}</span>
+                            </span>
+                        </div>
+
+                        <!-- VS Comparison Boxes -->
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="flex-1 p-2 rounded-wf-md bg-wf-surface-variant/60 border border-wf-border text-center overflow-hidden">
+                                <span class="text-[9px] font-bold text-wf-text-muted uppercase block mb-0.5">Rule A</span>
+                                <span class="font-bold text-xs text-wf-text-primary block truncate" :title="issue.rule_a_name">
+                                    {{ issue.rule_a_name }}
+                                </span>
+                                <span class="text-[10px] font-semibold text-wf-primary block truncate mt-0.5">
+                                    {{ issue.rule_a_category }}
+                                </span>
+                            </div>
+
+                            <span class="px-1.5 py-0.5 rounded-wf-pill text-[9px] font-bold bg-indigo-50 text-wf-primary border border-indigo-200 shrink-0">
+                                VS
+                            </span>
+
+                            <div class="flex-1 p-2 rounded-wf-md bg-wf-surface-variant/60 border border-wf-border text-center overflow-hidden">
+                                <span class="text-[9px] font-bold text-wf-text-muted uppercase block mb-0.5">Rule B</span>
+                                <span class="font-bold text-xs text-wf-text-primary block truncate" :title="issue.rule_b_name">
+                                    {{ issue.rule_b_name }}
+                                </span>
+                                <span class="text-[10px] font-semibold text-wf-primary block truncate mt-0.5">
+                                    {{ issue.rule_b_category }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Overlapping keywords -->
+                        <div class="p-2.5 rounded-wf-md bg-wf-surface border border-wf-border mb-3 space-y-1.5">
+                            <span class="text-[10px] font-bold text-wf-primary uppercase flex items-center gap-1">
+                                <Tag class="w-3 h-3" />
+                                <span>Colliding Keywords</span>
+                            </span>
+                            <div class="flex flex-wrap gap-1">
+                                <span
+                                    v-for="kw in issue.overlapping_keywords"
+                                    :key="kw"
+                                    class="px-1.5 py-0.5 rounded-wf-xs text-[10px] font-mono font-bold bg-wf-surface-variant border border-wf-border text-wf-text-primary"
+                                >
+                                    {{ kw }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex items-center gap-2 pt-2 border-t border-wf-border-subtle">
+                        <WfButton
+                            variant="outline"
+                            size="sm"
+                            @click="confirmDelete(issue.rule_a_id, issue.rule_b_category)"
+                            class="flex-1 h-7 text-xs font-semibold text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                        >
+                            <Trash2 class="w-3 h-3 mr-1" />
+                            <span>Delete A</span>
+                        </WfButton>
+                        <WfButton
+                            variant="outline"
+                            size="sm"
+                            @click="confirmDelete(issue.rule_b_id, issue.rule_a_category)"
+                            class="flex-1 h-7 text-xs font-semibold text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                        >
+                            <Trash2 class="w-3 h-3 mr-1" />
+                            <span>Delete B</span>
+                        </WfButton>
+                    </div>
+                </WfCard>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <WfModal
+            :model-value="showDeleteConfirm"
+            @update:model-value="showDeleteConfirm = $event"
+            max-width="sm"
+        >
+            <div class="text-center py-2 space-y-4">
+                <div class="w-12 h-12 rounded-wf-pill bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center text-wf-error mx-auto">
+                    <Trash2 class="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-wf-text-primary">Delete Classification Rule?</h3>
+                    <p class="text-xs text-wf-text-secondary mt-1 max-w-xs mx-auto">
+                        Future transactions matched by this rule will become <strong class="text-wf-text-primary">uncategorized</strong>.
+                    </p>
+                </div>
+
+                <!-- Migration Option Checkbox -->
+                <div v-if="migrationCategory" class="p-3 bg-wf-surface-variant/40 border border-wf-border rounded-wf-md text-left space-y-1">
+                    <label class="flex items-start gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            v-model="shouldMigrate"
+                            class="w-4 h-4 rounded text-wf-primary focus:ring-wf-primary/20 mt-0.5"
+                        />
+                        <div class="text-xs font-semibold text-wf-text-primary">
+                            Migrate existing transactions to <span class="text-wf-primary font-bold">{{ migrationCategory }}</span>
+                        </div>
+                    </label>
+                    <p class="text-[11px] text-wf-text-muted pl-6">
+                        Historical transactions matched by this rule will be updated to the kept rule's category.
+                    </p>
+                </div>
+
+                <div class="flex items-center justify-center gap-3 pt-2">
+                    <WfButton
+                        variant="ghost"
+                        size="sm"
+                        @click="showDeleteConfirm = false"
+                    >
+                        Cancel
+                    </WfButton>
+                    <WfButton
+                        variant="danger"
+                        size="sm"
+                        @click="executeDelete"
+                    >
+                        Yes, Delete
+                    </WfButton>
+                </div>
+            </div>
+        </WfModal>
+    </div>
+</template>

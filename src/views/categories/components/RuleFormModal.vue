@@ -1,229 +1,13 @@
-<template>
-    <!-- Add/Edit Rule Modal -->
-    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" max-width="520px"
-        transition="dialog-bottom-transition" persistent>
-        <v-card class="premium-glass-card no-hover overflow-hidden" rounded="xl" elevation="24">
-            <!-- Header with Dynamic Icon -->
-            <div class="pa-6 border-b bg-surface d-flex align-center justify-space-between relative-pos overflow-hidden">
-                <div class="d-flex align-center ga-4 relative-pos z-2">
-                    <div class="rule-icon-container">
-                        <FileText :size="28" class="text-primary relative-pos z-2" />
-                        <div class="icon-gradient-bg" style="opacity: 0.1"></div>
-                    </div>
-                    <div>
-                        <div class="text-overline font-weight-black text-primary line-height-1 mb-1">
-                            Intelligence Rule
-                        </div>
-                        <div class="text-h5 font-weight-black line-height-1 truncate" style="max-width: 300px;">
-                            {{ form.name || 'New Classification' }}
-                        </div>
-                    </div>
-                </div>
-                <v-btn icon variant="text" size="small" @click="close" class="text-medium-emphasis">
-                    <X :size="20" />
-                    <v-tooltip activator="parent" location="top">Close</v-tooltip>
-                </v-btn>
-            </div>
-
-            <v-card-text class="pa-6 overflow-y-auto custom-scrollbar" style="max-height: 70vh;">
-                <v-form @submit.prevent="saveRule">
-                    <div class="d-flex flex-column ga-6">
-                        <!-- Identity Section -->
-                        <div class="d-flex flex-column ga-3">
-                            <div class="text-tiny font-weight-black opacity-50 text-uppercase letter-spacing-1 ml-2">
-                                Identification</div>
-                            <v-text-field v-model="form.name" variant="solo-filled" flat rounded="xl" required
-                                placeholder="Rule Name (e.g. Amazon Shopping)" hide-details
-                                class="font-weight-black text-h6" bg-color="surface" density="comfortable" autofocus
-                                style="height: 56px;" />
-                        </div>
-
-                        <!-- Classification Section -->
-                        <div class="d-flex flex-column ga-3">
-                            <div class="text-tiny font-weight-black opacity-50 text-uppercase letter-spacing-1 ml-2">
-                                Classification</div>
-                            <div class="d-flex flex-column ga-3">
-                                <v-autocomplete v-model="form.category" label="Target Category" variant="solo-filled"
-                                    flat rounded="pill" hide-details density="comfortable" :items="categoryOptions"
-                                    placeholder="Select Category" :required="!form.is_transfer" class="font-weight-bold"
-                                    bg-color="surface">
-                                    <template v-slot:prepend-inner>
-                                        <Folder :size="18" class="text-primary mr-2 opacity-70" />
-                                    </template>
-                                </v-autocomplete>
-
-                                <v-combobox v-model="form.keywords" label="Trigger Keywords" multiple chips
-                                    closable-chips variant="solo-filled" flat rounded="xl" hide-details
-                                    density="comfortable" placeholder="Enter keywords (e.g. AMZN, AMAZON)"
-                                    class="font-weight-bold" bg-color="surface">
-                                    <template v-slot:prepend-inner>
-                                        <Zap :size="18" class="text-primary mr-2 opacity-70" />
-                                    </template>
-                                    <template v-slot:selection="{ item }">
-                                        <v-chip size="small" color="primary" variant="flat"
-                                            class="font-mono font-weight-black elevation-1">
-                                            {{ (item as any).raw || item }}
-                                        </v-chip>
-                                    </template>
-                                </v-combobox>
-                                <div class="text-tiny font-weight-bold opacity-40 px-2 mt-n1">
-                                    Transactions containing any of these terms will be auto-classified.
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Advanced Logic Section -->
-                        <div class="d-flex flex-column ga-3">
-                            <div class="text-tiny font-weight-black opacity-50 text-uppercase letter-spacing-1 ml-2">
-                                Logic & Precision</div>
-                            <v-card variant="flat" rounded="xl" class="bg-surface border-thin pa-4">
-                                <div class="d-flex flex-column ga-4">
-                                    <div class="d-flex align-center justify-space-between">
-                                        <div class="text-subtitle-2 font-weight-black d-flex align-center ga-2">
-                                            Precision Testing
-                                        </div>
-                                        <v-btn variant="tonal" size="small" rounded="pill" color="primary"
-                                            class="text-none font-weight-black px-4" @click="testCurrentLogic"
-                                            :disabled="!form.keywords.length" :loading="testingLogic">
-                                            <template v-slot:prepend>
-                                                <Zap :size="14" />
-                                            </template>
-                                            Check Matches
-                                        </v-btn>
-                                    </div>
-
-                                    <v-expand-transition>
-                                        <div v-if="testResultCount !== null"
-                                            class="bg-background pa-3 rounded-lg border-thin">
-                                            <div class="d-flex align-center justify-space-between">
-                                                <span class="text-tiny font-weight-black opacity-50 uppercase">Rule
-                                                    Impact</span>
-                                                <v-chip size="x-small"
-                                                    :color="testResultCount > 0 ? 'success' : 'warning'" variant="flat"
-                                                    class="font-weight-black">
-                                                    {{ testResultCount }} matches
-                                                </v-chip>
-                                            </div>
-                                            <div class="text-tiny font-weight-medium opacity-70 mt-1">
-                                                {{ testResultCount > 0 ? `This rule will affect ${testResultCount} existing transactions.` : 'No matches found in your ledger yet.' }}
-                                            </div>
-                                        </div>
-                                    </v-expand-transition>
-
-                                    <v-divider class="opacity-10" />
-
-                                    <div class="d-flex align-center justify-space-between">
-                                        <div class="d-flex flex-column">
-                                            <div class="text-subtitle-2 font-weight-black">Identify as Transfer</div>
-                                            <div class="text-tiny font-weight-bold opacity-50">Move between accounts
-                                            </div>
-                                        </div>
-                                        <v-switch v-model="form.is_transfer" color="primary" inset hide-details
-                                            density="compact" />
-                                    </div>
-
-                                    <v-expand-transition>
-                                        <div v-if="form.is_transfer">
-                                            <v-autocomplete v-model="form.to_account_id" label="Destination Account"
-                                                variant="solo-filled" flat rounded="pill" hide-details
-                                                density="comfortable"
-                                                :items="financeStore.accounts.map(a => ({ title: a.name, value: a.id }))"
-                                                placeholder="Select Destination" required class="font-weight-bold"
-                                                bg-color="background">
-                                                <template v-slot:prepend-inner>
-                                                    <CreditCard :size="18" class="text-secondary mr-2 opacity-70" />
-                                                </template>
-                                            </v-autocomplete>
-                                        </div>
-                                    </v-expand-transition>
-
-                                    <div class="d-flex align-center ga-4">
-                                        <div class="text-subtitle-2 font-weight-black shrink-0">Priority</div>
-                                        <v-slider v-model="form.priority" :min="0" :max="100" :step="1" hide-details
-                                            color="primary" class="flex-grow-1">
-                                            <template v-slot:append>
-                                                <div class="text-caption font-weight-black bg-background px-3 py-1 rounded-pill border-thin"
-                                                    style="min-width: 45px; text-align: center;">
-                                                    {{ form.priority }}
-                                                </div>
-                                            </template>
-                                        </v-slider>
-                                    </div>
-                                </div>
-                            </v-card>
-                        </div>
-
-                        <!-- Visibility Options -->
-                        <div class="d-flex flex-column ga-3">
-                            <div class="text-tiny font-weight-black opacity-50 text-uppercase letter-spacing-1 ml-2">
-                                Analytics Configuration</div>
-                            <v-card variant="flat" rounded="xl" class="bg-surface border-thin pa-1">
-                                <v-switch v-model="form.exclude_from_reports" color="error" inset hide-details
-                                    class="px-4">
-                                    <template v-slot:label>
-                                        <div class="ml-2 py-2">
-                                            <div class="text-subtitle-2 font-weight-black line-height-1 mb-1">Exclude
-                                                from Reports</div>
-                                            <div class="text-tiny font-weight-bold opacity-60">Matching items won't
-                                                affect your spending totals.</div>
-                                        </div>
-                                    </template>
-                                </v-switch>
-                            </v-card>
-                        </div>
-                    </div>
-                </v-form>
-            </v-card-text>
-
-            <!-- Actions -->
-            <v-card-actions class="pa-6 bg-surface border-t">
-                <v-spacer />
-                <v-btn variant="text" @click="close" class="text-none px-6 font-weight-bold" rounded="pill">
-                    <template v-slot:prepend>
-                        <X :size="16" />
-                    </template>
-                    Cancel
-                </v-btn>
-                <v-btn color="primary" rounded="pill"
-                    class="text-none px-10 font-weight-black elevation-8 shadow-primary" @click="saveRule" height="48"
-                    :disabled="!form.name || (!form.category && !form.is_transfer) || !form.keywords.length">
-                    <template v-slot:prepend>
-                        <Save :size="18" />
-                    </template>
-                    Save Logic
-                </v-btn>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
-
-    <!-- Exclude confirmation -->
-    <v-dialog v-model="showExcludeConfirm" max-width="450px" persistent>
-        <v-card class="premium-glass-card no-hover text-center pa-8" rounded="xl" elevation="24">
-            <v-avatar color="warning" variant="tonal" size="72" class="mb-6 mx-auto elevation-2">
-                <EyeOff :size="40" />
-            </v-avatar>
-            <h3 class="text-h5 font-weight-black mb-2">Invisible in Reports?</h3>
-            <p class="text-subtitle-2 font-weight-medium opacity-60 mb-8 px-4">
-                Transactions matching this rule will be <strong>hidden</strong> from monthly totals and charts.
-            </p>
-            <div class="d-flex ga-3 justify-center">
-                <v-btn variant="text" rounded="pill" class="text-none font-weight-bold px-6" height="44"
-                    @click="showExcludeConfirm = false">Back</v-btn>
-                <v-btn color="primary" rounded="pill" class="text-none font-weight-black px-8 elevation-4" height="44"
-                    @click="confirmSaveRule">Confirm & Save</v-btn>
-            </div>
-        </v-card>
-    </v-dialog>
-</template>
-
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { FileText, X, Folder, Zap, CreditCard, EyeOff, Save } from 'lucide-vue-next'
+import { FileText, Folder, Zap, CreditCard, EyeOff, Save, X } from 'lucide-vue-next'
 import { financeApi } from '@/api/client'
 import { useCategoriesStore } from '@/stores/finance/categories'
 import { useRulesStore, type Rule } from '@/stores/finance/rules'
 import { useFinanceStore } from '@/stores/finance'
 import { useNotificationStore } from '@/stores/notification'
+import WfModal from '@/components/ui/WfModal.vue'
+import WfButton from '@/components/ui/WfButton.vue'
 
 const props = defineProps<{
     modelValue: boolean
@@ -241,6 +25,7 @@ const notify = useNotificationStore()
 const showExcludeConfirm = ref(false)
 const testingLogic = ref(false)
 const testResultCount = ref<number | null>(null)
+const newKeywordInput = ref('')
 
 const form = ref({
     name: '',
@@ -266,7 +51,7 @@ watch(() => props.editRule, (rule) => {
         form.value = {
             name: rule.name,
             category: rule.category,
-            keywords: Array.isArray(rule.keywords) ? [...rule.keywords] : (rule.keywords as string).split(','),
+            keywords: Array.isArray(rule.keywords) ? [...rule.keywords] : (rule.keywords as string).split(',').map(s => s.trim()),
             priority: rule.priority || 10,
             is_transfer: rule.is_transfer || false,
             to_account_id: rule.to_account_id || '',
@@ -293,11 +78,31 @@ function resetForm() {
         to_account_id: '',
         exclude_from_reports: false
     }
+    newKeywordInput.value = ''
     testResultCount.value = null
 }
 
 function close() {
     emit('update:modelValue', false)
+}
+
+function addKeyword() {
+    const val = newKeywordInput.value.trim()
+    if (val && !form.value.keywords.includes(val)) {
+        form.value.keywords.push(val)
+        newKeywordInput.value = ''
+    }
+}
+
+function removeKeyword(idx: number) {
+    form.value.keywords.splice(idx, 1)
+}
+
+function handleKeywordKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault()
+        addKeyword()
+    }
 }
 
 async function testCurrentLogic() {
@@ -368,32 +173,244 @@ async function confirmSaveRule() {
 }
 </script>
 
-<style scoped>
-.rule-icon-container {
-    width: 56px;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 16px;
-    background: rgba(var(--v-theme-surface), 0.8);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
-    position: relative;
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
+<template>
+    <!-- Add/Edit Rule Modal -->
+    <WfModal
+        :model-value="modelValue"
+        @update:model-value="$emit('update:modelValue', $event)"
+        max-width="md"
+    >
+        <template #header>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-wf-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-wf-primary shrink-0 shadow-2xs">
+                    <FileText class="w-5 h-5" />
+                </div>
+                <div class="min-w-0">
+                    <span class="text-[10px] font-bold text-wf-primary uppercase tracking-wider block">
+                        Intelligence Rule
+                    </span>
+                    <h3 class="text-base font-bold text-wf-text-primary truncate">
+                        {{ form.name || 'New Classification Rule' }}
+                    </h3>
+                </div>
+            </div>
+        </template>
 
-.icon-gradient-bg {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at center, var(--v-theme-primary), transparent 70%);
-    filter: blur(8px);
-    z-index: 0;
-}
+        <form @submit.prevent="saveRule" class="space-y-4">
+            <!-- Identification -->
+            <div class="space-y-1.5">
+                <label class="text-[11px] font-bold text-wf-text-muted uppercase tracking-wider block">
+                    Rule Identification
+                </label>
+                <input
+                    v-model="form.name"
+                    type="text"
+                    required
+                    placeholder="Rule Name (e.g. Amazon Prime, Uber Rides)"
+                    class="w-full h-10 px-3 text-sm bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
+                />
+            </div>
 
-.truncate {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-</style>
+            <!-- Classification -->
+            <div class="space-y-3">
+                <label class="text-[11px] font-bold text-wf-text-muted uppercase tracking-wider block">
+                    Classification & Triggers
+                </label>
+
+                <!-- Category select -->
+                <div v-if="!form.is_transfer">
+                    <span class="text-xs font-semibold text-wf-text-secondary mb-1 block">Target Category</span>
+                    <div class="relative">
+                        <Folder class="w-4 h-4 text-wf-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <select
+                            v-model="form.category"
+                            class="w-full h-10 pl-9 pr-3 text-sm bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
+                        >
+                            <option value="" disabled>Select Target Category</option>
+                            <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">
+                                {{ opt.title }}
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Keywords tag input -->
+                <div class="space-y-1.5">
+                    <span class="text-xs font-semibold text-wf-text-secondary block">Trigger Keywords</span>
+                    <div class="p-2 bg-wf-surface border border-wf-border rounded-wf-md flex flex-wrap items-center gap-1.5 min-h-[44px]">
+                        <span
+                            v-for="(kw, idx) in form.keywords"
+                            :key="idx"
+                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-sm text-xs font-semibold font-mono bg-indigo-50 text-wf-primary dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50"
+                        >
+                            {{ kw }}
+                            <button
+                                type="button"
+                                @click="removeKeyword(idx)"
+                                class="hover:text-rose-600 transition-colors"
+                            >
+                                <X class="w-3 h-3" />
+                            </button>
+                        </span>
+                        <input
+                            v-model="newKeywordInput"
+                            @keydown="handleKeywordKeydown"
+                            @blur="addKeyword"
+                            type="text"
+                            placeholder="Add keyword + Enter..."
+                            class="flex-1 min-w-[140px] h-7 bg-transparent text-xs text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none px-1"
+                        />
+                    </div>
+                    <p class="text-[11px] text-wf-text-muted">
+                        Transactions containing any of these terms will be auto-classified.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Logic & Precision Section -->
+            <div class="p-3.5 bg-wf-surface-variant/40 border border-wf-border rounded-wf-md space-y-3">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-bold text-wf-text-primary block">Precision Testing</span>
+                        <span class="text-[11px] text-wf-text-muted">Test rule against historical transactions</span>
+                    </div>
+                    <WfButton
+                        variant="outline"
+                        size="sm"
+                        @click="testCurrentLogic"
+                        :disabled="!form.keywords.length"
+                        :loading="testingLogic"
+                        class="h-7.5 px-3 text-xs"
+                    >
+                        <Zap class="w-3.5 h-3.5 mr-1" />
+                        <span>Check Matches</span>
+                    </WfButton>
+                </div>
+
+                <div v-if="testResultCount !== null" class="p-2.5 rounded-wf-sm bg-wf-surface border border-wf-border flex items-center justify-between text-xs">
+                    <span class="text-wf-text-secondary font-medium">Historical Matches Found:</span>
+                    <span
+                        class="px-2 py-0.5 rounded-wf-sm font-bold text-xs"
+                        :class="testResultCount > 0 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400'"
+                    >
+                        {{ testResultCount }} transactions
+                    </span>
+                </div>
+
+                <div class="border-t border-wf-border-subtle pt-2 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-bold text-wf-text-primary block">Identify as Transfer</span>
+                        <span class="text-[11px] text-wf-text-muted">Move funds between accounts</span>
+                    </div>
+                    <input
+                        type="checkbox"
+                        v-model="form.is_transfer"
+                        class="w-4 h-4 rounded text-wf-primary focus:ring-wf-primary/20 cursor-pointer"
+                    />
+                </div>
+
+                <!-- Destination account when transfer -->
+                <div v-if="form.is_transfer" class="pt-1">
+                    <span class="text-xs font-semibold text-wf-text-secondary mb-1 block">Destination Account</span>
+                    <div class="relative">
+                        <CreditCard class="w-4 h-4 text-wf-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <select
+                            v-model="form.to_account_id"
+                            class="w-full h-9 pl-9 pr-3 text-xs bg-wf-surface border border-wf-border rounded-wf-sm text-wf-text-primary focus:outline-none focus:ring-1 focus:ring-wf-primary"
+                        >
+                            <option value="" disabled>Select Destination Account</option>
+                            <option v-for="a in financeStore.accounts" :key="a.id" :value="a.id">
+                                {{ a.name }}
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Priority Slider -->
+                <div class="border-t border-wf-border-subtle pt-2 space-y-1">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-wf-text-primary">Execution Priority</span>
+                        <span class="font-mono font-bold text-wf-primary">{{ form.priority }}</span>
+                    </div>
+                    <input
+                        type="range"
+                        v-model.number="form.priority"
+                        min="0"
+                        max="100"
+                        step="1"
+                        class="w-full accent-wf-primary cursor-pointer"
+                    />
+                </div>
+            </div>
+
+            <!-- Exclude from reports -->
+            <div class="p-3 bg-wf-surface-variant/40 border border-wf-border rounded-wf-md flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-bold text-wf-text-primary block">Exclude from Reports</span>
+                    <span class="text-[11px] text-wf-text-muted">Matching transactions won't affect spending totals</span>
+                </div>
+                <input
+                    type="checkbox"
+                    v-model="form.exclude_from_reports"
+                    class="w-4 h-4 rounded text-wf-error focus:ring-rose-500/20 cursor-pointer"
+                />
+            </div>
+        </form>
+
+        <template #footer>
+            <div class="flex items-center justify-end gap-2 w-full">
+                <WfButton
+                    variant="ghost"
+                    size="sm"
+                    @click="close"
+                >
+                    Cancel
+                </WfButton>
+                <WfButton
+                    variant="primary"
+                    size="sm"
+                    @click="saveRule"
+                    :disabled="!form.name || (!form.category && !form.is_transfer) || !form.keywords.length"
+                >
+                    <Save class="w-4 h-4 mr-1.5" />
+                    <span>Save Logic</span>
+                </WfButton>
+            </div>
+        </template>
+    </WfModal>
+
+    <!-- Exclude confirmation modal -->
+    <WfModal
+        :model-value="showExcludeConfirm"
+        @update:model-value="showExcludeConfirm = $event"
+        max-width="sm"
+    >
+        <div class="text-center py-2 space-y-4">
+            <div class="w-12 h-12 rounded-wf-pill bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center text-amber-600 mx-auto">
+                <EyeOff class="w-6 h-6" />
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-wf-text-primary">Invisible in Reports?</h3>
+                <p class="text-xs text-wf-text-secondary mt-1 max-w-xs mx-auto">
+                    Transactions matching this rule will be <strong class="text-wf-text-primary">hidden</strong> from monthly totals and charts.
+                </p>
+            </div>
+            <div class="flex items-center justify-center gap-3 pt-2">
+                <WfButton
+                    variant="ghost"
+                    size="sm"
+                    @click="showExcludeConfirm = false"
+                >
+                    Back
+                </WfButton>
+                <WfButton
+                    variant="primary"
+                    size="sm"
+                    @click="confirmSaveRule"
+                >
+                    Confirm & Save
+                </WfButton>
+            </div>
+        </div>
+    </WfModal>
+</template>

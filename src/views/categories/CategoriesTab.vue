@@ -1,306 +1,15 @@
-<template>
-    <v-container fluid class="pa-0 animate-in relative-pos z-10">
-        <!-- Stats Overview -->
-        <v-row class="mb-6">
-            <v-col cols="12" sm="6" md="4" class="col-five">
-                <v-card @click="categoriesStore.searchFilter = 'all'"
-                    class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl">
-                    <div class="d-flex justify-space-between align-start mb-2">
-                        <div>
-                            <span class="text-overline font-weight-black opacity-50 letter-spacing-2">Total</span>
-                            <div class="text-h4 font-weight-black mt-1">
-                                {{ categoriesStore.categoryStats.total }}
-                            </div>
-                        </div>
-                        <v-avatar color="primary" variant="tonal" rounded="lg" size="48" class="elevation-1">
-                            <BarChart3 :size="24" />
-                        </v-avatar>
-                    </div>
-                    <div class="text-caption font-weight-bold opacity-60">Master Inventory</div>
-                </v-card>
-            </v-col>
-
-            <v-col cols="12" sm="6" md="4" class="col-five">
-                <v-card @click="categoriesStore.searchFilter = 'expense'"
-                    class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl"
-                    :class="{ 'border-error': categoriesStore.searchFilter === 'expense' }">
-                    <div class="d-flex justify-space-between align-start mb-2">
-                        <div>
-                            <span class="text-overline font-weight-black opacity-50 letter-spacing-2">Expenses</span>
-                            <div class="text-h4 font-weight-black mt-1"
-                                :class="categoriesStore.searchFilter === 'expense' ? 'text-error' : ''">
-                                {{ categoriesStore.categoryStats.expenses }}
-                            </div>
-                        </div>
-                        <v-avatar color="error" variant="tonal" rounded="lg" size="48" class="elevation-1">
-                            <TrendingDown :size="24" />
-                        </v-avatar>
-                    </div>
-                    <v-progress-linear
-                        :model-value="(categoriesStore.categoryStats.expenses / (categoriesStore.categoryStats.total || 1)) * 100"
-                        color="error" height="6" rounded class="mt-4 opacity-30" />
-                </v-card>
-            </v-col>
-
-            <v-col cols="12" sm="6" md="4" class="col-five">
-                <v-card @click="categoriesStore.searchFilter = 'income'"
-                    class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl"
-                    :class="{ 'border-success': categoriesStore.searchFilter === 'income' }">
-                    <div class="d-flex justify-space-between align-start mb-2">
-                        <div>
-                            <span class="text-overline font-weight-black opacity-50 letter-spacing-2">Income</span>
-                            <div class="text-h4 font-weight-black mt-1"
-                                :class="categoriesStore.searchFilter === 'income' ? 'text-success' : ''">
-                                {{ categoriesStore.categoryStats.income }}
-                            </div>
-                        </div>
-                        <v-avatar color="success" variant="tonal" rounded="lg" size="48" class="elevation-1">
-                            <TrendingUp :size="24" />
-                        </v-avatar>
-                    </div>
-                    <v-progress-linear
-                        :model-value="(categoriesStore.categoryStats.income / (categoriesStore.categoryStats.total || 1)) * 100"
-                        color="success" height="6" rounded class="mt-4 opacity-30" />
-                </v-card>
-            </v-col>
-
-            <v-col cols="12" sm="6" md="4" class="col-five">
-                <v-card @click="categoriesStore.searchFilter = 'investment'"
-                    class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl"
-                    :class="{ 'border-warning': categoriesStore.searchFilter === 'investment' }">
-                    <div class="d-flex justify-space-between align-start mb-2">
-                        <div>
-                            <span class="text-overline font-weight-black opacity-50 letter-spacing-2">Investment</span>
-                            <div class="text-h4 font-weight-black mt-1"
-                                :class="categoriesStore.searchFilter === 'investment' ? 'text-warning' : ''">
-                                {{ categoriesStore.categoryStats.investment }}
-                            </div>
-                        </div>
-                        <v-avatar color="warning" variant="tonal" rounded="lg" size="48" class="elevation-1">
-                            <TrendingUp :size="24" />
-                        </v-avatar>
-                    </div>
-                    <v-progress-linear
-                        :model-value="(categoriesStore.categoryStats.investment / (categoriesStore.categoryStats.total || 1)) * 100"
-                        color="warning" height="6" rounded class="mt-4 opacity-30" />
-                </v-card>
-            </v-col>
-
-            <v-col cols="12" sm="6" md="4" class="col-five">
-                <v-card @click="categoriesStore.searchFilter = 'transfer'"
-                    class="premium-glass-card pa-5 h-100 cursor-pointer border-thin elevation-2" rounded="xl"
-                    :class="{ 'border-info': categoriesStore.searchFilter === 'transfer' }">
-                    <div class="d-flex justify-space-between align-start mb-2">
-                        <div>
-                            <span class="text-overline font-weight-black opacity-50 letter-spacing-2">Transfers</span>
-                            <div class="text-h4 font-weight-black mt-1"
-                                :class="categoriesStore.searchFilter === 'transfer' ? 'text-info' : ''">
-                                {{ categoriesStore.categoryStats.transfer }}
-                            </div>
-                        </div>
-                        <v-avatar color="info" variant="tonal" rounded="lg" size="48" class="elevation-1">
-                            <Repeat :size="24" />
-                        </v-avatar>
-                    </div>
-                    <div class="text-caption font-weight-bold opacity-60 mt-4">Linked movements</div>
-                </v-card>
-            </v-col>
-        </v-row>
-
-        <!-- Toolbar -->
-        <v-card class="premium-glass-card mb-6 border-thin premium-toolbar" rounded="xl">
-            <v-row align="center" dense class="w-100">
-                <v-col cols="12" md="3">
-                    <v-autocomplete v-model="categoriesStore.searchFilter" :items="[
-                        { title: 'All Types', value: 'all' },
-                        { title: 'Expenses', value: 'expense' },
-                        { title: 'Income', value: 'income' },
-                        { title: 'Investment', value: 'investment' },
-                        { title: 'Transfer', value: 'transfer' }
-                    ]" variant="solo-filled" flat rounded="pill" hide-details density="compact" bg-color="surface"
-                        class="font-weight-black text-caption custom-autocomplete">
-                        <template v-slot:prepend-inner>
-                            <Filter :size="16" class="text-primary opacity-60 mr-1" />
-                        </template>
-                    </v-autocomplete>
-                </v-col>
-                <v-col cols="12" md="4">
-                    <v-text-field v-model="categoriesStore.searchQuery" prepend-inner-icon="mdi-magnify"
-                        placeholder="Search names..." variant="solo-filled" flat rounded="pill" hide-details
-                        density="compact" class="search-input" bg-color="surface">
-                        <template v-slot:prepend-inner>
-                            <Search :size="18" class="text-primary opacity-60" />
-                        </template>
-                    </v-text-field>
-                </v-col>
-                <v-spacer />
-                <v-col cols="12" md="auto" class="d-flex align-center ga-3">
-                    <div class="d-flex ga-2 bg-surface pa-1 rounded-pill border-thin shadow-sm">
-                        <v-btn variant="text" size="small" rounded="pill" color="primary"
-                            class="text-none font-weight-black px-4" @click="startAddCategory">
-                            <template v-slot:prepend>
-                                <Plus :size="14" />
-                            </template>
-                            Add Category
-                        </v-btn>
-                        <v-divider vertical class="mx-1 my-2 opacity-30" style="height: 16px; align-self: center;" />
-                        <v-btn variant="text" size="small" rounded="pill" color="primary"
-                            class="text-none font-weight-black px-4" @click="categoriesStore.exportCategories">
-                            <template v-slot:prepend>
-                                <Download :size="14" />
-                            </template>
-                            Export
-                        </v-btn>
-                        <v-divider vertical class="mx-1 my-2 opacity-30" style="height: 16px; align-self: center;" />
-                        <v-btn variant="text" size="small" rounded="pill" color="primary"
-                            class="text-none font-weight-black px-4" @click="triggerImport">
-                            <template v-slot:prepend>
-                                <Upload :size="14" />
-                            </template>
-                            Import
-                        </v-btn>
-                    </div>
-                </v-col>
-            </v-row>
-        </v-card>
-
-        <!-- Invisible file input for import -->
-        <input type="file" ref="fileInput" accept=".json" style="display: none" @change="handleImportCategories" />
-
-        <!-- Categories List -->
-        <div v-if="categoriesStore.loading" class="d-flex flex-column ga-3 mb-10">
-            <v-skeleton-loader type="table-row-divider@6" class="rounded-xl border-thin premium-glass-card" />
-        </div>
-
-        <v-card v-if="!categoriesStore.loading" class="premium-glass-card overflow-hidden border-thin elevation-2 mb-16"
-            rounded="xl">
-            <v-data-table :headers="headers" :items="categoriesStore.rootCategories" :search="categoriesStore.searchQuery"
-                density="comfortable" class="premium-table" hide-default-footer :items-per-page="-1">
-
-                <!-- Name Column -->
-                <template v-slot:item.name="{ item }">
-                    <div class="d-flex align-center py-2">
-                        <v-avatar :style="{ background: item.color + '20' }" rounded="lg" size="36" class="mr-3 border">
-                            <span class="text-subtitle-1">{{ item.icon || '🏷️' }}</span>
-                        </v-avatar>
-                        <div class="d-flex flex-column">
-                            <span class="font-weight-black text-subtitle-2">{{ item.name }}</span>
-                            <span v-if="item.parent_id" class="text-tiny opacity-40 font-weight-bold">Sub-category</span>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- Type Column -->
-                <template v-slot:item.type="{ item }">
-                    <v-chip :color="item.type === 'expense' ? 'error' : (item.type === 'income' ? 'success' : (item.type === 'investment' ? 'warning' : 'info'))"
-                        size="x-small" class="text-none font-weight-black px-2" variant="tonal">
-                        {{ item.type.toUpperCase() }}
-                    </v-chip>
-                </template>
-
-                <!-- Subcategories Column -->
-                <template v-slot:item.subcategories="{ item }">
-                    <div class="d-flex flex-wrap ga-1 py-1 align-center">
-                        <template v-if="categoriesStore.getChildren(item.id).length > 0">
-                            <v-chip v-for="child in categoriesStore.getChildren(item.id).slice(0, 5)" :key="child.id"
-                                size="x-small" variant="tonal" color="primary"
-                                class="font-weight-bold bg-surface border-thin cursor-pointer"
-                                @click.stop="editCategory(child)">
-                                <span class="mr-1">{{ child.icon }}</span>
-                                {{ child.name }}
-                            </v-chip>
-                            <v-chip v-if="categoriesStore.getChildren(item.id).length > 5" size="x-small" variant="text"
-                                color="primary" class="font-weight-black">
-                                +{{ categoriesStore.getChildren(item.id).length - 5 }}
-                            </v-chip>
-                        </template>
-                        <span v-else class="text-tiny opacity-30 font-weight-black italic mr-2">0 sub-categories</span>
-
-                        <!-- Add New Subcategory Button -->
-                        <v-chip size="x-small" color="success" variant="tonal"
-                            class="font-weight-black border-thin cursor-pointer"
-                            style="background: rgba(var(--v-theme-success), 0.05) !important;"
-                            @click.stop="startAddSubCategory(item)">
-                            <Plus :size="10" class="mr-1" />
-                            New
-                        </v-chip>
-                    </div>
-                </template>
-
-                <!-- Actions Column -->
-                <template v-slot:item.actions="{ item }">
-                    <div class="d-flex ga-1 justify-end align-center">
-                        <v-btn icon variant="text" size="small" color="medium-emphasis" rounded="pill"
-                            @click.stop="editCategory(item)">
-                            <Pencil :size="14" />
-                            <v-tooltip activator="parent" location="top">Edit</v-tooltip>
-                        </v-btn>
-                        <v-btn icon variant="text" size="small" color="error" rounded="pill"
-                            :loading="isCheckingUsage && categoryToDelete?.id === item.id"
-                            @click.stop="categoryToDelete = item; startDeleteCategory(item)">
-                            <Trash2 :size="14" />
-                            <v-tooltip activator="parent" location="top">Delete</v-tooltip>
-                        </v-btn>
-                    </div>
-                </template>
-
-                <!-- Empty State -->
-                <template v-slot:no-data>
-                    <div class="text-center py-16 opacity-40">
-                        <Inbox :size="48" class="mb-4" />
-                        <div class="text-h6 font-weight-black">No categories found</div>
-                    </div>
-                </template>
-            </v-data-table>
-        </v-card>
-
-        <CategoryModal v-model:show="showCategoryModal" :is-editing="isEditingCategory" :initial-form="categoryForm"
-            :parent-options="parentOptions" :categories="categoriesStore.categories" :loading="categoriesStore.loading"
-            @save="saveCategory" @delete="startDeleteFromModal" />
-
-        <!-- Delete Confirmation Modal -->
-        <v-dialog v-model="showDeleteCategoryConfirm" max-width="450px" persistent>
-            <v-card class="premium-glass-card no-hover text-center pa-8" rounded="xl" elevation="24">
-                <v-avatar color="error" variant="tonal" size="72" class="mb-6 mx-auto elevation-2">
-                    <AlertCircle :size="40" />
-                </v-avatar>
-                <h3 class="text-h5 font-weight-black mb-2">Delete Category?</h3>
-                <p class="text-subtitle-2 font-weight-medium opacity-60 mb-8 px-4">
-                    Existing transactions will become <strong>uncategorized</strong>. This action is permanent and
-                    affects your financial history.
-                </p>
-                <div class="d-flex ga-3 justify-center">
-                    <v-btn variant="text" rounded="pill" class="text-none font-weight-bold px-6" height="44"
-                        @click="showDeleteCategoryConfirm = false">No, Keep It</v-btn>
-                    <v-btn color="error" rounded="pill" class="text-none font-weight-black px-8 elevation-4" height="44"
-                        @click="confirmDeleteCategory">Yes, Delete</v-btn>
-                </div>
-            </v-card>
-        </v-dialog>
-
-        <!-- Delete Restricted Modal -->
-        <v-dialog v-model="showDeleteRestrictedModal" max-width="450px" persistent>
-            <v-card class="premium-glass-card no-hover text-center pa-8" rounded="xl" elevation="24">
-                <v-avatar color="warning" variant="tonal" size="72" class="mb-6 mx-auto elevation-2">
-                    <AlertCircle :size="40" />
-                </v-avatar>
-                <h3 class="text-h5 font-weight-black mb-2">Notice</h3>
-                <p class="text-subtitle-2 font-weight-medium opacity-60 mb-8 px-4" v-html="restrictionMessage"></p>
-                <v-btn block color="primary" rounded="pill" class="text-none font-weight-black" height="48"
-                    @click="showDeleteRestrictedModal = false">Understand</v-btn>
-            </v-card>
-        </v-dialog>
-    </v-container>
-</template>
-
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useCategoriesStore } from '@/stores/finance/categories'
 import {
     Search, Plus, Pencil, Trash2,
     Download, Upload, AlertCircle,
-    BarChart3, TrendingDown, TrendingUp, Repeat, Inbox, Filter
+    BarChart3, TrendingDown, TrendingUp, Repeat, Inbox, Filter,
+    ChevronLeft, ChevronRight, X
 } from 'lucide-vue-next'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfModal from '@/components/ui/WfModal.vue'
 import CategoryModal from './components/CategoryModal.vue'
 
 const categoriesStore = useCategoriesStore()
@@ -316,12 +25,9 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const restrictionMessage = ref('')
 const isCheckingUsage = ref(false)
 
-const headers = [
-    { title: 'Category', key: 'name', sortable: true },
-    { title: 'Type', key: 'type', sortable: true, width: '100px' },
-    { title: 'Folders', key: 'subcategories', sortable: false },
-    { title: '', key: 'actions', sortable: false, align: 'end' as const, width: '220px' },
-]
+// Pagination State
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 const categoryForm = ref({
     name: '',
@@ -339,6 +45,40 @@ const parentOptions = computed(() => {
             value: c.id
         }))
     ]
+})
+
+// Filtered root categories based on type and search query
+const filteredRootCategories = computed<any[]>(() => {
+    let list = categoriesStore.rootCategories
+
+    if (categoriesStore.searchFilter && categoriesStore.searchFilter !== 'all') {
+        list = list.filter(c => c.type === categoriesStore.searchFilter)
+    }
+
+    if (categoriesStore.searchQuery && categoriesStore.searchQuery.trim()) {
+        const q = categoriesStore.searchQuery.toLowerCase().trim()
+        list = list.filter(c => {
+            const nameMatch = c.name.toLowerCase().includes(q)
+            const children = categoriesStore.getChildren(c.id)
+            const childMatch = children.some((child: any) => child.name.toLowerCase().includes(q))
+            return nameMatch || childMatch
+        })
+    }
+
+    return list
+})
+
+const totalPages = computed(() => {
+    return Math.ceil(filteredRootCategories.value.length / pageSize.value) || 1
+})
+
+const paginatedRootCategories = computed(() => {
+    const start = (currentPage.value - 1) * pageSize.value
+    return filteredRootCategories.value.slice(start, start + pageSize.value)
+})
+
+watch([() => categoriesStore.searchQuery, () => categoriesStore.searchFilter], () => {
+    currentPage.value = 1
 })
 
 function triggerImport() {
@@ -371,8 +111,8 @@ function startAddSubCategory(parent: any) {
     categoryForm.value = {
         name: '',
         icon: '🏷️',
-        color: parent.color,
-        type: parent.type,
+        color: parent.color || '#6366f1',
+        type: parent.type || 'expense',
         parent_id: parent.id
     }
     showCategoryModal.value = true
@@ -439,35 +179,476 @@ async function confirmDeleteCategory() {
     }
 }
 
-// Expose open modal method
+function getTypeBadge(type: string) {
+    switch (type) {
+        case 'expense':
+            return { label: 'EXPENSE', bg: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/60' }
+        case 'income':
+            return { label: 'INCOME', bg: 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/60' }
+        case 'investment':
+            return { label: 'INVESTMENT', bg: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900/60' }
+        case 'transfer':
+            return { label: 'TRANSFER', bg: 'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-950/60 dark:text-sky-400 dark:border-sky-900/60' }
+        default:
+            return { label: type?.toUpperCase() || 'OTHER', bg: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700' }
+    }
+}
+
 defineExpose({
     startAddCategory
 })
 </script>
 
-<style scoped>
-.premium-table :deep(tr) {
-    transition: all 0.2s ease;
-}
+<template>
+    <div class="space-y-5">
+        <!-- 1. STATS OVERVIEW: 5 Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Total Categories -->
+            <WfCard
+                variant="elevated"
+                padding="md"
+                radius="lg"
+                class="cursor-pointer transition-all flex flex-col justify-between"
+                :class="[
+                    categoriesStore.searchFilter === 'all' ? 'ring-2 ring-wf-primary border-wf-primary/40' : 'hover:border-wf-border-subtle'
+                ]"
+                @click="categoriesStore.searchFilter = 'all'"
+            >
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Total</span>
+                    <div class="w-8 h-8 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-wf-primary">
+                        <BarChart3 class="w-4 h-4" />
+                    </div>
+                </div>
+                <div>
+                    <div class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary tabular-nums">
+                        {{ categoriesStore.categoryStats.total }}
+                    </div>
+                    <span class="text-[11px] font-semibold text-wf-text-muted mt-0.5 block">Master Inventory</span>
+                </div>
+            </WfCard>
 
-.premium-table :deep(tr:hover) {
-    background: rgba(var(--v-theme-primary), 0.02) !important;
-}
+            <!-- Expenses -->
+            <WfCard
+                variant="elevated"
+                padding="md"
+                radius="lg"
+                class="cursor-pointer transition-all flex flex-col justify-between"
+                :class="[
+                    categoriesStore.searchFilter === 'expense' ? 'ring-2 ring-wf-error border-wf-error/40' : 'hover:border-wf-border-subtle'
+                ]"
+                @click="categoriesStore.searchFilter = 'expense'"
+            >
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Expenses</span>
+                    <div class="w-8 h-8 rounded-wf-md bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center text-wf-error">
+                        <TrendingDown class="w-4 h-4" />
+                    </div>
+                </div>
+                <div>
+                    <div class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary tabular-nums" :class="{ 'text-wf-error': categoriesStore.searchFilter === 'expense' }">
+                        {{ categoriesStore.categoryStats.expenses }}
+                    </div>
+                    <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-wf-pill overflow-hidden mt-2">
+                        <div
+                            class="bg-wf-error h-full rounded-wf-pill transition-all duration-300"
+                            :style="{ width: `${(categoriesStore.categoryStats.expenses / (categoriesStore.categoryStats.total || 1)) * 100}%` }"
+                        />
+                    </div>
+                </div>
+            </WfCard>
 
-.action-btn {
-    opacity: 0.6;
-    transition: all 0.2s ease;
-}
+            <!-- Income -->
+            <WfCard
+                variant="elevated"
+                padding="md"
+                radius="lg"
+                class="cursor-pointer transition-all flex flex-col justify-between"
+                :class="[
+                    categoriesStore.searchFilter === 'income' ? 'ring-2 ring-wf-success border-wf-success/40' : 'hover:border-wf-border-subtle'
+                ]"
+                @click="categoriesStore.searchFilter = 'income'"
+            >
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Income</span>
+                    <div class="w-8 h-8 rounded-wf-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/50 flex items-center justify-center text-wf-success">
+                        <TrendingUp class="w-4 h-4" />
+                    </div>
+                </div>
+                <div>
+                    <div class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary tabular-nums" :class="{ 'text-wf-success': categoriesStore.searchFilter === 'income' }">
+                        {{ categoriesStore.categoryStats.income }}
+                    </div>
+                    <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-wf-pill overflow-hidden mt-2">
+                        <div
+                            class="bg-wf-success h-full rounded-wf-pill transition-all duration-300"
+                            :style="{ width: `${(categoriesStore.categoryStats.income / (categoriesStore.categoryStats.total || 1)) * 100}%` }"
+                        />
+                    </div>
+                </div>
+            </WfCard>
 
-.action-btn:hover {
-    opacity: 1;
-    transform: scale(1.1);
-}
+            <!-- Investment -->
+            <WfCard
+                variant="elevated"
+                padding="md"
+                radius="lg"
+                class="cursor-pointer transition-all flex flex-col justify-between"
+                :class="[
+                    categoriesStore.searchFilter === 'investment' ? 'ring-2 ring-amber-500 border-amber-500/40' : 'hover:border-wf-border-subtle'
+                ]"
+                @click="categoriesStore.searchFilter = 'investment'"
+            >
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Investment</span>
+                    <div class="w-8 h-8 rounded-wf-md bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                        <TrendingUp class="w-4 h-4" />
+                    </div>
+                </div>
+                <div>
+                    <div class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary tabular-nums" :class="{ 'text-amber-600 dark:text-amber-400': categoriesStore.searchFilter === 'investment' }">
+                        {{ categoriesStore.categoryStats.investment }}
+                    </div>
+                    <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-wf-pill overflow-hidden mt-2">
+                        <div
+                            class="bg-amber-500 h-full rounded-wf-pill transition-all duration-300"
+                            :style="{ width: `${(categoriesStore.categoryStats.investment / (categoriesStore.categoryStats.total || 1)) * 100}%` }"
+                        />
+                    </div>
+                </div>
+            </WfCard>
 
-@media (min-width: 1280px) {
-    .col-five {
-        flex: 0 0 20% !important;
-        max-width: 20% !important;
-    }
-}
-</style>
+            <!-- Transfers -->
+            <WfCard
+                variant="elevated"
+                padding="md"
+                radius="lg"
+                class="cursor-pointer transition-all flex flex-col justify-between"
+                :class="[
+                    categoriesStore.searchFilter === 'transfer' ? 'ring-2 ring-sky-500 border-sky-500/40' : 'hover:border-wf-border-subtle'
+                ]"
+                @click="categoriesStore.searchFilter = 'transfer'"
+            >
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Transfers</span>
+                    <div class="w-8 h-8 rounded-wf-md bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-900/50 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                        <Repeat class="w-4 h-4" />
+                    </div>
+                </div>
+                <div>
+                    <div class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary tabular-nums" :class="{ 'text-sky-600 dark:text-sky-400': categoriesStore.searchFilter === 'transfer' }">
+                        {{ categoriesStore.categoryStats.transfer }}
+                    </div>
+                    <span class="text-[11px] font-semibold text-wf-text-muted mt-0.5 block">Linked movements</span>
+                </div>
+            </WfCard>
+        </div>
+
+        <!-- 2. TOOLBAR & ACTIONS -->
+        <WfCard variant="flat" padding="sm" radius="lg" class="border border-wf-border bg-wf-surface flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 flex-1 max-w-lg">
+                <!-- Type Filter Dropdown -->
+                <div class="flex items-center h-8 px-2.5 bg-wf-surface border border-wf-border rounded-wf-sm text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-1.5 w-36 shrink-0">
+                    <Filter class="w-3.5 h-3.5 text-wf-text-muted shrink-0 pointer-events-none" />
+                    <select
+                        v-model="categoriesStore.searchFilter"
+                        class="w-full h-full bg-transparent text-xs font-semibold text-wf-text-primary focus:outline-none cursor-pointer"
+                    >
+                        <option value="all">All Types</option>
+                        <option value="expense">Expenses</option>
+                        <option value="income">Income</option>
+                        <option value="investment">Investment</option>
+                        <option value="transfer">Transfer</option>
+                    </select>
+                </div>
+
+                <!-- Search Input -->
+                <div class="flex-1 flex items-center h-8 px-2.5 bg-wf-surface border border-wf-border rounded-wf-sm text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-2">
+                    <Search class="w-3.5 h-3.5 text-wf-text-muted shrink-0 pointer-events-none" />
+                    <input
+                        v-model="categoriesStore.searchQuery"
+                        type="text"
+                        placeholder="Search category names..."
+                        class="w-full h-full bg-transparent text-xs text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none"
+                    />
+                    <button
+                        v-if="categoriesStore.searchQuery"
+                        @click="categoriesStore.searchQuery = ''"
+                        class="text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded-wf-xs transition-colors flex items-center justify-center shrink-0"
+                        title="Clear search"
+                    >
+                        <X class="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2 shrink-0">
+                <WfButton
+                    variant="outline"
+                    size="sm"
+                    @click="triggerImport"
+                    class="h-8 px-3 text-xs font-semibold shadow-2xs"
+                >
+                    <Upload class="w-3.5 h-3.5 mr-1" />
+                    <span>Import</span>
+                </WfButton>
+
+                <WfButton
+                    variant="outline"
+                    size="sm"
+                    @click="categoriesStore.exportCategories"
+                    class="h-8 px-3 text-xs font-semibold shadow-2xs"
+                >
+                    <Download class="w-3.5 h-3.5 mr-1" />
+                    <span>Export</span>
+                </WfButton>
+
+                <WfButton
+                    variant="primary"
+                    size="sm"
+                    @click="startAddCategory"
+                    class="h-8 px-3.5 text-xs font-semibold shadow-2xs"
+                >
+                    <Plus class="w-3.5 h-3.5 mr-1" />
+                    <span>Add Category</span>
+                </WfButton>
+            </div>
+        </WfCard>
+
+        <!-- Invisible file input for JSON import -->
+        <input type="file" ref="fileInput" accept=".json" class="hidden" @change="handleImportCategories" />
+
+        <!-- 3. CATEGORIES TREE TABLE (Paginated) -->
+        <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border bg-wf-surface overflow-hidden flex flex-col">
+            <!-- Loading State -->
+            <div v-if="categoriesStore.loading" class="p-6 space-y-3">
+                <div v-for="i in 5" :key="`cat-skel-${i}`" class="h-12 rounded-wf-md bg-wf-surface-variant animate-pulse" />
+            </div>
+
+            <!-- Table Layout -->
+            <div v-else-if="filteredRootCategories.length > 0" class="overflow-x-auto flex-1 min-h-0">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="border-b border-wf-border bg-wf-surface-variant/40 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
+                            <th class="py-3 px-4 w-[280px]">Category</th>
+                            <th class="py-3 px-3 w-[120px]">Type</th>
+                            <th class="py-3 px-3">Sub-Categories / Folders</th>
+                            <th class="py-3 px-4 text-right w-[100px]">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-wf-border-subtle">
+                        <tr
+                            v-for="item in paginatedRootCategories"
+                            :key="item.id"
+                            class="hover:bg-wf-surface-variant/40 transition-colors group"
+                        >
+                            <!-- Name Column with Icon Avatar -->
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-9 h-9 rounded-wf-md flex items-center justify-center text-base border shrink-0 transition-transform group-hover:scale-105"
+                                        :style="{
+                                            backgroundColor: `${item.color || '#6366f1'}15`,
+                                            borderColor: `${item.color || '#6366f1'}35`
+                                        }"
+                                    >
+                                        <span>{{ item.icon || '🏷️' }}</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="font-bold text-xs text-wf-text-primary block truncate" :title="item.name">
+                                            {{ item.name }}
+                                        </span>
+                                        <span v-if="item.parent_id" class="text-[10px] text-wf-text-muted block">
+                                            Sub-category
+                                        </span>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Type Column -->
+                            <td class="py-3 px-3">
+                                <span
+                                    class="inline-flex items-center px-2 py-0.5 rounded-wf-sm text-[10px] font-bold border"
+                                    :class="getTypeBadge(item.type).bg"
+                                >
+                                    {{ getTypeBadge(item.type).label }}
+                                </span>
+                            </td>
+
+                            <!-- Subcategories Column -->
+                            <td class="py-3 px-3">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <template v-if="categoriesStore.getChildren(item.id).length > 0">
+                                        <button
+                                            v-for="child in categoriesStore.getChildren(item.id).slice(0, 5)"
+                                            :key="child.id"
+                                            @click.stop="editCategory(child)"
+                                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-sm text-[11px] font-medium bg-wf-surface-variant/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 border border-wf-border hover:border-wf-primary/40 text-wf-text-primary transition-all cursor-pointer"
+                                        >
+                                            <span class="text-xs">{{ child.icon }}</span>
+                                            <span>{{ child.name }}</span>
+                                        </button>
+
+                                        <span
+                                            v-if="categoriesStore.getChildren(item.id).length > 5"
+                                            class="text-[10px] font-bold text-wf-primary px-1"
+                                        >
+                                            +{{ categoriesStore.getChildren(item.id).length - 5 }}
+                                        </span>
+                                    </template>
+                                    <span v-else class="text-[11px] text-wf-text-muted italic mr-1">
+                                        0 sub-categories
+                                    </span>
+
+                                    <!-- Add New Subcategory Button -->
+                                    <button
+                                        @click.stop="startAddSubCategory(item)"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-sm text-[10px] font-bold text-wf-success bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-900/60 transition-colors"
+                                        title="Add sub-category"
+                                    >
+                                        <Plus class="w-3 h-3" />
+                                        <span>New</span>
+                                    </button>
+                                </div>
+                            </td>
+
+                            <!-- Actions Column -->
+                            <td class="py-3 px-4 text-right">
+                                <div class="flex items-center justify-end gap-1">
+                                    <button
+                                        @click.stop="editCategory(item)"
+                                        class="p-1 rounded-wf-sm text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+                                        title="Edit category"
+                                    >
+                                        <Pencil class="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                        @click.stop="startDeleteCategory(item)"
+                                        :disabled="isCheckingUsage && categoryToDelete?.id === item.id"
+                                        class="p-1 rounded-wf-sm text-wf-text-muted hover:text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors disabled:opacity-50"
+                                        title="Delete category"
+                                    >
+                                        <Trash2 class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div v-else class="p-12 text-center flex flex-col items-center justify-center text-wf-text-muted">
+                <Inbox class="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2 stroke-[1.5]" />
+                <h3 class="text-xs font-bold text-wf-text-primary">No categories found</h3>
+                <p class="text-[11px] text-wf-text-muted mt-0.5">Try adjusting your filters or create a new category.</p>
+            </div>
+
+            <!-- Pagination Footer -->
+            <div
+                v-if="filteredRootCategories.length > 0"
+                class="p-3 border-t border-wf-border bg-wf-surface-variant/30 flex items-center justify-between text-xs shrink-0"
+            >
+                <span class="text-[11px] text-wf-text-secondary font-medium">
+                    Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, filteredRootCategories.length) }} of {{ filteredRootCategories.length }} categories
+                </span>
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] text-wf-text-secondary font-semibold mr-1">
+                        Page {{ currentPage }} of {{ totalPages }}
+                    </span>
+                    <button
+                        :disabled="currentPage <= 1"
+                        @click="currentPage--"
+                        class="p-1.5 rounded-wf-sm border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                        title="Previous page"
+                    >
+                        <ChevronLeft class="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                        :disabled="currentPage >= totalPages"
+                        @click="currentPage++"
+                        class="p-1.5 rounded-wf-sm border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                        title="Next page"
+                    >
+                        <ChevronRight class="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            </div>
+        </WfCard>
+
+        <!-- Category Create/Edit Modal -->
+        <CategoryModal
+            v-model:show="showCategoryModal"
+            :is-editing="isEditingCategory"
+            :initial-form="categoryForm"
+            :parent-options="parentOptions"
+            :categories="categoriesStore.categories"
+            :loading="categoriesStore.loading"
+            @save="saveCategory"
+            @delete="startDeleteFromModal"
+        />
+
+        <!-- Delete Confirmation Modal -->
+        <WfModal
+            :model-value="showDeleteCategoryConfirm"
+            @update:model-value="showDeleteCategoryConfirm = $event"
+            max-width="sm"
+        >
+            <div class="text-center py-2 space-y-4">
+                <div class="w-12 h-12 rounded-wf-pill bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center text-wf-error mx-auto">
+                    <AlertCircle class="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-wf-text-primary">Delete Category?</h3>
+                    <p class="text-xs text-wf-text-secondary mt-1 max-w-xs mx-auto">
+                        Existing transactions will become <strong class="text-wf-text-primary">uncategorized</strong>. This action is permanent and affects your financial history.
+                    </p>
+                </div>
+                <div class="flex items-center justify-center gap-3 pt-2">
+                    <WfButton
+                        variant="ghost"
+                        size="sm"
+                        @click="showDeleteCategoryConfirm = false"
+                    >
+                        No, Keep It
+                    </WfButton>
+                    <WfButton
+                        variant="danger"
+                        size="sm"
+                        @click="confirmDeleteCategory"
+                    >
+                        Yes, Delete
+                    </WfButton>
+                </div>
+            </div>
+        </WfModal>
+
+        <!-- Delete Restricted Modal -->
+        <WfModal
+            :model-value="showDeleteRestrictedModal"
+            @update:model-value="showDeleteRestrictedModal = $event"
+            max-width="sm"
+        >
+            <div class="text-center py-2 space-y-4">
+                <div class="w-12 h-12 rounded-wf-pill bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center text-amber-600 mx-auto">
+                    <AlertCircle class="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-wf-text-primary">Notice</h3>
+                    <div class="text-xs text-wf-text-secondary mt-2 text-left bg-wf-surface-variant/50 p-3 rounded-wf-md border border-wf-border" v-html="restrictionMessage"></div>
+                </div>
+                <div class="pt-2">
+                    <WfButton
+                        variant="primary"
+                        size="sm"
+                        block
+                        @click="showDeleteRestrictedModal = false"
+                    >
+                        Understand
+                    </WfButton>
+                </div>
+            </div>
+        </WfModal>
+    </div>
+</template>
