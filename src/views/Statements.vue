@@ -17,19 +17,26 @@ import {
     X,
     Mail,
     Table,
-    Search as SearchIcon
+    Search as SearchIcon,
+    ChevronLeft,
+    ChevronRight,
+    FileSpreadsheet
 } from 'lucide-vue-next'
 
 import MainLayout from '@/layouts/MainLayout.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfModal from '@/components/ui/WfModal.vue'
+import WfAlert from '@/components/ui/WfAlert.vue'
 import apiClient, { financeApi } from '@/api/client'
-import { useStatementStore } from '@/stores/finance/statements'
+import { useStatementStore, type Statement } from '@/stores/finance/statements'
 import { useNotificationStore } from '@/stores/notification'
 import { format } from 'date-fns'
 
 const store = useStatementStore()
 const notification = useNotificationStore()
 
-const selectedStatement = ref<any>(null)
+const selectedStatement = ref<Statement | null>(null)
 const uploadDialog = ref(false)
 const uploadFile = ref<File | null>(null)
 const uploadPassword = ref('')
@@ -37,33 +44,23 @@ const showPassword = ref(false)
 const uploadUser = ref<any>(null)
 const uploadAccount = ref<any>(null)
 const syncDialog = ref(false)
-const syncDate = ref(new Date().toISOString().substr(0, 10))
+const syncDate = ref(new Date().toISOString().substring(0, 10))
 const syncing = ref(false)
 const search = ref('')
 
 const retryDialog = ref(false)
 const retryPassword = ref('')
 const showRetryPassword = ref(false)
-const selectedStatementForRetry = ref<any>(null)
-
+const selectedStatementForRetry = ref<Statement | null>(null)
 
 const pdfUrl = ref('')
-const activeTab = ref('transactions')
-
-// Vault Preview State
+const activeTab = ref<'transactions' | 'attachment' | 'email'>('transactions')
 
 const statementPage = ref(1)
 const statementPageSize = 8
 
 const txnPage = ref(1)
 const txnLimit = ref(10)
-const headers: any[] = [
-    { title: 'Date', key: 'date', sortable: true, align: 'start' },
-    { title: 'Description', key: 'description', sortable: true, align: 'start' },
-    { title: 'Category', key: 'category_suggestion', sortable: true, align: 'start' },
-    { title: 'Amount', key: 'amount', align: 'end', sortable: true },
-    { title: 'Status', key: 'status', align: 'center', sortable: false },
-]
 
 const users = ref<any[]>([])
 const accounts = ref<any[]>([])
@@ -73,8 +70,16 @@ const selectedTransactions = ref<string[]>([])
 const bulkIngestDialog = ref(false)
 const bulkIngestItems = ref<{ transaction_id: string, description: string, amount: number, date: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[]>([])
 
+const deleteDialog = ref(false)
+const statementToDelete = ref<string | null>(null)
 
+const reassignDialog = ref(false)
+const reassignAccountId = ref<string | null>(null)
+const reassigning = ref(false)
 
+const attachmentUrl = ref<string | null>(null)
+
+// Category options tree builder for bulk ingest
 const categoryOptions = computed(() => {
     const list: any[] = []
 
@@ -201,13 +206,12 @@ watch(uploadUser, (user) => {
         
         // Default to Name4+DDMM
         uploadPassword.value = `${namePart}${day}${month}`
-
     } else if (user.pan) {
         uploadPassword.value = user.pan.toUpperCase()
     }
 })
 
-async function selectStatement(s: any) {
+async function selectStatement(s: Statement) {
     selectedStatement.value = s
     selectedTransactions.value = []
     
@@ -219,11 +223,12 @@ async function selectStatement(s: any) {
         attachmentUrl.value = null
     }
     
-    // Ensure activeTab is reset if the new statement doesn't have the current tab's data
+    // Reset tab if statement lacks appropriate media
     if (activeTab.value === 'attachment' && !s.vault_id) activeTab.value = 'transactions'
     if (activeTab.value === 'email' && !s.email_body) activeTab.value = 'transactions'
     
-    await store.fetchTransactions(s.id)
+    txnPage.value = 1
+    await store.fetchTransactions(s.id, 0, txnLimit.value)
 }
 
 async function handleUpload() {
@@ -251,7 +256,14 @@ async function handleUpload() {
     }
 }
 
-function openRetryDialog(s: any) {
+function handleFileInput(e: Event) {
+    const target = e.target as HTMLInputElement
+    if (target.files && target.files[0]) {
+        uploadFile.value = target.files[0]
+    }
+}
+
+function openRetryDialog(s: Statement) {
     selectedStatementForRetry.value = s
     retryPassword.value = ''
     retryDialog.value = true
@@ -266,7 +278,7 @@ async function handleRetry() {
         
         // Find the newly parsed statement in the updated list
         const newStatement = store.statements.find(s => 
-            s.filename === selectedStatementForRetry.value.filename && 
+            s.filename === selectedStatementForRetry.value?.filename && 
             s.status === 'PARSED'
         )
         if (newStatement) {
@@ -288,20 +300,51 @@ async function triggerSync() {
     }
 }
 
-
-
-function getStatusColor(status: string) {
+function getStatusBadge(status: string) {
     switch (status) {
-        case 'PARSED': return 'success'
-        case 'PENDING': return 'warning'
-        case 'FAILED': return 'error'
-        default: return 'slate-400'
+        case 'PARSED':
+            return {
+                label: 'Parsed',
+                bg: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800/60',
+                dot: 'bg-emerald-500'
+            }
+        case 'PENDING':
+            return {
+                label: 'Decryption Pending',
+                bg: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800/60',
+                dot: 'bg-amber-500'
+            }
+        case 'FAILED':
+            return {
+                label: 'Failed',
+                bg: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-800/60',
+                dot: 'bg-rose-500'
+            }
+        default:
+            return {
+                label: status,
+                bg: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+                dot: 'bg-slate-400'
+            }
     }
 }
 
 function formatDate(date: string) {
     if (!date) return 'N/A'
-    return format(new Date(date), 'MMM dd, yyyy HH:mm')
+    try {
+        return format(new Date(date), 'MMM dd, yyyy HH:mm')
+    } catch {
+        return date
+    }
+}
+
+function formatTxnDate(date: string) {
+    if (!date) return 'N/A'
+    try {
+        return format(new Date(date), 'dd MMM yyyy')
+    } catch {
+        return date
+    }
 }
 
 function formatCurrency(amount: number) {
@@ -319,15 +362,6 @@ function getAccountInfo(accountId: string) {
     const user = users.value.find(u => u.id === acc.owner_id)
     return { accountName: acc.name, userName: user?.full_name || 'System' }
 }
-
-
-
-const deleteDialog = ref(false)
-const statementToDelete = ref<string | null>(null)
-
-const reassignDialog = ref(false)
-const reassignAccountId = ref<string | null>(null)
-const reassigning = ref(false)
 
 async function confirmReassign() {
     if (!selectedStatement.value || !reassignAccountId.value) return
@@ -371,7 +405,6 @@ async function confirmDeleteStatement() {
     }
 }
 
-
 async function reevaluateStatement(id: string) {
     if (!selectedStatement.value) return
     try {
@@ -396,9 +429,6 @@ async function reevaluateStatement(id: string) {
     }
 }
 
-
-const attachmentUrl = ref<string | null>(null)
-
 async function loadAttachment(vault_id: string) {
     if (attachmentUrl.value) {
         URL.revokeObjectURL(attachmentUrl.value)
@@ -418,947 +448,938 @@ function getAccountName(account_id: string) {
     if (!acc) return `Account: XX${account_id?.slice(-4) || 'Unknown'}`
     return `${acc.userName} - ${acc.accountName}`
 }
+
+// Checkbox select all logic for transactions table
+const isAllSelected = computed(() => {
+    if (store.currentTransactions.length === 0) return false
+    return store.currentTransactions.every(t => selectedTransactions.value.includes(t.id))
+})
+
+function toggleSelectAll() {
+    if (isAllSelected.value) {
+        selectedTransactions.value = []
+    } else {
+        selectedTransactions.value = store.currentTransactions.map(t => t.id)
+    }
+}
+
+function toggleSelectTransaction(id: string) {
+    const index = selectedTransactions.value.indexOf(id)
+    if (index > -1) {
+        selectedTransactions.value.splice(index, 1)
+    } else {
+        selectedTransactions.value.push(id)
+    }
+}
+
+const totalPages = computed(() => {
+    return Math.ceil(store.totalStatements / statementPageSize) || 1
+})
+
+const totalTxnPages = computed(() => {
+    return Math.ceil(store.totalTransactions / txnLimit.value) || 1
+})
 </script>
 
 <template>
     <MainLayout>
-        <v-container fluid class="page-container dashboard-page statements-page py-6">
-            <!-- Animated Mesh Background -->
-            <div class="mesh-blob blob-1"></div>
-            <div class="mesh-blob blob-2"></div>
-
-            <div class="relative-pos z-10">
-                <!-- Header -->
-                <div class="d-flex align-center justify-space-between mb-8">
-                    <div>
-                        <h1 class="text-h4 font-weight-black mb-1 gradient-text">Account Statements</h1>
-                        <p class="text-slate-500 font-weight-medium">Automated reconciliation and transaction discovery</p>
+        <div class="flex flex-col lg:h-[calc(100vh-80px)] max-w-[1600px] mx-auto space-y-3 pb-3">
+            <!-- HEADER: Title, Intelligence Pill & Action Buttons -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wf-border-subtle shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-wf-lg bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs">
+                        <FileSpreadsheet class="w-5 h-5 text-wf-primary" />
                     </div>
-                    <div class="d-flex gap-3">
-                        <v-btn variant="tonal" color="primary" rounded="pill" height="44" @click="syncDialog = true" :loading="syncing">
-                            <template v-slot:prepend>
-                                <RefreshCw :size="20" :class="{ 'spin': syncing }" />
-                            </template>
-                            Sync Emails
-                        </v-btn>
-                        <v-btn color="primary" rounded="pill" elevation="0" height="44" @click="uploadDialog = true">
-                            <template v-slot:prepend>
-                                <Upload :size="20" />
-                            </template>
-                            Upload Statement
-                        </v-btn>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary">
+                                Account Statements
+                            </h1>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
+                                <span class="w-1.5 h-1.5 rounded-wf-pill bg-wf-primary animate-pulse"></span>
+                                {{ store.totalStatements }} Ingested
+                            </span>
+                        </div>
+                        <p class="text-xs text-wf-text-secondary">
+                            Automated reconciliation, PDF decryption, and ledger matching workspace.
+                        </p>
                     </div>
                 </div>
 
-                <v-row>
-                    <!-- Left Sidebar: Statements List -->
-                    <v-col cols="12" md="4">
-                        <v-card rounded="xl" border flat class="glass-card h-full flex flex-col overflow-hidden">
-                            <!-- Premium Toolbar -->
-                            <div class="premium-toolbar px-4 d-flex align-center bg-white border-b" style="height: 64px;">
-                                <FileText :size="20" class="mr-2 text-primary flex-shrink-0" />
-                                
-                                <v-text-field
-                                    v-model="search"
-                                    placeholder="Search statements..."
-                                    variant="solo-filled"
-                                    flat
-                                    hide-details
-                                    density="compact"
-                                    rounded="pill"
-                                    class="mx-2 transition-all duration-300 shadow-sm flex-grow-1"
-                                >
-                                    <template v-slot:prepend-inner>
-                                        <SearchIcon :size="18" class="text-slate-400" />
-                                    </template>
-                                </v-text-field>
+                <div class="flex items-center gap-2.5">
+                    <WfButton
+                        variant="outline"
+                        size="sm"
+                        @click="syncDialog = true"
+                        :loading="syncing"
+                        class="h-8.5 px-3.5 text-xs font-semibold shadow-2xs"
+                    >
+                        <RefreshCw class="w-3.5 h-3.5 mr-1.5" :class="{ 'animate-spin': syncing }" />
+                        <span>Sync Emails</span>
+                    </WfButton>
 
-                                <v-spacer></v-spacer>
+                    <WfButton
+                        variant="primary"
+                        size="sm"
+                        @click="uploadDialog = true"
+                        class="h-8.5 px-3.5 text-xs font-semibold shadow-2xs"
+                    >
+                        <Upload class="w-3.5 h-3.5 mr-1.5" />
+                        <span>Upload Statement</span>
+                    </WfButton>
+                </div>
+            </div>
+
+            <!-- MAIN WORKSPACE: 2-Column Split Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0 items-stretch">
+                
+                <!-- LEFT COLUMN: Statements List Directory (4 cols) -->
+                <div class="lg:col-span-4 flex flex-col h-full min-h-0">
+                    <WfCard variant="flat" padding="none" radius="lg" class="overflow-hidden flex flex-col border border-wf-border h-full">
+                        <!-- Search Toolbar -->
+                        <div class="p-3 border-b border-wf-border bg-wf-surface-variant/40 flex items-center gap-2 shrink-0">
+                            <div class="relative flex-1">
+                                <SearchIcon class="w-3.5 h-3.5 text-wf-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                <input
+                                    v-model="search"
+                                    type="text"
+                                    placeholder="Search statements..."
+                                    class="w-full h-8.5 pl-8 pr-7 text-xs bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none focus:ring-1 focus:ring-wf-primary focus:border-wf-primary transition-all"
+                                />
+                                <button
+                                    v-if="search"
+                                    @click="search = ''"
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded-wf-sm"
+                                >
+                                    <X class="w-3 h-3" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Statement Items List -->
+                        <div class="divide-y divide-wf-border-subtle overflow-y-auto flex-1 min-h-0 bg-wf-surface">
+                            <!-- Loading Skeletons -->
+                            <div v-if="store.loading && store.statements.length === 0" class="p-3 space-y-2">
+                                <div v-for="i in 5" :key="`skel-${i}`" class="h-16 rounded-wf-md bg-wf-surface-variant animate-pulse p-2.5 flex flex-col justify-between">
+                                    <div class="w-3/4 h-3 rounded-wf-xs bg-slate-200 dark:bg-slate-700"></div>
+                                    <div class="w-1/2 h-2.5 rounded-wf-xs bg-slate-200 dark:bg-slate-700"></div>
+                                </div>
                             </div>
 
-                            <v-list class="pa-2 bg-transparent overflow-y-auto flex-grow-1" style="max-height: calc(100vh - 350px)">
-                                <v-list-item
+                            <!-- List Items -->
+                            <template v-else-if="store.statements.length > 0">
+                                <div
                                     v-for="s in store.statements"
                                     :key="s.id"
                                     @click="selectStatement(s)"
-                                    :active="selectedStatement?.id === s.id"
-                                    rounded="lg"
-                                    class="mb-2 statement-item"
-                                    :color="selectedStatement?.id === s.id ? 'primary' : ''"
-                                    height="72"
+                                    class="p-3 cursor-pointer transition-all duration-150 flex items-start gap-3 select-none relative group"
+                                    :class="[
+                                        selectedStatement?.id === s.id 
+                                            ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-l-3 border-l-wf-primary' 
+                                            : 'hover:bg-wf-surface-variant/60 border-l-3 border-l-transparent'
+                                    ]"
                                 >
-                                    <template v-slot:prepend>
-                                        <div class="icon-box mr-4" :class="`bg-${getStatusColor(s.status)}-lighten-5`">
-                                            <CheckCircle2 v-if="s.status === 'PARSED'" :size="20" class="text-success" />
-                                            <Lock v-else-if="s.status === 'PENDING'" :size="20" class="text-warning" />
-                                            <AlertCircle v-else-if="s.status === 'FAILED'" :size="20" class="text-error" />
-                                            <FileText v-else :size="20" :class="`text-${getStatusColor(s.status)}`" />
-                                        </div>
-                                    </template>
-
-                                    <v-list-item-title class="font-weight-black text-caption text-truncate">{{ s.filename }}</v-list-item-title>
-                                    <v-list-item-subtitle class="text-tiny mt-1 d-flex flex-wrap align-center opacity-70 gap-x-2">
-                                        <span class="d-flex align-center"><Clock :size="12" class="mr-1" /> {{ formatDate(s.created_at) }}</span>
-                                        <span v-if="s.email_sender" class="d-flex align-center text-primary font-weight-black">
-                                            <Landmark :size="12" class="mr-1" /> {{ s.email_sender.split('@')[0] }}
-                                        </span>
-                                        <span v-else-if="s.source === 'MANUAL'" class="d-flex align-center">
-                                            <User :size="12" class="mr-1" /> Manual
-                                        </span>
-                                        <v-chip size="x-small" :color="getStatusColor(s.status)" class="font-weight-black text-tiny" variant="tonal">
-                                            {{ s.status }}
-                                        </v-chip>
-                                    </v-list-item-subtitle>
-
-                                    <template v-slot:append>
-                                        <ArrowRight :size="16" class="opacity-30" />
-                                    </template>
-                                </v-list-item>
-
-                                <div v-if="store.statements.length === 0" class="pa-10 text-center opacity-40 mx-auto">
-                                    <FileText :size="48" class="mb-4 mx-auto" />
-                                    <p class="font-weight-bold">No statements found</p>
-                                </div>
-                            </v-list>
-                            
-                            <div v-if="store.totalStatements > statementPageSize" class="pa-4 border-t d-flex justify-center bg-slate-50">
-                                <v-pagination
-                                    v-model="statementPage"
-                                    :length="Math.ceil(store.totalStatements / statementPageSize)"
-                                    density="comfortable"
-                                    rounded="pill"
-                                    size="small"
-                                    active-color="primary"
-                                    total-visible="3"
-                                ></v-pagination>
-                            </div>
-                        </v-card>
-                    </v-col>
-
-                    <v-col cols="12" md="8">
-                        <!-- Statement Detail Hero -->
-                        <v-card v-if="selectedStatement" rounded="xl" border flat class="glass-card h-full d-flex flex-column overflow-hidden">
-                            <!-- Premium Detail Header -->
-                            <div class="pa-6 border-b bg-white/80 backdrop-blur-xl sticky-top z-10">
-                                <div class="d-flex align-start justify-space-between mb-4">
-                                    <div class="d-flex align-center overflow-hidden">
-                                        <div class="icon-box-medium mr-4 bg-slate-900 rounded-xl shadow-lg flex-shrink-0">
-                                            <FileText :size="24" class="text-white" />
-                                        </div>
-                                        <div class="overflow-hidden">
-                                            <div class="d-flex align-center gap-2 mb-1">
-                                                <v-chip size="x-small" :color="getStatusColor(selectedStatement.status)" variant="flat" class="font-weight-black text-tiny px-2 rounded-lg">
-                                                    {{ selectedStatement.status }}
-                                                </v-chip>
-                                                <v-chip size="x-small" color="slate-400" variant="outlined" class="font-weight-bold text-tiny px-2 rounded-lg border-slate-200">
-                                                    <template v-slot:prepend>
-                                                        <Mail v-if="selectedStatement.source === 'EMAIL'" :size="10" class="mr-1" />
-                                                        <Upload v-else :size="10" class="mr-1" />
-                                                    </template>
-                                                    {{ selectedStatement.source }}
-                                                </v-chip>
-                                            </div>
-                                            <div class="text-h5 font-weight-black text-slate-800 line-height-tight text-truncate max-w-[500px]">
-                                                {{ selectedStatement.filename }}
-                                            </div>
-                                            <div class="text-caption font-weight-bold text-slate-400 mt-1 d-flex align-center">
-                                                <Clock :size="12" class="mr-1 opacity-50" />
-                                                Ingested {{ formatDate(selectedStatement.created_at) }}
-                                            </div>
-                                        </div>
+                                    <!-- Status Icon Avatar -->
+                                    <div 
+                                        class="w-8 h-8 rounded-wf-md shrink-0 flex items-center justify-center text-xs mt-0.5 border"
+                                        :class="[
+                                            s.status === 'PARSED' 
+                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/60'
+                                                : s.status === 'PENDING'
+                                                ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900/60'
+                                                : 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/60'
+                                        ]"
+                                    >
+                                        <CheckCircle2 v-if="s.status === 'PARSED'" class="w-4 h-4" />
+                                        <Lock v-else-if="s.status === 'PENDING'" class="w-4 h-4" />
+                                        <AlertCircle v-else class="w-4 h-4" />
                                     </div>
-                                    
-                                    <div class="d-flex align-center">
-                                        <v-btn 
-                                            v-if="selectedTransactions.length > 0"
-                                            color="primary" 
-                                            rounded="pill" 
-                                            elevation="0"
-                                            @click="openBulkIngestDialog"
-                                            height="36"
-                                            class="px-6 font-weight-bold mr-2"
-                                        >
-                                            <template v-slot:prepend><CheckCircle2 :size="16" /></template>
-                                            Ingest ({{ selectedTransactions.length }})
-                                        </v-btn>
 
-                                        <v-btn icon variant="text" color="primary" @click="reevaluateStatement(selectedStatement.id)" class="ml-1 border rounded-lg">
-                                            <v-tooltip activator="parent" location="top">Re-evaluate Statement</v-tooltip>
-                                            <RefreshCw :size="18" />
-                                        </v-btn>
-                                        
-                                        <v-btn icon variant="text" color="error" @click="promptDeleteStatement(selectedStatement.id)" class="ml-1 border rounded-lg">
-                                            <v-tooltip activator="parent" location="top">Delete Statement</v-tooltip>
-                                            <Trash2 :size="18" />
-                                        </v-btn>
-                                    </div>
-                                </div>
-
-                                <!-- Metadata Row -->
-                                <div class="d-flex align-center gap-6 text-caption font-weight-bold text-slate-500 overflow-x-auto no-scrollbar">
-                                    <div class="d-flex align-center flex-shrink-0">
-                                        <Landmark :size="14" class="mr-2 text-slate-300" />
-                                        <span class="mr-1">Account:</span>
-                                        <span class="text-slate-800">{{ getAccountName(selectedStatement.account_id) }}</span>
-                                        <v-btn variant="text" size="x-small" color="primary" class="ml-1 px-1 font-weight-black text-none" @click="reassignDialog = true">Change</v-btn>
-                                    </div>
-                                    <div v-if="selectedStatement.email_sender" class="d-flex align-center flex-shrink-0 border-l pl-6">
-                                        <User :size="14" class="mr-2 text-slate-300" />
-                                        <span class="mr-1">Sender:</span>
-                                        <span class="text-slate-800">{{ selectedStatement.email_sender }}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Tabbed Content Area -->
-                            <div class="flex-grow-1 overflow-hidden d-flex flex-column">
-                                <v-tabs v-model="activeTab" color="primary" align-tabs="start" density="comfortable" class="border-b bg-slate-50/50">
-                                    <v-tab value="transactions" class="text-none font-weight-black">
-                                        <Table :size="16" class="mr-2" />
-                                        Transactions
-                                    </v-tab>
-                                    <v-tab value="attachment" class="text-none font-weight-black">
-                                        <Eye :size="16" class="mr-2" />
-                                        Attachment
-                                    </v-tab>
-                                    <v-tab value="email" class="text-none font-weight-black">
-                                        <Mail :size="16" class="mr-2" />
-                                        Email Content
-                                    </v-tab>
-                                </v-tabs>
-
-                                <div class="flex-grow-1 overflow-hidden relative bg-white">
-                                    <!-- Tab 1: Transactions / Reconciliation -->
-                                    <div v-if="activeTab === 'transactions'" class="h-full d-flex flex-column">
-                                        <!-- Status specific Action Bar (Only for Parse fail/pending) -->
-                                        <div v-if="selectedStatement.status === 'PENDING'" class="pa-10 d-flex flex-column align-center justify-center bg-slate-50/50 flex-grow-1">
-                                            <div class="icon-box-huge mb-6 bg-warning-lighten-5">
-                                                <Lock :size="64" class="text-warning" />
-                                            </div>
-                                            <h2 class="text-h5 font-weight-black mb-2 text-slate-800">Decryption Required</h2>
-                                            <p class="text-slate-500 font-weight-medium mb-8 max-w-[400px] text-center">
-                                                This statement is password protected. Please provide the password to extract transactions.
-                                            </p>
-                                            <v-btn color="warning" rounded="pill" elevation="0" height="44" class="px-8 font-weight-black" @click="openRetryDialog(selectedStatement)">
-                                                <template v-slot:prepend><Lock :size="20"/></template>
-                                                Enter Password
-                                            </v-btn>
-                                        </div>
-
-                                        <div v-else-if="selectedStatement.status === 'FAILED'" class="pa-10 d-flex flex-column align-center justify-center bg-slate-50/50 flex-grow-1">
-                                            <div class="icon-box-huge mb-6 bg-error-lighten-5">
-                                                <AlertCircle :size="64" class="text-error" />
-                                            </div>
-                                            <h2 class="text-h5 font-weight-black mb-2 text-slate-800">Processing Failed</h2>
-                                            <p class="text-error font-weight-bold mb-2 text-center" style="max-width: 500px; word-break: break-word;">
-                                                {{ (selectedStatement.failure_reason || 'An unexpected error occurred during ingestion.').replace(/^(PASSWORD_FAILED|PARSE_FAILED|ACCOUNT_NOT_FOUND):\s*/, '') }}
-                                            </p>
-                                            
-                                            <!-- Smart recovery: ACCOUNT_NOT_FOUND -->
-                                            <template v-if="selectedStatement.failure_reason?.startsWith('ACCOUNT_NOT_FOUND:')">
-                                                <p class="text-slate-500 font-weight-medium mb-8 max-w-[400px] text-center">
-                                                    The account mask in the PDF doesn't match any linked account. Link the correct account to continue.
-                                                </p>
-                                                <v-btn color="primary" rounded="pill" elevation="0" height="44" class="px-8 font-weight-black" @click="reassignDialog = true">
-                                                    <template v-slot:prepend><Landmark :size="20"/></template>
-                                                    Link Account Manually
-                                                </v-btn>
-                                            </template>
-                                            
-                                            <!-- Smart recovery: PASSWORD_FAILED -->
-                                            <template v-else-if="selectedStatement.failure_reason?.startsWith('PASSWORD_FAILED:')">
-                                                <p class="text-slate-500 font-weight-medium mb-8 max-w-[400px] text-center">
-                                                    The statement could not be decrypted. Please provide the correct password.
-                                                </p>
-                                                <v-btn color="warning" rounded="pill" elevation="0" height="44" class="px-8 font-weight-black" @click="openRetryDialog(selectedStatement)">
-                                                    <template v-slot:prepend><Lock :size="20"/></template>
-                                                    Enter Password
-                                                </v-btn>
-                                            </template>
-                                            
-                                            <!-- Smart recovery: PARSE_FAILED or generic -->
-                                            <template v-else>
-                                                <p class="text-slate-500 font-weight-medium mb-8 max-w-[400px] text-center">
-                                                    The statement parser encountered an error. You can try providing a password or linking a different account.
-                                                </p>
-                                                <div class="d-flex gap-3">
-                                                    <v-btn color="warning" rounded="pill" elevation="0" height="44" class="px-6 font-weight-black" @click="openRetryDialog(selectedStatement)">
-                                                        <template v-slot:prepend><Lock :size="20"/></template>
-                                                        Try Password
-                                                    </v-btn>
-                                                    <v-btn color="primary" variant="tonal" rounded="pill" elevation="0" height="44" class="px-6 font-weight-black" @click="reassignDialog = true">
-                                                        <template v-slot:prepend><Landmark :size="20"/></template>
-                                                        Link Account
-                                                    </v-btn>
-                                                </div>
-                                            </template>
-                                        </div>
-
-                                        <!-- Reconciliation Table -->
-                                        <div v-else-if="selectedStatement.status === 'PARSED'" class="flex-grow-1 overflow-hidden d-flex flex-column">
-                                            <v-data-table-server
-                                                v-model="selectedTransactions"
-                                                :headers="headers"
-                                                :items="store.currentTransactions"
-                                                :items-length="store.totalTransactions"
-                                                :items-per-page="10"
-                                                :loading="store.loading"
-                                                show-select
-                                                hover
-                                                class="premium-table flex-grow-1 bg-transparent"
-                                                item-value="id"
-                                                @update:options="({page}) => {
-                                                    txnPage = page;
-                                                }"
+                                    <!-- Statement Details -->
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center justify-between gap-1 mb-0.5">
+                                            <span 
+                                                class="text-xs font-semibold truncate text-wf-text-primary"
+                                                :title="s.filename"
                                             >
-                                                <!-- Date Column -->
-                                                <template v-slot:item.date="{ item }">
-                                                    <span class="font-weight-bold text-caption tabular-nums text-slate-500">
-                                                        {{ formatDate(item.date) }}
-                                                    </span>
-                                                </template>
+                                                {{ s.filename }}
+                                            </span>
+                                            <span 
+                                                class="inline-flex items-center px-1.5 py-0.5 rounded-wf-sm text-[10px] font-bold shrink-0 border"
+                                                :class="getStatusBadge(s.status).bg"
+                                            >
+                                                {{ getStatusBadge(s.status).label }}
+                                            </span>
+                                        </div>
 
-                                                <!-- Description Column -->
-                                                <template v-slot:item.description="{ item }">
-                                                    <div class="font-weight-black text-caption text-truncate max-w-[250px]">
-                                                        {{ item.description }}
-                                                    </div>
-                                                </template>
+                                        <div class="flex items-center gap-2 text-[11px] text-wf-text-muted mt-1 flex-wrap">
+                                            <span class="inline-flex items-center gap-1">
+                                                <Clock class="w-3 h-3 text-slate-400" />
+                                                {{ formatDate(s.created_at) }}
+                                            </span>
 
-                                                <!-- Category Column -->
-                                                <template v-slot:item.category_suggestion="{ item }">
-                                                    <v-chip 
-                                                        v-if="item.category_suggestion && item.category_suggestion !== 'Uncategorized'" 
-                                                        size="x-small" 
-                                                        color="primary" 
-                                                        variant="tonal" 
-                                                        class="font-weight-bold text-tiny"
-                                                    >
-                                                        {{ item.category_suggestion }}
-                                                    </v-chip>
-                                                    <span v-else class="text-tiny opacity-40 font-weight-bold">Uncategorized</span>
-                                                </template>
-
-                                                <!-- Amount Column -->
-                                                <template v-slot:item.amount="{ item }">
-                                                    <div class="text-right font-weight-black tabular-nums" :class="item.type === 'DEBIT' ? 'text-red' : 'text-success'">
-                                                        {{ item.type === 'DEBIT' ? '-' : '+' }}{{ formatCurrency(item.amount) }}
-                                                    </div>
-                                                </template>
-
-                                                <!-- Status Column -->
-                                                <template v-slot:item.status="{ item }">
-                                                    <div class="text-center">
-                                                        <v-tooltip location="top">
-                                                            <template v-slot:activator="{ props }">
-                                                                <div v-bind="props" class="d-inline-flex align-center">
-                                                                    <CheckCircle2 v-if="item.is_reconciled" :size="18" class="text-success" />
-                                                                    <AlertCircle v-else :size="18" class="text-warning" />
-                                                                </div>
-                                                            </template>
-                                                            <span>{{ item.is_reconciled ? 'Matched with Ledger' : 'Not in Ledger' }}</span>
-                                                        </v-tooltip>
-                                                    </div>
-                                                </template>
-
-                                                <!-- Premium Pagination Footer -->
-                                                <template v-slot:bottom>
-                                                    <div class="pa-4 border-t d-flex align-center justify-space-between bg-slate-50 overflow-x-auto">
-                                                        <div class="d-flex align-center gap-4">
-                                                            <div class="text-tiny font-weight-black text-slate-400 uppercase letter-spacing-1 mr-4">
-                                                                Total {{ store.totalTransactions }} Items
-                                                            </div>
-                                                            <div class="d-flex align-center text-tiny font-weight-bold text-slate-500">
-                                                                <span class="mr-2">Rows:</span>
-                                                                <v-select
-                                                                    :items="[10, 25, 50]"
-                                                                    v-model="txnLimit"
-                                                                    variant="plain"
-                                                                    density="compact"
-                                                                    hide-details
-                                                                    class="limit-select"
-                                                                    style="width: 60px;"
-                                                                ></v-select>
-                                                            </div>
-                                                        </div>
-                                                        <div class="d-flex align-center">
-                                                            <span class="text-tiny font-weight-bold text-slate-500 mr-4 tabular-nums">
-                                                                {{ (txnPage - 1) * txnLimit + 1 }}-{{ Math.min(txnPage * txnLimit, store.totalTransactions) }} of {{ store.totalTransactions }}
-                                                            </span>
-                                                            <v-pagination
-                                                                v-model="txnPage"
-                                                                :length="Math.ceil(store.totalTransactions / txnLimit)"
-                                                                density="comfortable"
-                                                                rounded="pill"
-                                                                size="small"
-                                                                active-color="primary"
-                                                                total-visible="3"
-                                                            ></v-pagination>
-                                                        </div>
-                                                    </div>
-                                                </template>
-                                            </v-data-table-server>
+                                            <span v-if="s.email_sender" class="inline-flex items-center gap-1 text-wf-primary font-medium truncate max-w-[120px]" :title="s.email_sender">
+                                                <Landmark class="w-3 h-3 shrink-0" />
+                                                {{ s.email_sender.split('@')[0] }}
+                                            </span>
+                                            <span v-else-if="s.source === 'MANUAL'" class="inline-flex items-center gap-1">
+                                                <User class="w-3 h-3 text-slate-400" />
+                                                Manual
+                                            </span>
                                         </div>
                                     </div>
 
-                                    <!-- Tab 2: Attachment (PDF Viewer) -->
-                                    <div v-if="activeTab === 'attachment'" class="h-full relative overflow-hidden">
-                                        <div class="h-full relative">
-                                            <div v-if="!selectedStatement.vault_id" class="d-flex flex-column align-center justify-center h-full text-slate-400 pa-10">
-                                                <AlertCircle :size="48" class="mb-4 opacity-20" />
-                                                <div class="text-h6 font-weight-bold">No Attachment Found</div>
-                                                <div class="text-caption">This statement record does not have an associated source file.</div>
-                                            </div>
-                                            <!-- Fallback to direct View URL if Blob is not ready -->
-                                            <iframe 
-                                                v-else-if="attachmentUrl || pdfUrl"
-                                                :src="attachmentUrl || pdfUrl" 
-                                                class="w-full h-full border-0"
-                                                style="min-height: 800px; width: 100%; background: white; display: block;"
-                                            ></iframe>
-                                            <div v-else class="d-flex align-center justify-center h-full">
-                                                <v-progress-circular indeterminate color="primary"></v-progress-circular>
-                                            </div>
+                                    <ArrowRight class="w-3.5 h-3.5 text-wf-text-muted opacity-0 group-hover:opacity-100 transition-opacity self-center shrink-0" />
+                                </div>
+                            </template>
+
+                            <!-- Empty List State -->
+                            <div v-else class="p-8 text-center flex flex-col items-center justify-center text-wf-text-muted">
+                                <FileText class="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2 stroke-[1.5]" />
+                                <p class="text-xs font-semibold text-wf-text-secondary">No statements found</p>
+                                <p class="text-[11px] text-wf-text-muted mt-0.5">Upload a PDF or sync via email.</p>
+                            </div>
+                        </div>
+
+                        <!-- Footer Pagination -->
+                        <div v-if="store.totalStatements > statementPageSize" class="p-2.5 border-t border-wf-border bg-wf-surface-variant/30 flex items-center justify-between text-xs shrink-0">
+                            <span class="text-[11px] text-wf-text-secondary font-medium">
+                                Page {{ statementPage }} of {{ totalPages }}
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <button
+                                    :disabled="statementPage <= 1"
+                                    @click="statementPage--"
+                                    class="p-1 rounded-wf-sm text-wf-text-secondary hover:bg-wf-surface-variant disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                                    title="Previous Page"
+                                >
+                                    <ChevronLeft class="w-4 h-4" />
+                                </button>
+                                <button
+                                    :disabled="statementPage >= totalPages"
+                                    @click="statementPage++"
+                                    class="p-1 rounded-wf-sm text-wf-text-secondary hover:bg-wf-surface-variant disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                                    title="Next Page"
+                                >
+                                    <ChevronRight class="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                    </WfCard>
+                </div>
+
+                <!-- RIGHT COLUMN: Selected Statement Inspector & Reconciliation Workspace (8 cols) -->
+                <div class="lg:col-span-8 flex flex-col h-full min-h-0">
+                    <WfCard v-if="selectedStatement" variant="flat" padding="none" radius="lg" class="overflow-hidden border border-wf-border bg-wf-surface flex flex-col h-full">
+                        
+                        <!-- Detail Header Ribbon -->
+                        <div class="p-4 border-b border-wf-border bg-wf-surface-variant/30 shrink-0">
+                            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
+                                <div class="flex items-start gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-wf-lg bg-slate-900 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                                        <FileText class="w-5 h-5 text-indigo-300" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                            <span 
+                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-sm text-[10px] font-bold border"
+                                                :class="getStatusBadge(selectedStatement.status).bg"
+                                            >
+                                                <span class="w-1.5 h-1.5 rounded-wf-pill" :class="getStatusBadge(selectedStatement.status).dot"></span>
+                                                {{ selectedStatement.status }}
+                                            </span>
+
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-sm text-[10px] font-semibold bg-wf-surface border border-wf-border text-wf-text-secondary">
+                                                <Mail v-if="selectedStatement.source === 'EMAIL'" class="w-3 h-3 text-wf-primary" />
+                                                <Upload v-else class="w-3 h-3 text-wf-primary" />
+                                                {{ selectedStatement.source }}
+                                            </span>
                                         </div>
+
+                                        <h2 class="text-sm sm:text-base font-bold text-wf-text-primary truncate" :title="selectedStatement.filename">
+                                            {{ selectedStatement.filename }}
+                                        </h2>
+
+                                        <p class="text-[11px] text-wf-text-muted mt-0.5 flex items-center gap-1">
+                                            <Clock class="w-3 h-3" />
+                                            Ingested {{ formatDate(selectedStatement.created_at) }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Header Action Buttons -->
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <WfButton
+                                        v-if="selectedTransactions.length > 0"
+                                        variant="primary"
+                                        size="sm"
+                                        @click="openBulkIngestDialog"
+                                        class="h-8 px-3 text-xs font-semibold shadow-sm"
+                                    >
+                                        <CheckCircle2 class="w-3.5 h-3.5 mr-1" />
+                                        <span>Ingest ({{ selectedTransactions.length }})</span>
+                                    </WfButton>
+
+                                    <button
+                                        @click="reevaluateStatement(selectedStatement.id)"
+                                        class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant hover:border-wf-primary/40 transition-colors"
+                                        title="Re-evaluate Statement"
+                                    >
+                                        <RefreshCw class="w-4 h-4" />
+                                    </button>
+
+                                    <button
+                                        @click="promptDeleteStatement(selectedStatement.id)"
+                                        class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 transition-colors"
+                                        title="Delete Statement"
+                                    >
+                                        <Trash2 class="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Metadata Row -->
+                            <div class="flex items-center gap-4 text-xs font-medium text-wf-text-secondary pt-2 border-t border-wf-border-subtle flex-wrap">
+                                <div class="flex items-center gap-1.5">
+                                    <Landmark class="w-3.5 h-3.5 text-wf-text-muted" />
+                                    <span class="text-wf-text-muted">Account:</span>
+                                    <span class="font-semibold text-wf-text-primary">{{ getAccountName(selectedStatement.account_id) }}</span>
+                                    <button 
+                                        @click="reassignDialog = true" 
+                                        class="text-[11px] font-bold text-wf-primary hover:underline ml-1 px-1.5 py-0.5 rounded-wf-sm bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900/50"
+                                    >
+                                        Change
+                                    </button>
+                                </div>
+
+                                <div v-if="selectedStatement.email_sender" class="flex items-center gap-1.5 border-l border-wf-border pl-4">
+                                    <User class="w-3.5 h-3.5 text-wf-text-muted" />
+                                    <span class="text-wf-text-muted">Sender:</span>
+                                    <span class="font-semibold text-wf-text-primary">{{ selectedStatement.email_sender }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab Navigation Bar -->
+                        <div class="flex items-center gap-1 px-4 pt-2 border-b border-wf-border bg-wf-surface-variant/20 shrink-0">
+                            <button
+                                @click="activeTab = 'transactions'"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border-b-2 transition-colors"
+                                :class="activeTab === 'transactions' ? 'border-wf-primary text-wf-primary font-bold' : 'border-transparent text-wf-text-secondary hover:text-wf-text-primary'"
+                            >
+                                <Table class="w-3.5 h-3.5" />
+                                <span>Transactions</span>
+                                <span v-if="selectedStatement.status === 'PARSED'" class="ml-1 px-1.5 py-0.2 rounded-wf-pill text-[10px] bg-wf-surface-variant text-wf-text-muted">
+                                    {{ store.totalTransactions }}
+                                </span>
+                            </button>
+
+                            <button
+                                v-if="selectedStatement.vault_id"
+                                @click="activeTab = 'attachment'"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border-b-2 transition-colors"
+                                :class="activeTab === 'attachment' ? 'border-wf-primary text-wf-primary font-bold' : 'border-transparent text-wf-text-secondary hover:text-wf-text-primary'"
+                            >
+                                <Eye class="w-3.5 h-3.5" />
+                                <span>Attachment / PDF</span>
+                            </button>
+
+                            <button
+                                v-if="selectedStatement.email_body"
+                                @click="activeTab = 'email'"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border-b-2 transition-colors"
+                                :class="activeTab === 'email' ? 'border-wf-primary text-wf-primary font-bold' : 'border-transparent text-wf-text-secondary hover:text-wf-text-primary'"
+                            >
+                                <Mail class="w-3.5 h-3.5" />
+                                <span>Email Content</span>
+                            </button>
+                        </div>
+
+                        <!-- TAB CONTENTS -->
+                        <div class="flex-1 min-h-0 flex flex-col bg-wf-surface overflow-hidden">
+                            
+                            <!-- TAB 1: Transactions / Status Handlers -->
+                            <div v-if="activeTab === 'transactions'" class="flex-1 min-h-0 flex flex-col overflow-hidden">
+                                
+                                <!-- PENDING STATE (Password Decryption Required) -->
+                                <div v-if="selectedStatement.status === 'PENDING'" class="p-10 flex flex-col items-center justify-center text-center flex-1 bg-wf-surface-variant/20">
+                                    <div class="w-16 h-16 rounded-wf-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/60 flex items-center justify-center text-amber-600 mb-4 shadow-sm">
+                                        <Lock class="w-8 h-8" />
+                                    </div>
+                                    <h3 class="text-base font-bold text-wf-text-primary mb-1">Decryption Password Required</h3>
+                                    <p class="text-xs text-wf-text-secondary max-w-md mb-6 leading-relaxed">
+                                        This statement file is encrypted. Enter the PDF password (such as PAN, date of birth, or account PIN) to decrypt and parse transactions.
+                                    </p>
+                                    <WfButton
+                                        variant="primary"
+                                        size="md"
+                                        @click="openRetryDialog(selectedStatement)"
+                                        class="h-9 px-5 text-xs font-semibold"
+                                    >
+                                        <Lock class="w-4 h-4 mr-2" />
+                                        <span>Enter Password & Decrypt</span>
+                                    </WfButton>
+                                </div>
+
+                                <!-- FAILED STATE -->
+                                <div v-else-if="selectedStatement.status === 'FAILED'" class="p-10 flex flex-col items-center justify-center text-center flex-1 bg-wf-surface-variant/20">
+                                    <div class="w-16 h-16 rounded-wf-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/60 flex items-center justify-center text-rose-600 mb-4 shadow-sm">
+                                        <AlertCircle class="w-8 h-8" />
+                                    </div>
+                                    <h3 class="text-base font-bold text-wf-text-primary mb-1">Processing Encountered an Issue</h3>
+                                    <p class="text-xs font-medium text-rose-600 dark:text-rose-400 max-w-lg mb-4 p-2.5 bg-rose-50/80 dark:bg-rose-950/40 rounded-wf-md border border-rose-200 dark:border-rose-900/60 break-words">
+                                        {{ (selectedStatement.failure_reason || 'An unexpected error occurred during ingestion.').replace(/^(PASSWORD_FAILED|PARSE_FAILED|ACCOUNT_NOT_FOUND):\s*/, '') }}
+                                    </p>
+
+                                    <!-- Smart recovery: ACCOUNT_NOT_FOUND -->
+                                    <template v-if="selectedStatement.failure_reason?.startsWith('ACCOUNT_NOT_FOUND:')">
+                                        <p class="text-xs text-wf-text-secondary max-w-md mb-6">
+                                            The account mask in the statement did not match any active linked account. Choose the correct account to re-process.
+                                        </p>
+                                        <WfButton
+                                            variant="primary"
+                                            size="md"
+                                            @click="reassignDialog = true"
+                                            class="h-9 px-5 text-xs font-semibold"
+                                        >
+                                            <Landmark class="w-4 h-4 mr-2" />
+                                            <span>Link Account Manually</span>
+                                        </WfButton>
+                                    </template>
+
+                                    <!-- Smart recovery: PASSWORD_FAILED -->
+                                    <template v-else-if="selectedStatement.failure_reason?.startsWith('PASSWORD_FAILED:')">
+                                        <p class="text-xs text-wf-text-secondary max-w-md mb-6">
+                                            The statement could not be opened with the stored password. Please provide the correct PDF password.
+                                        </p>
+                                        <WfButton
+                                            variant="primary"
+                                            size="md"
+                                            @click="openRetryDialog(selectedStatement)"
+                                            class="h-9 px-5 text-xs font-semibold"
+                                        >
+                                            <Lock class="w-4 h-4 mr-2" />
+                                            <span>Enter Password</span>
+                                        </WfButton>
+                                    </template>
+
+                                    <!-- Generic recovery -->
+                                    <template v-else>
+                                        <p class="text-xs text-wf-text-secondary max-w-md mb-6">
+                                            The statement parser encountered an error. You can provide a password or assign a different target account.
+                                        </p>
+                                        <div class="flex items-center gap-3">
+                                            <WfButton
+                                                variant="outline"
+                                                size="sm"
+                                                @click="openRetryDialog(selectedStatement)"
+                                                class="h-8.5 px-4 text-xs font-semibold"
+                                            >
+                                                <Lock class="w-3.5 h-3.5 mr-1.5 text-amber-500" />
+                                                <span>Try Password</span>
+                                            </WfButton>
+
+                                            <WfButton
+                                                variant="primary"
+                                                size="sm"
+                                                @click="reassignDialog = true"
+                                                class="h-8.5 px-4 text-xs font-semibold"
+                                            >
+                                                <Landmark class="w-3.5 h-3.5 mr-1.5" />
+                                                <span>Link Account</span>
+                                            </WfButton>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <!-- PARSED STATE: High-Density Reconciliation Ledger Table -->
+                                <div v-else-if="selectedStatement.status === 'PARSED'" class="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+                                    <div class="overflow-y-auto overflow-x-auto flex-1 min-h-0">
+                                        <table class="w-full text-left border-collapse text-xs">
+                                            <thead class="sticky top-0 z-10">
+                                                <tr class="border-b border-wf-border bg-wf-surface-variant/90 backdrop-blur-xs text-[11px] font-bold text-wf-text-muted uppercase tracking-wider">
+                                                    <th class="py-2.5 px-3 w-10 text-center">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            :checked="isAllSelected" 
+                                                            @change="toggleSelectAll"
+                                                            class="rounded-wf-xs border-slate-300 text-wf-primary focus:ring-wf-primary cursor-pointer w-3.5 h-3.5"
+                                                        />
+                                                    </th>
+                                                    <th class="py-2.5 px-3">Date</th>
+                                                    <th class="py-2.5 px-3 min-w-[200px]">Description</th>
+                                                    <th class="py-2.5 px-3">Category Suggestion</th>
+                                                    <th class="py-2.5 px-3 text-right">Amount</th>
+                                                    <th class="py-2.5 px-3 text-center">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-wf-border-subtle bg-wf-surface">
+                                                <tr 
+                                                    v-for="txn in store.currentTransactions" 
+                                                    :key="txn.id"
+                                                    class="hover:bg-wf-surface-variant/40 transition-colors"
+                                                    :class="{ 'bg-indigo-50/40 dark:bg-indigo-950/20': selectedTransactions.includes(txn.id) }"
+                                                >
+                                                    <td class="py-2 px-3 text-center">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            :checked="selectedTransactions.includes(txn.id)"
+                                                            @change="toggleSelectTransaction(txn.id)"
+                                                            class="rounded-wf-xs border-slate-300 text-wf-primary focus:ring-wf-primary cursor-pointer w-3.5 h-3.5"
+                                                        />
+                                                    </td>
+
+                                                    <td class="py-2 px-3 whitespace-nowrap text-wf-text-secondary font-medium tabular-nums">
+                                                        {{ formatTxnDate(txn.date) }}
+                                                    </td>
+
+                                                    <td class="py-2 px-3">
+                                                        <div class="font-semibold text-wf-text-primary line-clamp-1" :title="txn.description">
+                                                            {{ txn.description }}
+                                                        </div>
+                                                    </td>
+
+                                                    <td class="py-2 px-3 whitespace-nowrap">
+                                                        <span 
+                                                            v-if="txn.category_suggestion && txn.category_suggestion !== 'Uncategorized'"
+                                                            class="inline-flex items-center px-2 py-0.5 rounded-wf-pill text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-900/50"
+                                                        >
+                                                            {{ txn.category_suggestion }}
+                                                        </span>
+                                                        <span v-else class="text-[11px] text-wf-text-muted italic">
+                                                            Uncategorized
+                                                        </span>
+                                                    </td>
+
+                                                    <td class="py-2 px-3 text-right whitespace-nowrap font-bold tabular-nums" :class="txn.type === 'DEBIT' ? 'text-wf-error' : 'text-wf-success'">
+                                                        {{ txn.type === 'DEBIT' ? '-' : '+' }}{{ formatCurrency(txn.amount) }}
+                                                    </td>
+
+                                                    <td class="py-2 px-3 text-center whitespace-nowrap">
+                                                        <span 
+                                                            v-if="txn.is_reconciled" 
+                                                            class="inline-flex items-center gap-1 text-[11px] font-semibold text-wf-success"
+                                                            title="Matched with Ledger"
+                                                        >
+                                                            <CheckCircle2 class="w-3.5 h-3.5" />
+                                                            <span>Matched</span>
+                                                        </span>
+                                                        <span 
+                                                            v-else 
+                                                            class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400"
+                                                            title="Not in Ledger"
+                                                        >
+                                                            <AlertCircle class="w-3.5 h-3.5" />
+                                                            <span>New</span>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+
+                                                <tr v-if="store.currentTransactions.length === 0">
+                                                    <td colspan="6" class="py-8 text-center text-wf-text-muted">
+                                                        <div class="flex flex-col items-center justify-center">
+                                                            <Table class="w-8 h-8 text-slate-300 dark:text-slate-600 mb-1" />
+                                                            <span class="text-xs font-semibold">No transactions extracted</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
 
-                                    <!-- Tab 3: Email Content -->
-                                    <div v-if="activeTab === 'email'" class="h-full overflow-y-auto pa-8 bg-white">
-                                        <div class="premium-card pa-6 rounded-xl border bg-white shadow-sm mb-6">
-                                            <div class="d-flex align-center mb-6">
-                                                <v-avatar color="primary-lighten-5" class="mr-4">
-                                                    <Mail :size="24" class="text-primary" />
-                                                </v-avatar>
-                                                <div>
-                                                    <div class="text-caption font-weight-bold text-slate-400 uppercase">From</div>
-                                                    <div class="text-h6 font-weight-black text-slate-800">{{ selectedStatement.email_sender || 'Unknown Sender' }}</div>
-                                                </div>
+                                    <!-- Table Footer Pagination -->
+                                    <div class="p-3 border-t border-wf-border bg-wf-surface-variant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shrink-0">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-[11px] font-bold text-wf-text-muted uppercase tracking-wider">
+                                                Total {{ store.totalTransactions }} Transactions
+                                            </span>
+                                            <div class="flex items-center gap-1.5 text-xs text-wf-text-secondary">
+                                                <span>Rows:</span>
+                                                <select 
+                                                    v-model="txnLimit" 
+                                                    class="h-7 text-xs bg-wf-surface border border-wf-border rounded-wf-md px-1.5 focus:outline-none focus:ring-1 focus:ring-wf-primary"
+                                                >
+                                                    <option :value="10">10</option>
+                                                    <option :value="25">25</option>
+                                                    <option :value="50">50</option>
+                                                    <option :value="100">100</option>
+                                                </select>
                                             </div>
-                                            
-                                            <v-divider class="mb-6"></v-divider>
-                                            
-                                            <div class="text-caption font-weight-bold text-slate-400 uppercase mb-3">Message Content</div>
-                                            
-                                            <!-- HTML Content (Rendered in Sandboxed Iframe) -->
-                                            <div v-if="selectedStatement.email_body" class="bg-white rounded-lg border overflow-hidden" style="min-height: 500px;">
-                                                <iframe 
-                                                    :srcdoc="selectedStatement.email_body"
-                                                    sandbox="allow-popups allow-popups-to-escape-sandbox"
-                                                    class="w-full h-full border-0"
-                                                    style="min-height: 500px; width: 100%; display: block;"
-                                                ></iframe>
-                                            </div>
-                                            
-                                            <div v-else class="pa-10 text-center bg-slate-50 rounded-lg border border-dashed">
-                                                <Mail :size="32" class="mx-auto mb-2 text-slate-300" />
-                                                <div class="text-caption font-weight-bold text-slate-400">No plain-text content captured for this email.</div>
+                                        </div>
+
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-xs text-wf-text-secondary tabular-nums">
+                                                {{ (txnPage - 1) * txnLimit + 1 }}-{{ Math.min(txnPage * txnLimit, store.totalTransactions) }} of {{ store.totalTransactions }}
+                                            </span>
+
+                                            <div class="flex items-center gap-1">
+                                                <button
+                                                    :disabled="txnPage <= 1"
+                                                    @click="txnPage--"
+                                                    class="p-1 rounded-wf-sm text-wf-text-secondary hover:bg-wf-surface-variant disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                                                    title="Previous Page"
+                                                >
+                                                    <ChevronLeft class="w-4 h-4" />
+                                                </button>
+                                                <span class="text-xs font-bold text-wf-text-primary px-1.5">
+                                                    {{ txnPage }} / {{ totalTxnPages }}
+                                                </span>
+                                                <button
+                                                    :disabled="txnPage >= totalTxnPages"
+                                                    @click="txnPage++"
+                                                    class="p-1 rounded-wf-sm text-wf-text-secondary hover:bg-wf-surface-variant disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                                                    title="Next Page"
+                                                >
+                                                    <ChevronRight class="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </v-card>
 
-                        <!-- Empty State -->
-                        <v-card v-else rounded="xl" border flat class="glass-card h-full d-flex flex-column align-center justify-center pa-10 opacity-60 min-h-[600px]">
-                            <div class="icon-box-huge mb-6">
-                                <FileText :size="64" class="text-slate-200" />
+                            <!-- TAB 2: Attachment (PDF Viewer) -->
+                            <div v-if="activeTab === 'attachment'" class="flex-1 min-h-0 flex flex-col bg-slate-100 dark:bg-slate-900 h-full">
+                                <div v-if="!selectedStatement.vault_id" class="p-10 text-center flex flex-col items-center justify-center text-wf-text-muted flex-1">
+                                    <AlertCircle class="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
+                                    <div class="text-sm font-bold text-wf-text-primary">No Attachment Found</div>
+                                    <div class="text-xs text-wf-text-muted mt-0.5">This statement record does not have an associated source PDF file in the vault.</div>
+                                </div>
+                                <iframe 
+                                    v-else-if="attachmentUrl || pdfUrl"
+                                    :src="attachmentUrl || pdfUrl" 
+                                    class="w-full h-full flex-1 border-0 bg-white"
+                                ></iframe>
+                                <div v-else class="flex-1 flex items-center justify-center p-10">
+                                    <RefreshCw class="w-8 h-8 text-wf-primary animate-spin" />
+                                </div>
                             </div>
-                            <h2 class="text-h5 font-weight-black mb-2 text-slate-400">No Statement Selected</h2>
-                            <p class="text-slate-400 font-weight-medium">Select a statement from the left to view reconciliation</p>
-                        </v-card>
-                    </v-col>
-                </v-row>
+
+                            <!-- TAB 3: Email Content -->
+                            <div v-if="activeTab === 'email'" class="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 bg-wf-surface h-full">
+                                <div class="p-4 rounded-wf-lg border border-wf-border bg-wf-surface-variant/30 mb-4 flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-wf-pill bg-wf-primary-light text-wf-primary flex items-center justify-center shrink-0">
+                                        <Mail class="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">From Sender</span>
+                                        <span class="text-xs font-bold text-wf-text-primary">{{ selectedStatement.email_sender || 'Unknown Sender' }}</span>
+                                    </div>
+                                </div>
+
+                                <div v-if="selectedStatement.email_body" class="bg-white rounded-wf-lg border border-wf-border overflow-hidden min-h-[450px]">
+                                    <iframe 
+                                        :srcdoc="selectedStatement.email_body"
+                                        sandbox="allow-popups allow-popups-to-escape-sandbox"
+                                        class="w-full h-[550px] border-0 bg-white"
+                                    ></iframe>
+                                </div>
+                                <div v-else class="p-10 text-center bg-wf-surface-variant/40 rounded-wf-lg border border-dashed border-wf-border text-wf-text-muted">
+                                    <Mail class="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                                    <p class="text-xs font-semibold">No raw email body captured for this statement.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </WfCard>
+
+                    <!-- Empty Inspector State -->
+                    <WfCard v-else variant="flat" padding="lg" radius="lg" class="border border-wf-border h-full flex flex-col items-center justify-center text-center text-wf-text-muted bg-wf-surface">
+                        <div class="w-16 h-16 rounded-wf-lg bg-wf-surface-variant flex items-center justify-center text-slate-300 dark:text-slate-600 mb-4 border border-wf-border">
+                            <FileText class="w-8 h-8" />
+                        </div>
+                        <h3 class="text-base font-bold text-wf-text-primary mb-1">No Statement Selected</h3>
+                        <p class="text-xs text-wf-text-secondary max-w-sm">
+                            Select a statement from the left directory to inspect parsed transactions, decryption logs, or source attachments.
+                        </p>
+                    </WfCard>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: Sync Statements -->
+        <WfModal v-model="syncDialog" title="Sync Account Statements" description="Scan linked email inboxes for newly arrived statements." maxWidth="md">
+            <div class="space-y-4">
+                <div class="space-y-1.5 text-left">
+                    <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
+                        Scan Inboxes Since
+                    </label>
+                    <input
+                        v-model="syncDate"
+                        type="date"
+                        class="w-full h-10 px-3 bg-wf-surface border border-wf-border rounded-wf-md text-sm text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
+                    />
+                </div>
+
+                <WfAlert variant="info">
+                    Manual sync scans for incoming emails without resetting the recurring background automated schedule.
+                </WfAlert>
             </div>
 
-            <!-- Sync Confirmation Dialog -->
-            <v-dialog v-model="syncDialog" max-width="400">
-                <v-card rounded="xl" class="pa-4 premium-popup">
-                    <v-card-title class="text-h6 font-weight-black d-flex align-center">
-                        <RefreshCw :size="24" class="mr-3 text-primary" />
-                        Sync Statements
-                    </v-card-title>
-                    <v-card-text class="pt-4">
-                        <p class="text-slate-500 mb-4 font-weight-medium">Select how far back you want to scan your email inboxes.</p>
-                        
-                        <v-text-field
-                            v-model="syncDate"
-                            type="date"
-                            label="Scan Since"
-                            variant="outlined"
-                            rounded="lg"
-                            hide-details
-                        ></v-text-field>
-                        
-                        <div class="mt-4 pa-3 bg-slate-50 rounded-lg border text-caption text-slate-500 italic">
-                            Note: Manual scans do not update the automatic sync schedule.
-                        </div>
-                    </v-card-text>
-                    <v-card-actions class="pt-2 px-4 pb-4">
-                        <v-spacer></v-spacer>
-                        <v-btn variant="text" color="slate-500" rounded="pill" height="44" @click="syncDialog = false">
-                            Cancel
-                        </v-btn>
-                        <v-btn color="primary" rounded="pill" elevation="0" height="44" @click="triggerSync" :loading="syncing">
-                            <template v-slot:prepend>
-                                <CheckCircle2 :size="18" />
-                            </template>
-                            Start Sync
-                        </v-btn>
-                    </v-card-actions>
-                </v-card>
-            </v-dialog>
+            <template #footer>
+                <WfButton variant="ghost" size="sm" @click="syncDialog = false">
+                    Cancel
+                </WfButton>
+                <WfButton variant="primary" size="sm" @click="triggerSync" :loading="syncing">
+                    <CheckCircle2 class="w-4 h-4 mr-1.5" />
+                    <span>Start Sync</span>
+                </WfButton>
+            </template>
+        </WfModal>
 
-            <!-- Upload Dialog -->
-            <v-dialog v-model="uploadDialog" max-width="550" persistent>
-                <v-card rounded="xl" class="pa-4 premium-popup overflow-visible">
-                    <v-card-title class="text-h6 font-weight-black d-flex justify-space-between align-center">
-                        Upload Account Statement
-                        <v-btn icon variant="text" size="small" @click="uploadDialog = false">
-                            <X :size="20" />
-                        </v-btn>
-                    </v-card-title>
-                    
-                    <v-card-text class="mt-4">
-                        <v-row>
-                            <v-col cols="12" sm="6">
-                                <v-autocomplete
-                                    v-model="uploadUser"
-                                    :items="users"
-                                    item-title="full_name"
-                                    return-object
-                                    label="Statement Owner"
-                                    placeholder="Search person..."
-                                    variant="outlined"
-                                    rounded="lg"
-                                    hide-details
-                                >
-                                    <template v-slot:prepend-inner>
-                                        <User :size="18" class="mr-2 text-slate-400" />
-                                    </template>
-                                </v-autocomplete>
-                            </v-col>
-                            <v-col cols="12" sm="6">
-                                <v-autocomplete
-                                    v-model="uploadAccount"
-                                    :items="accounts"
-                                    item-title="name"
-                                    return-object
-                                    label="Target Account"
-                                    placeholder="Search account..."
-                                    variant="outlined"
-                                    rounded="lg"
-                                    hide-details
-                                >
-                                    <template v-slot:prepend-inner>
-                                        <Landmark :size="18" class="mr-2 text-slate-400" />
-                                    </template>
-                                </v-autocomplete>
-                            </v-col>
-                        </v-row>
-
-                        <v-file-input
-                            v-model="uploadFile"
-                            label="Select PDF Statement"
-                            accept="application/pdf"
-                            prepend-icon=""
-                            variant="outlined"
-                            rounded="lg"
-                            class="mt-4"
+        <!-- MODAL: Upload Statement -->
+        <WfModal v-model="uploadDialog" title="Upload Account Statement" description="Upload a PDF statement directly into your vault for parsing." maxWidth="lg">
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Owner Select -->
+                    <div class="space-y-1.5 text-left">
+                        <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
+                            Statement Owner
+                        </label>
+                        <select
+                            v-model="uploadUser"
+                            class="w-full h-10 px-3 bg-wf-surface border border-wf-border rounded-wf-md text-sm text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
                         >
-                            <template v-slot:prepend-inner>
-                                <FileText :size="20" class="mr-2 text-primary" />
-                            </template>
-                        </v-file-input>
+                            <option :value="null">-- Select Person (Optional) --</option>
+                            <option v-for="u in users" :key="u.id" :value="u">
+                                {{ u.full_name }} ({{ u.email }})
+                            </option>
+                        </select>
+                    </div>
 
-                        <v-text-field
+                    <!-- Target Account Select -->
+                    <div class="space-y-1.5 text-left">
+                        <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
+                            Target Account
+                        </label>
+                        <select
+                            v-model="uploadAccount"
+                            class="w-full h-10 px-3 bg-wf-surface border border-wf-border rounded-wf-md text-sm text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
+                        >
+                            <option :value="null">-- Auto Detect from Statement --</option>
+                            <option v-for="a in accounts" :key="a.id" :value="a">
+                                {{ a.name }} (XX{{ a.account_mask || '????' }})
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- PDF File Upload -->
+                <div class="space-y-1.5 text-left">
+                    <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
+                        PDF Statement File <span class="text-wf-error">*</span>
+                    </label>
+                    <input
+                        type="file"
+                        accept="application/pdf"
+                        @change="handleFileInput"
+                        class="w-full text-xs text-wf-text-secondary file:mr-3 file:py-2 file:px-3.5 file:rounded-wf-md file:border-0 file:text-xs file:font-semibold file:bg-wf-primary file:text-white hover:file:bg-wf-primary-hover file:cursor-pointer cursor-pointer border border-wf-border rounded-wf-md p-1.5 bg-wf-surface"
+                    />
+                </div>
+
+                <!-- PDF Password Field -->
+                <div class="space-y-1.5 text-left">
+                    <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
+                        PDF Password (If Encrypted)
+                    </label>
+                    <div class="relative flex items-center">
+                        <input
                             v-model="uploadPassword"
-                            label="PDF Password"
-                            placeholder="Leave blank if not protected"
                             :type="showPassword ? 'text' : 'password'"
-                            variant="outlined"
-                            rounded="lg"
-                            class="mt-4"
+                            placeholder="Leave blank if not protected"
+                            class="w-full h-10 px-3 pr-10 bg-wf-surface border border-wf-border rounded-wf-md text-sm text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
+                        />
+                        <button
+                            type="button"
+                            @click="showPassword = !showPassword"
+                            class="absolute right-3 text-wf-text-muted hover:text-wf-text-primary p-1 rounded-wf-sm"
                         >
-                            <template v-slot:prepend-inner>
-                                <Lock :size="20" class="mr-2 text-slate-400" />
-                            </template>
-                            <template v-slot:append-inner>
-                                <v-btn icon variant="text" size="small" @click="showPassword = !showPassword" class="mt-n1">
-                                    <Eye v-if="!showPassword" :size="18" />
-                                    <EyeOff v-else :size="18" />
-                                </v-btn>
-                            </template>
-                        </v-text-field>
+                            <Eye v-if="!showPassword" class="w-4 h-4" />
+                            <EyeOff v-else class="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
 
-                        <div v-if="uploadUser" class="bg-blue-lighten-5 pa-4 rounded-lg mt-4 d-flex align-start animate-in">
-                            <AlertCircle :size="18" class="text-blue mr-3 mt-1" />
-                            <div class="text-caption text-blue font-weight-medium">
-                                Password prefilled based on <strong>{{ uploadUser.full_name }}</strong>'s profile ({{ uploadUser.dob ? 'DOB' : 'PAN' }} logic).
-                            </div>
-                        </div>
-                    </v-card-text>
+                <!-- Smart Password Prefill Notification -->
+                <WfAlert v-if="uploadUser" variant="info">
+                    Password suggested automatically based on <strong>{{ uploadUser.full_name }}</strong>'s profile ({{ uploadUser.dob ? 'DOB' : 'PAN' }} logic).
+                </WfAlert>
+            </div>
 
-                    <v-card-actions class="pa-4">
-                        <v-spacer></v-spacer>
-                        <v-btn variant="text" rounded="pill" class="text-none font-weight-black" @click="uploadDialog = false">
-                            <template v-slot:prepend><X :size="18" /></template>
-                            Cancel
-                        </v-btn>
-                        <v-btn color="primary" rounded="pill" elevation="0" class="text-none px-8 font-weight-black" :disabled="!uploadFile" @click="handleUpload" :loading="store.loading">
-                            <template v-slot:prepend><Upload :size="20" /></template>
-                            Process Statement
-                        </v-btn>
-                    </v-card-actions>
-                </v-card>
-            </v-dialog>
+            <template #footer>
+                <WfButton variant="ghost" size="sm" @click="uploadDialog = false">
+                    Cancel
+                </WfButton>
+                <WfButton variant="primary" size="sm" :disabled="!uploadFile" @click="handleUpload" :loading="store.loading">
+                    <Upload class="w-4 h-4 mr-1.5" />
+                    <span>Process Statement</span>
+                </WfButton>
+            </template>
+        </WfModal>
 
-            <!-- Retry Password Dialog -->
-            <v-dialog v-model="retryDialog" max-width="450">
-                <v-card rounded="xl" class="pa-4 premium-popup">
-                    <v-card-title class="text-h6 font-weight-black d-flex align-center">
-                        <Lock :size="24" class="mr-3 text-warning" />
-                        Decrypt Statement
-                    </v-card-title>
-                    <v-card-text class="pt-4">
-                        <p class="text-slate-500 mb-4 font-weight-medium">
-                            Enter the password for <strong>{{ selectedStatementForRetry?.filename }}</strong>.
-                        </p>
-                        
-                        <v-text-field
+        <!-- MODAL: Decrypt & Reprocess Statement -->
+        <WfModal v-model="retryDialog" title="Decrypt Statement" description="Enter the password for protected PDF decryption." maxWidth="md">
+            <div class="space-y-4">
+                <p class="text-xs text-wf-text-secondary">
+                    Provide password for <strong>{{ selectedStatementForRetry?.filename }}</strong>:
+                </p>
+
+                <div class="space-y-1.5 text-left">
+                    <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
+                        PDF Password
+                    </label>
+                    <div class="relative flex items-center">
+                        <input
                             v-model="retryPassword"
-                            label="PDF Password"
                             :type="showRetryPassword ? 'text' : 'password'"
-                            variant="outlined"
-                            rounded="lg"
+                            placeholder="Enter password..."
                             autofocus
                             @keyup.enter="handleRetry"
+                            class="w-full h-10 px-3 pr-10 bg-wf-surface border border-wf-border rounded-wf-md text-sm text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
+                        />
+                        <button
+                            type="button"
+                            @click="showRetryPassword = !showRetryPassword"
+                            class="absolute right-3 text-wf-text-muted hover:text-wf-text-primary p-1 rounded-wf-sm"
                         >
-                            <template v-slot:append-inner>
-                                <v-btn icon variant="text" size="small" @click="showRetryPassword = !showRetryPassword">
-                                    <Eye v-if="!showRetryPassword" :size="18" />
-                                    <EyeOff v-else :size="18" />
-                                </v-btn>
-                            </template>
-                        </v-text-field>
-                    </v-card-text>
-                    <v-card-actions class="pt-2 px-4 pb-4">
-                        <v-spacer></v-spacer>
-                        <v-btn variant="text" color="slate-500" rounded="pill" height="44" @click="retryDialog = false">
-                            <template v-slot:prepend><X :size="18" /></template>
-                            Cancel
-                        </v-btn>
-                        <v-btn color="warning" rounded="pill" elevation="0" height="44" @click="handleRetry" :loading="store.loading" :disabled="!retryPassword">
-                            <template v-slot:prepend>
-                                <CheckCircle2 :size="18" />
-                            </template>
-                            Decrypt & Parse
-                        </v-btn>
-                    </v-card-actions>
-                </v-card>
-            </v-dialog>
-            <!-- Delete Confirmation Dialog -->
-            <v-dialog v-model="deleteDialog" max-width="400">
-                <v-card rounded="xl" class="pa-4 text-center">
-                    <div class="icon-box-large bg-error-lighten-5 mx-auto mb-4 mt-2">
-                        <Trash2 :size="28" class="text-error" />
+                            <Eye v-if="!showRetryPassword" class="w-4 h-4" />
+                            <EyeOff v-else class="w-4 h-4" />
+                        </button>
                     </div>
-                    <v-card-title class="text-h6 font-weight-black pt-0">Delete Statement?</v-card-title>
-                    <v-card-text class="text-slate-500 font-weight-medium pb-6">
-                        Are you sure you want to delete this statement? This action cannot be undone and the file will be removed from your Vault.
-                    </v-card-text>
-                    <v-card-actions class="d-flex justify-center gap-3 pb-4">
-                        <v-btn variant="tonal" rounded="pill" color="slate-600" class="px-6 font-weight-bold" @click="deleteDialog = false">Cancel</v-btn>
-                        <v-btn color="error" rounded="pill" elevation="0" class="px-6 font-weight-bold" @click="confirmDeleteStatement">Yes, Delete</v-btn>
-                    </v-card-actions>
-                </v-card>
-            </v-dialog>
+                </div>
+            </div>
 
-            <!-- Bulk Ingest Dialog -->
-            <v-dialog v-model="bulkIngestDialog" max-width="900" scrollable>
-                <v-card rounded="xl">
-                    <div class="pa-6 border-b d-flex align-center gap-4 bg-slate-50">
-                        <div class="icon-box-large bg-primary-lighten-5">
-                            <CheckCircle2 :size="24" class="text-primary" />
-                        </div>
-                        <div>
-                            <v-card-title class="text-h6 font-weight-black pa-0">Confirm Bulk Ingest</v-card-title>
-                            <p class="text-caption text-slate-500 font-weight-bold">Assign categories and rules for {{ bulkIngestItems.length }} transactions</p>
-                        </div>
-                    </div>
-                    
-                    <v-card-text class="pa-0" style="max-height: 60vh;">
-                        <v-table class="premium-table">
-                            <thead>
-                                <tr>
-                                    <th class="text-left font-weight-black text-tiny uppercase opacity-60">Description</th>
-                                    <th class="text-right font-weight-black text-tiny uppercase opacity-60">Amount</th>
-                                    <th class="text-left font-weight-black text-tiny uppercase opacity-60" style="width: 250px;">Category</th>
-                                    <th class="text-center font-weight-black text-tiny uppercase opacity-60">Save Rule</th>
-                                    <th class="text-center font-weight-black text-tiny uppercase opacity-60">Hide Analytics</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="item in bulkIngestItems" :key="item.transaction_id">
-                                    <td>
-                                        <div class="font-weight-black text-caption text-truncate max-w-[200px]">{{ item.description }}</div>
-                                        <div class="text-tiny opacity-60">{{ formatDate(item.date) }}</div>
-                                    </td>
-                                    <td class="text-right font-weight-black">
-                                        {{ formatCurrency(item.amount) }}
-                                    </td>
-                                    <td class="pa-2">
-                                        <v-autocomplete
-                                            v-model="item.category"
-                                            :items="categoryOptions"
-                                            item-title="title"
-                                            item-value="value"
-                                            density="compact"
-                                            variant="outlined"
-                                            hide-details
-                                            placeholder="Select Category"
-                                            class="compact-input"
-                                        ></v-autocomplete>
-                                    </td>
-                                    <td class="text-center">
-                                        <v-switch v-model="item.create_rule" color="primary" hide-details class="d-inline-flex"></v-switch>
-                                    </td>
-                                    <td class="text-center">
-                                        <v-switch v-model="item.exclude_from_reports" color="warning" hide-details class="d-inline-flex"></v-switch>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </v-table>
-                    </v-card-text>
-                    
-                    <div class="pa-4 border-t bg-slate-50 d-flex justify-end gap-3">
-                        <v-btn variant="tonal" rounded="pill" color="slate-600" class="px-6 font-weight-bold" @click="bulkIngestDialog = false">Cancel</v-btn>
-                        <v-btn 
-                            color="primary" 
-                            rounded="pill" 
-                            elevation="0" 
-                            class="px-6 font-weight-bold" 
-                            :disabled="!canConfirmBulkIngest"
-                            @click="confirmBulkIngest"
-                        >
-                            Confirm Import
-                        </v-btn>
-                    </div>
-                </v-card>
-            </v-dialog>
-            <!-- Reassign Account Dialog -->
-            <v-dialog v-model="reassignDialog" max-width="450">
-                <v-card rounded="xl" class="pa-4 premium-popup">
-                    <v-card-title class="text-h6 font-weight-black d-flex align-center">
-                        <Landmark :size="24" class="mr-3 text-primary" />
-                        Re-assign Account
-                    </v-card-title>
-                    <v-card-text class="pt-4">
-                        <p class="text-slate-500 mb-6 font-weight-medium">
-                            If the automatic detection was incorrect, select the correct account for this statement below.
-                        </p>
-                        
-                        <v-autocomplete
-                            v-model="reassignAccountId"
-                            :items="accounts"
-                            item-title="name"
-                            item-value="id"
-                            label="Select Correct Account"
-                            placeholder="Search accounts..."
-                            variant="outlined"
-                            rounded="lg"
-                            density="comfortable"
-                            color="primary"
-                            :prepend-inner-icon="Landmark"
-                            clearable
-                        >
-                            <template v-slot:item="{ props, item }">
-                                <v-list-item v-bind="props" :subtitle="`Mask: XX${item.raw.account_mask}`">
-                                    <template v-slot:prepend>
-                                        <div class="icon-box-small mr-3" :class="item.raw.is_verified ? 'bg-primary-lighten-5' : 'bg-slate-100'">
-                                            <Landmark :size="16" :class="item.raw.is_verified ? 'text-primary' : 'text-slate-400'" />
-                                        </div>
-                                    </template>
-                                </v-list-item>
-                            </template>
-                        </v-autocomplete>
-                    </v-card-text>
-                    <v-card-actions class="px-4 pb-4">
-                        <v-spacer></v-spacer>
-                        <v-btn variant="text" color="slate-500" rounded="pill" height="44" @click="reassignDialog = false">
-                            Cancel
-                        </v-btn>
-                        <v-btn 
-                            color="primary" 
-                            rounded="pill" 
-                            elevation="0" 
-                            height="44" 
-                            class="px-6"
-                            @click="confirmReassign" 
-                            :loading="reassigning"
-                            :disabled="!reassignAccountId"
-                        >
-                            Update Account
-                        </v-btn>
-                    </v-card-actions>
-                </v-card>
-            </v-dialog>
-        </v-container>
+            <template #footer>
+                <WfButton variant="ghost" size="sm" @click="retryDialog = false">
+                    Cancel
+                </WfButton>
+                <WfButton variant="primary" size="sm" :disabled="!retryPassword" @click="handleRetry" :loading="store.loading">
+                    <CheckCircle2 class="w-4 h-4 mr-1.5" />
+                    <span>Decrypt & Reprocess</span>
+                </WfButton>
+            </template>
+        </WfModal>
 
+        <!-- MODAL: Delete Statement Confirmation -->
+        <WfModal v-model="deleteDialog" title="Delete Statement?" maxWidth="sm">
+            <div class="space-y-3 text-center">
+                <div class="w-12 h-12 rounded-wf-pill bg-rose-50 dark:bg-rose-950/60 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
+                    <Trash2 class="w-6 h-6" />
+                </div>
+                <p class="text-xs text-wf-text-secondary">
+                    Are you sure you want to delete this statement? This action cannot be undone and will remove the file from your Vault.
+                </p>
+            </div>
 
+            <template #footer>
+                <WfButton variant="ghost" size="sm" @click="deleteDialog = false">
+                    Cancel
+                </WfButton>
+                <WfButton variant="danger" size="sm" @click="confirmDeleteStatement">
+                    <span>Yes, Delete Statement</span>
+                </WfButton>
+            </template>
+        </WfModal>
+
+        <!-- MODAL: Re-assign Account -->
+        <WfModal v-model="reassignDialog" title="Re-assign Account" description="Correct account detection if the statement was linked to the wrong account." maxWidth="md">
+            <div class="space-y-4">
+                <p class="text-xs text-wf-text-secondary">
+                    Select the correct target account for this statement below:
+                </p>
+
+                <div class="space-y-1.5 text-left">
+                    <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
+                        Target Account
+                    </label>
+                    <select
+                        v-model="reassignAccountId"
+                        class="w-full h-10 px-3 bg-wf-surface border border-wf-border rounded-wf-md text-sm text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
+                    >
+                        <option :value="null">-- Select Account --</option>
+                        <option v-for="acc in accounts" :key="acc.id" :value="acc.id">
+                            {{ acc.name }} (Mask: XX{{ acc.account_mask || '????' }})
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <template #footer>
+                <WfButton variant="ghost" size="sm" @click="reassignDialog = false">
+                    Cancel
+                </WfButton>
+                <WfButton variant="primary" size="sm" :disabled="!reassignAccountId" @click="confirmReassign" :loading="reassigning">
+                    <span>Update Account</span>
+                </WfButton>
+            </template>
+        </WfModal>
+
+        <!-- MODAL: Bulk Ingest Transactions -->
+        <WfModal v-model="bulkIngestDialog" title="Confirm Bulk Ingestion" description="Review categories and ingestion rules for selected transactions." maxWidth="xl">
+            <div class="space-y-4 max-h-[60vh] overflow-y-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="border-b border-wf-border bg-wf-surface-variant/40 text-[10px] font-bold text-wf-text-muted uppercase">
+                            <th class="py-2 px-3">Description</th>
+                            <th class="py-2 px-3 text-right">Amount</th>
+                            <th class="py-2 px-3 min-w-[200px]">Category</th>
+                            <th class="py-2 px-3 text-center">Save Rule</th>
+                            <th class="py-2 px-3 text-center">Hide Analytics</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-wf-border-subtle bg-wf-surface">
+                        <tr v-for="item in bulkIngestItems" :key="item.transaction_id" class="hover:bg-wf-surface-variant/30">
+                            <td class="py-2 px-3">
+                                <div class="font-semibold text-wf-text-primary truncate max-w-[200px]" :title="item.description">
+                                    {{ item.description }}
+                                </div>
+                                <div class="text-[10px] text-wf-text-muted">{{ formatTxnDate(item.date) }}</div>
+                            </td>
+
+                            <td class="py-2 px-3 text-right font-bold tabular-nums">
+                                {{ formatCurrency(item.amount) }}
+                            </td>
+
+                            <td class="py-2 px-3">
+                                <select
+                                    v-model="item.category"
+                                    class="w-full h-8 text-xs bg-wf-surface border border-wf-border rounded-wf-md px-2 focus:outline-none focus:ring-1 focus:ring-wf-primary"
+                                >
+                                    <option :value="null">-- Select Category --</option>
+                                    <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">
+                                        {{ opt.title }}
+                                    </option>
+                                </select>
+                            </td>
+
+                            <td class="py-2 px-3 text-center">
+                                <input
+                                    type="checkbox"
+                                    v-model="item.create_rule"
+                                    class="rounded-wf-xs border-slate-300 text-wf-primary focus:ring-wf-primary cursor-pointer w-3.5 h-3.5"
+                                />
+                            </td>
+
+                            <td class="py-2 px-3 text-center">
+                                <input
+                                    type="checkbox"
+                                    v-model="item.exclude_from_reports"
+                                    class="rounded-wf-xs border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer w-3.5 h-3.5"
+                                />
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <template #footer>
+                <WfButton variant="ghost" size="sm" @click="bulkIngestDialog = false">
+                    Cancel
+                </WfButton>
+                <WfButton variant="primary" size="sm" :disabled="!canConfirmBulkIngest" @click="confirmBulkIngest">
+                    <CheckCircle2 class="w-4 h-4 mr-1.5" />
+                    <span>Confirm Import</span>
+                </WfButton>
+            </template>
+        </WfModal>
     </MainLayout>
 </template>
-
-<style scoped>
-.statements-page {
-    position: relative;
-    min-height: calc(100vh - 64px);
-    overflow: hidden;
-}
-
-.gradient-text {
-    background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #6366f1 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.glass-card {
-    background: rgba(var(--v-theme-surface), 0.6) !important;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-}
-
-.relative-pos {
-    position: relative;
-}
-
-.z-10 {
-    z-index: 10;
-}
-
-.mesh-blob {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.15;
-    z-index: 1;
-    border-radius: 50%;
-    animation: blob-float 20s infinite alternate;
-}
-
-.blob-1 {
-    background: rgb(var(--v-theme-primary));
-    width: 600px;
-    height: 600px;
-    top: -200px;
-    right: -100px;
-}
-
-.blob-2 {
-    background: rgb(var(--v-theme-secondary));
-    width: 400px;
-    height: 400px;
-    bottom: -100px;
-    left: -100px;
-    animation-delay: -5s;
-}
-
-@keyframes blob-float {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(20px, -20px) scale(1.1); }
-}
-
-.icon-box {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.icon-box-small {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.icon-box-large {
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.icon-box-huge {
-    width: 120px;
-    height: 120px;
-    border-radius: 32px;
-    background: rgba(var(--v-theme-on-surface), 0.03);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.statement-item {
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
-}
-
-.statement-item:hover {
-    background: rgba(var(--v-theme-primary), 0.05) !important;
-    transform: translateX(4px);
-}
-
-.statement-item.v-list-item--active {
-    background: rgba(var(--v-theme-primary), 0.1) !important;
-    border: 1px solid rgba(var(--v-theme-primary), 0.2) !important;
-}
-
-.premium-table :deep(th) {
-    height: 48px !important;
-}
-
-.premium-table :deep(td) {
-    height: 64px !important;
-}
-
-.spin {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-.glass-card {
-    background: rgba(var(--v-theme-surface), 0.7) !important;
-    backdrop-filter: blur(24px) saturate(185%) !important;
-    border: 1px solid rgba(var(--v-border-color), 0.12) !important;
-    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08) !important;
-}
-
-.premium-toolbar {
-    background: rgba(255, 255, 255, 0.8) !important;
-    backdrop-filter: blur(12px);
-    z-index: 10;
-}
-
-.limit-select :deep(.v-field__input) {
-    font-size: 11px !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    min-height: 24px !important;
-}
-
-.tabular-nums {
-    font-variant-numeric: tabular-nums;
-    font-family: 'Inter', monospace;
-}
-</style>
