@@ -1,129 +1,7 @@
-<template>
-    <v-dialog :model-value="isOpen" @update:model-value="emit('update:isOpen', $event)" max-width="1100" scrollable
-        transition="dialog-bottom-transition">
-        <v-card class="category-details-card overflow-hidden">
-            <!-- Premium Header -->
-            <v-toolbar color="primary" class="premium-header px-4" flat height="80">
-                <div class="d-flex align-center w-100">
-                    <div class="header-icon-container mr-4">
-                        <span class="text-h4">{{ budget?.icon || '🏷️' }}</span>
-                    </div>
-                    <div>
-                        <div class="text-overline text-white opacity-70 line-height-1 mb-1">
-                            {{ new Date(year, month - 1).toLocaleString('default', { month: 'long', year: 'numeric' })
-                            }}
-                        </div>
-                        <h2 class="text-h4 font-weight-bold text-white mb-0">{{ category }} Breakdown</h2>
-                    </div>
-                    <v-spacer />
-                    <v-btn icon variant="text" color="white" @click="close">
-                        <X />
-                    </v-btn>
-                </div>
-            </v-toolbar>
-
-            <v-card-text class="pa-4 custom-scrollbar-hidden">
-                <v-row>
-                    <!-- Spending Trend -->
-                    <v-col cols="12" md="8">
-                        <v-card variant="outlined" class="chart-box pa-3 border-dashed rounded-xl">
-                            <div class="d-flex align-center mb-3">
-                                <div class="icon-box-small bg-blue-light mr-3">
-                                    <TrendingUp :size="18" class="text-primary" />
-                                </div>
-                                <div>
-                                    <h3 class="text-subtitle-1 font-weight-bold mb-0">Daily Spending Trend</h3>
-                                    <span class="text-caption text-medium-emphasis">How you spent throughout the
-                                        month</span>
-                                </div>
-                            </div>
-                            <BaseChart type="bar" :data="barChartData" :options="barOptions" :height="160" />
-                        </v-card>
-                    </v-col>
-
-                    <!-- Merchant Breakdown -->
-                    <v-col cols="12" md="4">
-                        <v-card variant="outlined" class="chart-box pa-3 border-dashed rounded-xl">
-                            <div class="d-flex align-center mb-3">
-                                <div class="icon-box-small bg-purple-light mr-3">
-                                    <Hash :size="18" class="text-purple" />
-                                </div>
-                                <div>
-                                    <h3 class="text-subtitle-1 font-weight-bold mb-0">Top Merchants</h3>
-                                    <span class="text-caption text-medium-emphasis">Where your money goes</span>
-                                </div>
-                            </div>
-                            <div v-if="merchantBreakdown.length > 0">
-                                <BaseChart type="doughnut" :data="doughnutChartData" :options="doughnutOptions"
-                                    :height="160" />
-                            </div>
-                            <div v-else class="d-flex align-center justify-center" style="height: 160px">
-                                <span class="text-caption text-medium-emphasis">No merchant data available</span>
-                            </div>
-                        </v-card>
-                    </v-col>
-
-                    <!-- Transaction List -->
-                    <v-col cols="12">
-                        <div class="d-flex align-center mb-4 mt-2">
-                            <div class="icon-box-small bg-green-light mr-3">
-                                <Calendar :size="18" class="text-success" />
-                            </div>
-                            <h3 class="text-h6 font-weight-bold mb-0">Transaction History</h3>
-                            <v-spacer />
-                            <div class="text-caption text-medium-emphasis">{{ totalTransactions }} transactions found
-                            </div>
-                        </div>
-
-                        <v-data-table-server v-model:options="serverOptions" :headers="headers" :items="transactions"
-                            :items-length="totalTransactions" :loading="loading" density="compact"
-                            :items-per-page="serverOptions.itemsPerPage" :items-per-page-options="[5, 10, 15, 20]"
-                            class="modern-table translucent-table rounded-xl" hover>
-                            <template v-slot:item.date="{ item }">
-                                <span class="text-body-2 text-medium-emphasis">{{ formatDate(item.date) }}</span>
-                            </template>
-                            <template v-slot:item.recipient="{ item }">
-                                <span class="font-weight-medium">{{ item.recipient || 'N/A' }}</span>
-                            </template>
-                            <template v-slot:item.amount="{ item }">
-                                <span :class="item.amount > 0 ? 'text-success' : 'font-weight-bold'">
-                                    {{ formatAmount(item.amount) }}
-                                </span>
-                            </template>
-                        </v-data-table-server>
-                    </v-col>
-                </v-row>
-            </v-card-text>
-
-            <v-divider />
-            <v-card-actions class="pa-4 bg-surface d-flex align-center justify-space-between">
-                <v-btn variant="tonal" color="primary" @click="close" class="px-6 font-weight-bold rounded-pill">
-                    Close Analysis
-                </v-btn>
-
-                <div v-if="budget" class="d-flex align-center ga-4 bg-surface rounded-pill px-4 py-2 border">
-                    <div class="d-flex flex-column align-end line-height-1">
-                        <span class="text-caption text-medium-emphasis mb-1">Budget Limit</span>
-                        <span class="font-weight-bold text-body-2">{{ formatAmount(budget.amount_limit) }}</span>
-                    </div>
-                    <v-divider vertical class="my-1" />
-                    <div class="d-flex flex-column align-end line-height-1">
-                        <span class="text-caption text-medium-emphasis mb-1">Spent</span>
-                        <span class="font-weight-black text-body-2"
-                            :class="budget.spent > budget.amount_limit ? 'text-error' : 'text-primary'">
-                            {{ formatAmount(budget.spent) }}
-                        </span>
-                    </div>
-                </div>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import {
-    Calendar, TrendingUp, X, Hash
+    Calendar, TrendingUp, Hash, ChevronLeft, ChevronRight, RefreshCw
 } from 'lucide-vue-next'
 
 import { financeApi } from '@/api/client'
@@ -131,6 +9,8 @@ import BaseChart from '@/components/BaseChart.vue'
 import { useCurrency } from '@/composables/useCurrency'
 import { useAuthStore } from '@/stores/auth'
 import { localDateString } from '@/utils/time'
+import WfModal from '@/components/ui/WfModal.vue'
+import WfButton from '@/components/ui/WfButton.vue'
 
 const { formatAmount } = useCurrency()
 const authStore = useAuthStore()
@@ -158,12 +38,9 @@ const serverOptions = ref({
     sortOrder: 'desc'
 })
 
-const headers = [
-    { title: 'Date', key: 'date', sortable: true },
-    { title: 'Recipient', key: 'recipient', sortable: true },
-    { title: 'Description', key: 'description' },
-    { title: 'Amount', key: 'amount', align: 'end' as const, sortable: true }
-]
+const totalPages = computed(() => {
+    return Math.ceil(totalTransactions.value / serverOptions.value.itemsPerPage) || 1
+})
 
 // Fetch Data
 const fetchData = async () => {
@@ -186,8 +63,8 @@ const fetchData = async () => {
             serverOptions.value.sortOrder,
             authStore.selectedMemberId || undefined
         )
-        transactions.value = res.data.data
-        totalTransactions.value = res.data.total
+        transactions.value = res.data.data || []
+        totalTransactions.value = res.data.total || 0
 
         // Fetch Trends - Grouped by day
         const trendRes = await financeApi.getTransactions(
@@ -203,7 +80,7 @@ const fetchData = async () => {
             authStore.selectedMemberId || undefined
         )
 
-        processTrendData(trendRes.data.data)
+        processTrendData(trendRes.data.data || [])
 
         // Fetch Merchant Breakdown
         const merchantRes = await financeApi.getMerchantBreakdown(
@@ -212,7 +89,7 @@ const fetchData = async () => {
             endDate,
             authStore.selectedMemberId || undefined
         )
-        merchantBreakdown.value = merchantRes.data
+        merchantBreakdown.value = merchantRes.data || []
 
     } catch (err) {
         console.error('Failed to fetch category details:', err)
@@ -250,13 +127,12 @@ const barChartData = computed(() => ({
     datasets: [{
         label: 'Spending',
         data: dailySpending.value.map(d => d.amount),
-        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+        backgroundColor: 'rgba(99, 102, 241, 0.85)',
         borderRadius: 4
     }]
 }))
 
 const doughnutChartData = computed(() => {
-    // Take top 5 and group others
     const sorted = [...merchantBreakdown.value].sort((a, b) => b.amount - a.amount)
     const top = sorted.slice(0, 5)
     const others = sorted.slice(5).reduce((acc, curr) => acc + curr.amount, 0)
@@ -270,7 +146,7 @@ const doughnutChartData = computed(() => {
         datasets: [{
             data: top.map(v => v.amount),
             backgroundColor: [
-                '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#64748B'
+                '#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#64748B'
             ],
             borderWidth: 0
         }]
@@ -278,6 +154,8 @@ const doughnutChartData = computed(() => {
 })
 
 const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: { legend: { display: false } },
     scales: {
         x: { grid: { display: false } },
@@ -286,10 +164,12 @@ const barOptions = {
 }
 
 const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: {
         legend: {
-            position: 'right',
-            labels: { boxWidth: 12, padding: 15 }
+            position: 'right' as const,
+            labels: { boxWidth: 10, padding: 12, font: { size: 11 } }
         }
     },
     cutout: '70%'
@@ -310,73 +190,221 @@ const close = () => {
 }
 
 const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-'
     const d = new Date(dateStr)
-    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
+}
+
+function prevPage() {
+    if (serverOptions.value.page > 1) {
+        serverOptions.value.page--
+    }
+}
+
+function nextPage() {
+    if (serverOptions.value.page < totalPages.value) {
+        serverOptions.value.page++
+    }
 }
 </script>
 
-<style scoped>
-.category-details-card {
-    border-radius: 24px !important;
-}
+<template>
+    <WfModal
+        :model-value="isOpen"
+        @update:model-value="close"
+        maxWidth="xl"
+    >
+        <!-- MODAL HEADER -->
+        <template #header>
+            <div class="flex items-center justify-between w-full">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-wf-md bg-wf-primary-light flex items-center justify-center text-xl border border-indigo-200 dark:border-indigo-900/50 shadow-2xs">
+                        <span>{{ budget?.icon || '🏷️' }}</span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-bold text-wf-text-primary leading-none">
+                                {{ category }} Breakdown
+                            </h3>
+                            <span class="px-2 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-surface-variant text-wf-text-secondary">
+                                {{ new Date(year, month - 1).toLocaleString('default', { month: 'short', year: 'numeric' }) }}
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-wf-text-muted mt-0.5 leading-none">
+                            Deep dive into daily velocity, merchant distribution, and transaction history
+                        </p>
+                    </div>
+                </div>
 
-.premium-header {
-    background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%) !important;
-}
+                <!-- Budget vs Spent Pills -->
+                <div v-if="budget" class="flex items-center gap-3 bg-wf-surface-variant/70 border border-wf-border rounded-wf-md px-3 py-1.5 shadow-2xs mr-2">
+                    <div class="text-right leading-none">
+                        <span class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider block">Limit</span>
+                        <span class="text-xs font-bold text-wf-text-primary">{{ formatAmount(budget.amount_limit) }}</span>
+                    </div>
+                    <div class="w-px h-6 bg-wf-border"></div>
+                    <div class="text-right leading-none">
+                        <span class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider block">Spent</span>
+                        <span
+                            class="text-xs font-bold"
+                            :class="budget.spent > budget.amount_limit ? 'text-rose-600' : 'text-wf-primary'"
+                        >
+                            {{ formatAmount(budget.spent) }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </template>
 
-.header-icon-container {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 12px;
-    border-radius: 16px;
-    display: flex;
-    align-center: center;
-    justify-content: center;
-}
+        <!-- MODAL BODY -->
+        <div class="space-y-5 max-h-[70vh] overflow-y-auto -mx-6 -my-6 p-6">
+            <!-- Charts Section (2 Columns) -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <!-- Daily Spending Trend -->
+                <div class="md:col-span-7 p-4 rounded-wf-lg bg-wf-surface border border-wf-border shadow-2xs space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-wf-xs bg-indigo-50 dark:bg-indigo-950/40 text-wf-primary flex items-center justify-center">
+                                <TrendingUp class="w-3.5 h-3.5" />
+                            </div>
+                            <h4 class="text-xs font-bold text-wf-text-primary">Daily Spending Trend</h4>
+                        </div>
+                        <span class="text-[10px] text-wf-text-muted">Through month</span>
+                    </div>
+                    <div class="h-44">
+                        <BaseChart type="bar" :data="barChartData" :options="barOptions" :height="170" />
+                    </div>
+                </div>
 
-.icon-box-small {
-    padding: 8px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+                <!-- Merchant Breakdown -->
+                <div class="md:col-span-5 p-4 rounded-wf-lg bg-wf-surface border border-wf-border shadow-2xs space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-wf-xs bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center">
+                                <Hash class="w-3.5 h-3.5" />
+                            </div>
+                            <h4 class="text-xs font-bold text-wf-text-primary">Top Merchants</h4>
+                        </div>
+                        <span class="text-[10px] text-wf-text-muted">By total volume</span>
+                    </div>
+                    <div class="h-44 flex items-center justify-center">
+                        <BaseChart
+                            v-if="merchantBreakdown.length > 0"
+                            type="doughnut"
+                            :data="doughnutChartData"
+                            :options="doughnutOptions"
+                            :height="170"
+                        />
+                        <span v-else class="text-xs text-wf-text-muted">No merchant records</span>
+                    </div>
+                </div>
+            </div>
 
-.bg-blue-light {
-    background-color: rgba(59, 130, 246, 0.1);
-}
+            <!-- Transaction History Table -->
+            <div class="space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-wf-xs bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center">
+                            <Calendar class="w-3.5 h-3.5" />
+                        </div>
+                        <h4 class="text-xs font-bold text-wf-text-primary">Transaction History</h4>
+                    </div>
+                    <span class="text-[11px] text-wf-text-secondary font-medium">{{ totalTransactions }} records</span>
+                </div>
 
-.bg-purple-light {
-    background-color: rgba(139, 92, 246, 0.1);
-}
+                <!-- Unified Seamless Table Container -->
+                <div class="border border-wf-border rounded-wf-md bg-wf-surface overflow-hidden shadow-2xs divide-y divide-wf-border-subtle">
+                    <!-- Table Header -->
+                    <div class="grid grid-cols-12 px-3.5 py-2 bg-wf-surface-variant/60 text-[10px] font-bold text-wf-text-secondary uppercase tracking-wider">
+                        <div class="col-span-2">Date</div>
+                        <div class="col-span-4">Recipient / Payee</div>
+                        <div class="col-span-3">Description</div>
+                        <div class="col-span-3 text-right">Amount</div>
+                    </div>
 
-.bg-green-light {
-    background-color: rgba(16, 185, 129, 0.1);
-}
+                    <!-- Loading State -->
+                    <div v-if="loading" class="py-8 text-center text-xs text-wf-text-muted flex items-center justify-center gap-2">
+                        <RefreshCw class="w-4 h-4 animate-spin text-wf-primary" />
+                        <span>Loading ledger transactions...</span>
+                    </div>
 
-/* Custom Scrollbar Hidden while maintaining scroll */
-.custom-scrollbar-hidden {
-    scrollbar-width: none;
-    /* Firefox */
-    -ms-overflow-style: none;
-    /* IE and Edge */
-}
+                    <!-- Empty State -->
+                    <div v-else-if="transactions.length === 0" class="py-8 text-center text-xs text-wf-text-muted">
+                        No transactions found for this period.
+                    </div>
 
-.custom-scrollbar-hidden::-webkit-scrollbar {
-    display: none;
-    /* Chrome, Safari, Opera */
-}
+                    <!-- Table Rows -->
+                    <template v-else>
+                        <div
+                            v-for="item in transactions"
+                            :key="item.id"
+                            class="grid grid-cols-12 px-3.5 py-2.5 items-center hover:bg-wf-surface-variant/40 transition-colors text-xs"
+                        >
+                            <div class="col-span-2 text-wf-text-muted font-medium">
+                                {{ formatDate(item.date) }}
+                            </div>
+                            <div class="col-span-4 font-bold text-wf-text-primary truncate pr-2">
+                                {{ item.recipient || 'N/A' }}
+                            </div>
+                            <div class="col-span-3 text-wf-text-secondary truncate pr-2 text-[11px]">
+                                {{ item.description || '-' }}
+                            </div>
+                            <div
+                                class="col-span-3 text-right font-bold tabular-nums"
+                                :class="item.amount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-wf-text-primary'"
+                            >
+                                {{ formatAmount(item.amount) }}
+                            </div>
+                        </div>
+                    </template>
 
-.chart-box {
-    transition: all 0.2s ease;
-    background: rgba(var(--v-theme-surface), 0.5);
-}
+                    <!-- Table Pagination Footer -->
+                    <div class="flex items-center justify-between px-3.5 py-2 bg-wf-surface-variant/30 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] text-wf-text-muted">Rows per page:</span>
+                            <select
+                                v-model="serverOptions.itemsPerPage"
+                                class="bg-transparent border border-wf-border rounded-wf-xs px-1.5 py-0.5 text-xs font-semibold focus:outline-none cursor-pointer"
+                            >
+                                <option :value="5">5</option>
+                                <option :value="10">10</option>
+                                <option :value="20">20</option>
+                            </select>
+                        </div>
 
-.translucent-table {
-    background: transparent !important;
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-}
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] text-wf-text-muted">
+                                Page {{ serverOptions.page }} of {{ totalPages }}
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    @click="prevPage"
+                                    :disabled="serverOptions.page <= 1"
+                                    class="p-1 rounded-wf-xs border border-wf-border hover:bg-wf-surface-variant disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronLeft class="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="nextPage"
+                                    :disabled="serverOptions.page >= totalPages"
+                                    class="p-1 rounded-wf-xs border border-wf-border hover:bg-wf-surface-variant disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronRight class="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-.line-height-1 {
-    line-height: 1;
-}
-</style>
+        <!-- FOOTER -->
+        <template #footer>
+            <WfButton variant="primary" @click="close">
+                Close Analysis
+            </WfButton>
+        </template>
+    </WfModal>
+</template>
