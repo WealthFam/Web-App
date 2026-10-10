@@ -1,517 +1,3 @@
-<template>
-    <MainLayout>
-        <v-container fluid class="page-container dashboard-page">
-            <!-- Animated Mesh Background -->
-            <div class="relative-pos z-10">
-                <div class="mb-6">
-                    <v-btn variant="text" color="primary" class="pl-0 font-weight-bold" @click="router.back()">
-                        <ChevronLeft :size="20" class="mr-1" />
-                        Back to Loans
-                    </v-btn>
-                </div>
-
-                <!-- Loading State -->
-                <v-row v-if="loading" class="py-8">
-                    <v-col cols="12" md="3" v-for="i in 4" :key="`skel-stat-${i}`">
-                        <PremiumSkeleton type="stat-card" glass />
-                    </v-col>
-                    <v-col cols="12" class="mt-4">
-                        <PremiumSkeleton type="hero" height="300" glass />
-                    </v-col>
-                </v-row>
-
-                <div v-else-if="loan">
-                    <!-- Header -->
-                    <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-10 gap-6">
-                        <div class="d-flex align-center gap-5">
-                            <v-avatar size="80" variant="tonal" color="primary" rounded="xl"
-                                class="elevation-4 shadow-primary d-flex align-center justify-center">
-                                <span class="text-h3">{{ getLoanIcon(loan.loan_type) }}</span>
-                            </v-avatar>
-                            <div>
-                                <h1 class="text-h4 font-weight-black text-content mb-2 letter-spacing-negative-1">{{
-                                    loan.name }}</h1>
-                                <div class="d-flex align-center gap-3 text-medium-emphasis font-weight-bold">
-                                    <v-chip size="small" color="primary" variant="flat"
-                                        class="font-weight-black text-uppercase shadow-sm">
-                                        {{ loan.loan_type?.replace('_', ' ') || 'LOAN' }}
-                                    </v-chip>
-                                    <span class="d-flex align-center gap-1">
-                                        <Calendar :size="14" /> {{ loan.tenure_months }} Months
-                                    </span>
-                                    <span>•</span>
-                                    <span class="d-flex align-center gap-1">
-                                        <TrendingUp :size="14" class="text-error" /> {{ loan.interest_rate }}% Interest
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            class="text-md-right pa-5 bg-primary bg-opacity-5 rounded-2xl border border-primary border-opacity-25 glass-panel hover-lift">
-                            <div
-                                class="text-caption font-weight-black text-primary text-uppercase letter-spacing-1 mb-1 d-flex align-center justify-md-end gap-2">
-                                <Activity :size="14" /> Current Outstanding
-                            </div>
-                            <div class="text-h3 font-weight-black text-primary" style="font-feature-settings: 'tnum';">
-                                {{
-                                    formatCurrency(loan.outstanding_balance) }}</div>
-                        </div>
-                    </div>
-
-                    <!-- Stats Cards -->
-                    <v-row class="mb-10">
-                        <v-col cols="6" md="3">
-                            <v-card class="premium-glass-card pa-5 h-100 hover-lift d-flex flex-column justify-center"
-                                rounded="xl" elevation="0">
-                                <div class="d-flex align-center gap-4 mb-2">
-                                    <v-avatar size="48" variant="tonal" color="primary" rounded="lg">
-                                        <Landmark :size="24" />
-                                    </v-avatar>
-                                    <div
-                                        class="text-caption font-weight-black text-medium-emphasis text-uppercase letter-spacing-1">
-                                        Principal Amount</div>
-                                </div>
-                                <div class="text-h5 font-weight-black text-content">{{
-                                    formatCurrency(loan.principal_amount) }}</div>
-                            </v-card>
-                        </v-col>
-                        <v-col cols="6" md="3">
-                            <v-card class="premium-glass-card pa-5 h-100 hover-lift d-flex flex-column justify-center"
-                                rounded="xl" elevation="0">
-                                <div class="d-flex align-center gap-4 mb-2">
-                                    <v-avatar size="48" variant="tonal" color="error" rounded="lg">
-                                        <Wallet :size="24" />
-                                    </v-avatar>
-                                    <div
-                                        class="text-caption font-weight-black text-medium-emphasis text-uppercase letter-spacing-1">
-                                        EMI
-                                        Amount</div>
-                                </div>
-                                <div class="text-h5 font-weight-black text-content">{{ formatCurrency(loan.emi_amount)
-                                    }}</div>
-                            </v-card>
-                        </v-col>
-                        <v-col cols="6" md="3">
-                            <v-card class="premium-glass-card pa-5 h-100 hover-lift d-flex flex-column justify-center"
-                                rounded="xl" elevation="0">
-                                <div class="d-flex align-center gap-4 mb-2">
-                                    <v-avatar size="48" variant="tonal" color="warning" rounded="lg">
-                                        <CalendarClock :size="24" />
-                                    </v-avatar>
-                                    <div
-                                        class="text-caption font-weight-black text-medium-emphasis text-uppercase letter-spacing-1">
-                                        Next Due Date</div>
-                                </div>
-                                <div class="text-h5 font-weight-black text-content">{{ formatDate(loan.next_emi_date)
-                                    }}</div>
-                            </v-card>
-                        </v-col>
-                        <v-col cols="6" md="3">
-                            <v-card class="premium-glass-card pa-5 h-100 hover-lift d-flex flex-column justify-center"
-                                rounded="xl" elevation="0">
-                                <div class="d-flex justify-space-between align-center mb-3">
-                                    <div class="d-flex align-center gap-4">
-                                        <v-avatar size="48" variant="tonal" color="success" rounded="lg">
-                                            <Target :size="24" />
-                                        </v-avatar>
-                                        <span
-                                            class="text-caption font-weight-black text-medium-emphasis text-uppercase letter-spacing-1">Progress</span>
-                                    </div>
-                                    <v-chip size="x-small" color="primary" variant="tonal"
-                                        class="font-weight-black px-2">{{
-                                            loan.progress_percentage }}%</v-chip>
-                                </div>
-                                <v-progress-linear :model-value="Math.max(0, loan.progress_percentage)" color="primary" rounded
-                                    height="10" class="loan-progress-premium shadow-sm"></v-progress-linear>
-                            </v-card>
-                        </v-col>
-                    </v-row>
-
-                    <!-- Strategic Insights & Simulations -->
-                    <v-card class="premium-glass-card mb-10 insights-glow" elevation="0">
-                        <div
-                            class="pa-6 d-flex flex-column flex-md-row justify-space-between align-md-center gap-4 insights-header-bg border-b">
-                            <div class="d-flex align-center gap-4">
-                                <div class="primary-glow-box shadow-primary">
-                                    <TrendingUp :size="24" class="text-primary" />
-                                </div>
-                                <div>
-                                    <h3 class="text-h5 font-weight-black text-content letter-spacing-negative-1 mb-1">
-                                        Strategic Debt Optimization</h3>
-                                    <p
-                                        class="text-caption font-weight-bold text-medium-emphasis letter-spacing-1 text-uppercase">
-                                        Advanced simulations to save interest & close your debt faster</p>
-                                </div>
-                            </div>
-                            <v-btn color="primary" variant="flat" rounded="pill"
-                                class="font-weight-black px-6 shadow-primary hover-lift" @click="generateInsights"
-                                :loading="insightLoading" height="48">
-                                {{ insights ? 'Refresh Analysis' : 'Generate Insights' }}
-                            </v-btn>
-                        </div>
-
-                        <!-- Scenarios Grid -->
-                        <div v-if="simulations" class="pa-6 border-b">
-                            <h4
-                                class="text-caption font-weight-black text-uppercase letter-spacing-2 text-primary mb-4">
-                                Strategic Simulations</h4>
-                            <v-row class="gap-y-4">
-                                <v-col v-for="scen in simulations.scenarios" :key="scen.name" cols="12" md="4">
-                                    <v-card class="premium-glass-card pa-5 h-100 hover-lift elevation-0"
-                                        border="primary">
-                                        <div class="d-flex align-center gap-2 mb-3">
-                                            <div class="pa-2 bg-primary bg-opacity-10 rounded-lg">
-                                                <TrendingUp :size="20" class="text-primary" />
-                                            </div>
-                                            <div class="text-subtitle-2 font-weight-black">{{ scen.name }}</div>
-                                        </div>
-                                        <div class="text-caption opacity-70 mb-5 line-height-1-4">{{ scen.description }}
-                                        </div>
-
-                                        <v-divider class="mb-5 opacity-5" />
-
-                                        <div class="d-flex flex-column gap-3">
-                                            <div class="d-flex justify-space-between align-center">
-                                                <span class="text-caption font-weight-bold opacity-60">Interest
-                                                    Saved</span>
-                                                <span class="text-body-2 font-weight-black text-success">{{
-                                                    formatCurrency(scen.interest_saved) }}</span>
-                                            </div>
-                                            <div class="d-flex justify-space-between align-center">
-                                                <span class="text-caption font-weight-bold opacity-60">Months
-                                                    Saved</span>
-                                                <span class="text-body-2 font-weight-black text-primary">{{
-                                                    scen.months_saved }} Months</span>
-                                            </div>
-                                            <div
-                                                class="d-flex justify-space-between align-center pt-2 border-t border-opacity-5">
-                                                <span class="text-caption font-weight-bold opacity-60">New
-                                                    Duration</span>
-                                                <span class="text-caption font-weight-black">{{ scen.months }}
-                                                    months</span>
-                                            </div>
-                                        </div>
-                                    </v-card>
-                                </v-col>
-                            </v-row>
-                        </div>
-
-                        <!-- Interactive Simulator -->
-                        <div class="pa-6 border-b">
-                            <h4
-                                class="text-caption font-weight-black text-uppercase letter-spacing-2 text-secondary mb-6">
-                                Interactive Debt Shredder Simulator</h4>
-                            <v-row align="center">
-                                <v-col cols="12" md="6">
-                                    <v-row>
-                                        <v-col cols="12">
-                                            <v-label class="text-caption font-weight-black mb-1 opacity-60">Extra
-                                                Monthly Payment (EMI Top-up)</v-label>
-                                            <v-slider v-model="customSimForm.extra_monthly_payment" :min="0"
-                                                :max="loan.emi_amount" :step="1000" color="primary" hide-details
-                                                class="mt-4">
-                                                <template v-slot:append>
-                                                    <v-text-field v-model.number="customSimForm.extra_monthly_payment"
-                                                        type="number" density="compact" hide-details variant="outlined"
-                                                        style="width: 120px" rounded="lg" bg-color="surface"
-                                                        prefix="₹" />
-                                                </template>
-                                            </v-slider>
-                                        </v-col>
-                                        <v-col cols="12">
-                                            <v-label class="text-caption font-weight-black mb-1 opacity-60">One-time
-                                                Lumpsum Prepayment</v-label>
-                                            <v-slider v-model="customSimForm.one_time_prepayment" :min="0"
-                                                :max="loan.outstanding_balance / 2" :step="5000" color="secondary"
-                                                hide-details class="mt-4">
-                                                <template v-slot:append>
-                                                    <v-text-field v-model.number="customSimForm.one_time_prepayment"
-                                                        type="number" density="compact" hide-details variant="outlined"
-                                                        style="width: 120px" rounded="lg" bg-color="surface"
-                                                        prefix="₹" />
-                                                </template>
-                                            </v-slider>
-                                        </v-col>
-                                    </v-row>
-                                    <div class="mt-4">
-                                        <v-btn color="primary" block height="50" rounded="lg"
-                                            @click="runCustomSimulation" :loading="customSimLoading">
-                                            Run Custom Simulation
-                                        </v-btn>
-                                    </div>
-                                </v-col>
-                                <v-col cols="12" md="6">
-                                    <v-card v-if="customSimResult"
-                                        class="premium-glass-card pa-6 border-success border-opacity-25" elevation="0">
-                                        <div class="d-flex align-center gap-3 mb-6">
-                                            <Target class="text-success" :size="32" />
-                                            <div>
-                                                <div class="text-h5 font-weight-black">Impact Analysis</div>
-                                                <div class="text-caption font-weight-bold opacity-70">Strategic savings
-                                                    for your custom plan</div>
-                                            </div>
-                                        </div>
-
-                                        <v-row class="mb-4">
-                                            <v-col cols="6">
-                                                <div
-                                                    class="text-caption font-weight-bold opacity-60 text-uppercase letter-spacing-1">
-                                                    Interest Saved
-                                                </div>
-                                                <div class="text-h4 font-weight-black text-success">{{
-                                                    formatCurrency(customSimResult.interest_saved) }}
-                                                </div>
-                                            </v-col>
-                                            <v-col cols="6">
-                                                <div
-                                                    class="text-caption font-weight-bold opacity-60 text-uppercase letter-spacing-1">
-                                                    Months Saved</div>
-                                                <div class="text-h4 font-weight-black text-primary">{{
-                                                    customSimResult.months_saved }} <span
-                                                        class="text-caption">Months</span></div>
-                                            </v-col>
-                                        </v-row>
-
-                                        <div
-                                            class="pa-4 bg-success bg-opacity-10 rounded-xl border border-success border-opacity-10 mb-8">
-                                            <div class="d-flex justify-space-between text-caption font-weight-bold">
-                                                <span>New Total Interest</span>
-                                                <span class="font-weight-black text-body-2">{{
-                                                    formatCurrency(customSimResult.new_total_interest)
-                                                    }}</span>
-                                            </div>
-                                            <div
-                                                class="d-flex justify-space-between text-caption font-weight-bold mt-2">
-                                                <span>Revised Duration</span>
-                                                <span class="font-weight-black text-body-2">{{
-                                                    customSimResult.new_months }} months</span>
-                                            </div>
-                                        </div>
-
-                                        <div class="mt-4">
-                                            <div
-                                                class="text-caption font-weight-black text-uppercase opacity-40 mb-4 letter-spacing-1">
-                                                Strategic
-                                                Freedom Projection</div>
-                                            <div class="bg-surface rounded-xl pa-4 border overflow-hidden"
-                                                style="height: 220px; position: relative;">
-                                                <Line v-if="simulationChartData" :data="simulationChartData as any"
-                                                    :options="simulationChartOptions as any" />
-                                            </div>
-                                        </div>
-                                    </v-card>
-                                    <div v-else
-                                        class="pa-12 text-center border-dashed rounded-2xl d-flex flex-column align-center justify-center h-100">
-                                        <div class="primary-glow-box shadow-primary mb-6"
-                                            style="width: 80px; height: 80px; background: rgba(var(--v-theme-primary), 0.15)">
-                                            <span style="font-size: 40px">🎯</span>
-                                        </div>
-                                        <div class="text-subtitle-1 font-weight-black uppercase letter-spacing-1">
-                                            Awaiting Simulation Inputs</div>
-                                        <p class="text-caption font-weight-bold max-width-200 mx-auto mt-2">Adjust
-                                            prepayments to calculate your
-                                            strategic interest savings</p>
-                                    </div>
-                                </v-col>
-                            </v-row>
-                        </div>
-
-                        <div v-if="insights" class="pa-8 pt-6 border-b bg-primary bg-opacity-2">
-                            <div class="d-flex align-center gap-3 mb-6">
-                                <TrendingUp :size="20" class="text-primary" />
-                                <span class="text-caption font-weight-black text-uppercase letter-spacing-1">Optimization Report</span>
-                            </div>
-                            <div class="markdown-body premium-markdown" v-html="renderedInsights"></div>
-                        </div>
-                    </v-card>
-
-                    <!-- Amortization Chart Section -->
-                    <v-row class="mb-4">
-                        <v-col cols="12">
-                            <v-card class="premium-glass-card pa-6" elevation="0">
-                                <h3 class="text-h6 font-weight-black text-content mb-2">Monthly Amortization Breakdown
-                                </h3>
-                                <p class="text-caption font-weight-bold text-medium-emphasis mb-6">
-                                    Projected Interest vs. Principal payments over time
-                                </p>
-                                <div style="height: 350px; position: relative;">
-                                    <Bar v-if="amortizationChartData" :data="amortizationChartData as any"
-                                        :options="amortizationChartOptions as any" />
-                                </div>
-                            </v-card>
-                        </v-col>
-                    </v-row>
-
-                    <!-- Content Split -->
-                    <v-row>
-                        <!-- Chart Section -->
-                        <v-col cols="12" lg="4">
-                            <v-card class="premium-glass-card pa-6 h-100 d-flex flex-column hover-lift" elevation="0">
-                                <h3 class="text-h6 font-weight-black text-content mb-6 letter-spacing-negative-1">
-                                    Principal vs Interest</h3>
-                                <div class="flex-grow-1 d-flex flex-column justify-center"
-                                    style="min-height: 250px; position: relative;">
-                                    <Pie v-if="chartData" :data="chartData as any" :options="chartOptions as any" />
-                                </div>
-                                <div
-                                    class="mt-8 text-center pa-5 bg-primary bg-opacity-5 rounded-xl border border-primary border-opacity-25 glass-panel">
-                                    <div
-                                        class="text-caption font-weight-black text-medium-emphasis text-uppercase letter-spacing-1 mb-2">
-                                        Total Interest Payable</div>
-                                    <div class="text-h4 font-weight-black text-error"
-                                        style="font-feature-settings: 'tnum';">{{
-                                        formatCurrency(totalInterest) }}</div>
-                                </div>
-                            </v-card>
-                        </v-col>
-
-                        <!-- Amortization Schedule -->
-                        <v-col cols="12" lg="8">
-                            <v-card class="premium-glass-card h-100 d-flex flex-column overflow-hidden hover-lift"
-                                elevation="0">
-                                <div
-                                    class="pa-6 pb-4 border-b border-opacity-10 d-flex justify-space-between align-center">
-                                    <h3 class="text-h6 font-weight-black text-content letter-spacing-negative-1">
-                                        Amortization Schedule</h3>
-                                    <v-chip size="small" variant="tonal" color="primary" class="font-weight-black">{{
-                                        loan.amortization_schedule?.length || 0 }} Installments</v-chip>
-                                </div>
-                                <div class="flex-grow-1 overflow-auto" style="max-height: 500px;">
-                                    <v-table class="bg-transparent premium-table">
-                                        <thead>
-                                            <tr>
-                                                <th
-                                                    class="text-left font-weight-black text-caption text-medium-emphasis letter-spacing-1 py-4">
-                                                    #</th>
-                                                <th
-                                                    class="text-left font-weight-black text-caption text-medium-emphasis letter-spacing-1 py-4">
-                                                    DATE</th>
-                                                <th
-                                                    class="text-right font-weight-black text-caption text-medium-emphasis letter-spacing-1 py-4">
-                                                    EMI</th>
-                                                <th
-                                                    class="text-right font-weight-black text-caption text-medium-emphasis letter-spacing-1 py-4">
-                                                    PRINCIPAL</th>
-                                                <th
-                                                    class="text-right font-weight-black text-caption text-medium-emphasis letter-spacing-1 py-4">
-                                                    INTEREST</th>
-                                                <th
-                                                    class="text-right font-weight-black text-caption text-medium-emphasis letter-spacing-1 py-4">
-                                                    BALANCE</th>
-                                                <th
-                                                    class="text-center font-weight-black text-caption text-medium-emphasis letter-spacing-1 py-4">
-                                                    STATUS</th>
-                                                <th
-                                                    class="text-center font-weight-black text-caption text-medium-emphasis letter-spacing-1 py-4">
-                                                    ACTION</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-for="item in loan.amortization_schedule" :key="item.installment_no"
-                                                class="hover-row transition-fast">
-                                                <td class="font-weight-bold text-caption opacity-70">{{
-                                                    item.installment_no }}</td>
-                                                <td class="font-weight-bold text-caption">{{ formatDate(item.due_date)
-                                                }}</td>
-                                                <td class="text-right font-weight-black text-body-2"
-                                                    style="font-feature-settings: 'tnum';">
-                                                    {{ formatCurrency(item.emi)
-                                                    }}</td>
-                                                <td class="text-right font-weight-bold text-caption text-primary"
-                                                    style="font-feature-settings: 'tnum';">{{
-                                                        formatCurrency(item.principal_component) }}</td>
-                                                <td class="text-right font-weight-bold text-caption text-error"
-                                                    style="font-feature-settings: 'tnum';">{{
-                                                        formatCurrency(item.interest_component) }}</td>
-                                                <td class="text-right font-weight-black text-caption text-medium-emphasis"
-                                                    style="font-feature-settings: 'tnum';">{{
-                                                        formatCurrency(item.closing_balance) }}</td>
-                                                <td class="text-center">
-                                                    <v-chip size="x-small" :color="getStatusColor(item.status)"
-                                                        variant="flat"
-                                                        class="font-weight-black text-uppercase shadow-sm">
-                                                        {{ item.status }}
-                                                    </v-chip>
-                                                </td>
-                                                <td class="text-center">
-                                                    <v-btn v-if="item.status !== 'PAID'" size="small" color="primary"
-                                                        variant="tonal" rounded="pill"
-                                                        class="font-weight-bold px-4 hover-lift" height="28"
-                                                        @click="openRepaymentModal(item)">
-                                                        Pay
-                                                    </v-btn>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </v-table>
-                                </div>
-                            </v-card>
-                        </v-col>
-                    </v-row>
-                </div>
-
-                <!-- Repayment Modal -->
-                <v-dialog v-model="showRepaymentModal" max-width="500">
-                    <v-card rounded="xl" class="premium-glass-modal elevation-24">
-                        <div class="px-6 pt-6 pb-2 d-flex justify-space-between align-center">
-                            <div>
-                                <div class="text-overline font-weight-black text-primary mb-1 letter-spacing-2">RECORD
-                                    PAYMENT</div>
-                                <h2 class="text-h5 font-weight-black text-content">EMI #{{ repaymentForm.installment_no
-                                    }}</h2>
-                            </div>
-                            <v-btn icon variant="text" @click="showRepaymentModal = false" density="comfortable"
-                                class="bg-surface-variant bg-opacity-10 opacity-70 hover:opacity-100">
-                                <X :size="20" />
-                            </v-btn>
-                        </div>
-
-                        <v-card-text class="px-6 py-4">
-                            <v-form @submit.prevent="submitRepayment">
-                                <v-text-field v-model.number="repaymentForm.amount" label="Amount" type="number"
-                                    prefix="₹" variant="outlined" density="comfortable" hide-details rounded="lg"
-                                    bg-color="surface" class="mb-4 font-weight-black text-h6">
-                                </v-text-field>
-
-                                <v-text-field v-model="repaymentForm.date" label="Payment Date" type="date"
-                                    variant="outlined" density="comfortable" hide-details rounded="lg"
-                                    bg-color="surface" class="mb-4">
-                                </v-text-field>
-
-                                <v-select v-model="repaymentForm.bank_account_id" :items="accountOptions"
-                                    item-title="label" item-value="value" label="Paid From" variant="outlined"
-                                    density="comfortable" hide-details rounded="lg" bg-color="surface" class="mb-4">
-                                    <template v-slot:append-inner>
-                                        <ChevronDown :size="16" class="text-primary opacity-70" />
-                                    </template>
-                                </v-select>
-
-                                <v-text-field v-model="repaymentForm.description" label="Notes (Optional)"
-                                    placeholder="e.g. Paid via UPI" variant="outlined" density="comfortable"
-                                    hide-details rounded="lg" bg-color="surface">
-                                </v-text-field>
-                            </v-form>
-                        </v-card-text>
-
-                        <v-card-actions class="px-6 pb-6 pt-2">
-                            <v-btn variant="text" @click="showRepaymentModal = false" height="48" rounded="lg"
-                                class="px-6 font-weight-bold text-none text-medium-emphasis">
-                                Cancel
-                            </v-btn>
-                            <v-spacer />
-                            <v-btn color="primary" variant="flat" rounded="lg" height="48"
-                                class="px-8 font-weight-black text-none elevation-4" @click="submitRepayment"
-                                :loading="isSubmitting">
-                                Record Payment
-                            </v-btn>
-                        </v-card-actions>
-                    </v-card>
-                </v-dialog>
-            </div>
-        </v-container>
-    </MainLayout>
-</template>
-
 <script setup lang="ts">
 import { ref, onMounted, computed, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -520,18 +6,31 @@ import MainLayout from '@/layouts/MainLayout.vue'
 import { financeApi as api } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
 import { useCurrency } from '@/composables/useCurrency'
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement } from 'chart.js'
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Filler } from 'chart.js'
 import { Pie, Bar, Line } from 'vue-chartjs'
 import { marked } from 'marked'
-import PremiumSkeleton from '@/components/common/PremiumSkeleton.vue'
-import { ChevronLeft, X, ChevronDown, TrendingUp, Calendar, Activity, Landmark, Wallet, CalendarClock, Target } from 'lucide-vue-next'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import LoanRepaymentModal from '@/components/loans/LoanRepaymentModal.vue'
+import {
+  ChevronLeft,
+  TrendingUp,
+  Calendar,
+  Landmark,
+  Wallet,
+  CalendarClock,
+  Target,
+  Sparkles,
+  CheckCircle2
+} from 'lucide-vue-next'
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement)
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Filler)
 
 const route = useRoute()
 const router = useRouter()
 const notificationStore = useNotificationStore()
 const { formatAmount } = useCurrency()
+
 const loading = ref(true)
 const loan = ref<any>(null)
 const accounts = ref<any[]>([])
@@ -540,525 +39,784 @@ const insights = ref<string | null>(null)
 const simulations = ref<any | null>(null)
 const customSimResult = ref<any | null>(null)
 const customSimLoading = ref(false)
-const customSimForm = reactive({
-    extra_monthly_payment: 0,
-    one_time_prepayment: 0
-})
 const isSubmitting = ref(false)
+
+const customSimForm = reactive({
+  extra_monthly_payment: 0,
+  one_time_prepayment: 0
+})
 
 const showRepaymentModal = ref(false)
 const repaymentForm = ref({
-    amount: 0,
-    date: todayLocalString(),
-    bank_account_id: '',
-    installment_no: null as number | null,
-    description: ''
+  amount: 0,
+  date: todayLocalString(),
+  bank_account_id: '',
+  installment_no: null as number | null,
+  description: ''
 })
 
-const loanTypeOptions = [
-    { label: 'Home Loan', value: 'HOME_LOAN', icon: '🏠' },
-    { label: 'Personal Loan', value: 'PERSONAL_LOAN', icon: '👤' },
-    { label: 'Car Loan', value: 'CAR_LOAN', icon: '🚗' },
-    { label: 'Education Loan', value: 'EDUCATION_LOAN', icon: '🎓' },
-    { label: 'Credit Card', value: 'CREDIT_CARD', icon: '💳' },
-    { label: 'Other', value: 'OTHER', icon: '💰' }
-]
+const loanTypeOptions: Record<string, string> = {
+  HOME_LOAN: '🏠',
+  PERSONAL_LOAN: '👤',
+  CAR_LOAN: '🚗',
+  EDUCATION_LOAN: '🎓',
+  CREDIT_CARD: '💳',
+  OTHER: '💰'
+}
 
 const getLoanIcon = (type: string) => {
-    const opt = loanTypeOptions.find(o => o.value === type)
-    return opt ? opt.icon : '💰'
+  return loanTypeOptions[type] || '💰'
 }
 
 const accountOptions = computed(() => {
-    return accounts.value
-        .filter(a => a.type === 'BANK' || a.type === 'WALLET')
-        .map(a => ({ label: a.name, value: a.id }))
+  return accounts.value
+    .filter(a => a.type === 'BANK' || a.type === 'WALLET')
+    .map(a => ({ label: `${a.name} (${formatAmount(a.balance)})`, value: a.id }))
 })
 
 const openRepaymentModal = (item: any) => {
-    repaymentForm.value = {
-        amount: item.emi,
-        date: item.due_date.split('T')[0],
-        bank_account_id: loan.value.bank_account_id || '',
-        installment_no: item.installment_no,
-        description: `EMI #${item.installment_no} for ${loan.value.name}`
-    }
-    showRepaymentModal.value = true
+  repaymentForm.value = {
+    amount: item.emi,
+    date: item.due_date ? item.due_date.split('T')[0] : todayLocalString(),
+    bank_account_id: loan.value?.bank_account_id || (accounts.value[0]?.id || ''),
+    installment_no: item.installment_no,
+    description: `EMI #${item.installment_no} for ${loan.value?.name || 'Loan'}`
+  }
+  showRepaymentModal.value = true
 }
 
 const submitRepayment = async () => {
-    if (!repaymentForm.value.bank_account_id) {
-        notificationStore.error("Please select a bank account")
-        return
-    }
+  if (!repaymentForm.value.bank_account_id) {
+    notificationStore.error('Please select a bank account')
+    return
+  }
 
-    isSubmitting.value = true
-    try {
-        const id = route.params.id as string
-        await api.recordLoanRepayment(id, repaymentForm.value)
-        notificationStore.success("Repayment recorded successfully")
-        showRepaymentModal.value = false
-        fetchLoanDetails()
-    } catch (e) {
-        console.error("Failed to record repayment", e)
-        notificationStore.error("Failed to record repayment")
-    } finally {
-        isSubmitting.value = false
-    }
+  isSubmitting.value = true
+  try {
+    const id = route.params.id as string
+    await api.recordLoanRepayment(id, repaymentForm.value)
+    notificationStore.success('Repayment recorded successfully')
+    showRepaymentModal.value = false
+    fetchLoanDetails()
+  } catch (e) {
+    console.error('Failed to record repayment', e)
+    notificationStore.error('Failed to record repayment')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 const renderedInsights = computed(() => {
-    return insights.value ? marked(insights.value) : ''
+  return insights.value ? marked(insights.value) : ''
 })
 
 const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-    })
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  })
 }
 
-const formatCurrency = (amount: any) => formatAmount(amount)
-
 const totalInterest = computed(() => {
-    if (!loan.value || !loan.value.amortization_schedule) return 0
-    return loan.value.amortization_schedule.reduce((sum: number, item: any) => sum + Number(item.interest_component), 0)
+  if (!loan.value || !loan.value.amortization_schedule) return 0
+  return loan.value.amortization_schedule.reduce(
+    (sum: number, item: any) => sum + Number(item.interest_component),
+    0
+  )
 })
 
 const chartData = computed(() => {
-    if (!loan.value) return null
-    return {
-        labels: ['Principal', 'Total Interest'],
-        datasets: [
-            {
-                backgroundColor: ['#3B82F6', '#EF4444'],
-                data: [Number(loan.value.principal_amount), totalInterest.value]
-            }
-        ]
-    }
+  if (!loan.value) return null
+  return {
+    labels: ['Principal', 'Total Interest'],
+    datasets: [
+      {
+        backgroundColor: ['#6366F1', '#EF4444'],
+        data: [Number(loan.value.principal_amount), totalInterest.value],
+        borderWidth: 0
+      }
+    ]
+  }
 })
 
 // --- Monthly Amortization Chart Logic ---
 const amortizationChartData = computed(() => {
-    if (!loan.value || !loan.value.amortization_schedule) return null;
+  if (!loan.value || !loan.value.amortization_schedule) return null
 
-    const monthlyData: Record<string, { principal: number, interest: number }> = {};
-    const labelOrder: string[] = [];
+  const monthlyData: Record<string, { principal: number; interest: number }> = {}
+  const labelOrder: string[] = []
 
-    loan.value.amortization_schedule.forEach((item: any) => {
-        const date = new Date(item.due_date);
-        const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+  loan.value.amortization_schedule.forEach((item: any) => {
+    const date = new Date(item.due_date)
+    const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
 
-        if (!monthlyData[monthYear]) {
-            monthlyData[monthYear] = { principal: 0, interest: 0 };
-            labelOrder.push(monthYear);
-        }
-        monthlyData[monthYear].principal += Number(item.principal_component);
-        monthlyData[monthYear].interest += Number(item.interest_component);
-    });
+    if (!monthlyData[monthYear]) {
+      monthlyData[monthYear] = { principal: 0, interest: 0 }
+      labelOrder.push(monthYear)
+    }
+    monthlyData[monthYear].principal += Number(item.principal_component)
+    monthlyData[monthYear].interest += Number(item.interest_component)
+  })
 
-    const principalData = labelOrder.map(label => Math.round(monthlyData[label].principal));
-    const interestData = labelOrder.map(label => Math.round(monthlyData[label].interest));
+  const principalData = labelOrder.map(label => Math.round(monthlyData[label].principal))
+  const interestData = labelOrder.map(label => Math.round(monthlyData[label].interest))
 
-    return {
-        labels: labelOrder,
-        datasets: [
-            {
-                label: 'Principal',
-                backgroundColor: '#3B82F6', // Primary Blue
-                data: principalData,
-                stack: 'Stack 0',
-                borderRadius: 4
-            },
-            {
-                label: 'Interest',
-                backgroundColor: '#EF4444', // Red
-                data: interestData,
-                stack: 'Stack 0',
-                borderRadius: 4
-            }
-        ]
-    };
-});
+  return {
+    labels: labelOrder,
+    datasets: [
+      {
+        label: 'Principal',
+        backgroundColor: '#6366F1',
+        data: principalData,
+        stack: 'Stack 0',
+        borderRadius: 3
+      },
+      {
+        label: 'Interest',
+        backgroundColor: '#EF4444',
+        data: interestData,
+        stack: 'Stack 0',
+        borderRadius: 3
+      }
+    ]
+  }
+})
 
 const amortizationChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-        intersect: false,
-        mode: 'index',
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: {
+    intersect: false,
+    mode: 'index' as const
+  },
+  scales: {
+    x: {
+      stacked: true,
+      grid: { display: false },
+      ticks: { font: { family: 'Inter', size: 10 } }
     },
-    scales: {
-        x: {
-            stacked: true,
-            grid: { display: false }
-        },
-        y: {
-            stacked: true,
-            border: { display: false },
-            grid: { color: 'rgba(128, 128, 128, 0.1)' }
-        }
-    },
-    plugins: {
-        legend: {
-            position: 'top' as const,
-            labels: {
-                usePointStyle: true,
-                padding: 20,
-                font: {
-                    family: 'Inter',
-                    size: 11,
-                    weight: 'bold'
-                }
-            }
-        },
-        tooltip: {
-            callbacks: {
-                label: function (context: any) {
-                    let label = context.dataset.label || '';
-                    if (label) {
-                        label += ': ';
-                    }
-                    if (context.parsed.y !== null) {
-                        label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(context.parsed.y);
-                    }
-                    return label;
-                }
-            }
-        }
+    y: {
+      stacked: true,
+      border: { display: false },
+      grid: { color: 'rgba(128, 128, 128, 0.08)' },
+      ticks: {
+        callback: (value: any) => formatAmount(value),
+        font: { family: 'Inter', size: 10 }
+      }
     }
+  },
+  plugins: {
+    legend: {
+      position: 'top' as const,
+      labels: {
+        usePointStyle: true,
+        padding: 16,
+        font: { family: 'Inter', size: 11, weight: 'bold' as const }
+      }
+    },
+    tooltip: {
+      callbacks: {
+        label: function (context: any) {
+          let label = context.dataset.label || ''
+          if (label) label += ': '
+          if (context.parsed.y !== null) {
+            label += formatAmount(context.parsed.y)
+          }
+          return label
+        }
+      }
+    }
+  }
 }
 
 const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: {
-            position: 'bottom' as const,
-            labels: {
-                usePointStyle: true,
-                padding: 20,
-                font: {
-                    family: 'Inter',
-                    size: 11,
-                    weight: 'bold'
-                }
-            }
-        }
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'bottom' as const,
+      labels: {
+        usePointStyle: true,
+        padding: 16,
+        font: { family: 'Inter', size: 11, weight: 'bold' as const }
+      }
     }
+  }
 }
 
-const getStatusColor = (status: string) => {
-    switch (status) {
-        case 'PAID': return 'success'
-        case 'OVERDUE': return 'error'
-        case 'PENDING': return 'warning'
-        default: return 'medium-emphasis'
-    }
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'PAID':
+      return { label: 'PAID', class: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' }
+    case 'OVERDUE':
+      return { label: 'OVERDUE', class: 'bg-rose-500/10 text-rose-500 border-rose-500/20' }
+    case 'PENDING':
+    default:
+      return { label: 'PENDING', class: 'bg-amber-500/10 text-amber-500 border-amber-500/20' }
+  }
 }
 
 const fetchLoanDetails = async () => {
-    loading.value = true
-    try {
-        const [loanRes, accRes] = await Promise.all([
-            api.getLoanDetails(route.params.id as string),
-            api.getAccounts()
-        ])
-        loan.value = loanRes.data
-        accounts.value = accRes.data
-    } catch (e) {
-        console.error("Failed to fetch loan details", e)
-        notificationStore.error("Failed to load loan details")
-    } finally {
-        loading.value = false
-    }
+  loading.value = true
+  try {
+    const [loanRes, accRes] = await Promise.all([
+      api.getLoanDetails(route.params.id as string),
+      api.getAccounts()
+    ])
+    loan.value = loanRes.data
+    accounts.value = accRes.data
+  } catch (e) {
+    console.error('Failed to fetch loan details', e)
+    notificationStore.error('Failed to load loan details')
+  } finally {
+    loading.value = false
+  }
 }
 
 const generateInsights = async () => {
-    insightLoading.value = true
-    try {
-        const id = route.params.id as string
-        const response = await api.getLoanInsights(id)
-        insights.value = response.data.insights
-        simulations.value = response.data.simulations
-        notificationStore.success("Optimization report generated!")
-    } catch (e) {
-        console.error("Failed to generate insights", e)
-        notificationStore.error("Failed to generate debt optimization analysis.")
-    } finally {
-        insightLoading.value = false
-    }
+  insightLoading.value = true
+  try {
+    const id = route.params.id as string
+    const response = await api.getLoanInsights(id)
+    insights.value = response.data.insights
+    simulations.value = response.data.simulations
+    notificationStore.success('Optimization report generated!')
+  } catch (e) {
+    console.error('Failed to generate insights', e)
+    notificationStore.error('Failed to generate debt optimization analysis.')
+  } finally {
+    insightLoading.value = false
+  }
 }
 
 const runCustomSimulation = async () => {
-    customSimLoading.value = true
-    try {
-        const id = route.params.id as string
-        const response = await api.simulateLoanPrepayment(id, customSimForm)
-        customSimResult.value = response.data
-    } catch (e) {
-        console.error("Failed to run custom simulation", e)
-        notificationStore.error("Failed to simulate. Ensure values are valid.")
-    } finally {
-        customSimLoading.value = false
-    }
+  customSimLoading.value = true
+  try {
+    const id = route.params.id as string
+    const response = await api.simulateLoanPrepayment(id, customSimForm)
+    customSimResult.value = response.data
+  } catch (e) {
+    console.error('Failed to run custom simulation', e)
+    notificationStore.error('Failed to simulate. Ensure values are valid.')
+  } finally {
+    customSimLoading.value = false
+  }
 }
 
 const simulationChartData = computed(() => {
-    if (!customSimResult.value?.custom_schedule || !customSimResult.value?.standard_schedule) return null
+  if (!customSimResult.value?.custom_schedule || !customSimResult.value?.standard_schedule) return null
 
-    const custom = customSimResult.value.custom_schedule
-    const standard = customSimResult.value.standard_schedule
+  const custom = customSimResult.value.custom_schedule
+  const standard = customSimResult.value.standard_schedule
 
-    // Sample points for performance (capped at 50 points)
-    const totalMax = Math.max(custom.length, standard.length)
-    const step = Math.max(1, Math.ceil(totalMax / 50))
+  const totalMax = Math.max(custom.length, standard.length)
+  const step = Math.max(1, Math.ceil(totalMax / 50))
 
-    const labels = []
-    const standardData = []
-    const customData = []
+  const labels = []
+  const standardData = []
+  const customData = []
 
-    for (let i = 0; i < totalMax; i += step) {
-        labels.push(`Month ${i}`)
-        standardData.push(i < standard.length ? standard[i].balance : 0)
-        customData.push(i < custom.length ? custom[i].balance : 0)
-    }
+  for (let i = 0; i < totalMax; i += step) {
+    labels.push(`M${i}`)
+    standardData.push(i < standard.length ? standard[i].balance : 0)
+    customData.push(i < custom.length ? custom[i].balance : 0)
+  }
 
-    // Ensure final month is included
-    if (totalMax % step !== 0) {
-        labels.push(`Month ${totalMax}`)
-        standardData.push(0)
-        customData.push(0)
-    }
+  if (totalMax % step !== 0) {
+    labels.push(`M${totalMax}`)
+    standardData.push(0)
+    customData.push(0)
+  }
 
-    return {
-        labels,
-        datasets: [
-            {
-                label: 'Standard Path',
-                data: standardData,
-                borderColor: 'rgba(99, 102, 241, 0.3)',
-                backgroundColor: 'rgba(99, 102, 241, 0.05)',
-                borderDash: [5, 5],
-                tension: 0.4,
-                pointRadius: 0,
-                fill: true
-            },
-            {
-                label: 'Strategic Path',
-                data: customData,
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                borderWidth: 3,
-                tension: 0.4,
-                pointRadius: 0,
-                fill: true
-            }
-        ]
-    }
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Standard Path',
+        data: standardData,
+        borderColor: 'rgba(99, 102, 241, 0.4)',
+        backgroundColor: 'rgba(99, 102, 241, 0.05)',
+        borderDash: [4, 4],
+        tension: 0.3,
+        pointRadius: 0,
+        fill: true
+      },
+      {
+        label: 'Strategic Path',
+        data: customData,
+        borderColor: '#10B981',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        borderWidth: 2.5,
+        tension: 0.3,
+        pointRadius: 0,
+        fill: true
+      }
+    ]
+  }
 })
 
 const simulationChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-        y: {
-            beginAtZero: true,
-            grid: { color: 'rgba(0,0,0,0.03)' },
-            ticks: {
-                callback: (value: any) => formatCurrency(value),
-                font: { family: 'Inter', size: 10, weight: 'bold' }
-            }
-        },
-        x: {
-            grid: { display: false },
-            ticks: {
-                maxRotation: 0,
-                font: { family: 'Inter', size: 10, weight: 'bold' }
-            }
-        }
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+    y: {
+      beginAtZero: true,
+      grid: { color: 'rgba(128, 128, 128, 0.08)' },
+      ticks: {
+        callback: (value: any) => formatAmount(value),
+        font: { family: 'Inter', size: 10 }
+      }
     },
-    plugins: {
-        legend: {
-            position: 'bottom' as const,
-            labels: { usePointStyle: true, font: { family: 'Inter', size: 11, weight: 'bold' } }
-        },
-        tooltip: {
-            mode: 'index' as const,
-            intersect: false,
-            callbacks: {
-                label: (context: any) => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
-            }
-        }
+    x: {
+      grid: { display: false },
+      ticks: { maxRotation: 0, font: { family: 'Inter', size: 10 } }
     }
+  },
+  plugins: {
+    legend: {
+      position: 'bottom' as const,
+      labels: { usePointStyle: true, font: { family: 'Inter', size: 11, weight: 'bold' as const } }
+    },
+    tooltip: {
+      mode: 'index' as const,
+      intersect: false,
+      callbacks: {
+        label: (context: any) => `${context.dataset.label}: ${formatAmount(context.parsed.y)}`
+      }
+    }
+  }
 }
 
 onMounted(() => {
-    fetchLoanDetails()
+  fetchLoanDetails()
 })
 </script>
 
-<style scoped>
-.shadow-primary {
-    box-shadow: 0 10px 25px -5px rgba(var(--v-theme-primary), 0.4) !important;
-}
+<template>
+  <MainLayout>
+    <div class="max-w-[1600px] mx-auto space-y-8 pb-16">
+      <!-- Back Link -->
+      <div>
+        <button
+          type="button"
+          @click="router.back()"
+          class="inline-flex items-center gap-1.5 text-xs font-bold text-wf-text-secondary hover:text-wf-primary transition-colors"
+        >
+          <ChevronLeft class="w-4 h-4" />
+          <span>Back to Loans</span>
+        </button>
+      </div>
 
-.shadow-sm {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-}
+      <!-- Loading State -->
+      <div v-if="loading" class="space-y-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div v-for="i in 4" :key="`skel-top-${i}`" class="h-28 rounded-wf-lg bg-wf-surface-variant/40 animate-pulse"></div>
+        </div>
+        <div class="h-64 rounded-wf-lg bg-wf-surface-variant/40 animate-pulse"></div>
+      </div>
 
-.letter-spacing-1 {
-    letter-spacing: 0.05em;
-}
+      <!-- Loan Detail Content -->
+      <div v-else-if="loan" class="space-y-8">
+        <!-- HEADER ROW -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-wf-border-subtle">
+          <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-wf-xl bg-wf-surface-variant flex items-center justify-center text-3xl border border-wf-border-subtle shadow-2xs">
+              <span>{{ getLoanIcon(loan.loan_type) }}</span>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h1 class="text-xl sm:text-2xl font-black tracking-tight text-wf-text-primary">
+                  {{ loan.name }}
+                </h1>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50 uppercase tracking-wider">
+                  {{ loan.loan_type?.replace(/_/g, ' ') || 'LOAN' }}
+                </span>
+              </div>
+              <div class="flex items-center gap-3 text-xs text-wf-text-muted mt-1 font-semibold">
+                <div class="flex items-center gap-1">
+                  <Calendar class="w-3.5 h-3.5" />
+                  <span>{{ loan.tenure_months }} Months</span>
+                </div>
+                <span>•</span>
+                <div class="flex items-center gap-1 text-rose-500 font-bold">
+                  <TrendingUp class="w-3.5 h-3.5" />
+                  <span>{{ loan.interest_rate }}% Interest</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-.letter-spacing-negative-1 {
-    letter-spacing: -0.02em;
-}
+          <!-- Outstanding Callout Card -->
+          <div class="p-4 bg-wf-primary-light/40 dark:bg-indigo-950/30 rounded-wf-lg border border-indigo-200 dark:border-indigo-900/50 self-start md:self-auto min-w-[220px]">
+            <span class="text-[10px] font-bold text-wf-primary uppercase tracking-wider block">
+              Current Outstanding
+            </span>
+            <div class="text-2xl font-black text-wf-primary font-mono mt-0.5">
+              {{ formatAmount(loan.outstanding_balance) }}
+            </div>
+          </div>
+        </div>
 
-.icon-box {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    flex-shrink: 0;
-}
+        <!-- 4 METRIC STAT CARDS -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <!-- Principal -->
+          <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-wf-md bg-wf-primary-light text-wf-primary flex items-center justify-center border border-indigo-200 dark:border-indigo-900/50">
+                <Landmark class="w-3.5 h-3.5" />
+              </div>
+              <span class="text-[10px] font-bold text-wf-text-secondary uppercase tracking-wider">Principal</span>
+            </div>
+            <div class="text-lg font-black text-wf-text-primary font-mono">
+              {{ formatAmount(loan.principal_amount) }}
+            </div>
+          </WfCard>
 
-.hover-lift {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+          <!-- Monthly EMI -->
+          <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-wf-md bg-rose-500/10 text-rose-500 flex items-center justify-center border border-rose-500/20">
+                <Wallet class="w-3.5 h-3.5" />
+              </div>
+              <span class="text-[10px] font-bold text-wf-text-secondary uppercase tracking-wider">Monthly EMI</span>
+            </div>
+            <div class="text-lg font-black text-wf-text-primary font-mono">
+              {{ formatAmount(loan.emi_amount) }}
+            </div>
+          </WfCard>
 
-.hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
-}
+          <!-- Next Due Date -->
+          <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-wf-md bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20">
+                <CalendarClock class="w-3.5 h-3.5" />
+              </div>
+              <span class="text-[10px] font-bold text-wf-text-secondary uppercase tracking-wider">Next Due Date</span>
+            </div>
+            <div class="text-sm font-bold text-wf-text-primary mt-1">
+              {{ formatDate(loan.next_emi_date) }}
+            </div>
+          </WfCard>
 
-.loan-progress-premium :deep(.v-progress-linear__determinate) {
-    background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%) !important;
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
-}
+          <!-- Repayment Progress -->
+          <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-wf-md bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
+                  <Target class="w-3.5 h-3.5" />
+                </div>
+                <span class="text-[10px] font-bold text-wf-text-secondary uppercase tracking-wider">Progress</span>
+              </div>
+              <span class="text-xs font-black text-wf-primary font-mono">{{ Math.round(loan.progress_percentage || 0) }}%</span>
+            </div>
+            <div class="w-full bg-wf-surface-variant rounded-wf-pill h-2 overflow-hidden mt-2">
+              <div
+                class="bg-emerald-500 h-full rounded-wf-pill transition-all duration-500"
+                :style="{ width: `${Math.max(0, Math.min(100, loan.progress_percentage || 0))}%` }"
+              ></div>
+            </div>
+          </WfCard>
+        </div>
 
-.loan-progress-premium :deep(.v-progress-linear__background) {
-    opacity: 0.15 !important;
-}
+        <!-- STRATEGIC DEBT OPTIMIZATION CARD -->
+        <WfCard variant="flat" padding="none" radius="lg" class="shadow-2xs overflow-hidden border border-wf-border">
+          <!-- Section Header -->
+          <div class="p-6 bg-wf-surface-variant/30 border-b border-wf-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-wf-md bg-wf-primary-light text-wf-primary flex items-center justify-center border border-indigo-200 dark:border-indigo-900/50 shadow-2xs">
+                <Sparkles class="w-4 h-4" />
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-wf-text-primary">
+                  Strategic Debt Optimization & Shredder
+                </h3>
+                <p class="text-[11px] text-wf-text-muted">
+                  Simulate EMI top-ups and lumpsum prepayments to eliminate debt years early
+                </p>
+              </div>
+            </div>
 
-.glass-panel {
-    background: rgba(var(--v-theme-surface), 0.6) !important;
-    backdrop-filter: blur(20px) saturate(180%);
-}
+            <WfButton
+              variant="primary"
+              size="sm"
+              :loading="insightLoading"
+              @click="generateInsights"
+            >
+              <Sparkles class="w-3.5 h-3.5 mr-1" />
+              <span>{{ insights ? 'Refresh Analysis' : 'Generate AI Insights' }}</span>
+            </WfButton>
+          </div>
 
-.insights-glow {
-    border: 1px solid rgba(var(--v-theme-primary), 0.3) !important;
-    box-shadow: 0 0 40px rgba(var(--v-theme-primary), 0.05) !important;
-}
+          <!-- Pre-computed Strategic Simulations -->
+          <div v-if="simulations && simulations.scenarios" class="p-6 border-b border-wf-border-subtle space-y-3">
+            <h4 class="text-[11px] font-bold text-wf-primary uppercase tracking-wider">
+              Recommended Scenarios
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div
+                v-for="scen in simulations.scenarios"
+                :key="scen.name"
+                class="p-4 rounded-wf-md bg-wf-surface border border-wf-border hover:border-wf-primary/40 transition-colors shadow-2xs space-y-3"
+              >
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 rounded-wf-xs bg-wf-primary-light text-wf-primary flex items-center justify-center">
+                    <TrendingUp class="w-3 h-3" />
+                  </div>
+                  <h5 class="text-xs font-bold text-wf-text-primary">{{ scen.name }}</h5>
+                </div>
+                <p class="text-[11px] text-wf-text-secondary leading-relaxed">{{ scen.description }}</p>
+                <div class="space-y-1.5 pt-2 border-t border-wf-border-subtle text-xs">
+                  <div class="flex justify-between">
+                    <span class="text-wf-text-muted text-[11px]">Interest Saved</span>
+                    <span class="font-bold text-emerald-500 font-mono">{{ formatAmount(scen.interest_saved) }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-wf-text-muted text-[11px]">Time Saved</span>
+                    <span class="font-bold text-wf-primary">{{ scen.months_saved }} Months</span>
+                  </div>
+                  <div class="flex justify-between text-[11px]">
+                    <span class="text-wf-text-muted">Revised Tenure</span>
+                    <span class="font-semibold text-wf-text-primary">{{ scen.months }} months</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-.insights-header-bg {
-    background: linear-gradient(90deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-primary), 0.02) 100%);
-    border-bottom: 1px solid rgba(var(--v-theme-primary), 0.1);
-}
+          <!-- Interactive Debt Shredder Simulator -->
+          <div class="p-6 border-b border-wf-border-subtle space-y-4">
+            <h4 class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">
+              Interactive Debt Shredder Simulator
+            </h4>
 
-.premium-table th {
-    background: rgba(var(--v-theme-surface), 0.8) !important;
-    backdrop-filter: blur(10px);
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    border-bottom: 2px solid rgba(var(--v-border-color), 0.1) !important;
-}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Controls -->
+              <div class="space-y-4">
+                <!-- Extra Monthly Payment -->
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label class="text-[11px] font-bold text-wf-text-secondary">
+                      Extra Monthly Payment (EMI Top-up)
+                    </label>
+                    <span class="text-xs font-black text-wf-primary font-mono">
+                      {{ formatAmount(customSimForm.extra_monthly_payment) }}
+                    </span>
+                  </div>
+                  <input
+                    v-model.number="customSimForm.extra_monthly_payment"
+                    type="range"
+                    :min="0"
+                    :max="loan.emi_amount"
+                    :step="1000"
+                    class="w-full accent-indigo-600 cursor-pointer"
+                  />
+                </div>
 
-.premium-table td {
-    border-bottom: 1px solid rgba(var(--v-border-color), 0.05) !important;
-}
+                <!-- One-time Lumpsum Prepayment -->
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label class="text-[11px] font-bold text-wf-text-secondary">
+                      One-time Lumpsum Prepayment
+                    </label>
+                    <span class="text-xs font-black text-wf-primary font-mono">
+                      {{ formatAmount(customSimForm.one_time_prepayment) }}
+                    </span>
+                  </div>
+                  <input
+                    v-model.number="customSimForm.one_time_prepayment"
+                    type="range"
+                    :min="0"
+                    :max="Math.max(100000, loan.outstanding_balance / 2)"
+                    :step="5000"
+                    class="w-full accent-indigo-600 cursor-pointer"
+                  />
+                </div>
 
-.transition-fast {
-    transition: all 0.2s ease;
-}
+                <WfButton
+                  variant="primary"
+                  size="md"
+                  block
+                  :loading="customSimLoading"
+                  @click="runCustomSimulation"
+                >
+                  <span>Run Custom Simulation</span>
+                </WfButton>
+              </div>
 
-.dashboard-page {
-    position: relative;
-    min-height: calc(100vh - 64px);
-}
+              <!-- Simulation Result Card -->
+              <div v-if="customSimResult" class="p-4 rounded-wf-md bg-emerald-500/5 border border-emerald-500/20 space-y-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2 text-emerald-500 font-bold text-xs">
+                    <CheckCircle2 class="w-4 h-4" />
+                    <span>Impact Analysis</span>
+                  </div>
+                  <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Optimized Plan</span>
+                </div>
 
-.mesh-blob {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.15;
-    border-radius: 50%;
-}
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="p-2.5 rounded-wf-sm bg-wf-surface border border-emerald-500/20">
+                    <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Interest Saved</span>
+                    <div class="text-base font-black text-emerald-500 font-mono mt-0.5">
+                      {{ formatAmount(customSimResult.interest_saved) }}
+                    </div>
+                  </div>
+                  <div class="p-2.5 rounded-wf-sm bg-wf-surface border border-emerald-500/20">
+                    <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Time Saved</span>
+                    <div class="text-base font-black text-wf-primary font-mono mt-0.5">
+                      {{ customSimResult.months_saved }} Months
+                    </div>
+                  </div>
+                </div>
 
-.relative-pos {
-    position: relative;
-}
+                <!-- Simulation Line Chart -->
+                <div class="h-44 bg-wf-surface rounded-wf-md p-2 border border-wf-border-subtle">
+                  <Line
+                    v-if="simulationChartData"
+                    :data="simulationChartData as any"
+                    :options="simulationChartOptions as any"
+                  />
+                </div>
+              </div>
 
-.z-10 {
-    z-index: 10;
-}
+              <!-- Awaiting Inputs -->
+              <div v-else class="flex flex-col items-center justify-center p-8 rounded-wf-md border border-dashed border-wf-border text-center space-y-2">
+                <div class="w-10 h-10 rounded-full bg-wf-primary-light text-wf-primary flex items-center justify-center">
+                  <Target class="w-5 h-5" />
+                </div>
+                <h5 class="text-xs font-bold text-wf-text-primary">Awaiting Simulation</h5>
+                <p class="text-[11px] text-wf-text-muted max-w-xs">
+                  Adjust prepayments and click 'Run Custom Simulation' to calculate your interest reduction.
+                </p>
+              </div>
+            </div>
+          </div>
 
-.premium-glass-card {
-    background: rgba(var(--v-theme-surface), 0.7) !important;
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(128, 128, 128, 0.15) !important;
-    box-shadow: none !important;
-}
+          <!-- Optimization Report Markdown -->
+          <div v-if="insights" class="p-6 bg-wf-surface-variant/20 space-y-3">
+            <div class="flex items-center gap-2 text-wf-primary font-bold text-xs uppercase tracking-wider">
+              <TrendingUp class="w-4 h-4" />
+              <span>Optimization Analysis Report</span>
+            </div>
+            <div class="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed text-wf-text-secondary" v-html="renderedInsights"></div>
+          </div>
+        </WfCard>
 
-.premium-glass-card:not(.border-dashed) {
-    border-color: rgba(var(--v-border-color), 0.15) !important;
-}
+        <!-- CHARTS SECTION -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Monthly Amortization Stacked Bar Chart -->
+          <WfCard variant="flat" padding="md" radius="lg" class="lg:col-span-2 shadow-2xs space-y-4">
+            <div>
+              <h3 class="text-sm font-bold text-wf-text-primary">Monthly Amortization Breakdown</h3>
+              <p class="text-[11px] text-wf-text-muted">Projected Principal vs. Interest split across payments</p>
+            </div>
+            <div class="h-72">
+              <Bar
+                v-if="amortizationChartData"
+                :data="amortizationChartData as any"
+                :options="amortizationChartOptions as any"
+              />
+            </div>
+          </WfCard>
 
-.premium-glass-modal {
-    background: rgba(var(--v-theme-surface), 0.95) !important;
-    backdrop-filter: blur(24px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
+          <!-- Principal vs Total Interest Donut Chart -->
+          <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs flex flex-col justify-between space-y-4">
+            <div>
+              <h3 class="text-sm font-bold text-wf-text-primary">Principal vs Interest Ratio</h3>
+              <p class="text-[11px] text-wf-text-muted">Total cost composition</p>
+            </div>
 
-.primary-glow-box {
-    width: 48px;
-    height: 48px;
-    background: rgba(var(--v-theme-primary), 0.1);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+            <div class="h-48">
+              <Pie
+                v-if="chartData"
+                :data="chartData as any"
+                :options="chartOptions as any"
+              />
+            </div>
 
-.premium-markdown :deep(h1),
-.premium-markdown :deep(h2),
-.premium-markdown :deep(h3) {
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
-    font-weight: 800;
-    line-height: 1.2;
-}
+            <div class="p-3 bg-rose-500/10 border border-rose-500/20 rounded-wf-md text-center">
+              <span class="text-[10px] font-bold text-rose-500 uppercase tracking-wider block">
+                Total Interest Payable
+              </span>
+              <div class="text-lg font-black text-rose-500 font-mono mt-0.5">
+                {{ formatAmount(totalInterest) }}
+              </div>
+            </div>
+          </WfCard>
+        </div>
 
-.premium-markdown :deep(p) {
-    margin-bottom: 1rem;
-    line-height: 1.6;
-    opacity: 0.9;
-}
+        <!-- AMORTIZATION SCHEDULE TABLE -->
+        <WfCard variant="flat" padding="none" radius="lg" class="shadow-2xs overflow-hidden border border-wf-border">
+          <div class="px-6 py-4 border-b border-wf-border-subtle flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-wf-text-primary">Amortization Schedule</h3>
+              <p class="text-[11px] text-wf-text-muted">Detailed installment breakdown and repayment log</p>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-wf-pill text-[10px] font-bold bg-wf-surface-variant text-wf-text-secondary border border-wf-border-subtle">
+              {{ loan.amortization_schedule?.length || 0 }} Installments
+            </span>
+          </div>
 
-.premium-markdown :deep(ul) {
-    padding-left: 1.5rem;
-    margin-bottom: 1rem;
-}
+          <div class="overflow-x-auto max-h-[500px]">
+            <table class="w-full text-left text-xs divide-y divide-wf-border-subtle">
+              <thead class="bg-wf-surface-variant/50 sticky top-0 z-10 text-[10px] font-bold text-wf-text-secondary uppercase tracking-wider">
+                <tr>
+                  <th class="px-4 py-3">#</th>
+                  <th class="px-4 py-3">Due Date</th>
+                  <th class="px-4 py-3 text-right">EMI</th>
+                  <th class="px-4 py-3 text-right">Principal</th>
+                  <th class="px-4 py-3 text-right">Interest</th>
+                  <th class="px-4 py-3 text-right">Closing Balance</th>
+                  <th class="px-4 py-3 text-center">Status</th>
+                  <th class="px-4 py-3 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-wf-border-subtle bg-wf-surface font-mono">
+                <tr
+                  v-for="item in loan.amortization_schedule"
+                  :key="item.installment_no"
+                  class="hover:bg-wf-surface-variant/30 transition-colors"
+                >
+                  <td class="px-4 py-3 font-sans text-wf-text-muted">{{ item.installment_no }}</td>
+                  <td class="px-4 py-3 font-sans font-medium text-wf-text-primary">{{ formatDate(item.due_date) }}</td>
+                  <td class="px-4 py-3 text-right font-black text-wf-text-primary">{{ formatAmount(item.emi) }}</td>
+                  <td class="px-4 py-3 text-right font-bold text-wf-primary">{{ formatAmount(item.principal_component) }}</td>
+                  <td class="px-4 py-3 text-right font-bold text-rose-500">{{ formatAmount(item.interest_component) }}</td>
+                  <td class="px-4 py-3 text-right text-wf-text-muted">{{ formatAmount(item.closing_balance) }}</td>
+                  <td class="px-4 py-3 text-center font-sans">
+                    <span
+                      class="inline-flex items-center px-2 py-0.5 rounded-wf-pill text-[9px] font-bold border"
+                      :class="getStatusBadge(item.status).class"
+                    >
+                      {{ getStatusBadge(item.status).label }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-center font-sans">
+                    <WfButton
+                      v-if="item.status !== 'PAID'"
+                      variant="primary"
+                      size="sm"
+                      @click="openRepaymentModal(item)"
+                    >
+                      <span>Pay</span>
+                    </WfButton>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </WfCard>
+      </div>
 
-.hover-row:hover {
-    background-color: rgba(var(--v-theme-surface-variant), 0.05);
-}
-
-.simulation-card {
-    transition: all 0.3s ease;
-    background: rgba(var(--v-theme-surface), 0.3);
-}
-
-.simulation-card:hover {
-    background: rgba(var(--v-theme-primary), 0.03);
-    border-color: rgba(var(--v-theme-primary), 0.6) !important;
-    transform: translateY(-2px);
-}
-
-.line-height-1-4 {
-    line-height: 1.4;
-}
-</style>
+      <!-- REPAYMENT MODAL -->
+      <LoanRepaymentModal
+        v-model="showRepaymentModal"
+        :repayment-form="repaymentForm"
+        :account-options="accountOptions"
+        :saving="isSubmitting"
+        @submit="submitRepayment"
+      />
+    </div>
+  </MainLayout>
+</template>
