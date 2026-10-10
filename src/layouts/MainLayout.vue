@@ -1,30 +1,34 @@
 <script setup lang="ts">
 import {
-    LayoutDashboard,
-    Wallet,
-    PieChart,
-    Sparkles,
-    Coins,
-    Settings,
-    Bell,
-    LogOut,
-    User as UserIcon,
-    Target,
-    Layers,
-    Landmark,
-    Tags,
-    Menu,
-    Moon,
-    Sun,
-    Users,
-    ChevronDown,
-    Search,
-    RefreshCw,
-    ShieldCheck,
-    Zap,
-    Eye,
-    EyeOff,
-    Briefcase
+  LayoutDashboard,
+  Wallet,
+  PieChart,
+  Sparkles,
+  Coins,
+  Settings,
+  Bell,
+  LogOut,
+  Target,
+  Layers,
+  Landmark,
+  Tags,
+  Menu,
+  Moon,
+  Sun,
+  Users,
+  ChevronDown,
+  ChevronRight,
+  Search,
+  RefreshCw,
+  ShieldCheck,
+  Zap,
+  Eye,
+  EyeOff,
+  Briefcase,
+  X,
+  Check,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-vue-next'
 import { ref, onMounted, computed, watch } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
@@ -38,15 +42,15 @@ import { useWebSockets } from '@/composables/useWebSockets'
 const { notifications, clearNotifications } = useWebSockets()
 const unreadCount = computed(() => notifications.value.length)
 
-// Bell Ring Animation State
+// Bell Ring Animation
 const isBellRinging = ref(false)
 watch(unreadCount, (newVal, oldVal) => {
-    if (newVal > oldVal) {
-        isBellRinging.value = true
-        setTimeout(() => {
-            isBellRinging.value = false
-        }, 1000)
-    }
+  if (newVal > oldVal) {
+    isBellRinging.value = true
+    setTimeout(() => {
+      isBellRinging.value = false
+    }, 1000)
+  }
 })
 
 const auth = useAuthStore()
@@ -55,1082 +59,582 @@ const router = useRouter()
 const route = useRoute()
 const theme = useTheme()
 
-// Privacy Masking Factor Toggle
+// App metadata
+const appVersionDisplay = `v${__APP_VERSION__} (${__APP_BUILD__})`
+const appShortVersion = `v${__APP_VERSION__.split('.')[0]}`
+
+// Navigation state - default expanded on large screens, or collapsed
+const isSidebarCollapsed = ref(false)
+const isMobileDrawerOpen = ref(false)
+const showSearch = ref(false)
+
+// Dropdown states
+const showMemberMenu = ref(false)
+const showNotificationMenu = ref(false)
+const openedGroups = ref<Record<string, boolean>>({
+  'Banking': true,
+  'Planning': true,
+  'Wealth': true,
+  'System': false,
+})
+
+// Current Page Title for breadcrumbs
+const currentPageTitle = computed(() => {
+  if (route.path === '/') return 'Dashboard'
+  const matched = route.matched[0]
+  if (matched?.name) {
+    return String(matched.name).replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+  }
+  return 'Overview'
+})
+
+// Privacy Masking Toggle
 function toggleMasking() {
-    settingsStore.toggleMasking()
+  settingsStore.toggleMasking()
 }
-
-// Version info
-const appVersion = __APP_VERSION__
-const appBuild = __APP_BUILD__
-
-// Navigation State
-const drawer = ref(true)
-const rail = ref(true)
 
 // Theme Toggle
 function toggleTheme() {
-    theme.global.name.value = theme.global.current.value.dark ? 'wealthFamTheme' : 'wealthFamDark'
+  const isDark = theme.global.current.value.dark
+  theme.global.name.value = isDark ? 'wealthFamTheme' : 'wealthFamDark'
+  if (isDark) {
+    document.documentElement.classList.remove('dark')
+    document.documentElement.setAttribute('data-theme', 'light')
+  } else {
+    document.documentElement.classList.add('dark')
+    document.documentElement.setAttribute('data-theme', 'dark')
+  }
 }
 
-// Global Search State
-const showSearch = ref(false)
-
 onMounted(() => {
-    // Handle deep linking to search if needed
-    if (route.query.search === 'true') showSearch.value = true
+  if (route.query.search === 'true') showSearch.value = true
+  
+  // Set initial data-theme
+  if (theme.global.current.value.dark) {
+    document.documentElement.classList.add('dark')
+    document.documentElement.setAttribute('data-theme', 'dark')
+  }
+
+  // Auto-expand group if current route matches child
+  navSections.value.forEach(section => {
+    section.items.forEach(item => {
+      if (item.children?.some(c => c.to === route.path)) {
+        openedGroups.value[item.title] = true
+      }
+    })
+  })
 })
 
-// User Menu State
 const selectedAvatar = ref(localStorage.getItem('user_avatar') || 'default')
-
 const AVATARS: Record<string, string> = {
-    'default': '👤',
-    'male': '👨‍💼',
-    'female': '👩‍💼',
-    'kid': '🧒'
+  default: '👤',
+  male: '👨‍💼',
+  female: '👩‍💼',
+  kid: '🧒',
 }
 
 interface NavItem {
-    title: string
-    icon: any
-    to?: string
-    children?: NavItem[]
-    adultOnly?: boolean
+  title: string
+  icon: any
+  to?: string
+  children?: NavItem[]
+  adultOnly?: boolean
 }
 
-const navItems = computed(() => {
-    const rawItems: NavItem[] = [
+interface NavSection {
+  sectionTitle?: string
+  items: NavItem[]
+}
+
+const navSections = computed<NavSection[]>(() => {
+  const rawSections: NavSection[] = [
+    {
+      items: [
         { title: 'Dashboard', icon: LayoutDashboard, to: '/' },
         { title: 'Transactions', icon: Wallet, to: '/transactions' },
+      ]
+    },
+    {
+      sectionTitle: 'FINANCES',
+      items: [
         {
-            title: 'Banking',
-            icon: Landmark,
-            children: [
-                { title: 'Accounts', icon: Briefcase, to: '/accounts', adultOnly: true },
-                { title: 'Statements', icon: RefreshCw, to: '/statements', adultOnly: true },
-            ]
+          title: 'Banking',
+          icon: Landmark,
+          children: [
+            { title: 'Accounts', icon: Briefcase, to: '/accounts', adultOnly: true },
+            { title: 'Statements', icon: RefreshCw, to: '/statements', adultOnly: true },
+          ],
         },
         {
-            title: 'Planning',
-            icon: PieChart,
-            children: [
-                { title: 'Insights', icon: Sparkles, to: '/insights' },
-                { title: 'Budgets', icon: PieChart, to: '/budgets' },
-                { title: 'Categories', icon: Tags, to: '/categories' },
-                { title: 'Expense Groups', icon: Layers, to: '/expense-groups' },
-            ]
+          title: 'Planning',
+          icon: PieChart,
+          children: [
+            { title: 'Insights', icon: Sparkles, to: '/insights' },
+            { title: 'Budgets', icon: PieChart, to: '/budgets' },
+            { title: 'Categories', icon: Tags, to: '/categories' },
+            { title: 'Expense Groups', icon: Layers, to: '/expense-groups' },
+          ],
         },
         {
-            title: 'Wealth',
-            icon: Coins,
-            children: [
-                { title: 'Mutual Funds', icon: Coins, to: '/mutual-funds' },
-                { title: 'Financial Goals', icon: Target, to: '/investment-goals' },
-                { title: 'Loans', icon: Landmark, to: '/loans' },
-            ]
+          title: 'Wealth',
+          icon: Coins,
+          children: [
+            { title: 'Mutual Funds', icon: Coins, to: '/mutual-funds' },
+            { title: 'Financial Goals', icon: Target, to: '/investment-goals' },
+            { title: 'Loans', icon: Landmark, to: '/loans' },
+          ],
+        },
+      ]
+    },
+    {
+      sectionTitle: 'SYSTEM',
+      items: [
+        {
+          title: 'Vault',
+          icon: ShieldCheck,
+          to: '/vault'
         },
         {
-            title: 'System',
-            icon: Settings,
-            children: [
-                { title: 'Vault', icon: ShieldCheck, to: '/vault' },
-                { title: 'Settings', icon: Settings, to: '/settings' },
-            ]
+          title: 'Settings',
+          icon: Settings,
+          to: '/settings'
         }
-    ]
+      ]
+    }
+  ]
 
-    // Deep filter for adultOnly items
-    return rawItems.map(item => {
+  return rawSections.map(section => ({
+    ...section,
+    items: section.items
+      .map(item => {
         if (item.children) {
-            const filteredChildren = item.children.filter(child => {
-                if (auth.user?.role === 'CHILD' && child.adultOnly) return false
-                return true
-            })
-            return { ...item, children: filteredChildren }
+          const filtered = item.children.filter(child => {
+            if (auth.user?.role === 'CHILD' && child.adultOnly) return false
+            return true
+          })
+          return { ...item, children: filtered }
         }
         return item
-    }).filter(item => {
-        // If it's a group, keep it only if it has children after filtering
+      })
+      .filter(item => {
         if (item.children) return item.children.length > 0
-        // If it's a flat item, check adultOnly
         if (auth.user?.role === 'CHILD' && item.adultOnly) return false
         return true
-    })
+      })
+  }))
 })
 
-function logout() {
-    auth.logout()
-    router.push('/login')
+function toggleGroup(title: string) {
+  if (isSidebarCollapsed.value) {
+    isSidebarCollapsed.value = false
+  }
+  openedGroups.value[title] = !openedGroups.value[title]
 }
 
+function isGroupActive(item: NavItem) {
+  return item.children?.some(c => c.to === route.path)
+}
 
-watch(() => auth.user, () => {
-    // Zero background calls on login. Status is only fetched manually via the UI.
-}, { immediate: true })
-
-// Hyper-Premium Sidebar Interactions
-const mouseX = ref(0)
-const mouseY = ref(0)
-const openedGroups = ref<string[]>([])
-
-function handleMouseMove(e: MouseEvent) {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    mouseX.value = e.clientX - rect.left
-    mouseY.value = e.clientY - rect.top
+function logout() {
+  auth.logout()
+  router.push('/login')
 }
 </script>
 
 <template>
-    <v-app>
-        <!-- Background Animated Blobs -->
-        <div class="layout-blobs">
-            <div class="blob b1"></div>
-            <div class="blob b2"></div>
-            <div class="blob b3"></div>
+  <div class="h-screen w-screen overflow-hidden flex bg-wf-background text-wf-text-primary antialiased">
+    <!-- 1. UNIFIED FULL-HEIGHT FIXED SIDEBAR (Desktop) -->
+    <aside
+      class="hidden lg:flex flex-col h-full bg-wf-surface border-r border-wf-border transition-all duration-200 z-30 select-none shrink-0"
+      :class="isSidebarCollapsed ? 'w-[64px]' : 'w-56'"
+    >
+      <!-- Top Brand Header in Sidebar -->
+      <div class="h-13 flex items-center justify-between px-3 border-b border-wf-border shrink-0">
+        <router-link to="/" class="flex items-center gap-2 min-w-0">
+          <div class="w-7 h-7 rounded-wf-md bg-white border border-wf-border p-1 flex items-center justify-center shadow-xs shrink-0">
+            <img src="/logo.png" alt="WealthFam Logo" class="w-full h-full object-contain" />
+          </div>
+          <div v-if="!isSidebarCollapsed" class="flex flex-col min-w-0">
+            <span class="text-xs font-bold tracking-tight text-wf-text-primary truncate leading-tight">WealthFam</span>
+            <span class="text-[9px] font-medium text-wf-text-muted leading-tight">Aether V4</span>
+          </div>
+        </router-link>
+
+        <button
+          type="button"
+          class="p-1 rounded-wf-sm text-wf-text-muted hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
+          @click="isSidebarCollapsed = !isSidebarCollapsed"
+          :title="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        >
+          <PanelLeftClose v-if="!isSidebarCollapsed" class="w-3.5 h-3.5" />
+          <PanelLeftOpen v-else class="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <!-- Navigation Links (compact 32px height rows) -->
+      <div class="flex-1 py-2 px-1.5 space-y-3 overflow-y-auto overflow-x-hidden">
+        <div v-for="(section, sIdx) in navSections" :key="sIdx" class="space-y-0.5">
+          <!-- Section Label -->
+          <div
+            v-if="section.sectionTitle && !isSidebarCollapsed"
+            class="px-2.5 py-0.5 text-[9px] font-bold tracking-wider text-wf-text-muted uppercase"
+          >
+            {{ section.sectionTitle }}
+          </div>
+          <div v-else-if="section.sectionTitle && isSidebarCollapsed" class="my-1.5 border-t border-wf-divider"></div>
+
+          <!-- Section Items -->
+          <template v-for="item in section.items" :key="item.title">
+            <!-- Group with Children -->
+            <div v-if="item.children" class="space-y-0.5">
+              <button
+                type="button"
+                @click="toggleGroup(item.title)"
+                class="w-full flex items-center justify-between px-2 py-1.5 rounded-wf-md text-xs font-medium transition-colors"
+                :class="[
+                  isGroupActive(item)
+                    ? 'text-wf-primary font-semibold bg-indigo-50/80 dark:bg-indigo-950/40'
+                    : 'text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant',
+                  isSidebarCollapsed ? 'justify-center px-1.5' : ''
+                ]"
+                :title="isSidebarCollapsed ? item.title : undefined"
+              >
+                <div class="flex items-center gap-2 min-w-0">
+                  <component :is="item.icon" class="w-3.5 h-3.5 shrink-0" />
+                  <span v-if="!isSidebarCollapsed" class="truncate text-xs">{{ item.title }}</span>
+                </div>
+                <ChevronRight
+                  v-if="!isSidebarCollapsed"
+                  class="w-3 h-3 opacity-40 transition-transform duration-150"
+                  :class="openedGroups[item.title] ? 'rotate-90' : ''"
+                />
+              </button>
+
+              <!-- Children list -->
+              <div
+                v-if="!isSidebarCollapsed && openedGroups[item.title]"
+                class="pl-3 space-y-0.5 pt-0.5"
+              >
+                <router-link
+                  v-for="child in item.children"
+                  :key="child.title"
+                  :to="child.to!"
+                  class="flex items-center gap-2 px-2.5 py-1 rounded-wf-md text-[11px] font-medium transition-colors"
+                  :class="route.path === child.to
+                    ? 'text-wf-primary font-semibold bg-indigo-50 dark:bg-indigo-950/60 border-l-2 border-wf-primary pl-2'
+                    : 'text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant'"
+                >
+                  <component :is="child.icon" class="w-3 h-3 shrink-0 opacity-60" />
+                  <span class="truncate">{{ child.title }}</span>
+                </router-link>
+              </div>
+            </div>
+
+            <!-- Single Item -->
+            <router-link
+              v-else
+              :to="item.to!"
+              class="flex items-center gap-2 px-2 py-1.5 rounded-wf-md text-xs font-medium transition-colors"
+              :class="[
+                route.path === item.to
+                  ? 'text-wf-primary font-semibold bg-indigo-50 dark:bg-indigo-950/60 border-l-2 border-wf-primary pl-1.5'
+                  : 'text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant',
+                isSidebarCollapsed ? 'justify-center px-1.5' : ''
+              ]"
+              :title="isSidebarCollapsed ? item.title : undefined"
+            >
+              <component :is="item.icon" class="w-3.5 h-3.5 shrink-0" />
+              <span v-if="!isSidebarCollapsed" class="truncate">{{ item.title }}</span>
+            </router-link>
+          </template>
+        </div>
+      </div>
+
+      <!-- Bottom User Card in Sidebar -->
+      <div class="p-2 border-t border-wf-border bg-wf-surface-variant/30 shrink-0">
+        <div v-if="!isSidebarCollapsed" class="flex items-center justify-between p-1 rounded-wf-md">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-base leading-none shrink-0">{{ AVATARS[selectedAvatar] }}</span>
+            <div class="flex flex-col min-w-0">
+              <span class="text-xs font-semibold text-wf-text-primary truncate">{{ auth.user?.email.split('@')[0] }}</span>
+              <span class="text-[9px] text-wf-text-muted truncate uppercase tracking-wider">{{ auth.user?.role || 'Member' }}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            @click="logout"
+            class="p-1 text-wf-text-muted hover:text-wf-error hover:bg-red-50 dark:hover:bg-red-950/40 rounded-wf-sm transition-colors"
+            title="Sign Out"
+          >
+            <LogOut class="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <div v-else class="text-center py-0.5" :title="`WealthFam ${appVersionDisplay}`">
+          <span class="text-[10px] font-mono font-bold text-wf-text-muted">{{ appShortVersion }}</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 2. MAIN RIGHT COLUMN (Fixed Topbar + Scrollable Viewport Canvas) -->
+    <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+      <!-- TOP FIXED TOOLBAR (h-13 / 52px) -->
+      <header class="h-13 shrink-0 bg-wf-surface/90 backdrop-blur-md border-b border-wf-border flex items-center justify-between px-4 sm:px-6 z-20">
+        <!-- Left: Mobile Menu Toggle + Breadcrumb / Page Title -->
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            class="lg:hidden p-1.5 rounded-wf-md text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
+            @click="isMobileDrawerOpen = true"
+          >
+            <Menu class="w-4.5 h-4.5" />
+          </button>
+
+          <div class="flex items-center gap-1.5 text-xs">
+            <span class="text-wf-text-muted hidden sm:inline font-medium">Workspace</span>
+            <span class="text-wf-text-muted hidden sm:inline opacity-50">/</span>
+            <h2 class="font-bold text-wf-text-primary tracking-tight">{{ currentPageTitle }}</h2>
+          </div>
         </div>
 
-        <!-- Header / App Bar -->
-        <v-app-bar flat height="72" class="premium-header" border="b">
-            <template v-slot:prepend>
-                <v-btn icon variant="text" color="slate-600" @click.stop="rail = !rail" class="d-none d-lg-flex">
-                    <Menu :size="20" />
-                </v-btn>
-                <v-app-bar-nav-icon class="d-lg-none" @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
+        <!-- Center: Quick Search Trigger (32px height) -->
+        <div class="hidden md:flex items-center max-w-xs lg:max-w-sm w-full mx-4">
+          <button
+            type="button"
+            @click="showSearch = true"
+            class="w-full h-8 px-2.5 rounded-wf-md bg-wf-surface-variant/70 hover:bg-wf-surface-variant border border-wf-border text-xs text-wf-text-muted flex items-center justify-between transition-colors"
+          >
+            <div class="flex items-center gap-2">
+              <Search class="w-3.5 h-3.5 text-wf-text-muted" />
+              <span class="text-xs">Search everything...</span>
+            </div>
+            <kbd class="px-1 py-0.5 text-[9px] font-mono font-semibold bg-wf-surface border border-wf-border rounded text-wf-text-secondary">
+              ⌘K
+            </kbd>
+          </button>
+        </div>
+
+        <!-- Right: Actions Toolbar (All strictly height 32px, uniform rounded-wf-md) -->
+        <div class="flex items-center gap-1.5">
+          <!-- Mobile search icon -->
+          <button
+            type="button"
+            class="md:hidden w-8 h-8 rounded-wf-md border border-wf-border flex items-center justify-center text-wf-text-secondary hover:bg-wf-surface-variant"
+            @click="showSearch = true"
+          >
+            <Search class="w-3.5 h-3.5" />
+          </button>
+
+          <!-- Date indicator -->
+          <div class="hidden xl:flex items-center gap-1.5 h-8 px-2.5 rounded-wf-md bg-wf-surface-variant border border-wf-border text-[11px] font-medium text-wf-text-secondary">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>{{ new Date().toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) }}</span>
+          </div>
+
+          <!-- Household Member Switcher -->
+          <div class="relative" v-if="auth.user && auth.user.role !== 'CHILD'">
+            <button
+              type="button"
+              @click="showMemberMenu = !showMemberMenu"
+              class="h-8 px-2.5 rounded-wf-md border border-wf-border bg-wf-surface hover:bg-wf-surface-variant text-xs font-semibold text-wf-text-primary flex items-center gap-1.5 transition-colors"
+            >
+              <Users class="w-3.5 h-3.5 text-wf-primary shrink-0" />
+              <span class="max-w-[80px] sm:max-w-[110px] truncate text-xs">{{ auth.selectedMemberName }}</span>
+              <ChevronDown class="w-3 h-3 opacity-50" />
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div
+              v-if="showMemberMenu"
+              class="absolute right-0 mt-1 w-52 bg-wf-surface border border-wf-border rounded-wf-lg shadow-wf-modal py-1 z-50 text-xs animate-in fade-in zoom-in-95 duration-100"
+              @click="showMemberMenu = false"
+            >
+              <div class="px-3 py-1 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
+                Filter Household
+              </div>
+              <button
+                type="button"
+                class="w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-wf-surface-variant transition-colors"
+                :class="auth.selectedMemberId === null ? 'text-wf-primary font-semibold' : 'text-wf-text-primary'"
+                @click="auth.selectMember(null)"
+              >
+                <span>All Members</span>
+                <Check v-if="auth.selectedMemberId === null" class="w-3.5 h-3.5 text-wf-primary" />
+              </button>
+
+              <div class="my-1 border-t border-wf-divider"></div>
+
+              <button
+                v-for="user in auth.familyMembers"
+                :key="user.id"
+                type="button"
+                class="w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-wf-surface-variant transition-colors"
+                :class="auth.selectedMemberId === user.id ? 'text-wf-primary font-semibold' : 'text-wf-text-primary'"
+                @click="auth.selectMember(user.id)"
+              >
+                <span class="truncate">{{ user.full_name || user.email.split('@')[0] }}</span>
+                <Check v-if="auth.selectedMemberId === user.id" class="w-3.5 h-3.5 text-wf-primary" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Privacy Mask Button -->
+          <button
+            type="button"
+            @click="toggleMasking"
+            class="w-8 h-8 rounded-wf-md border border-wf-border flex items-center justify-center transition-colors"
+            :class="settingsStore.isMasked
+              ? 'bg-indigo-50 dark:bg-indigo-950/60 text-wf-primary border-indigo-200 dark:border-indigo-900/50'
+              : 'text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant'"
+            :title="settingsStore.isMasked ? 'Privacy Mask: ON (Values Hidden)' : 'Privacy Mask: OFF'"
+          >
+            <component :is="settingsStore.isMasked ? EyeOff : Eye" class="w-3.5 h-3.5" />
+          </button>
+
+          <!-- Theme Toggle Button -->
+          <button
+            type="button"
+            @click="toggleTheme"
+            class="w-8 h-8 rounded-wf-md border border-wf-border flex items-center justify-center text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
+            title="Toggle Light / Dark Mode"
+          >
+            <component :is="theme.global.current.value.dark ? Sun : Moon" class="w-3.5 h-3.5" />
+          </button>
+
+          <!-- Notifications Bell -->
+          <div class="relative">
+            <button
+              type="button"
+              @click="showNotificationMenu = !showNotificationMenu"
+              class="w-8 h-8 rounded-wf-md border border-wf-border flex items-center justify-center text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors relative"
+              title="Notifications"
+            >
+              <Bell class="w-3.5 h-3.5" :class="{ 'animate-bounce': isBellRinging }" />
+              <span
+                v-if="unreadCount > 0"
+                class="absolute top-1 right-1 w-2 h-2 rounded-full bg-wf-error"
+              ></span>
+            </button>
+
+            <!-- Notifications Popup -->
+            <div
+              v-if="showNotificationMenu"
+              class="absolute right-0 mt-1 w-76 bg-wf-surface border border-wf-border rounded-wf-lg shadow-wf-modal py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100"
+            >
+              <div class="px-3 py-1.5 flex items-center justify-between border-b border-wf-divider">
+                <span class="font-bold text-wf-text-primary">Notifications</span>
+                <button
+                  type="button"
+                  class="text-[10px] font-semibold text-wf-primary hover:underline"
+                  @click="clearNotifications"
+                >
+                  Clear all
+                </button>
+              </div>
+
+              <div v-if="notifications.length > 0" class="max-h-60 overflow-y-auto divide-y divide-wf-divider/50">
+                <div
+                  v-for="note in notifications"
+                  :key="note.id"
+                  class="p-2.5 flex items-start gap-2 hover:bg-wf-surface-variant transition-colors"
+                >
+                  <div class="w-5 h-5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-wf-primary flex items-center justify-center shrink-0 mt-0.5">
+                    <Zap v-if="note.category === 'MILESTONE'" class="w-3 h-3 text-wf-success" />
+                    <Bell v-else class="w-3 h-3" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-wf-text-primary truncate">{{ note.title }}</p>
+                    <p class="text-[10px] text-wf-text-muted line-clamp-2 mt-0.5">{{ note.body }}</p>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="py-6 text-center text-wf-text-muted">
+                <Bell class="w-4 h-4 mx-auto mb-1 opacity-40" />
+                <span>No new notifications</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- 3. SCROLLABLE VIEWPORT CONTENT (Only this scrolls!) -->
+      <main class="flex-1 overflow-y-auto min-h-0 bg-wf-background">
+        <div class="wf-page-container py-4 sm:py-5">
+          <slot />
+        </div>
+      </main>
+    </div>
+
+    <!-- MOBILE DRAWER -->
+    <div
+      v-if="isMobileDrawerOpen"
+      class="fixed inset-0 z-50 lg:hidden flex bg-slate-900/60 backdrop-blur-xs"
+      @click.self="isMobileDrawerOpen = false"
+    >
+      <div class="w-60 max-w-xs bg-wf-surface h-full flex flex-col shadow-wf-modal border-r border-wf-border p-3 animate-in slide-in-from-left duration-200">
+        <div class="flex items-center justify-between pb-2 border-b border-wf-border mb-2">
+          <div class="flex items-center gap-2">
+            <img src="/logo.png" alt="Logo" class="w-5 h-5 object-contain" />
+            <span class="text-xs font-bold">WealthFam</span>
+          </div>
+          <button
+            type="button"
+            class="p-1 rounded-wf-sm hover:bg-wf-surface-variant"
+            @click="isMobileDrawerOpen = false"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <nav class="flex-1 space-y-2 overflow-y-auto">
+          <div v-for="(section, sIdx) in navSections" :key="sIdx" class="space-y-0.5">
+            <div v-if="section.sectionTitle" class="px-2 text-[9px] font-bold text-wf-text-muted uppercase tracking-wider">
+              {{ section.sectionTitle }}
+            </div>
+            <template v-for="item in section.items" :key="item.title">
+              <div v-if="item.children" class="space-y-0.5">
+                <button
+                  type="button"
+                  @click="toggleGroup(item.title)"
+                  class="w-full flex items-center justify-between px-2 py-1.5 rounded-wf-md text-xs font-semibold text-wf-text-secondary hover:bg-wf-surface-variant"
+                >
+                  <div class="flex items-center gap-2">
+                    <component :is="item.icon" class="w-3.5 h-3.5" />
+                    <span>{{ item.title }}</span>
+                  </div>
+                  <ChevronRight class="w-3 h-3 opacity-50" :class="openedGroups[item.title] ? 'rotate-90' : ''" />
+                </button>
+                <div v-if="openedGroups[item.title]" class="pl-4 space-y-0.5">
+                  <router-link
+                    v-for="child in item.children"
+                    :key="child.title"
+                    :to="child.to!"
+                    @click="isMobileDrawerOpen = false"
+                    class="flex items-center gap-2 px-2 py-1 rounded-wf-md text-xs font-medium"
+                    :class="route.path === child.to ? 'text-wf-primary font-bold bg-indigo-50 dark:bg-indigo-950/60' : 'text-wf-text-secondary'"
+                  >
+                    <component :is="child.icon" class="w-3 h-3 opacity-70" />
+                    <span>{{ child.title }}</span>
+                  </router-link>
+                </div>
+              </div>
+              <router-link
+                v-else
+                :to="item.to!"
+                @click="isMobileDrawerOpen = false"
+                class="flex items-center gap-2 px-2 py-1.5 rounded-wf-md text-xs font-semibold"
+                :class="route.path === item.to ? 'text-wf-primary font-bold bg-indigo-50 dark:bg-indigo-950/60' : 'text-wf-text-secondary hover:bg-wf-surface-variant'"
+              >
+                <component :is="item.icon" class="w-3.5 h-3.5" />
+                <span>{{ item.title }}</span>
+              </router-link>
             </template>
+          </div>
+        </nav>
+      </div>
+    </div>
 
-            <router-link to="/" class="brand-link">
-                <v-img src="/logo.png" width="36" height="36" class="mr-3 logo-theme-aware" />
-                <div class="brand-details d-none d-sm-block">
-                    <span class="brand-name">WealthFam</span>
-                    <span class="brand-tag">Premium Finance</span>
-                </div>
-            </router-link>
-
-            <v-spacer></v-spacer>
-
-            <!-- Centered Header Search Trigger -->
-            <div class="header-search-container d-none d-md-flex align-center justify-center">
-                <v-text-field readonly flat hide-details density="compact" variant="solo-filled" rounded="pill"
-                    placeholder="Search for anything..." class="centered-search-field" @click="showSearch = true">
-                    <template v-slot:prepend-inner>
-                        <Search :size="18" class="text-medium-emphasis mr-1" />
-                    </template>
-                    <template v-slot:append-inner>
-                        <div class="cmd-k-hint-v2">⌘K</div>
-                    </template>
-                </v-text-field>
-            </div>
-
-            <v-spacer></v-spacer>
-
-            <div class="d-flex align-center pr-2">
-                <!-- Mobile Search Icon -->
-                <v-btn icon color="slate-600" class="d-md-none mr-2" @click="showSearch = true">
-                    <Search :size="20" />
-                </v-btn>
-
-                <!-- Date Chip (Desktop) -->
-                <div class="date-chip-v2 d-none d-md-flex mr-4">
-                    <div class="pulse-dot"></div>
-                    {{ new Date().toLocaleDateString(undefined, {
-                        weekday: 'short', day: 'numeric', month: 'short'
-                    }) }}
-                </div>
-
-                <!-- Global Member Selection -->
-                <v-menu offset="12" transition="scale-transition" v-if="auth.user && auth.user.role !== 'CHILD'">
-                    <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" variant="tonal" color="primary" class="text-none font-weight-black mr-2 px-4"
-                            height="42" rounded="pill" elevation="0" border="thin">
-                            <template v-slot:prepend>
-                                <v-avatar v-if="auth.selectedMemberId" size="24" color="primary-lighten-5" class="mr-1">
-                                    <span class="text-caption font-weight-black text-primary"
-                                        style="font-size: 0.6rem !important;">{{
-                                            auth.selectedMemberName.charAt(0).toUpperCase() }}</span>
-                                </v-avatar>
-                                <Users v-else :size="16" class="text-primary mr-1" />
-                            </template>
-                            {{ auth.selectedMemberName }}
-                            <ChevronDown :size="14" class="ml-2 opacity-50" />
-                        </v-btn>
-                    </template>
-                    <v-card width="260" rounded="xl" elevation="10" border>
-                        <v-list density="compact" nav>
-                            <v-list-item @click="auth.selectMember(null)" :active="auth.selectedMemberId === null"
-                                color="primary">
-                                <template v-slot:prepend>
-                                    <Users :size="18" class="mr-3" />
-                                </template>
-                                <v-list-item-title class="font-weight-bold">All Members</v-list-item-title>
-                            </v-list-item>
-                            <v-divider class="my-2"></v-divider>
-                            <v-list-item v-for="user in auth.familyMembers" :key="user.id"
-                                @click="auth.selectMember(user.id)" :active="auth.selectedMemberId === user.id"
-                                color="primary">
-                                <template v-slot:prepend>
-                                    <v-avatar size="28" color="primary-lighten-5" class="mr-3">
-                                        <span class="text-caption font-weight-black text-primary">{{ (user.full_name ||
-                                            user.email).charAt(0).toUpperCase() }}</span>
-                                    </v-avatar>
-                                </template>
-                                <v-list-item-title class="font-weight-bold">{{ user.full_name ||
-                                    user.email.split('@')[0]
-                                    }}</v-list-item-title>
-                            </v-list-item>
-                        </v-list>
-                    </v-card>
-                </v-menu>
-
-                <!-- Privacy Mask Toggle -->
-                <v-tooltip location="bottom">
-                    <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" icon size="42" color="slate-600" class="mr-2" @click="toggleMasking"
-                            rounded="pill" :variant="settingsStore.isMasked ? 'tonal' : 'tonal'" border="thin"
-                            :class="{ 'bg-primary-lighten-5': settingsStore.isMasked }">
-                            <component :is="settingsStore.isMasked ? EyeOff : Eye" :size="20"
-                                :class="{ 'text-primary': settingsStore.isMasked }" />
-                        </v-btn>
-                    </template>
-                    <span>{{ settingsStore.isMasked ? 'Privacy Mask Enabled' : 'Enable Privacy Mask' }}</span>
-                </v-tooltip>
-
-                <!-- Theme Toggle -->
-                <v-btn icon @click="toggleTheme" color="slate-600" class="mr-2" size="42" variant="tonal" rounded="pill" border="thin">
-                    <component :is="theme.global.current.value.dark ? Sun : Moon" :size="20" />
-                </v-btn>
-
-                <!-- Real-time Notifications Bell -->
-                <v-menu offset="12" transition="scale-transition">
-                    <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" icon color="slate-600" class="mr-2" size="42" variant="tonal" rounded="pill" border="thin">
-                            <v-badge v-if="unreadCount > 0" :content="unreadCount" color="error" overlap
-                                location="top right" offset-x="2" offset-y="2">
-                                <Bell :size="20" :class="{ 'bell-ring': isBellRinging }" />
-                            </v-badge>
-                            <Bell v-else :size="20" :class="{ 'bell-ring': isBellRinging }" />
-                        </v-btn>
-                    </template>
-                    <v-card width="350" rounded="xl" elevation="10" border class="premium-popup">
-                        <div class="pa-4 d-flex justify-space-between align-center border-b">
-                            <span class="text-subtitle-1 font-weight-black">Notifications</span>
-                            <v-btn variant="text" size="x-small" color="primary" class="text-none font-weight-black"
-                                @click="clearNotifications">Clear All</v-btn>
-                        </div>
-                        <v-list v-if="notifications.length > 0" class="pa-2 overflow-y-auto" max-height="400">
-                            <v-list-item v-for="note in notifications" :key="note.id" rounded="lg" class="mb-1 pa-3">
-                                <template v-slot:prepend>
-                                    <v-avatar size="32" color="primary-lighten-5" class="mr-3">
-                                        <Zap v-if="note.category === 'MILESTONE'" :size="16" class="text-success" />
-                                        <Bell v-else :size="16" class="text-primary" />
-                                    </v-avatar>
-                                </template>
-                                <v-list-item-title class="font-weight-black text-caption">{{ note.title
-                                    }}</v-list-item-title>
-                                <v-list-item-subtitle class="text-tiny line-height-1-2 opacity-60 mt-1">{{ note.body
-                                    }}</v-list-item-subtitle>
-                            </v-list-item>
-                        </v-list>
-                        <div v-else class="pa-10 text-center opacity-40">
-                            <Bell :size="32" class="mb-2" />
-                            <p class="text-caption font-weight-black">No new alerts</p>
-                        </div>
-                    </v-card>
-                </v-menu>
-
-                <!-- User Profile Menu -->
-                <v-menu offset="12" transition="scale-transition" v-if="auth.user">
-                    <template v-slot:activator="{ props }">
-                        <v-btn v-bind="props" variant="tonal" class="profile-btn border-thin" rounded="pill" height="42">
-                            <v-avatar size="28" class="mr-2 avatar-glow">
-                                <span class="avatar-emoji" style="font-size: 1rem;">{{ AVATARS[selectedAvatar] }}</span>
-                            </v-avatar>
-                            <span class="user-display-name font-weight-black d-none d-sm-inline">{{ auth.user.email.split('@')[0]
-                            }}</span>
-                        </v-btn>
-                    </template>
-
-                    <v-card width="280" class="premium-popup">
-                        <v-list class="pa-4">
-                            <v-list-item class="mb-4 pa-0">
-                                <template v-slot:prepend>
-                                    <v-avatar size="56" class="mr-4 avatar-glow">
-                                        <span class="text-h5">{{ AVATARS[selectedAvatar] }}</span>
-                                    </v-avatar>
-                                </template>
-                                <v-list-item-title class="text-h6 font-weight-bold">{{ auth.user.email.split('@')[0]
-                                    }}</v-list-item-title>
-                                <v-list-item-subtitle class="text-primary font-weight-medium">Family
-                                    Admin</v-list-item-subtitle>
-                            </v-list-item>
-
-                            <v-divider class="mb-4"></v-divider>
-
-                            <v-list-item link to="/settings" rounded="lg" class="mb-1">
-                                <template v-slot:prepend>
-                                    <UserIcon :size="18" class="mr-4 text-slate-500" />
-                                </template>
-                                <v-list-item-title>Profile Settings</v-list-item-title>
-                            </v-list-item>
-
-                            <v-list-item link @click="logout" rounded="lg" class="text-red-500">
-                                <template v-slot:prepend>
-                                    <LogOut :size="18" class="mr-4 text-red-500" />
-                                </template>
-                                <v-list-item-title class="font-weight-bold">Sign Out</v-list-item-title>
-                            </v-list-item>
-                        </v-list>
-                    </v-card>
-                </v-menu>
-            </div>
-        </v-app-bar>
-
-        <!-- Side Navigation -->
-        <v-navigation-drawer v-model="drawer" :rail="rail" permanent floating class="aether-drawer" width="280"
-            :rail-width="rail ? 88 : 280" @mousemove="handleMouseMove"
-            :style="{ '--mouse-x': mouseX + 'px', '--mouse-y': mouseY + 'px' }">
-            <v-list nav class="px-0 py-4" v-model:opened="openedGroups">
-                <template v-for="(item, index) in navItems" :key="item.title">
-                    <!-- RAIL MODE (Strictly Collapsed) -->
-                    <template v-if="rail">
-                        <!-- Group with Floating Menu -->
-                        <v-menu v-if="item.children" open-on-hover location="right" offset="12"
-                            transition="slide-x-transition">
-                            <template v-slot:activator="{ props }">
-                                <v-list-item v-bind="props" class="nav-item-aether rail-mode-item mb-1" link
-                                    :active="item.children?.some(c => route.path === c.to)"
-                                    :style="{ transitionDelay: `${index * 40}ms` }">
-                                    <div class="rail-item-content">
-                                        <component :is="item.icon" :size="20" class="nav-icon" />
-                                        <span class="rail-label-tiny">{{ item.title }}</span>
-                                    </div>
-                                </v-list-item>
-                            </template>
-                            <v-card width="230" class="premium-popup pa-2">
-                                <div class="px-3 py-2 text-tiny font-weight-black opacity-40 uppercase letter-spacing-1">
-                                    {{ item.title }}</div>
-                                <v-list density="compact" nav class="pa-0">
-                                    <v-list-item v-for="child in item.children" :key="child.title" :to="child.to"
-                                        :active="route.path === child.to" class="nav-item-child-floating mb-1" link>
-                                        <template v-slot:prepend>
-                                            <component :is="child.icon" :size="16" class="mr-3 opacity-60" />
-                                        </template>
-                                        <v-list-item-title class="text-caption font-weight-bold">{{ child.title }}
-                                        </v-list-item-title>
-                                    </v-list-item>
-                                </v-list>
-                            </v-card>
-                        </v-menu>
-
-                        <!-- Flat Item with Tooltip -->
-                        <v-tooltip v-else :text="item.title" location="right" offset="12">
-                            <template v-slot:activator="{ props }">
-                                <v-list-item v-bind="props" :to="item.to" :active="route.path === item.to"
-                                    class="nav-item-aether rail-mode-item mb-1" link
-                                    :style="{ transitionDelay: `${index * 40}ms` }">
-                                    <div class="rail-item-content">
-                                        <component :is="item.icon" :size="20" class="nav-icon" />
-                                        <span class="rail-label-tiny">{{ item.title }}</span>
-                                    </div>
-                                </v-list-item>
-                            </template>
-                        </v-tooltip>
-                    </template>
-
-                    <!-- EXPANDED MODE -->
-                    <template v-else>
-                        <!-- Group Item -->
-                        <v-list-group v-if="item.children" :value="item.title" class="nav-group-aether mb-1">
-                            <template v-slot:activator="{ props }">
-                                <v-list-item v-bind="props" class="nav-item-aether" link
-                                    :active="item.children?.some(c => route.path === c.to)">
-                                    <div class="nav-item-content-horizontal">
-                                        <component :is="item.icon" :size="20" class="nav-icon mr-4" />
-                                        <v-list-item-title class="nav-title">{{ item.title }}</v-list-item-title>
-                                    </div>
-                                </v-list-item>
-                            </template>
-
-                            <v-list-item v-for="child in item.children" :key="child.title" :to="child.to"
-                                :active="route.path === child.to" class="nav-item-aether nav-item-child mb-1" link>
-                                <div class="nav-item-content-horizontal">
-                                    <component :is="child.icon" :size="18" class="nav-icon mr-4 ml-4" />
-                                    <v-list-item-title class="nav-title-child">{{ child.title }}
-                                    </v-list-item-title>
-                                </div>
-                            </v-list-item>
-                        </v-list-group>
-
-                        <!-- Flat Item -->
-                        <v-list-item v-else :to="item.to" :active="route.path === item.to"
-                            class="nav-item-aether mb-1" link :style="{ transitionDelay: `${index * 40}ms` }">
-                            <div class="nav-item-content-horizontal">
-                                <component :is="item.icon" :size="20" class="nav-icon mr-4" />
-                                <v-list-item-title class="nav-title">{{ item.title }}</v-list-item-title>
-                            </div>
-                        </v-list-item>
-                    </template>
-                </template>
-            </v-list>
-
-            <template v-slot:append>
-                <div class="sidebar-footer border-t pa-6">
-                    <div v-if="!rail" class="footer-content">
-                        <span class="os-label">WealthFam Core OS</span>
-                        <div class="build-info">v{{ appVersion }}-{{ appBuild }}</div>
-                    </div>
-                    <div v-else class="text-center">
-                        <span class="text-primary font-weight-bold">v{{ appVersion.split('.')[0] }}</span>
-                    </div>
-                </div>
-            </template>
-        </v-navigation-drawer>
-
-        <!-- Content -->
-        <v-main class="layout-main">
-            <div class="page-shell">
-                <slot></slot>
-            </div>
-        </v-main>
-
-        <ToastContainer />
-        <GlobalSearch v-model="showSearch" />
-    </v-app>
+    <!-- Modals -->
+    <ToastContainer />
+    <GlobalSearch v-model="showSearch" />
+  </div>
 </template>
-
-<style scoped>
-.layout-blobs {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 0;
-    background: rgb(var(--v-theme-background));
-    pointer-events: none;
-    overflow: hidden;
-}
-
-.blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(100px);
-    opacity: 0.12;
-}
-
-.b1 {
-    width: 800px;
-    height: 800px;
-    background: rgb(var(--v-theme-primary));
-    top: -200px;
-    left: -100px;
-    animation: orbit 30s infinite linear;
-}
-
-.b2 {
-    width: 700px;
-    height: 700px;
-    background: rgb(var(--v-theme-secondary));
-    bottom: -200px;
-    right: 0;
-    animation: orbit 25s infinite linear reverse;
-}
-
-.b3 {
-    width: 500px;
-    height: 500px;
-    background: rgb(var(--v-theme-accent));
-    top: 30%;
-    right: 20%;
-    animation: orbit 20s infinite linear;
-}
-
-@keyframes orbit {
-    from {
-        transform: rotate(0deg) translateX(100px) rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg) translateX(100px) rotate(-360deg);
-    }
-}
-
-.premium-header {
-    background: rgba(var(--v-theme-surface), 0.7) !important;
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    z-index: 1000 !important;
-    border-bottom: 1px solid rgba(var(--v-border-color), 0.08) !important;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
-}
-
-.brand-link {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    color: inherit;
-    margin-left: 1rem;
-    transition: transform 0.3s ease;
-}
-
-.brand-link:hover {
-    transform: scale(1.02);
-}
-
-.logo-theme-aware {
-    filter: drop-shadow(0 0 2px rgba(var(--v-theme-primary), 0.1));
-    mix-blend-mode: multiply;
-    /* Removes white background in Light Mode */
-}
-
-:where(.v-theme--dark, .v-theme--wealthFamDark) .logo-theme-aware {
-    filter: invert(1) brightness(1.2) saturate(1.2);
-    mix-blend-mode: screen;
-    /* Removes black space (inverted white) in Dark Mode */
-}
-
-.brand-name {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: 950;
-    color: rgb(var(--v-theme-on-surface));
-    letter-spacing: -0.05em;
-    line-height: 1;
-    background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #6366f1 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.brand-tag {
-    display: block;
-    font-size: 0.6rem;
-    font-weight: 800;
-    color: rgb(var(--v-theme-on-surface), 0.4);
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    margin-top: 1px;
-}
-
-
-.profile-btn {
-    background: rgba(var(--v-theme-on-surface), 0.05) !important;
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-    transition: all 0.2s;
-}
-
-.profile-btn:hover {
-    background: #f8fafc !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-}
-
-.avatar-glow {
-    background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.1) 0%, rgba(var(--v-theme-secondary), 0.1) 100%);
-    border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-    box-shadow: 0 0 15px rgba(var(--v-theme-primary), 0.1);
-}
-
-.avatar-emoji {
-    font-size: 1.2rem;
-}
-
-.user-display-name {
-    font-weight: 700;
-    color: rgb(var(--v-theme-on-surface));
-    /* text-slate-800 */
-    font-size: 0.875rem;
-}
-
-.premium-popup {
-    border-radius: 1.25rem !important;
-    border: 1px solid rgba(var(--v-border-color), 0.2) !important;
-    background: rgba(var(--v-theme-surface), 0.9) !important;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1) !important;
-}
-
-.layout-main {
-    transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Aether V3 Architecture (Vuetify-Native, Minimal CSS) */
-.aether-drawer {
-    background: rgba(var(--v-theme-surface), 0.7) !important;
-    backdrop-filter: blur(28px) saturate(190%) !important;
-    border-right: 1px solid rgba(var(--v-theme-on-surface), 0.1) !important;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    position: relative;
-    overflow: visible !important;
-}
-
-/* Cursor-Reactive Light Sweep Overlay */
-.aether-drawer::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y),
-            rgba(var(--v-theme-primary), 0.08),
-            transparent 40%);
-    z-index: 10;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-}
-
-.aether-drawer:hover::after {
-    opacity: 1;
-}
-
-.aether-drawer :deep(.v-navigation-drawer__content) {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    z-index: 1;
-}
-
-.aether-drawer :deep(.v-navigation-drawer__content)::-webkit-scrollbar {
-    display: none;
-}
-
-
-
-.rail-item-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-}
-
-.rail-label-tiny {
-    font-size: 0.45rem;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-top: 2px;
-    opacity: 0.6;
-    transition: all 0.3s ease;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-align: center;
-}
-
-.nav-title {
-    font-size: 0.7rem;
-    font-weight: 900;
-    text-align: left;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    opacity: 0.8;
-}
-
-.nav-item-content-horizontal {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    width: 100%;
-}
-
-.nav-item-aether {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    border-radius: 0 !important;
-    min-height: 52px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    padding: 0 24px !important;
-}
-
-/* Ensure rail mode stays centered */
-.rail-mode-item {
-    padding: 0 !important;
-    min-height: 64px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-.nav-item-aether.v-list-item--active .nav-title {
-    opacity: 1;
-    color: rgb(var(--v-theme-primary));
-}
-
-/* Hover State */
-.nav-item-aether:not(.v-list-item--active):hover {
-    background: rgba(var(--v-theme-primary), 0.1) !important;
-    transform: translateX(4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.nav-item-aether:hover :deep(.nav-icon) {
-    color: rgb(var(--v-theme-primary)) !important;
-    transform: scale(1.1);
-}
-
-/* Infinite Edge Selection (Active State) */
-.nav-item-aether.v-list-item--active {
-    background: transparent !important;
-}
-
-.nav-item-aether.v-list-item--active::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    /* Flush with edges */
-    background: linear-gradient(90deg,
-            rgba(var(--v-theme-primary), 0.3) 0%,
-            rgba(var(--v-theme-primary), 0.1) 100%);
-    border-left: 4px solid rgb(var(--v-theme-primary));
-    /* Bold accent bar */
-    box-shadow: inset 20px 0 30px -15px rgba(var(--v-theme-primary), 0.15);
-    z-index: 0;
-    animation: aetherPulse 4s infinite alternate cubic-bezier(0.45, 0.05, 0.55, 0.95);
-}
-
-@keyframes aetherPulse {
-    0% {
-        opacity: 0.8;
-        filter: brightness(1);
-    }
-
-    100% {
-        opacity: 1;
-        filter: brightness(1.25);
-    }
-}
-
-/* Reset rail active inset for Infinite Edge */
-.rail-mode-item.v-list-item--active::before {
-    inset: 0;
-}
-
-.nav-item-aether.v-list-item--active :deep(.nav-icon) {
-    color: rgb(var(--v-theme-primary)) !important;
-    filter: drop-shadow(0 0 5px rgba(var(--v-theme-primary), 0.4));
-}
-
-.nav-item-aether.v-list-item--active :deep(.nav-title) {
-    color: rgb(var(--v-theme-primary)) !important;
-    font-weight: 800 !important;
-}
-
-.nav-icon {
-    color: rgb(var(--v-theme-on-surface), 0.6);
-    transition: all 0.3s ease;
-}
-
-.nav-title {
-    font-size: 0.875rem;
-    font-weight: 600;
-}
-
-/* Group & Child Refinements */
-.nav-group-aether :deep(.v-list-group__items) {
-    --v-list-group-items-padding: 0;
-}
-
-.nav-item-child {
-    min-height: 44px !important;
-    padding-left: 32px !important;
-}
-
-.nav-title-child {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    opacity: 0.7;
-    letter-spacing: 0.02em;
-}
-
-.nav-item-child.v-list-item--active .nav-title-child {
-    opacity: 1;
-    color: rgb(var(--v-theme-primary));
-}
-
-/* Sub-pulse for children */
-.nav-item-child.v-list-item--active::before {
-    border-left-width: 2px; /* Thinner for children */
-    box-shadow: inset 10px 0 20px -10px rgba(var(--v-theme-primary), 0.1);
-}
-
-/* Floating Menu Child Refinements */
-.nav-item-child-floating {
-    min-height: 40px !important;
-    border-radius: 8px !important;
-    transition: all 0.2s ease;
-    margin-bottom: 2px;
-}
-
-.nav-item-child-floating:hover {
-    background: rgba(var(--v-theme-primary), 0.08) !important;
-    transform: translateX(4px);
-}
-
-.nav-item-child-floating.v-list-item--active {
-    background: rgba(var(--v-theme-primary), 0.12) !important;
-    color: rgb(var(--v-theme-primary)) !important;
-}
-
-.nav-item-child-floating.v-list-item--active :deep(.v-list-item-title) {
-    font-weight: 800 !important;
-}
-
-.letter-spacing-1 {
-    letter-spacing: 0.1em !important;
-}
-
-.text-tiny {
-    font-size: 0.65rem !important;
-}
-
-.nav-group-aether :deep(.v-list-item__append) {
-    margin-left: 4px;
-}
-
-.nav-group-aether :deep(.v-list-item__append .v-icon) {
-    font-size: 1.1rem;
-    opacity: 0.4;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.nav-group-aether.v-list-group--active :deep(.v-list-item__append .v-icon) {
-    opacity: 0.8;
-    color: rgb(var(--v-theme-primary));
-}
-
-.sidebar-footer {
-    border-top: 1px solid rgba(var(--v-theme-on-surface), 0.05) !important;
-    opacity: 0.5;
-}
-
-/* Main Layout Overrides */
-.layout-main {
-    z-index: 1;
-    background: transparent !important;
-}
-
-.page-shell {
-    padding: 2rem;
-    max-width: 1600px;
-    margin: 0 auto;
-}
-
-@media (max-width: 600px) {
-    .page-shell {
-        padding: 1rem;
-    }
-}
-
-
-.os-label {
-    font-size: 0.65rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: rgb(var(--v-theme-on-surface), 0.3);
-}
-
-.build-info {
-    font-size: 0.6rem;
-    font-weight: 700;
-    color: rgb(var(--v-theme-on-surface), 0.2);
-    letter-spacing: 0.05em;
-}
-
-.date-chip-v2 {
-    display: flex;
-    align-items: center;
-    height: 42px;
-    gap: 8px;
-    padding: 0 16px;
-    background: rgba(var(--v-theme-primary), 0.05);
-    border-radius: 24px;
-    font-size: 0.75rem;
-    font-weight: 900;
-    color: rgb(var(--v-theme-primary));
-    border: 1px solid rgba(var(--v-theme-primary), 0.1);
-}
-
-.pulse-dot {
-    width: 6px;
-    height: 6px;
-    background: #22c55e;
-    border-radius: 50%;
-    box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
-    animation: pulse-green 2s infinite;
-}
-
-@keyframes pulse-green {
-    0% {
-        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-    }
-
-    70% {
-        box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
-    }
-
-    100% {
-        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-    }
-}
-
-.header-search-container {
-    flex: 1;
-    max-width: 480px;
-    margin: 0 24px;
-}
-
-.centered-search-field :deep(.v-field) {
-    height: 42px !important;
-    min-height: 42px !important;
-    background: rgba(var(--v-theme-on-surface), 0.05) !important;
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-    cursor: pointer !important;
-    font-weight: 700;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.centered-search-field :deep(.v-field):hover {
-    background: rgba(var(--v-theme-on-surface), 0.08) !important;
-    border-color: rgba(var(--v-theme-primary), 0.3) !important;
-}
-
-.centered-search-field :deep(input) {
-    cursor: pointer !important;
-}
-
-.cmd-k-hint-v2 {
-    font-size: 0.75rem;
-    font-weight: 800;
-    padding: 2px 8px;
-    background: rgba(var(--v-theme-on-surface), 0.1);
-    color: rgb(var(--v-theme-on-surface), 0.6);
-    border-radius: 6px;
-    letter-spacing: 0.05em;
-}
-
-.last-sync-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: rgb(var(--v-theme-on-surface), 0.6);
-    white-space: nowrap;
-}
-
-.spin-sync {
-    animation: fa-spin 2s infinite linear;
-}
-
-@keyframes fa-spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-.sync-btn {
-    transition: transform 0.2s;
-}
-
-.sync-btn:active {
-    transform: scale(0.9);
-}
-
-@keyframes bell-ring {
-
-    0%,
-    100% {
-        transform: rotate(0deg);
-    }
-
-    10%,
-    30%,
-    50%,
-    70%,
-    90% {
-        transform: rotate(15deg);
-    }
-
-    20%,
-    40%,
-    60%,
-    80% {
-        transform: rotate(-15deg);
-    }
-}
-
-.bell-ring {
-    animation: bell-ring 0.6s ease-in-out;
-    transform-origin: top center;
-    color: var(--v-theme-error) !important;
-}
-
-
-.status-hero {
-    transition: all 0.4s ease;
-    border: 1px solid rgba(var(--v-border-color), 0.05);
-}
-
-.status-hero.healthy {
-    background: linear-gradient(135deg, rgba(var(--v-theme-success), 0.05) 0%, rgba(var(--v-theme-success), 0.1) 100%);
-    border-color: rgba(var(--v-theme-success), 0.2);
-}
-
-.status-hero.error {
-    background: linear-gradient(135deg, rgba(var(--v-theme-error), 0.05) 0%, rgba(var(--v-theme-error), 0.1) 100%);
-    border-color: rgba(var(--v-theme-error), 0.2);
-}
-
-.status-hero.disabled {
-    background: rgba(var(--v-theme-on-surface), 0.03);
-    border-color: rgba(var(--v-theme-on-surface), 0.1);
-}
-
-.status-icon-container {
-    position: relative;
-    display: inline-block;
-}
-
-.status-glow {
-    position: absolute;
-    inset: -10px;
-    background: radial-gradient(circle, rgba(var(--v-theme-success), 0.3) 0%, transparent 70%);
-    filter: blur(8px);
-    z-index: -1;
-}
-
-.step-number {
-    width: 24px;
-    height: 24px;
-    background: rgb(var(--v-theme-primary));
-    color: white;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 950;
-}
-
-.text-tiny {
-    font-size: 0.75rem;
-    opacity: 0.6;
-}
-
-.spin {
-    animation: spin-refresh 1s linear infinite;
-}
-
-@keyframes spin-refresh {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-.gap-2 {
-    gap: 8px;
-}
-</style>

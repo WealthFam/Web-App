@@ -33,30 +33,30 @@ const paddingClasses = computed(() => {
     case 'none':
       return 'p-0'
     case 'sm':
-      return 'p-3 sm:p-4'
+      return 'p-2.5 sm:p-3'
     case 'md':
-      return 'p-4 sm:p-6'
+      return 'p-3.5 sm:p-4'
     case 'lg':
-      return 'p-6 sm:p-8'
+      return 'p-5 sm:p-6'
     default:
-      return 'p-4 sm:p-6'
+      return 'p-3.5 sm:p-4'
   }
 })
 
 const radiusClasses = computed(() => {
   switch (props.radius) {
     case 'sm':
-      return 'rounded-wf-sm'
+      return 'rounded-[var(--wf-radius-sm,4px)]'
     case 'md':
-      return 'rounded-wf-md'
+      return 'rounded-[var(--wf-radius-md,8px)]'
     case 'lg':
-      return 'rounded-wf-lg'
+      return 'rounded-[var(--wf-radius-lg,12px)]'
     case 'xl':
-      return 'rounded-wf-xl'
+      return 'rounded-[var(--wf-radius-xl,16px)]'
     case '2xl':
-      return 'rounded-wf-2xl'
+      return 'rounded-[var(--wf-radius-2xl,20px)]'
     default:
-      return 'rounded-wf-lg'
+      return 'rounded-[var(--wf-radius-lg,12px)]'
   }
 })
 </script>

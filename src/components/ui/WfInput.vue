@@ -47,7 +47,7 @@ function handleInput(event: Event) {
     </div>
 
     <div
-      class="relative flex items-center rounded-wf-md border transition-all duration-150 bg-wf-surface focus-within:ring-2 focus-within:ring-wf-primary/20 focus-within:border-wf-primary"
+      class="relative flex items-center rounded-[var(--wf-radius-md,8px)] border transition-all duration-150 bg-wf-surface focus-within:ring-2 focus-within:ring-wf-primary/20 focus-within:border-wf-primary"
       :class="[
         error ? 'border-wf-error focus-within:border-wf-error focus-within:ring-wf-error/20' : 'border-wf-border hover:border-slate-300 dark:hover:border-slate-600',
         disabled ? 'opacity-60 bg-wf-surface-variant cursor-not-allowed' : '',
