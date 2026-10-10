@@ -512,9 +512,8 @@ const totalTxnPages = computed(() => {
                         size="sm"
                         @click="syncDialog = true"
                         :loading="syncing"
-                        class="h-8.5 px-3.5 text-xs font-semibold shadow-2xs"
                     >
-                        <RefreshCw class="w-3.5 h-3.5 mr-1.5" :class="{ 'animate-spin': syncing }" />
+                        <RefreshCw class="w-3.5 h-3.5 mr-1" :class="{ 'animate-spin': syncing }" />
                         <span>Sync Emails</span>
                     </WfButton>
 
@@ -522,9 +521,8 @@ const totalTxnPages = computed(() => {
                         variant="primary"
                         size="sm"
                         @click="uploadDialog = true"
-                        class="h-8.5 px-3.5 text-xs font-semibold shadow-2xs"
                     >
-                        <Upload class="w-3.5 h-3.5 mr-1.5" />
+                        <Upload class="w-3.5 h-3.5 mr-1" />
                         <span>Upload Statement</span>
                     </WfButton>
                 </div>
@@ -537,21 +535,22 @@ const totalTxnPages = computed(() => {
                 <div class="lg:col-span-4 flex flex-col h-full min-h-0">
                     <WfCard variant="flat" padding="none" radius="lg" class="overflow-hidden flex flex-col border border-wf-border h-full">
                         <!-- Search Toolbar -->
-                        <div class="p-3 border-b border-wf-border bg-wf-surface-variant/40 flex items-center gap-2 shrink-0">
-                            <div class="relative flex-1">
-                                <SearchIcon class="w-3.5 h-3.5 text-wf-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <div class="p-2.5 border-b border-wf-border bg-wf-surface-variant/40 flex items-center gap-2 shrink-0">
+                            <div class="flex-1 flex items-center h-8 px-2.5 bg-wf-surface border border-wf-border rounded-wf-sm text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-2">
+                                <SearchIcon class="w-3.5 h-3.5 text-wf-text-muted shrink-0 pointer-events-none" />
                                 <input
                                     v-model="search"
                                     type="text"
                                     placeholder="Search statements..."
-                                    class="w-full h-8.5 pl-8 pr-7 text-xs bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none focus:ring-1 focus:ring-wf-primary focus:border-wf-primary transition-all"
+                                    class="w-full h-full bg-transparent text-xs text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none"
                                 />
                                 <button
                                     v-if="search"
                                     @click="search = ''"
-                                    class="absolute right-2 top-1/2 -translate-y-1/2 text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded-wf-sm"
+                                    class="text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded-wf-xs transition-colors flex items-center justify-center shrink-0"
+                                    title="Clear search"
                                 >
-                                    <X class="w-3 h-3" />
+                                    <X class="w-3.5 h-3.5" />
                                 </button>
                             </div>
                         </div>
