@@ -277,7 +277,7 @@ function isImageUrl(url: string) {
 
 <template>
     <MainLayout>
-        <div class="space-y-4 max-w-7xl mx-auto px-2 sm:px-4 pb-8">
+        <div class="space-y-4 pb-8">
             <!-- Loading State -->
             <div v-if="isLoading && !holding" class="flex flex-col items-center justify-center min-h-[50vh] gap-3">
                 <v-progress-circular indeterminate color="primary" size="36" width="3" />

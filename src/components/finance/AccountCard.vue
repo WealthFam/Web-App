@@ -1,114 +1,25 @@
-<template>
-    <v-hover v-slot="{ isHovering, props }">
-        <v-card v-bind="props" class="m3-card account-card h-100" :class="{ 'raised': isHovering }" elevation="1" @click="$emit('view', account)">
-        <v-card-text class="pa-5 h-100 d-flex flex-column">
-            <div class="d-flex justify-space-between align-start mb-4">
-                <div class="acc-icon-wrapper" :class="account.type.toLowerCase()">
-                    <component :is="getAccountTypeIcon(account.type)" :size="20" />
-                </div>
-                <div class="d-flex gap-2">
-                    <v-btn v-if="account.type === 'CREDIT_CARD'" icon size="x-small" color="primary" variant="tonal" @click.stop="$emit('pay-bill', account)">
-                        <DollarSign :size="14" />
-                        <v-tooltip activator="parent" location="top">Pay Bill</v-tooltip>
-                    </v-btn>
-                    
-                    <v-menu location="bottom end" transition="slide-y-transition">
-                        <template v-slot:activator="{ props: menuProps }">
-                            <v-btn icon size="x-small" variant="text" color="medium-emphasis" v-bind="menuProps" @click.stop>
-                                <MoreVertical :size="16" />
-                                <v-tooltip activator="parent" location="top">More Options</v-tooltip>
-                            </v-btn>
-                        </template>
-                        <v-list class="rounded-lg py-2" elevation="8">
-                            <v-list-item @click="$emit('edit', account)" class="px-4 py-2">
-                                <template v-slot:prepend>
-                                    <Edit2 :size="14" class="mr-3" />
-                                </template>
-                                <v-list-item-title class="text-caption font-weight-bold">Edit Account</v-list-item-title>
-                            </v-list-item>
-                            <v-divider class="my-1"></v-divider>
-                            <v-list-item @click="$emit('delete', account)" color="error" class="px-4 py-2 text-error">
-                                <template v-slot:prepend>
-                                    <Trash2 :size="14" class="mr-3" />
-                                </template>
-                                <v-list-item-title class="text-caption font-weight-bold">Delete Account</v-list-item-title>
-                            </v-list-item>
-                        </v-list>
-                    </v-menu>
-                </div>
-            </div>
-
-            <div class="mb-4">
-                <div class="text-h6 font-weight-bold mb-1 line-clamp-1">{{ account.name }}</div>
-                <div class="d-flex align-center gap-2 flex-wrap">
-                    <span class="text-caption font-weight-bold text-uppercase text-medium-emphasis">
-                        {{ getAccountTypeLabel(account.type) }}
-                    </span>
-                    <v-chip v-if="account.account_mask" size="x-small" color="grey-lighten-4" variant="flat" class="font-weight-bold">
-                        ••{{ account.account_mask }}
-                    </v-chip>
-                </div>
-            </div>
-
-            <!-- Credit Intel Snippet -->
-            <div v-if="intelligence" class="bg-indigo-lighten-5 rounded-lg pa-3 mb-4">
-                <div class="d-flex justify-space-between align-center mb-1">
-                    <span class="text-tiny font-weight-black text-indigo uppercase ls-1">Statement</span>
-                    <span class="text-tiny font-weight-bold text-indigo">{{ formatAmount(intelligence.statement_balance) }}</span>
-                </div>
-                <div class="d-flex justify-space-between align-center">
-                    <span class="text-tiny font-weight-bold text-medium-emphasis">Due in {{ intelligence.days_until_due }} days</span>
-                    <v-chip v-if="intelligence.is_overdue" size="x-small" color="error" variant="flat">Overdue</v-chip>
-                    <v-chip v-else-if="intelligence.days_until_due <= 5" size="x-small" color="warning" variant="flat">Soon</v-chip>
-                </div>
-            </div>
-
-            <div class="mt-auto pt-4 border-t">
-                <div class="d-flex justify-space-between align-end">
-                    <div>
-                        <div class="text-caption font-weight-bold text-medium-emphasis mb-1">
-                            {{ account.type === 'CREDIT_CARD' ? 'Spent this Cycle' : 'Balance' }}
-                        </div>
-                        <div class="text-h5 font-weight-black" :class="{ 'text-error': account.type === 'CREDIT_CARD' }">
-                            {{ account.type === 'CREDIT_CARD' && intelligence?.current_cycle_spend != null
-                                ? formatAmount(intelligence.current_cycle_spend)
-                                : formatAmount(account.balance) }}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Utilization for Credit Cards -->
-                <div v-if="account.type === 'CREDIT_CARD' && account.credit_limit" class="mt-3">
-                    <div class="d-flex justify-space-between text-tiny font-weight-bold mb-1">
-                        <span>{{ Math.round((account.balance / account.credit_limit) * 100) }}% Used</span>
-                        <span>Limit: {{ formatAmount(account.credit_limit) }}</span>
-                    </div>
-                    <v-progress-linear
-                        :model-value="(account.balance / account.credit_limit) * 100"
-                        :color="(account.balance / account.credit_limit) > 0.8 ? 'error' : 'primary'"
-                        height="4"
-                        rounded
-                    ></v-progress-linear>
-                </div>
-            </div>
-        </v-card-text>
-        </v-card>
-    </v-hover>
-</template>
-
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useCurrency } from '@/composables/useCurrency'
 import { 
-    Landmark, CreditCard, Banknote, Wallet, TrendingUp, Edit2, DollarSign,
+    Landmark, CreditCard, Banknote, Wallet, TrendingUp, Edit2, 
     MoreVertical, Trash2
 } from 'lucide-vue-next'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfMenu from '@/components/ui/WfMenu.vue'
 
-defineProps<{
+interface Props {
     account: any
     intelligence?: any
-}>()
+}
 
-defineEmits(['view', 'edit', 'pay-bill', 'delete'])
+const props = defineProps<Props>()
+defineEmits<{
+    (e: 'view', account: any): void
+    (e: 'edit', account: any): void
+    (e: 'pay-bill', account: any): void
+    (e: 'delete', account: any): void
+}>()
 
 const { formatAmount } = useCurrency()
 
@@ -121,41 +32,150 @@ function getAccountTypeLabel(type: string) {
     const labels: any = { BANK: 'Bank', CREDIT_CARD: 'Credit Card', LOAN: 'Loan', WALLET: 'Wallet', INVESTMENT: 'Investment' }
     return labels[type] || type
 }
+
+const iconBadgeStyle = computed(() => {
+    switch (props.account?.type) {
+        case 'BANK':
+            return 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+        case 'CREDIT_CARD':
+            return 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+        case 'LOAN':
+            return 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+        case 'WALLET':
+            return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+        case 'INVESTMENT':
+            return 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+        default:
+            return 'bg-wf-surface-variant text-wf-text-secondary'
+    }
+})
+
+const utilizationPct = computed(() => {
+    if (!props.account?.credit_limit || props.account.type !== 'CREDIT_CARD') return 0
+    return Math.min(100, Math.max(0, Math.round((Number(props.account.balance || 0) / Number(props.account.credit_limit)) * 100)))
+})
 </script>
 
-<style scoped>
-.account-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    border: 1px solid rgba(var(--v-border-color), 0.05) !important;
-}
-.account-card.raised {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px -10px rgba(var(--v-theme-primary), 0.15) !important;
-    border-color: rgba(var(--v-theme-primary), 0.3) !important;
-}
+<template>
+    <WfCard
+        variant="flat"
+        padding="sm"
+        radius="lg"
+        class="group h-full flex flex-col justify-between transition-all duration-150 hover:shadow-wf-card-hover border border-wf-border hover:border-wf-primary/40 cursor-pointer"
+        @click="$emit('view', account)"
+    >
+        <div>
+            <!-- Header: Icon + Title + Actions in single row -->
+            <div class="flex items-start justify-between gap-2 mb-1.5">
+                <div class="flex items-start gap-2.5 min-w-0 flex-1">
+                    <div class="w-8 h-8 rounded-wf-md flex items-center justify-center shrink-0 mt-0.5 transition-transform group-hover:scale-105" :class="iconBadgeStyle">
+                        <component :is="getAccountTypeIcon(account.type)" :size="16" />
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-xs sm:text-sm font-bold text-wf-text-primary truncate" :title="account.name">
+                            {{ account.name }}
+                        </div>
+                        <div class="flex items-center gap-1.5 text-xs text-wf-text-muted mt-0.5">
+                            <span class="text-[10px] font-semibold uppercase tracking-wider">
+                                {{ getAccountTypeLabel(account.type) }}
+                            </span>
+                            <span v-if="account.account_mask" class="font-mono text-[9px] bg-wf-surface-variant text-wf-text-secondary px-1 py-0.2 rounded-wf-xs">
+                                ••{{ account.account_mask }}
+                            </span>
+                            <span v-if="account.institution_name" class="truncate text-[10px] text-wf-text-muted hidden sm:inline">
+                                • {{ account.institution_name }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
-.acc-icon-wrapper {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 10px -4px rgba(0,0,0,0.1);
-}
-.acc-icon-wrapper.bank { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); color: #2563eb; }
-.acc-icon-wrapper.credit_card { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); color: #dc2626; }
-.acc-icon-wrapper.wallet { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); color: #16a34a; }
-.acc-icon-wrapper.investment { background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); color: #7c3aed; }
-.acc-icon-wrapper.loan { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); color: #d97706; }
+                <!-- Actions: Pay Bill + Menu -->
+                <div class="flex items-center gap-1 shrink-0" @click.stop>
+                    <button
+                        v-if="account.type === 'CREDIT_CARD'"
+                        type="button"
+                        class="px-2 py-0.5 text-[10px] font-semibold rounded-wf-sm bg-wf-primary/10 text-wf-primary hover:bg-wf-primary/20 transition-colors"
+                        @click.stop="$emit('pay-bill', account)"
+                    >
+                        Pay
+                    </button>
 
-.line-clamp-1 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
-}
-.text-tiny { font-size: 0.7rem; }
-.ls-1 { letter-spacing: 0.05em; }
-</style>
+                    <WfMenu align="right">
+                        <template #trigger>
+                            <MoreVertical :size="14" />
+                        </template>
+                        <div class="py-1">
+                            <button
+                                type="button"
+                                class="w-full text-left px-3 py-1.5 text-xs text-wf-text-primary hover:bg-wf-surface-variant flex items-center gap-2"
+                                @click="$emit('edit', account)"
+                            >
+                                <Edit2 :size="12" class="text-wf-text-muted" />
+                                <span>Edit Details</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="w-full text-left px-3 py-1.5 text-xs text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2"
+                                @click="$emit('delete', account)"
+                            >
+                                <Trash2 :size="12" class="text-wf-error" />
+                                <span>Delete Account</span>
+                            </button>
+                        </div>
+                    </WfMenu>
+                </div>
+            </div>
+
+            <!-- Compact Credit Statement Intelligence Snippet -->
+            <div v-if="intelligence" class="bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/15 rounded-wf-sm px-2.5 py-1.5 my-1.5 text-xs">
+                <div class="flex items-center justify-between text-[11px]">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Stmt</span>
+                        <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400">{{ formatAmount(intelligence.statement_balance) }}</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-[10px] text-wf-text-muted font-medium">
+                        <span>Due {{ intelligence.days_until_due }}d</span>
+                        <span v-if="intelligence.is_overdue" class="px-1 py-0.2 text-[9px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 rounded">
+                            Overdue
+                        </span>
+                        <span v-else-if="intelligence.days_until_due <= 5" class="px-1 py-0.2 text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded">
+                            Soon
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer: Balance & Utilization -->
+        <div class="pt-2 border-t border-wf-border-subtle mt-2">
+            <div class="flex items-baseline justify-between">
+                <div class="text-[10px] font-semibold text-wf-text-muted uppercase tracking-wider">
+                    {{ account.type === 'CREDIT_CARD' ? 'Cycle Spend' : 'Available Balance' }}
+                </div>
+                <div
+                    class="text-sm sm:text-base font-bold font-mono tracking-tight"
+                    :class="account.type === 'CREDIT_CARD' ? 'text-rose-600 dark:text-rose-400' : 'text-wf-text-primary'"
+                >
+                    {{ account.type === 'CREDIT_CARD' && intelligence?.current_cycle_spend != null
+                        ? formatAmount(intelligence.current_cycle_spend)
+                        : formatAmount(account.balance) }}
+                </div>
+            </div>
+
+            <!-- Credit Card Utilization Progress Bar -->
+            <div v-if="account.type === 'CREDIT_CARD' && account.credit_limit" class="mt-1 space-y-0.5">
+                <div class="flex items-center justify-between text-[9px] font-medium text-wf-text-muted">
+                    <span class="font-mono">{{ utilizationPct }}% Used</span>
+                    <span class="font-mono">Limit: {{ formatAmount(account.credit_limit) }}</span>
+                </div>
+                <div class="w-full h-1 bg-wf-surface-variant rounded-full overflow-hidden">
+                    <div
+                        class="h-full rounded-full transition-all duration-300"
+                        :class="utilizationPct > 80 ? 'bg-rose-500' : 'bg-wf-primary'"
+                        :style="{ width: `${utilizationPct}%` }"
+                    ></div>
+                </div>
+            </div>
+        </div>
+    </WfCard>
+</template>

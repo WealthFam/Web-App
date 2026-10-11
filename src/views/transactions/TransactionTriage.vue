@@ -652,7 +652,12 @@ const filteredTriageTransactions = computed(() => {
 
 const triageCurrentPage = computed({
     get: () => Math.floor(props.triagePagination.skip / props.triagePagination.limit) + 1,
-    set: (val) => emit('update:triagePagination', { ...props.triagePagination, skip: (val - 1) * props.triagePagination.limit })
+    set: (val) => {
+        emit('update:triagePagination', { ...props.triagePagination, skip: (val - 1) * props.triagePagination.limit })
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        const main = document.querySelector('main')
+        if (main) main.scrollTo({ top: 0, behavior: 'smooth' })
+    }
 })
 
 // Methods
@@ -707,6 +712,9 @@ function toggleSelectAllTriage() {
 
 function handleTriagePaginationLimitChange(newLimit: number) {
     emit('update:triagePagination', { ...props.triagePagination, limit: newLimit, skip: 0 })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    const main = document.querySelector('main')
+    if (main) main.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 const showAliasModal = ref(false)

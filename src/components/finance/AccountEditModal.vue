@@ -1,164 +1,26 @@
-<template>
-    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" max-width="540"
-        transition="dialog-bottom-transition" persistent>
-        <v-card rounded="xl" elevation="24" color="white">
-            <!-- Header -->
-            <div class="modal-header pa-6 d-flex align-center justify-space-between">
-                <div class="d-flex align-center ga-4">
-                    <div class="account-icon-box" :class="(form.type || 'bank').toLowerCase()">
-                        <component :is="getAccountTypeIcon(form.type)" :size="22" />
-                    </div>
-                    <div>
-                        <div class="text-overline font-weight-black text-primary"
-                            style="line-height: 1; margin-bottom: 4px;">
-                            {{ account?.id ? 'Update Account' : 'New Source' }}
-                        </div>
-                        <div class="text-h6 font-weight-black" style="line-height: 1.1;">
-                            {{ form.name || 'Untitled Account' }}
-                        </div>
-                    </div>
-                </div>
-                <v-btn icon variant="text" size="small" @click="$emit('update:modelValue', false)"
-                    class="text-medium-emphasis">
-                    <X :size="20" />
-                </v-btn>
-            </div>
-
-            <v-divider />
-
-            <v-card-text class="pa-6 overflow-y-auto" style="max-height: 60vh;">
-                <v-form @submit.prevent="handleSubmit">
-                    <!-- Identity -->
-                    <div class="section-label">Identity</div>
-                    <v-text-field v-model="form.name" variant="outlined" rounded="xl" placeholder="Account Name"
-                        hide-details required autofocus class="mb-5" />
-
-                    <!-- Classification -->
-                    <div class="section-label">Classification</div>
-                    <v-autocomplete v-model="form.type" label="Account Type" variant="outlined" rounded="xl"
-                        hide-details :items="typeItems" class="mb-3" />
-
-                    <v-row dense class="mb-3">
-                        <v-col cols="6">
-                            <v-autocomplete v-model="form.currency" label="Currency" variant="outlined" rounded="xl"
-                                hide-details :items="['INR', 'USD']" />
-                        </v-col>
-                        <v-col cols="6">
-                            <v-text-field v-model="form.account_mask" variant="outlined" rounded="xl" hide-details
-                                label="Last 4 Digits" maxlength="4" />
-                        </v-col>
-                    </v-row>
-
-                    <v-autocomplete v-model="form.owner_id" label="Owner" variant="outlined" rounded="xl" hide-details
-                        :items="familyMembers.map(m => ({ title: m.full_name || m.email, value: m.id }))"
-                        class="mb-5" />
-
-                    <!-- Credit Card Fields -->
-                    <template v-if="form.type === 'CREDIT_CARD'">
-                        <div class="section-label">Billing Cycle</div>
-                        <v-row dense class="mb-5">
-                            <v-col cols="6">
-                                <v-text-field v-model.number="form.billing_day" label="Statement Day" type="number"
-                                    min="1" max="31" variant="outlined" rounded="xl" hide-details />
-                            </v-col>
-                            <v-col cols="6">
-                                <v-text-field v-model.number="form.due_day" label="Due Day" type="number" min="1"
-                                    max="31" variant="outlined" rounded="xl" hide-details />
-                            </v-col>
-                        </v-row>
-                    </template>
-
-                    <!-- Verified Toggle -->
-                    <div class="toggle-card mb-5">
-                        <div class="d-flex align-center ga-3">
-                            <ShieldCheck :size="18" class="text-success" />
-                            <div class="flex-grow-1">
-                                <div class="text-subtitle-2 font-weight-bold">Verified Source</div>
-                                <div class="text-caption text-medium-emphasis">Trust this source automatically</div>
-                            </div>
-                            <v-switch v-model="form.is_verified" color="success" hide-details
-                                density="compact"></v-switch>
-                        </div>
-                    </div>
-
-                    <!-- Balance Section (Edit mode) -->
-                    <div v-if="account?.id" class="mb-2">
-                        <div class="section-label">
-                            <Anchor :size="12" class="mr-1" /> Balance Anchoring
-                        </div>
-                        <div class="anchor-card">
-                            <p class="text-caption text-medium-emphasis mb-3">Set the current real-world balance for
-                                this account.</p>
-                            <v-row dense class="mb-3">
-                                <v-col :cols="form.type === 'CREDIT_CARD' ? 6 : 12">
-                                    <v-text-field v-model.number="balanceOverride.balance" label="Balance" type="number"
-                                        step="0.01" variant="solo" flat rounded="lg" hide-details
-                                        prefix="₹"></v-text-field>
-                                </v-col>
-                                <v-col v-if="form.type === 'CREDIT_CARD'" cols="6">
-                                    <v-text-field v-model.number="balanceOverride.limit" label="Credit Limit"
-                                        type="number" step="0.01" variant="solo" flat rounded="lg" hide-details
-                                        prefix="₹"></v-text-field>
-                                </v-col>
-                            </v-row>
-                            <v-btn color="primary" block size="small" variant="flat" class="font-weight-bold rounded-lg"
-                                height="36" :loading="overriding" @click="handleOverride">
-                                <Anchor :size="14" class="mr-1" /> Update Anchor
-                            </v-btn>
-                        </div>
-                    </div>
-
-                    <!-- Balance Section (Create mode) -->
-                    <div v-else class="mb-2">
-                        <div class="section-label">Opening Balance</div>
-                        <v-text-field v-model.number="form.balance" type="number" step="0.01" variant="outlined"
-                            rounded="xl" hide-details placeholder="0.00" prefix="₹" label="Balance" class="mb-3" />
-                        <v-text-field v-if="form.type === 'CREDIT_CARD'" v-model.number="form.credit_limit"
-                            type="number" step="0.01" variant="outlined" rounded="xl" hide-details placeholder="0.00"
-                            prefix="₹" label="Credit Limit" />
-                    </div>
-                </v-form>
-            </v-card-text>
-
-            <v-divider />
-
-            <!-- Actions -->
-            <v-card-actions class="pa-5 px-6">
-                <v-btn v-if="account?.id" variant="text" color="error" class="text-none font-weight-bold" rounded="pill"
-                    @click="$emit('delete', account)">
-                    <Trash2 :size="16" class="mr-1" /> Delete
-                </v-btn>
-                <v-spacer />
-                <v-btn variant="text" @click="$emit('update:modelValue', false)" class="text-none font-weight-bold px-6"
-                    rounded="pill">
-                    Cancel
-                </v-btn>
-                <v-btn color="primary" rounded="pill" class="text-none px-8 font-weight-black elevation-4"
-                    @click="handleSubmit" height="44" :loading="saving" :disabled="!form.name">
-                    <Save :size="16" class="mr-1" />
-                    {{ account?.id ? 'Save' : 'Create' }}
-                </v-btn>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
-</template>
-
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
-import {
-    Anchor, Trash2, X, Save, ShieldCheck,
-    Wallet, CreditCard, Landmark, Banknote, TrendingUp
-} from 'lucide-vue-next'
+import { Anchor, Trash2, ShieldCheck } from 'lucide-vue-next'
+import WfModal from '@/components/ui/WfModal.vue'
+import WfInput from '@/components/ui/WfInput.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfButton from '@/components/ui/WfButton.vue'
 
-const props = defineProps<{
+interface Props {
     modelValue: boolean
     account: any
     familyMembers: any[]
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<{
+    (e: 'update:modelValue', value: boolean): void
+    (e: 'saved'): void
+    (e: 'delete', account: any): void
 }>()
 
-const emit = defineEmits(['update:modelValue', 'saved', 'delete'])
 const notify = useNotificationStore()
 
 const form = ref({
@@ -168,8 +30,8 @@ const form = ref({
     account_mask: '',
     balance: 0,
     credit_limit: 0,
-    billing_day: null as number | null,
-    due_day: null as number | null,
+    billing_day: undefined as number | undefined,
+    due_day: undefined as number | undefined,
     is_verified: true,
     owner_id: ''
 })
@@ -190,14 +52,23 @@ const typeItems = [
     { title: '📈 Investment', value: 'INVESTMENT' }
 ]
 
-function getAccountTypeIcon(type: string) {
-    const icons: any = { BANK: Landmark, CREDIT_CARD: CreditCard, LOAN: Banknote, WALLET: Wallet, INVESTMENT: TrendingUp }
-    return icons[type] || Wallet
-}
+const currencyItems = [
+    { title: '₹ INR (Indian Rupee)', value: 'INR' },
+    { title: '$ USD (US Dollar)', value: 'USD' }
+]
+
+const ownerItems = computed(() => [
+    { title: 'Shared / Family', value: '' },
+    ...props.familyMembers.map(m => ({ title: m.full_name || m.email, value: m.id }))
+])
 
 watch(() => props.account, (acc) => {
     if (acc) {
-        form.value = { ...acc }
+        form.value = {
+            ...acc,
+            billing_day: acc.billing_day ?? undefined,
+            due_day: acc.due_day ?? undefined
+        }
         balanceOverride.value = {
             balance: Number(acc.balance || 0),
             limit: Number(acc.credit_limit || 0)
@@ -205,13 +76,18 @@ watch(() => props.account, (acc) => {
     } else {
         form.value = {
             name: '', type: 'BANK', currency: 'INR', account_mask: '',
-            balance: 0, credit_limit: 0, billing_day: null, due_day: null,
+            balance: 0, credit_limit: 0, billing_day: undefined, due_day: undefined,
             is_verified: true, owner_id: ''
         }
+        balanceOverride.value = { balance: 0, limit: 0 }
     }
 }, { immediate: true })
 
 async function handleSubmit() {
+    if (!form.value.name.trim()) {
+        notify.error("Account name is required")
+        return
+    }
     saving.value = true
     try {
         if (props.account?.id) {
@@ -239,7 +115,7 @@ async function handleOverride() {
             credit_limit: form.value.type === 'CREDIT_CARD' ? balanceOverride.value.limit : null,
             timestamp: new Date().toISOString()
         })
-        notify.success("Balance anchored")
+        notify.success("Balance anchored successfully")
         emit('saved')
     } catch (e) {
         notify.error("Override failed")
@@ -249,67 +125,177 @@ async function handleOverride() {
 }
 </script>
 
-<style scoped>
-.modal-header {
-    background: rgba(var(--v-theme-primary), 0.03);
-}
+<template>
+    <WfModal
+        :model-value="modelValue"
+        @update:model-value="$emit('update:modelValue', $event)"
+        max-width="md"
+        :title="account?.id ? 'Edit Account' : 'New Financial Source'"
+        :description="account?.id ? `Manage configuration and balances for ${account.name}` : 'Link a new bank account, credit card, loan or digital wallet'"
+    >
+        <form @submit.prevent="handleSubmit" class="space-y-4">
+            <!-- Identity -->
+            <div>
+                <WfInput
+                    v-model="form.name"
+                    label="Account Name"
+                    placeholder="e.g. HDFC Salary Account"
+                    required
+                />
+            </div>
 
-.account-icon-box {
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 14px;
-    box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.1);
-}
+            <!-- Classification Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <WfSelect
+                    v-model="form.type"
+                    label="Account Type"
+                    :items="typeItems"
+                />
+                <WfSelect
+                    v-model="form.currency"
+                    label="Currency"
+                    :items="currencyItems"
+                />
+            </div>
 
-.account-icon-box.bank {
-    background: linear-gradient(135deg, #eff6ff, #dbeafe);
-    color: #2563eb;
-}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <WfInput
+                    v-model="form.account_mask"
+                    label="Last 4 Digits"
+                    placeholder="e.g. 4392"
+                    type="text"
+                />
+                <WfSelect
+                    v-model="form.owner_id"
+                    label="Owner"
+                    :items="ownerItems"
+                />
+            </div>
 
-.account-icon-box.credit_card {
-    background: linear-gradient(135deg, #fef2f2, #fee2e2);
-    color: #dc2626;
-}
+            <!-- Credit Card Specific: Billing Day & Due Day -->
+            <div v-if="form.type === 'CREDIT_CARD'" class="p-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle space-y-2">
+                <div class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
+                    Billing Cycle
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <WfInput
+                        :model-value="form.billing_day ?? ''"
+                        @update:model-value="form.billing_day = $event ? Number($event) : undefined"
+                        type="number"
+                        label="Statement Day (1-31)"
+                        placeholder="e.g. 15"
+                    />
+                    <WfInput
+                        :model-value="form.due_day ?? ''"
+                        @update:model-value="form.due_day = $event ? Number($event) : undefined"
+                        type="number"
+                        label="Due Day (1-31)"
+                        placeholder="e.g. 5"
+                    />
+                </div>
+            </div>
 
-.account-icon-box.wallet {
-    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-    color: #16a34a;
-}
+            <!-- Verified Toggle -->
+            <div class="flex items-center justify-between p-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle">
+                <div class="flex items-center gap-2.5">
+                    <ShieldCheck class="w-4 h-4 text-emerald-500 shrink-0" />
+                    <div>
+                        <div class="text-xs font-semibold text-wf-text-primary">Verified Source</div>
+                        <div class="text-[11px] text-wf-text-muted">Trust this source for automatic transaction ingestion</div>
+                    </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" v-model="form.is_verified" class="sr-only peer" />
+                    <div class="w-9 h-5 bg-wf-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+            </div>
 
-.account-icon-box.investment {
-    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
-    color: #7c3aed;
-}
+            <!-- Balance Section (Edit Mode: Anchor Balance) -->
+            <div v-if="account?.id" class="p-3.5 rounded-wf-md bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                        <Anchor class="w-3.5 h-3.5" />
+                        <span>Balance Anchoring</span>
+                    </div>
+                    <span class="text-[10px] text-wf-text-muted font-medium">Reconcile Real Balance</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <WfInput
+                        v-model.number="balanceOverride.balance"
+                        label="Current Balance (₹)"
+                        type="number"
+                    />
+                    <WfInput
+                        v-if="form.type === 'CREDIT_CARD'"
+                        v-model.number="balanceOverride.limit"
+                        label="Credit Limit (₹)"
+                        type="number"
+                    />
+                </div>
+                <WfButton
+                    variant="outline"
+                    size="sm"
+                    class="w-full text-xs"
+                    :loading="overriding"
+                    @click="handleOverride"
+                >
+                    <Anchor class="w-3.5 h-3.5 mr-1" />
+                    <span>Apply Balance Anchor</span>
+                </WfButton>
+            </div>
 
-.account-icon-box.loan {
-    background: linear-gradient(135deg, #fffbeb, #fef3c7);
-    color: #d97706;
-}
+            <!-- Balance Section (Create Mode: Opening Balance) -->
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <WfInput
+                    v-model.number="form.balance"
+                    type="number"
+                    label="Opening Balance (₹)"
+                    placeholder="0.00"
+                />
+                <WfInput
+                    v-if="form.type === 'CREDIT_CARD'"
+                    v-model.number="form.credit_limit"
+                    type="number"
+                    label="Credit Limit (₹)"
+                    placeholder="0.00"
+                />
+            </div>
+        </form>
 
-.section-label {
-    font-size: 0.7rem;
-    font-weight: 900;
-    opacity: 0.45;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 10px;
-    margin-left: 4px;
-}
-
-.toggle-card {
-    background: rgba(var(--v-theme-on-surface), 0.03);
-    border-radius: 16px;
-    padding: 14px 20px;
-    border: 1px solid rgba(var(--v-border-color), 0.08);
-}
-
-.anchor-card {
-    background: rgba(var(--v-theme-primary), 0.04);
-    border-radius: 16px;
-    padding: 16px;
-    border: 1px solid rgba(var(--v-theme-primary), 0.1);
-}
-</style>
+        <!-- Modal Footer Actions -->
+        <template #footer>
+            <div class="flex items-center justify-between w-full">
+                <div>
+                    <WfButton
+                        v-if="account?.id"
+                        variant="ghost"
+                        size="sm"
+                        class="text-wf-error hover:text-red-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                        @click="$emit('delete', account)"
+                    >
+                        <Trash2 class="w-3.5 h-3.5 mr-1" />
+                        <span>Delete</span>
+                    </WfButton>
+                </div>
+                <div class="flex items-center gap-2">
+                    <WfButton
+                        variant="outline"
+                        size="sm"
+                        @click="$emit('update:modelValue', false)"
+                    >
+                        Cancel
+                    </WfButton>
+                    <WfButton
+                        variant="primary"
+                        size="sm"
+                        :loading="saving"
+                        :disabled="!form.name.trim()"
+                        @click="handleSubmit"
+                    >
+                        {{ account?.id ? 'Save Changes' : 'Create Account' }}
+                    </WfButton>
+                </div>
+            </div>
+        </template>
+    </WfModal>
+</template>
