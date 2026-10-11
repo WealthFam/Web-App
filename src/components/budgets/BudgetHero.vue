@@ -52,11 +52,11 @@ const spendingVelocity = computed(() => {
 
           <!-- Spent vs Budget -->
           <div class="flex items-baseline gap-2.5 flex-wrap">
-            <span class="text-3xl sm:text-4xl font-black text-white tracking-tight">
+            <span class="text-3xl sm:text-4xl font-black font-mono text-white tracking-tight">
               {{ formatAmount(overallBudget.spent) }}
             </span>
             <span class="text-xl sm:text-2xl text-slate-500 font-light">/</span>
-            <span class="text-xl sm:text-2xl font-bold text-slate-400">
+            <span class="text-xl sm:text-2xl font-bold font-mono text-slate-400">
               {{ overallBudget.amount_limit ? formatAmount(overallBudget.amount_limit) : '∞' }}
             </span>
           </div>
@@ -135,22 +135,22 @@ const spendingVelocity = computed(() => {
 
           <!-- Today Marker -->
           <div
-            class="absolute -top-1.5 bottom-0 z-10 pointer-events-none flex flex-col items-center"
+            class="absolute -top-1 bottom-0 z-10 pointer-events-none flex flex-col items-center -translate-x-1/2"
             :style="{ left: `${spendingVelocity.monthProgress}%` }"
           >
-            <div class="w-0.5 h-6 bg-white shadow-md rounded-full"></div>
-            <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-1">Today</span>
+            <div class="w-0.5 h-5 bg-white shadow-md rounded-full"></div>
+            <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Today</span>
           </div>
         </div>
 
         <!-- Footer Stats -->
         <div class="flex items-center justify-between text-xs font-bold pt-1">
           <div class="text-white">
-            <span>{{ overallBudget.percentage?.toFixed(1) }}%</span>
+            <span class="font-mono">{{ overallBudget.percentage?.toFixed(1) }}%</span>
             <span class="text-slate-400 font-normal ml-1">Utilized</span>
           </div>
           <div class="text-white">
-            <span>{{ overallBudget.remaining < 0 ? '-' : '' }}{{ formatAmount(Math.abs(overallBudget.remaining)) }}</span>
+            <span class="font-mono">{{ overallBudget.remaining < 0 ? '-' : '' }}{{ formatAmount(Math.abs(overallBudget.remaining)) }}</span>
             <span class="text-[10px] font-bold ml-1" :class="overallBudget.remaining < 0 ? 'text-rose-400' : 'text-emerald-400'">
               {{ overallBudget.remaining < 0 ? 'OVERSPENT' : 'REMAINING' }}
             </span>

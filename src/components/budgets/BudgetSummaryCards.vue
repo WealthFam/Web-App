@@ -33,7 +33,7 @@ const { formatAmount } = useCurrency()
           </div>
         </div>
         <div class="mt-2">
-          <span class="text-xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">
+          <span class="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 tracking-tight">
             {{ formatAmount(totalIncome) }}
           </span>
           <p class="text-[10px] text-wf-text-muted mt-0.5">Total monthly inflows</p>
@@ -55,7 +55,7 @@ const { formatAmount } = useCurrency()
         </div>
         <div class="mt-2">
           <span
-            class="text-xl font-bold tracking-tight"
+            class="text-xl font-bold font-mono tracking-tight"
             :class="activeTab === 'investment' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'"
           >
             {{ formatAmount(activeTab === 'investment' ? totalInvested : totalSpent) }}
@@ -78,7 +78,7 @@ const { formatAmount } = useCurrency()
         </div>
         <div class="mt-2">
           <span
-            class="text-xl font-bold tracking-tight"
+            class="text-xl font-bold font-mono tracking-tight"
             :class="(totalIncome - totalSpent) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-wf-primary dark:text-indigo-400'"
           >
             {{ formatAmount(totalIncome - totalSpent) }}
@@ -119,7 +119,7 @@ const { formatAmount } = useCurrency()
         <div class="mt-2">
           <div class="flex items-baseline gap-1.5">
             <span
-              class="text-xl font-bold tracking-tight"
+              class="text-xl font-bold font-mono tracking-tight"
               :class="totalIncome > 0 && ((totalIncome - totalSpent) / totalIncome) >= 0.2 ? 'text-emerald-600 dark:text-emerald-400' : 'text-wf-primary'"
             >
               {{ totalIncome > 0 ? Math.max(0, Math.round(((totalIncome - totalSpent) / totalIncome) * 100)) : 0 }}%
@@ -173,7 +173,7 @@ const { formatAmount } = useCurrency()
             </div>
 
             <div class="text-right shrink-0 ml-2">
-              <div class="text-xs font-bold text-wf-text-primary">
+              <div class="text-xs font-bold font-mono text-wf-text-primary">
                 {{ group.parent.remaining < 0 ? '-' : '' }}{{ formatAmount(Math.abs(group.parent.remaining)) }}
               </div>
               <div class="text-[9px] font-bold text-wf-text-muted uppercase">

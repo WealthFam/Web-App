@@ -1,174 +1,290 @@
 <template>
     <MainLayout>
-        <v-container fluid class="page-container dashboard-page">
-            <!-- Animated Mesh Background -->
-            <div class="relative-pos z-10">
-                <div class="mb-6">
-                    <v-btn variant="text" color="primary" class="pl-0 font-weight-bold" @click="router.back()">
-                        <ChevronLeft :size="20" class="mr-1" />
-                        Back to Sources
-                    </v-btn>
-                </div>
+        <div class="space-y-5">
+            <!-- Back to Sources Navigation -->
+            <div>
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-1.5 text-xs font-semibold text-wf-text-muted hover:text-wf-text-primary transition-colors cursor-pointer"
+                    @click="router.back()"
+                >
+                    <ChevronLeft :size="16" />
+                    <span>Back to Sources</span>
+                </button>
+            </div>
 
-                <div v-if="loading" class="text-center py-12">
-                    <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
-                </div>
+            <!-- Loading State -->
+            <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-3">
+                <div class="w-8 h-8 rounded-full border-2 border-wf-primary border-t-transparent animate-spin"></div>
+                <span class="text-xs font-medium text-wf-text-muted">Loading account telemetry...</span>
+            </div>
 
-                <div v-else-if="account">
-                    <!-- Header -->
-                    <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-8 gap-6">
-                        <div class="d-flex align-center gap-5">
-                            <div class="account-icon-detail" :class="account.type.toLowerCase()">
-                                <component :is="getAccountTypeIcon(account.type)" :size="32" />
-                            </div>
-                            <div>
-                                <h1 class="text-h4 font-weight-black text-content mb-1 letter-spacing-negative-1">
-                                    {{ account.name }}
-                                </h1>
-                                <div class="d-flex align-center gap-2 text-medium-emphasis font-weight-bold">
-                                    <v-chip size="small" :color="getAccountTypeColor(account.type)" variant="flat" class="text-uppercase px-3">
-                                        {{ account.type.replace('_', ' ') }}
-                                    </v-chip>
-                                    <v-chip v-if="account.account_mask" size="small" variant="tonal" class="font-weight-black">
-                                        ••{{ account.account_mask }}
-                                    </v-chip>
-                                    <span class="opacity-40">•</span>
-                                    <span class="text-caption font-weight-bold opacity-70">
-                                        Owned by {{ getOwnerName(account.owner_id) }}
-                                    </span>
-                                </div>
-                            </div>
+            <!-- Account Content -->
+            <div v-else-if="account" class="space-y-5">
+                <!-- Header: Icon, Identity, Actions -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
+                    <div class="flex items-start sm:items-center gap-3.5">
+                        <div class="w-12 h-12 rounded-wf-xl flex items-center justify-center shrink-0" :class="iconBadgeStyle">
+                            <component :is="getAccountTypeIcon(account.type)" :size="24" />
                         </div>
-                        <div class="d-flex ga-3">
-                            <v-btn color="primary" variant="tonal" rounded="pill" height="48" class="px-6 font-weight-black" @click="openAddModal">
-                                <Plus :size="18" class="mr-2" /> Add Transaction
-                            </v-btn>
-                            <v-btn v-if="account.type === 'CREDIT_CARD'" color="primary" variant="tonal" rounded="pill" height="48" class="px-6 font-weight-black" @click="showPayBillModal = true">
-                                <DollarSign :size="18" class="mr-2" /> Pay Bill
-                            </v-btn>
-                            <v-btn color="primary" variant="tonal" rounded="pill" height="48" class="px-6 font-weight-black" @click="showEditModal = true">
-                                <Edit2 :size="18" class="mr-2" /> Edit
-                            </v-btn>
-                            <v-btn variant="tonal" color="error" rounded="pill" height="48" class="px-6 font-weight-black" @click="handleDelete">
-                                <Trash2 :size="18" class="mr-2" /> Delete
-                                <v-tooltip activator="parent" location="bottom">Delete Source</v-tooltip>
-                            </v-btn>
+                        <div>
+                            <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary">
+                                {{ account.name }}
+                            </h1>
+                            <div class="flex items-center flex-wrap gap-2 text-xs text-wf-text-muted mt-1">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider" :class="iconBadgeStyle">
+                                    {{ account.type.replace('_', ' ') }}
+                                </span>
+                                <span v-if="account.account_mask" class="font-mono text-[10px] bg-wf-surface-variant text-wf-text-secondary px-1.5 py-0.5 rounded">
+                                    ••{{ account.account_mask }}
+                                </span>
+                                <span class="opacity-40">•</span>
+                                <span class="text-xs text-wf-text-muted font-medium">
+                                    Owned by {{ getOwnerName(account.owner_id) }}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Stats Grid -->
-                    <v-row class="mb-8">
-                        <v-col v-for="stat in summaryStats" :key="stat.label" cols="12" sm="6" md="3">
-                            <v-card class="premium-glass-card pa-5 h-100 d-flex flex-column" rounded="xl" elevation="0">
-                                <div class="text-overline font-weight-black opacity-50 mb-1">{{ stat.label }}</div>
-                                <div class="text-h4 font-weight-black" :class="stat.color ? `text-${stat.color}` : ''">
-                                    {{ formatCurrency(stat.value) }}
-                                </div>
-                                <div v-if="stat.subtext" class="mt-auto pt-2 text-caption font-weight-bold opacity-60">
-                                    {{ stat.subtext }}
-                                </div>
-                            </v-card>
-                        </v-col>
-                    </v-row>
+                    <!-- Action Buttons -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <WfButton
+                            variant="primary"
+                            size="sm"
+                            @click="openAddModal"
+                        >
+                            <Plus :size="14" class="mr-1" />
+                            <span>Add Transaction</span>
+                        </WfButton>
 
-                    <!-- Analysis & Filters Section -->
-                    <v-card class="premium-glass-card mb-8 overflow-hidden" rounded="xl" elevation="0">
-                        <div class="pa-6 border-b d-flex flex-column flex-md-row justify-space-between align-md-center gap-4">
-                            <div class="d-flex align-center gap-4">
-                                <v-avatar color="primary" variant="tonal" rounded="lg" size="40">
-                                    <Filter :size="20" />
-                                </v-avatar>
-                                <div class="premium-pill-tabs d-flex">
-                                    <v-tabs v-model="periodFilter" color="primary" density="comfortable" hide-slider class="rounded-xl">
-                                        <v-tab v-for="p in periodOptions" :key="p.value" :value="p.value" class="period-tab" rounded="xl">
-                                            {{ p.label }}
-                                        </v-tab>
-                                    </v-tabs>
-                                </div>
+                        <WfButton
+                            v-if="account.type === 'CREDIT_CARD'"
+                            variant="secondary"
+                            size="sm"
+                            @click="showPayBillModal = true"
+                        >
+                            <DollarSign :size="14" class="mr-1" />
+                            <span>Pay Bill</span>
+                        </WfButton>
+
+                        <WfButton
+                            variant="outline"
+                            size="sm"
+                            @click="showEditModal = true"
+                        >
+                            <Edit2 :size="14" class="mr-1" />
+                            <span>Edit</span>
+                        </WfButton>
+
+                        <WfButton
+                            variant="ghost"
+                            size="sm"
+                            class="text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                            @click="handleDelete"
+                        >
+                            <Trash2 :size="14" class="mr-1" />
+                            <span>Delete</span>
+                        </WfButton>
+                    </div>
+                </div>
+
+                <!-- 4 Summary Stats Metric Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <WfCard
+                        v-for="stat in summaryStats"
+                        :key="stat.label"
+                        variant="flat"
+                        padding="md"
+                        radius="xl"
+                        class="border border-wf-border flex flex-col justify-between"
+                    >
+                        <div>
+                            <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
+                                {{ stat.label }}
                             </div>
-
-                            <div v-if="periodFilter === 'custom'" class="d-flex align-center gap-2">
-                                <v-text-field v-model="customRange.start" type="date" density="compact" hide-details variant="outlined" rounded="lg" class="date-input" />
-                                <span class="opacity-40">to</span>
-                                <v-text-field v-model="customRange.end" type="date" density="compact" hide-details variant="outlined" rounded="lg" class="date-input" />
+                            <div
+                                class="text-xl sm:text-2xl font-bold font-mono tracking-tight mt-1"
+                                :class="[
+                                    stat.color === 'error' ? 'text-rose-600 dark:text-rose-400' : '',
+                                    stat.color === 'success' ? 'text-emerald-600 dark:text-emerald-400' : '',
+                                    stat.color === 'primary' ? 'text-wf-text-primary' : '',
+                                    !stat.color ? 'text-wf-text-primary' : ''
+                                ]"
+                            >
+                                {{ formatAmount(stat.value) }}
                             </div>
                         </div>
-
-                        <!-- Chart Section -->
-                        <div class="pa-6">
-                            <div class="d-flex justify-space-between align-center mb-6">
-                                <h3 class="text-subtitle-1 font-weight-black uppercase letter-spacing-1">Spending Trend</h3>
-                                <div class="text-caption font-weight-bold opacity-60">Total: {{ formatCurrency(totalPeriodSpend) }}</div>
-                            </div>
-                            <div style="height: 300px; position: relative;">
-                                <Bar v-if="chartData" :data="chartData" :options="chartOptions" />
-                            </div>
+                        <div v-if="stat.subtext" class="text-[11px] text-wf-text-muted mt-2 pt-2 border-t border-wf-border-subtle">
+                            {{ stat.subtext }}
                         </div>
-                    </v-card>
+                    </WfCard>
+                </div>
 
-                    <!-- Transactions Section -->
-                    <div class="mb-12">
-                        <div class="d-flex align-center justify-space-between mb-6">
-                            <div class="d-flex align-center gap-3">
-                                <Landmark :size="20" class="text-primary" />
-                                <h2 class="text-h5 font-weight-black">Transaction History</h2>
-                            </div>
-                             <div style="width: 320px;">
-                                <v-text-field v-model="searchQuery" prepend-inner-icon="mdi-magnify" label="Search transactions..." variant="outlined" density="compact" rounded="pill" hide-details @update:model-value="fetchTransactions"></v-text-field>
-                            </div>
+                <!-- Analysis & Spending Trend Section -->
+                <WfCard variant="flat" padding="md" radius="xl" class="border border-wf-border space-y-4">
+                    <!-- Chart Controls Toolbar -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wf-border-subtle">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-bold text-wf-text-primary">Spending Trend</h3>
+                            <span class="text-xs font-mono font-medium text-wf-text-muted">
+                                Total: {{ formatAmount(totalPeriodSpend) }}
+                            </span>
                         </div>
 
-                        <v-card class="premium-glass-card no-hover overflow-hidden" rounded="xl">
-                            <TransactionTable
-                                hide-actions
-                                :show-select="false"
-                                :transactions="transactions"
-                                :total="totalTransactions"
-                                :loading="txLoading"
-                                :page-size="limit"
-                                :page="page"
-                                :selected-ids="new Set()"
-                                :accounts="financeStore.accounts"
-                                :categories="financeStore.categories"
-                                :expense-groups="[]"
-                                @optionsUpdate="fetchTransactions"
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <!-- Period Filter Tabs -->
+                            <div class="flex items-center p-0.5 bg-wf-surface-variant/60 rounded-wf-md border border-wf-border text-xs font-semibold">
+                                <button
+                                    v-for="p in periodOptions"
+                                    :key="p.value"
+                                    type="button"
+                                    class="px-2.5 py-1 rounded-wf-sm transition-all cursor-pointer"
+                                    :class="periodFilter === p.value
+                                        ? 'bg-wf-surface text-wf-text-primary shadow-2xs font-bold'
+                                        : 'text-wf-text-muted hover:text-wf-text-primary'"
+                                    @click="periodFilter = p.value"
+                                >
+                                    {{ p.label }}
+                                </button>
+                            </div>
+
+                            <!-- Custom Date Range Inputs -->
+                            <div v-if="periodFilter === 'custom'" class="flex items-center gap-1.5">
+                                <input
+                                    v-model="customRange.start"
+                                    type="date"
+                                    class="h-7 text-xs bg-wf-surface border border-wf-border rounded-wf-md px-2 text-wf-text-primary focus:outline-none focus:ring-1 focus:ring-wf-primary"
+                                />
+                                <span class="text-xs text-wf-text-muted">to</span>
+                                <input
+                                    v-model="customRange.end"
+                                    type="date"
+                                    class="h-7 text-xs bg-wf-surface border border-wf-border rounded-wf-md px-2 text-wf-text-primary focus:outline-none focus:ring-1 focus:ring-wf-primary"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart Canvas -->
+                    <div class="h-64 sm:h-72 relative">
+                        <Bar v-if="chartData" :data="chartData" :options="chartOptions" />
+                        <div v-else class="flex items-center justify-center h-full text-xs text-wf-text-muted">
+                            No spending activity in selected window
+                        </div>
+                    </div>
+                </WfCard>
+
+                <!-- Transactions History Section -->
+                <div class="space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <Landmark :size="18" class="text-wf-primary" />
+                            <h2 class="text-base font-bold text-wf-text-primary">Transaction History</h2>
+                            <span class="text-xs font-mono text-wf-text-muted">({{ totalTransactions }})</span>
+                        </div>
+
+                        <!-- Search Bar -->
+                        <div class="relative w-full sm:w-72">
+                            <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-wf-text-muted pointer-events-none" />
+                            <input
+                                v-model="searchQuery"
+                                type="text"
+                                placeholder="Search account transactions..."
+                                class="w-full h-8 pl-9 pr-8 text-xs bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-colors"
+                                @input="fetchTransactions"
                             />
-                        </v-card>
+                            <button
+                                v-if="searchQuery"
+                                type="button"
+                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded cursor-pointer"
+                                aria-label="Clear search"
+                                @click="searchQuery = ''; fetchTransactions()"
+                            >
+                                <X :size="13" />
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <div v-else class="text-center py-12">
-                    <h3 class="text-h5 font-weight-black opacity-60">Account not found</h3>
-                    <v-btn variant="text" color="primary" class="mt-4 font-weight-bold" @click="router.push('/accounts')">
-                        Go back to accounts
-                    </v-btn>
+                    <!-- Transaction Table Card -->
+                    <WfCard variant="flat" padding="none" radius="xl" class="border border-wf-border overflow-hidden">
+                        <TransactionTable
+                            hide-actions
+                            :show-select="false"
+                            :transactions="transactions"
+                            :total="totalTransactions"
+                            :loading="txLoading"
+                            :page-size="limit"
+                            :page="page"
+                            :selected-ids="new Set()"
+                            :accounts="financeStore.accounts"
+                            :categories="financeStore.categories"
+                            :expense-groups="[]"
+                            @optionsUpdate="fetchTransactions"
+                        />
+                    </WfCard>
                 </div>
             </div>
 
-            <!-- Modals -->
-            <AccountEditModal v-model="showEditModal" :account="account" :family-members="familyMembers" @saved="refreshAll" />
-            
-            <!-- Delete Account Confirmation -->
-            <v-dialog v-model="showDeleteAccountConfirm" max-width="450">
-                <v-card class="premium-glass-card" rounded="xl" elevation="0">
-                    <v-card-text class="text-center pa-10">
-                        <div class="text-h2 mb-6">🗑️</div>
-                        <h3 class="text-h5 font-weight-black mb-2">Delete Account?</h3>
-                        <p class="text-body-1 text-medium-emphasis mb-10">
-                            Are you sure you want to delete <span class="font-weight-black text-error">{{ account?.name }}</span>? All associated transactions will be permanently removed.
-                        </p>
-                        <div class="d-flex ga-3 justify-center">
-                            <v-btn variant="text" rounded="pill" height="48" class="px-6 font-weight-black" @click="showDeleteAccountConfirm = false">
-                                Cancel
-                            </v-btn>
-                            <v-btn color="error" variant="flat" rounded="pill" height="48" class="px-8 font-weight-black" @click="confirmDeleteAccount" :loading="deleting">
-                                <Trash2 :size="18" class="mr-2" /> Delete Forever
-                            </v-btn>
+            <!-- Empty / Not Found State -->
+            <div v-else class="text-center py-20 animate-in">
+                <div class="w-16 h-16 rounded-full bg-wf-surface-variant text-wf-text-muted flex items-center justify-center mx-auto mb-4">
+                    <Landmark :size="32" class="opacity-40" />
+                </div>
+                <h3 class="text-base font-bold text-wf-text-primary">Account not found</h3>
+                <p class="text-xs text-wf-text-muted mt-1 mb-4">This account may have been deleted or reassigned.</p>
+                <WfButton variant="outline" size="sm" @click="router.push('/accounts')">
+                    Go back to accounts
+                </WfButton>
+            </div>
+
+            <!-- Modals Suite -->
+            <!-- 1. Account Edit Modal -->
+            <AccountEditModal
+                v-model="showEditModal"
+                :account="account"
+                :family-members="familyMembers"
+                @saved="refreshAll"
+            />
+
+            <!-- 2. Delete Confirmation Dialog -->
+            <WfModal
+                v-model="showDeleteAccountConfirm"
+                max-width="sm"
+                title="Delete Account?"
+                description="Irreversible Action"
+            >
+                <div class="space-y-4 py-1">
+                    <div class="p-3.5 rounded-wf-md bg-rose-500/10 border border-rose-500/20 flex items-start gap-3">
+                        <Trash2 :size="20" class="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                        <div class="text-xs text-wf-text-primary">
+                            Are you sure you want to permanently delete <strong class="text-rose-600 dark:text-rose-400">{{ account?.name }}</strong>? All associated transactions will be removed.
                         </div>
-                    </v-card-text>
-                </v-card>
-            </v-dialog>
-            
+                    </div>
+                </div>
+
+                <template #footer>
+                    <div class="flex items-center justify-end gap-2 w-full">
+                        <WfButton
+                            variant="outline"
+                            size="sm"
+                            @click="showDeleteAccountConfirm = false"
+                        >
+                            Cancel
+                        </WfButton>
+                        <WfButton
+                            variant="danger"
+                            size="sm"
+                            :loading="deleting"
+                            @click="confirmDeleteAccount"
+                        >
+                            <Trash2 :size="13" class="mr-1" />
+                            <span>Delete Forever</span>
+                        </WfButton>
+                    </div>
+                </template>
+            </WfModal>
+
+            <!-- 3. Add Transaction Modal -->
             <TransactionModal 
                 :isOpen="showModal" 
                 :isEditing="isEditing" 
@@ -185,52 +301,77 @@
                 @findMatches="findMatches" 
             />
 
+            <!-- 4. Smart Prompt Modal -->
             <SmartPromptModal 
                 :isOpen="showSmartPrompt" 
                 :data="smartPromptData" 
                 @close="showSmartPrompt = false"
                 @confirm="handleSmartCategorize" 
             />
-            
-            <!-- Pay Bill Modal (Extracted Logic from Accounts.vue) -->
-            <v-dialog v-model="showPayBillModal" max-width="450" persistent>
-                <v-card class="pa-8" rounded="xl" elevation="24">
-                    <v-avatar color="primary" variant="tonal" size="72" class="mb-4 mx-auto d-flex">
-                        <CreditCard :size="36" />
-                    </v-avatar>
-                    <h3 class="text-h5 font-weight-black text-center mb-1">Pay Credit Bill</h3>
-                    <p class="text-subtitle-2 font-weight-medium opacity-60 text-center mb-6">
-                        {{ account?.name }} · Outstanding <strong class="text-error">{{ formatCurrency(account?.balance || 0) }}</strong>
-                    </p>
 
-                    <v-form @submit.prevent="handlePayBillSubmit">
-                        <v-autocomplete v-model="payBillForm.source_account_id" label="Pay From" :items="bankAccountsItems" variant="outlined" rounded="xl" class="mb-4" placeholder="Select bank account"></v-autocomplete>
+            <!-- 5. Pay Bill Modal -->
+            <WfModal
+                v-model="showPayBillModal"
+                max-width="md"
+                title="Pay Credit Bill"
+                :description="`${account?.name} · Outstanding ${formatAmount(account?.balance || 0)}`"
+            >
+                <form @submit.prevent="handlePayBillSubmit" class="space-y-4 py-1">
+                    <WfSelect
+                        v-model="payBillForm.source_account_id"
+                        label="Pay From Bank Account"
+                        :items="bankAccountsItems"
+                        placeholder="Select bank account"
+                    />
 
-                        <v-row dense>
-                            <v-col cols="6">
-                                <v-text-field v-model.number="payBillForm.amount" label="Amount" type="number" variant="outlined" rounded="xl" class="mb-4" prefix="₹"></v-text-field>
-                            </v-col>
-                            <v-col cols="6">
-                                <v-text-field v-model="payBillForm.date" label="Date" type="date" variant="outlined" rounded="xl" class="mb-4"></v-text-field>
-                            </v-col>
-                        </v-row>
+                    <div class="grid grid-cols-2 gap-3">
+                        <WfInput
+                            v-model.number="payBillForm.amount"
+                            type="number"
+                            label="Amount (₹)"
+                            placeholder="0.00"
+                        />
+                        <WfInput
+                            v-model="payBillForm.date"
+                            type="date"
+                            label="Payment Date"
+                        />
+                    </div>
 
-                        <div class="d-flex align-center justify-space-between pa-4 rounded-xl mb-6 bg-grey-lighten-4">
-                            <div>
-                                <div class="text-subtitle-2 font-weight-bold">Record Transaction</div>
-                                <div class="text-caption text-medium-emphasis">Debit from source account</div>
-                            </div>
-                            <v-switch v-model="payBillForm.record_transaction" color="primary" hide-details density="compact"></v-switch>
+                    <div class="flex items-center justify-between p-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle">
+                        <div>
+                            <div class="text-xs font-semibold text-wf-text-primary">Record Transaction</div>
+                            <div class="text-[11px] text-wf-text-muted">Automatically debit from source bank account</div>
                         </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" v-model="payBillForm.record_transaction" class="sr-only peer" />
+                            <div class="w-9 h-5 bg-wf-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-wf-primary"></div>
+                        </label>
+                    </div>
+                </form>
 
-                        <div class="d-flex ga-3 justify-center">
-                            <v-btn variant="text" rounded="pill" class="text-none font-weight-bold px-6" height="44" @click="showPayBillModal = false">Cancel</v-btn>
-                            <v-btn type="submit" color="primary" rounded="pill" class="text-none font-weight-black px-8 elevation-4" height="44" :loading="submittingPayBill">Confirm Payment</v-btn>
-                        </div>
-                    </v-form>
-                </v-card>
-            </v-dialog>
-        </v-container>
+                <template #footer>
+                    <div class="flex items-center justify-end gap-2 w-full">
+                        <WfButton
+                            variant="outline"
+                            size="sm"
+                            @click="showPayBillModal = false"
+                        >
+                            Cancel
+                        </WfButton>
+                        <WfButton
+                            variant="primary"
+                            size="sm"
+                            :loading="submittingPayBill"
+                            :disabled="!payBillForm.source_account_id || !payBillForm.amount"
+                            @click="handlePayBillSubmit"
+                        >
+                            Confirm Payment
+                        </WfButton>
+                    </div>
+                </template>
+            </WfModal>
+        </div>
     </MainLayout>
 </template>
 
@@ -242,22 +383,27 @@ import { financeApi } from '@/api/client'
 import { useCurrency } from '@/composables/useCurrency'
 import { useNotificationStore } from '@/stores/notification'
 import { useAuthStore } from '@/stores/auth'
-import AccountEditModal from '@/components/finance/AccountEditModal.vue'
-import TransactionTable from '@/components/transactions/TransactionTable.vue'
-import TransactionModal from '@/views/transactions/TransactionModal.vue'
-import SmartPromptModal from '@/components/SmartPromptModal.vue'
 import { useFinanceStore } from '@/stores/finance'
 import { useBudgetStore } from '@/stores/finance/budgets'
 import { useTransactionModals } from '@/composables/useTransactionModals'
 import {
-    ChevronLeft, Edit2, Trash2, DollarSign, Filter,
-    Landmark, CreditCard, Banknote, Wallet, TrendingUp, Plus
+    ChevronLeft, Edit2, Trash2, DollarSign,
+    Landmark, CreditCard, Banknote, Wallet, TrendingUp, Plus, Search, X
 } from 'lucide-vue-next'
 import {
     Chart as ChartJS, CategoryScale, LinearScale, BarElement,
     Title, Tooltip, Legend, PointElement, LineElement
 } from 'chart.js'
 import { Bar } from 'vue-chartjs'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfModal from '@/components/ui/WfModal.vue'
+import WfInput from '@/components/ui/WfInput.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import AccountEditModal from '@/components/finance/AccountEditModal.vue'
+import TransactionTable from '@/components/transactions/TransactionTable.vue'
+import TransactionModal from '@/views/transactions/TransactionModal.vue'
+import SmartPromptModal from '@/components/SmartPromptModal.vue'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement)
 
@@ -281,7 +427,7 @@ const page = ref(1)
 const limit = ref(50)
 const searchQuery = ref('')
 
-const periodFilter = ref('current') // current, last, month, 3months, custom
+const periodFilter = ref('current')
 const customRange = reactive({
     start: '',
     end: new Date().toISOString().split('T')[0]
@@ -299,7 +445,7 @@ const payBillForm = ref({
     record_transaction: true
 })
 
-const allAccounts = ref<any[]>([]) // For bank selection in pay bill
+const allAccounts = ref<any[]>([])
 
 // --- Transaction Modal Setup ---
 const showSmartPrompt = ref(false)
@@ -380,7 +526,7 @@ const dateRange = computed(() => {
     } else if (periodFilter.value === 'last_month') {
         start.setMonth(start.getMonth() - 1)
         start.setDate(1)
-        end.setDate(0) // Last day of previous month
+        end.setDate(0)
         return { start, end }
     } else if (periodFilter.value === '3months') {
         start.setMonth(start.getMonth() - 3)
@@ -419,11 +565,21 @@ const summaryStats = computed(() => {
     ]
 })
 
-
 const bankAccountsItems = computed(() => {
     return allAccounts.value
         .filter(a => a.type === 'BANK' && a.is_verified)
         .map(a => ({ title: `${a.name} (${formatAmount(a.balance)})`, value: a.id }))
+})
+
+const iconBadgeStyle = computed(() => {
+    switch (account.value?.type) {
+        case 'BANK': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+        case 'CREDIT_CARD': return 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+        case 'LOAN': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+        case 'WALLET': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+        case 'INVESTMENT': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+        default: return 'bg-wf-surface-variant text-wf-text-secondary'
+    }
 })
 
 // --- Chart Logic ---
@@ -448,8 +604,8 @@ const chartData = computed(() => {
 
     chartTransactions.value.forEach(tx => {
         if (Number(tx.amount) < 0 && !tx.exclude_from_reports && !tx.is_transfer) {
-            const date = tx.date.split('T')[0]
-            if (dailySpend[date] !== undefined) {
+            const date = tx.date ? tx.date.split('T')[0] : ''
+            if (date && dailySpend[date] !== undefined) {
                 dailySpend[date] += Math.abs(Number(tx.amount))
             }
         }
@@ -482,16 +638,26 @@ const chartOptions = {
             mode: 'index' as const,
             intersect: false,
             callbacks: {
-                label: (context: any) => `Spent: ${formatCurrency(context.raw)}`
+                label: (context: any) => `Spent: ${formatAmount(context.raw)}`
             }
         }
     },
     scales: {
-        x: { grid: { display: false } },
+        x: { 
+            grid: { display: false },
+            ticks: {
+                color: '#94a3b8',
+                font: { size: 10 }
+            }
+        },
         y: { 
             beginAtZero: true,
-            grid: { color: 'rgba(0,0,0,0.05)' },
-            ticks: { callback: (val: any) => `₹${val}` }
+            grid: { color: 'rgba(148, 163, 184, 0.1)' },
+            ticks: { 
+                color: '#94a3b8',
+                font: { size: 10 },
+                callback: (val: any) => `₹${val}` 
+            }
         }
     }
 }
@@ -533,7 +699,6 @@ async function fetchTransactions(options?: any) {
         const sDate = range.start ? range.start.toISOString().split('T')[0] : undefined
         const eDate = range.end ? range.end.toISOString().split('T')[0] : undefined
         
-        // Parallel fetch: Paginated for table, All for chart/stats
         const [tableRes, chartRes] = await Promise.all([
             financeApi.getTransactions(
                 account.value.id,
@@ -546,7 +711,7 @@ async function fetchTransactions(options?: any) {
             financeApi.getTransactions(
                 account.value.id,
                 1,
-                1000, // Reasonable limit for chart context
+                1000,
                 sDate,
                 eDate,
                 searchQuery.value || undefined
@@ -609,18 +774,9 @@ function getAccountTypeIcon(type: string) {
     return icons[type] || Wallet
 }
 
-function getAccountTypeColor(type: string) {
-    const colors: any = { BANK: 'primary', CREDIT_CARD: 'error', WALLET: 'success', INVESTMENT: 'indigo', LOAN: 'warning' }
-    return colors[type] || 'grey'
-}
-
 function getOwnerName(id: string) {
     const member = familyMembers.value.find(m => m.id === id)
     return member ? (member.full_name || member.email) : 'Unknown'
-}
-
-function formatCurrency(amount: any) {
-    return formatAmount(amount)
 }
 
 // --- Watchers ---
@@ -634,48 +790,3 @@ watch(customRange, () => {
 
 onMounted(fetchAccount)
 </script>
-
-<style scoped>
-.account-icon-detail {
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 24px -8px rgba(0,0,0,0.15);
-}
-.account-icon-detail.bank { background: linear-gradient(135deg, #eff6ff, #dbeafe); color: #2563eb; }
-.account-icon-detail.credit_card { background: linear-gradient(135deg, #fef2f2, #fee2e2); color: #dc2626; }
-.account-icon-detail.wallet { background: linear-gradient(135deg, #f0fdf4, #dcfce7); color: #16a34a; }
-.account-icon-detail.investment { background: linear-gradient(135deg, #f5f3ff, #ede9fe); color: #7c3aed; }
-.account-icon-detail.loan { background: linear-gradient(135deg, #fffbeb, #fef3c7); color: #d97706; }
-
-.premium-glass-card {
-    background: rgba(var(--v-theme-surface), 0.6) !important;
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(var(--v-border-color), 0.08) !important;
-}
-
-.premium-pill-tabs {
-    background: rgba(var(--v-theme-on-surface), 0.04);
-    padding: 4px;
-    border-radius: 20px;
-}
-
-.period-tab {
-    text-transform: none !important;
-    font-weight: 800;
-    font-size: 0.75rem;
-    letter-spacing: 0.02em;
-    min-width: 100px;
-}
-
-.date-input { width: 150px; }
-
-.shadow-primary {
-    box-shadow: 0 8px 20px -6px rgba(var(--v-theme-primary), 0.4) !important;
-}
-
-.text-tiny { font-size: 0.65rem; }
-</style>

@@ -97,7 +97,7 @@ function formatCategoryName(name: string) {
                 {{ activeTab === 'income' ? 'RECEIVED' : (activeTab === 'investment' ? 'INVESTED' : 'SPENT') }}
               </span>
               <span
-                class="text-sm font-bold tracking-tight"
+                class="text-sm font-bold font-mono tracking-tight"
                 :class="activeTab === 'investment' ? 'text-amber-600 dark:text-amber-400' : (activeTab === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-wf-text-primary')"
               >
                 {{ formatAmount(activeTab === 'income' ? group.parent.income : group.parent.spent) }}
@@ -109,7 +109,7 @@ function formatCategoryName(name: string) {
                 {{ group.parent.remaining < 0 ? 'OVERSPENT' : 'REMAINING' }}
               </span>
               <span
-                class="text-sm font-bold tracking-tight"
+                class="text-sm font-bold font-mono tracking-tight"
                 :class="group.parent.remaining < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'"
               >
                 {{ group.parent.remaining < 0 ? '-' : '' }}{{ formatAmount(Math.abs(group.parent.remaining)) }}
@@ -143,7 +143,7 @@ function formatCategoryName(name: string) {
             :class="group.parent.percentage > 100 ? 'text-rose-600' : 'text-wf-text-secondary'"
           >
             <span>{{ group.parent.percentage.toFixed(0) }}% OF LIMIT</span>
-            <span>{{ formatAmount(group.parent.amount_limit) }}</span>
+            <span class="font-mono">{{ formatAmount(group.parent.amount_limit) }}</span>
           </div>
         </div>
 
@@ -170,13 +170,13 @@ function formatCategoryName(name: string) {
 
               <div class="flex items-center gap-1.5 shrink-0 ml-2">
                 <span
-                  class="text-[11px] font-bold tabular-nums"
+                  class="text-[11px] font-bold font-mono"
                   :class="child.percentage > 100 ? 'text-rose-600' : 'text-wf-text-primary'"
                 >
                   {{ formatAmount(activeTab === 'income' ? child.income : child.spent) }}
                 </span>
 
-                <span v-if="child.amount_limit" class="text-[10px] text-wf-text-muted">
+                <span v-if="child.amount_limit" class="text-[10px] font-mono text-wf-text-muted">
                   / {{ formatAmount(child.amount_limit) }}
                 </span>
 
