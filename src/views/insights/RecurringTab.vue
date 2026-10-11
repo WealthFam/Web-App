@@ -1,398 +1,428 @@
 <template>
-    <div class="recurring-content px-0 pb-12">
-        <!-- Dashboard Header -->
-        <div class="d-flex align-center justify-space-between mb-8 flex-wrap gap-4">
+    <div class="space-y-8 pb-12">
+        <!-- Subscriptions Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-                <h2 class="text-h4 font-weight-black mb-1">Subscriptions</h2>
-                <p class="text-subtitle-2 text-medium-emphasis">Track and manage your recurring bills and payments</p>
+                <h2 class="text-lg font-bold text-wf-text-primary">Subscriptions & Recurring</h2>
+                <p class="text-xs text-wf-text-secondary mt-0.5">Track and manage your recurring bills, subscriptions, and regular cash outflows</p>
             </div>
-            <v-btn color="primary" @click="showAddModal = true" rounded="lg" height="48"
-                class="text-none font-weight-black px-6 premium-btn" elevation="4">
-                <template v-slot:prepend>
-                    <Plus :size="18" stroke-width="3" />
-                </template>
-                Add Subscription
-            </v-btn>
+            <WfButton variant="primary" size="sm" @click="showAddModal = true">
+                <Plus :size="15" class="mr-1.5" />
+                <span>Add Subscription</span>
+            </WfButton>
         </div>
 
-        <!-- Smart Suggestions Section (Redesigned) -->
-        <div v-if="suggestions.length > 0 || loadingSuggestions" class="suggestions-container mb-12">
-            <div class="d-flex align-center mb-6">
-                <div class="icon-orb mr-4">
-                    <Sparkles :size="20" class="text-primary" />
+        <!-- Smart Discoveries Section -->
+        <div v-if="suggestions.length > 0 || loadingSuggestions" class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/40 text-wf-primary flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50 shadow-2xs">
+                        <Sparkles :size="16" />
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-wf-text-primary leading-none">Smart Discoveries</h3>
+                        <p class="text-[11px] text-wf-text-muted mt-0.5 leading-none">High-confidence patterns detected in transaction history</p>
+                    </div>
                 </div>
-                <div>
-                    <h3 class="text-h6 font-weight-black">🎯 Smart Discoveries</h3>
-                    <p class="text-caption font-weight-bold opacity-60">High-confidence patterns identified in your history
-                    </p>
-                </div>
-                <v-spacer />
-                <v-btn variant="text" size="small" rounded="lg" @click="fetchSuggestions" :loading="loadingSuggestions"
-                    class="text-none font-weight-bold">
-                    <v-tooltip activator="parent" location="top">Scan for new patterns</v-tooltip>
-                    <RefreshCw :size="14" class="mr-2" /> Refresh
-                </v-btn>
+
+                <WfButton
+                    variant="ghost"
+                    size="sm"
+                    :disabled="loadingSuggestions"
+                    @click="fetchSuggestions"
+                >
+                    <RefreshCw :size="13" class="mr-1.5" :class="loadingSuggestions ? 'animate-spin text-wf-primary' : ''" />
+                    <span>Scan</span>
+                </WfButton>
             </div>
 
-            <div class="suggestions-grid">
+            <!-- Suggestions Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <!-- Loading State -->
                 <template v-if="loadingSuggestions">
-                    <v-skeleton-loader v-for="i in 3" :key="i" type="article"
-                        class="suggestion-premium-card rounded-xl" />
+                    <div v-for="i in 4" :key="`skel-sug-${i}`" class="h-44 rounded-wf-xl bg-wf-surface-variant/40 border border-wf-border-subtle animate-pulse"></div>
                 </template>
 
-                <v-card v-else v-for="(suggestion, idx) in suggestions" :key="idx"
-                    class="suggestion-premium-card pa-4 border-premium group relative-pos" elevation="0">
-                    <!-- Compact Header with Actions -->
-                    <div class="d-flex justify-space-between align-start mb-3">
-                        <v-avatar color="primary" variant="tonal" size="40" rounded="lg" class="suggestion-icon">
-                            <component :is="getCategoryLucideIcon(suggestion.category)" :size="20" />
-                        </v-avatar>
+                <WfCard
+                    v-else
+                    v-for="(suggestion, idx) in suggestions"
+                    :key="idx"
+                    variant="flat"
+                    padding="md"
+                    radius="xl"
+                    class="border border-wf-border flex flex-col justify-between hover:shadow-wf-card-hover transition-all duration-200"
+                >
+                    <div class="space-y-3">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shrink-0">
+                                <component :is="getCategoryLucideIcon(suggestion.category)" :size="18" />
+                            </div>
 
-                        <div class="d-flex gap-1">
-                            <v-btn icon size="32" variant="tonal" color="primary" rounded="lg"
-                                @click="openHistory(suggestion)">
-                                <v-tooltip activator="parent" location="top">Payment History</v-tooltip>
-                                <History :size="16" />
-                            </v-btn>
-                            <v-btn icon size="32" variant="elevated" color="primary" rounded="lg"
-                                @click="approveSuggestion(suggestion)">
-                                <v-tooltip activator="parent" location="top">Confirm Subscription</v-tooltip>
-                                <Check :size="16" />
-                            </v-btn>
-                            <v-btn icon size="32" variant="tonal" color="error" rounded="lg"
-                                @click="ignoreSuggestion(suggestion)">
-                                <v-tooltip activator="parent" location="top">Reject Suggestion</v-tooltip>
-                                <X :size="16" />
-                            </v-btn>
-                        </div>
-                    </div>
-
-                    <div class="suggestion-info mb-2">
-                        <div class="text-subtitle-2 font-weight-black text-truncate">{{ suggestion.name }}</div>
-                        <div class="d-flex align-center mt-1">
-                            <span class="text-h6 font-weight-black color-primary tabular-nums">{{
-                                formatAmount(suggestion.amount)
-                                }}</span>
-                            <v-chip size="x-small" color="primary" variant="tonal" class="ml-2 font-weight-bold px-2">
-                                {{ suggestion.frequency }}
-                            </v-chip>
-                        </div>
-                    </div>
-
-                    <!-- Confidence Bar -->
-                    <div class="d-flex align-center mb-2">
-                        <div class="confidence-bar flex-grow-1 mr-2" style="height: 4px;">
-                            <div class="confidence-fill" :style="{ width: `${suggestion.confidence * 100}%` }">
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button
+                                    type="button"
+                                    @click="openHistory(suggestion)"
+                                    class="p-1 rounded-wf-sm text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+                                    title="Payment History"
+                                >
+                                    <History :size="14" />
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="approveSuggestion(suggestion)"
+                                    class="p-1 rounded-wf-sm text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                                    title="Confirm Subscription"
+                                >
+                                    <Check :size="14" />
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="ignoreSuggestion(suggestion)"
+                                    class="p-1 rounded-wf-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                                    title="Ignore Suggestion"
+                                >
+                                    <X :size="14" />
+                                </button>
                             </div>
                         </div>
-                        <span class="text-caption font-weight-bold opacity-60">{{ (suggestion.confidence *
-                            100).toFixed(0)
-                            }}%</span>
-                    </div>
 
-                    <div class="text-caption opacity-70 font-weight-medium line-clamp-1 d-flex align-center">
-                        <Info :size="12" class="mr-1" /> {{ suggestion.reason }}
+                        <div>
+                            <h4 class="text-xs font-bold text-wf-text-primary truncate" :title="suggestion.name">{{ suggestion.name }}</h4>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-sm font-bold font-mono text-wf-primary">{{ formatAmount(suggestion.amount) }}</span>
+                                <span class="px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold uppercase tracking-wider bg-wf-surface-variant text-wf-text-secondary">
+                                    {{ suggestion.frequency }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Confidence Bar -->
+                        <div class="space-y-1">
+                            <div class="flex items-center justify-between text-[10px] font-semibold text-wf-text-muted">
+                                <span>Confidence</span>
+                                <span>{{ (suggestion.confidence * 100).toFixed(0) }}%</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-wf-pill overflow-hidden">
+                                <div
+                                    class="h-full rounded-wf-pill bg-wf-primary transition-all duration-300"
+                                    :style="{ width: `${suggestion.confidence * 100}%` }"
+                                ></div>
+                            </div>
+                        </div>
+
+                        <div class="text-[10px] text-wf-text-muted truncate flex items-center gap-1 pt-1 border-t border-wf-border-subtle" :title="suggestion.reason">
+                            <Info :size="11" class="shrink-0" />
+                            <span class="truncate">{{ suggestion.reason }}</span>
+                        </div>
                     </div>
-                </v-card>
+                </WfCard>
             </div>
         </div>
 
-        <!-- History Modal -->
-        <v-dialog v-model="showHistoryModal" max-width="400">
-            <v-card rounded="xl" class="glass-modal-card pa-6">
-                <div class="d-flex align-center mb-6">
-                    <v-avatar color="primary" variant="tonal" size="48" rounded="lg" class="mr-4">
-                        <History :size="24" />
-                    </v-avatar>
-                    <div>
-                        <div class="text-h6 font-weight-black">{{ historyTarget?.name }}</div>
-                        <div class="text-caption opacity-60">{{ historyTarget?.isSuggestion ? 'Recent Detection History' : 'Payment History' }}</div>
-                    </div>
-                    <v-spacer />
-                    <v-btn icon variant="tonal" size="small" @click="showHistoryModal = false" class="rounded-lg">
-                        <X :size="18" />
-                    </v-btn>
-                </div>
-
-                <div class="mb-6">
-                    <div class="text-caption font-weight-black mb-2 opacity-40 text-uppercase tracking-widest ml-1">
-                        Timeline</div>
-                    
-                    <!-- Loading State -->
-                    <div v-if="loadingHistory" class="text-center py-10">
-                        <v-progress-circular indeterminate color="primary" size="32" width="3" />
-                        <div class="text-caption mt-3 opacity-60 font-weight-bold">Fetching history...</div>
-                    </div>
-
-                    <!-- History Timeline -->
-                    <div v-else-if="historyTarget?.recent_history?.length" class="d-flex flex-column">
-                        <div v-for="(point, i) in historyTarget?.recent_history" :key="i"
-                            class="d-flex align-center py-2 px-1 border-bottom-subtle">
-                            <!-- Compact Category Icon Orb -->
-                            <v-avatar size="32" :color="getCategoryDisplay(historyTarget.category).color + '15'" rounded="lg" class="mr-3">
-                                <span class="text-subtitle-2">{{ getCategoryDisplay(historyTarget.category).icon }}</span>
-                            </v-avatar>
-
-                            <div class="flex-grow-1">
-                                <div class="text-caption font-weight-black line-clamp-1 opacity-80">{{ historyTarget.name }}</div>
-                                <div class="text-caption opacity-50 font-weight-bold" style="font-size: 0.7rem !important;">
-                                    {{ new Date(point.date).toLocaleDateString(undefined, { 
-                                        month: 'short', 
-                                        day: 'numeric'
-                                    }) }}
-                                </div>
-                            </div>
-
-                            <div class="text-right">
-                                <div class="text-subtitle-2 font-weight-black text-error tabular-nums">
-                                    {{ formatAmount(point.amount) }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Empty State -->
-                    <div v-else class="text-center py-10 opacity-40 border-dashed rounded-lg">
-                        <History :size="32" class="mb-2" />
-                        <div class="text-caption font-weight-bold">No history available</div>
-                        <div class="text-tiny px-8 mt-1">We couldn't find any recent transactions for this provider.</div>
-                    </div>
-                </div>
-            </v-card>
-        </v-dialog>
-
         <!-- Active Subscriptions List -->
-        <div v-if="store.recurringTransactions.length > 0">
-            <h3 class="text-h6 font-weight-black mb-6 d-flex align-center">
-                Active Tracking
-                <v-chip class="ml-3 font-weight-black" color="primary" size="small">{{
-                    store.recurringTransactions.length
-                    }}</v-chip>
-            </h3>
-            <v-row>
-                <v-col v-for="rec in store.recurringTransactions" :key="rec.id" cols="12" md="6" lg="4">
-                    <v-card rounded="2xl" class="active-subscription-card hover-elevate group" elevation="0">
-                        <div class="pa-5">
-                            <div class="d-flex align-center justify-space-between mb-4">
-                                <div class="d-flex align-center">
-                                    <v-avatar :color="rec.amount < 0 ? 'success' : 'primary'" variant="tonal" size="52"
-                                        rounded="xl" class="mr-4">
-                                        <component :is="getCategoryLucideIcon(rec.category)" :size="24" />
-                                    </v-avatar>
-                                    <div>
-                                        <h3 class="text-subtitle-1 font-weight-black mb-0">{{ rec.name }}</h3>
-                                        <div class="d-flex align-center mt-1">
-                                            <v-chip size="x-small" variant="flat" color="surface-variant"
-                                                class="font-weight-bold px-2 mr-2">
-                                                {{ rec.frequency }}
-                                            </v-chip>
-                                            <span class="text-caption opacity-60 font-weight-bold">Next: {{ new
-                                                Date(rec.next_run_date).toLocaleDateString(undefined, {
-                                                    month: 'short',
-                                                    day:
-                                                        'numeric'
-                                                }) }}</span>
-                                        </div>
+        <div v-if="store.recurringTransactions.length > 0" class="space-y-4">
+            <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-wf-text-primary leading-none">Active Tracking</h3>
+                <span class="px-2 py-0.5 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
+                    {{ store.recurringTransactions.length }}
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <WfCard
+                    v-for="rec in store.recurringTransactions"
+                    :key="rec.id"
+                    variant="flat"
+                    padding="md"
+                    radius="xl"
+                    class="border border-wf-border hover:shadow-wf-card-hover transition-all duration-200 flex flex-col justify-between"
+                >
+                    <div class="space-y-3.5">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-10 h-10 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/40 text-wf-primary flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/50 shadow-2xs">
+                                    <component :is="getCategoryLucideIcon(rec.category)" :size="20" />
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="text-xs font-bold text-wf-text-primary truncate" :title="rec.name">{{ rec.name }}</h4>
+                                    <div class="flex items-center gap-1.5 mt-0.5">
+                                        <span class="px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold uppercase tracking-wider bg-wf-surface-variant text-wf-text-secondary">
+                                            {{ rec.frequency }}
+                                        </span>
+                                        <span class="text-[10px] text-wf-text-muted">
+                                            Next: {{ new Date(rec.next_run_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) }}
+                                        </span>
                                     </div>
                                 </div>
-                                <div class="text-right">
-                                    <div class="text-h6 font-weight-black tabular-nums">{{ formatAmount(rec.amount) }}</div>
-                                    <v-chip v-if="rec.exclude_from_reports" color="error" variant="tonal" size="x-small"
-                                        label class="mt-1 font-weight-black">HIDDEN</v-chip>
-                                </div>
                             </div>
 
-                            <div class="d-flex align-center pt-3 border-top-dashed">
-                                <div class="text-caption text-medium-emphasis font-weight-medium">
-                                    <Calendar :size="14" class="mr-1 mb-1" /> Started {{ new
-                                        Date(rec.start_date).toLocaleDateString() }}
+                            <div class="text-right shrink-0">
+                                <div class="text-sm font-bold font-mono text-wf-text-primary">
+                                    {{ formatAmount(rec.amount) }}
                                 </div>
-                                <v-spacer />
-                                <div class="actions d-flex gap-2">
-                                    <v-btn variant="tonal" size="x-small" icon color="secondary" class="rounded-lg" @click="openHistory(rec)">
-                                        <v-tooltip activator="parent" location="top">Payment History</v-tooltip>
-                                        <History :size="14" />
-                                    </v-btn>
-                                    <v-btn variant="tonal" size="x-small" icon color="primary" class="rounded-lg" @click="editRecurrence(rec)">
-                                        <v-tooltip activator="parent" location="top">Edit Subscription</v-tooltip>
-                                        <Edit2 :size="14" />
-                                    </v-btn>
-                                    <v-btn variant="tonal" size="x-small" icon color="error" class="rounded-lg"
-                                        @click="deleteRecurrence(rec.id)">
-                                        <v-tooltip activator="parent" location="top">Stop Tracking</v-tooltip>
-                                        <Trash2 :size="14" />
-                                    </v-btn>
-                                </div>
+                                <span v-if="rec.exclude_from_reports" class="px-1.5 py-0.2 rounded text-[8px] font-bold bg-rose-50 text-rose-600 dark:bg-rose-950/30 uppercase tracking-wider">
+                                    Hidden
+                                </span>
                             </div>
                         </div>
-                    </v-card>
-                </v-col>
-            </v-row>
+
+                        <div class="flex items-center justify-between pt-2.5 border-t border-wf-border-subtle text-xs">
+                            <div class="text-[10px] text-wf-text-muted flex items-center gap-1">
+                                <Calendar :size="12" />
+                                <span>Started {{ new Date(rec.start_date).toLocaleDateString() }}</span>
+                            </div>
+
+                            <div class="flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    @click="openHistory(rec)"
+                                    class="p-1 rounded-wf-sm text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+                                    title="Payment History"
+                                >
+                                    <History :size="13" />
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="editRecurrence(rec)"
+                                    class="p-1 rounded-wf-sm text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+                                    title="Edit Subscription"
+                                >
+                                    <Edit2 :size="13" />
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="deleteRecurrence(rec.id)"
+                                    class="p-1 rounded-wf-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                                    title="Stop Tracking"
+                                >
+                                    <Trash2 :size="13" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </WfCard>
+            </div>
         </div>
 
         <!-- Empty State -->
-        <div v-else-if="!loadingSuggestions" class="text-center py-16 empty-container rounded-pill-extra mt-8">
-            <div class="empty-icon-wrapper mb-6">
-                <CalendarClock :size="64" class="text-primary opacity-40" stroke-width="1.5" />
+        <div
+            v-else-if="!loadingSuggestions"
+            class="flex flex-col items-center justify-center py-16 px-6 text-center rounded-wf-xl border border-dashed border-wf-border bg-wf-surface-variant/30 max-w-xl mx-auto space-y-4"
+        >
+            <div class="w-14 h-14 rounded-wf-xl bg-wf-primary-light flex items-center justify-center text-wf-primary border border-indigo-200 dark:border-indigo-900/50 shadow-2xs">
+                <CalendarClock :size="28" />
             </div>
-            <h3 class="text-h5 font-weight-black mb-2">Clear Your Financial Horizon</h3>
-            <p class="text-medium-emphasis mx-auto mb-8" style="max-width: 400px;">
-                You don't have any active subscriptions yet. Add your fixed expenses like rent, Netflix, or EMI for
-                precise
-                forecasting.
-            </p>
-            <v-btn color="primary" class="px-12 premium-btn" rounded="lg" height="48" elevation="6"
-                @click="showAddModal = true">
-                <template v-slot:prepend>
-                    <Plus :size="20" stroke-width="3" />
-                </template>
-                Add First Subscription
-            </v-btn>
+            <div>
+                <h3 class="text-base font-bold text-wf-text-primary">Clear Your Financial Horizon</h3>
+                <p class="text-xs text-wf-text-secondary max-w-sm mx-auto mt-1">
+                    No active recurring tracking detected. Add fixed commitments like rent, utilities, insurance, or streaming subscriptions for reliable cashflow projections.
+                </p>
+            </div>
+            <WfButton variant="primary" size="sm" @click="showAddModal = true">
+                <Plus :size="14" class="mr-1.5" />
+                <span>Add First Subscription</span>
+            </WfButton>
         </div>
 
-        <!-- Add Recurrence Modal -->
-        <v-dialog v-model="showAddModal" max-width="500" persistent transition="dialog-bottom-transition">
-            <v-card rounded="xl" class="premium-glass-card overflow-hidden">
-                <div class="modal-gradient-bg"></div>
-                
-                <v-card-title class="pa-0">
-                    <div class="modal-header-premium pa-4 px-6 d-flex align-center justify-space-between">
-                        <div class="d-flex align-center gap-4">
-                            <div class="header-icon-wrapper">
-                                <component :is="newRecurrence.id ? Pencil : Plus" :size="28" class="text-primary" />
-                            </div>
-                            <div>
-                                <h2 class="text-h5 font-weight-black mb-0">{{ newRecurrence.id ? 'Edit Subscription' : 'New Subscription' }}</h2>
-                                <p class="text-caption opacity-70 font-weight-bold mb-0">
-                                    {{ newRecurrence.id ? 'Update subscription details' : 'Record a recurring bill or payment' }}
-                                </p>
-                            </div>
-                        </div>
-                        <v-btn icon variant="tonal" color="medium-emphasis" density="comfortable" @click="showAddModal = false" class="backdrop-blur-sm">
-                            <X :size="20" />
-                        </v-btn>
+        <!-- History Timeline Modal -->
+        <WfModal
+            :model-value="showHistoryModal"
+            @update:model-value="showHistoryModal = $event"
+            maxWidth="sm"
+        >
+            <template #header>
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/40 text-wf-primary flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50 shadow-2xs">
+                        <History :size="16" />
                     </div>
-                </v-card-title>
+                    <div>
+                        <h3 class="text-sm font-bold text-wf-text-primary leading-none">{{ historyTarget?.name }}</h3>
+                        <p class="text-[11px] text-wf-text-muted mt-0.5 leading-none">
+                            {{ historyTarget?.isSuggestion ? 'Recent Detection Timeline' : 'Payment History' }}
+                        </p>
+                    </div>
+                </div>
+            </template>
 
-                <v-card-text class="pa-6">
+            <div class="py-2 space-y-3">
+                <div v-if="loadingHistory" class="flex flex-col items-center justify-center py-8 gap-2">
+                    <div class="w-6 h-6 rounded-full border-2 border-wf-primary border-t-transparent animate-spin"></div>
+                    <span class="text-xs text-wf-text-muted">Fetching history...</span>
+                </div>
 
-                    <v-row dense>
-                        <v-col cols="12" class="mb-4">
-                            <label
-                                class="text-caption font-weight-black text-uppercase tracking-wider mb-2 d-block opacity-70">Provider
-                                / Bill Name</label>
-                            <v-text-field v-model="newRecurrence.name" placeholder="Netflix, Rent, Salary..."
-                                variant="outlined" density="comfortable" flat rounded="lg" hide-details
-                                class="custom-input">
-                                <template v-slot:prepend-inner>
-                                    <CreditCard :size="18" class="text-primary mr-2" />
-                                </template>
-                            </v-text-field>
-                        </v-col>
-
-                        <v-col cols="6" class="mb-4 pr-2">
-                            <label
-                                class="text-caption font-weight-black text-uppercase tracking-wider mb-2 d-block opacity-70">Amount</label>
-                            <v-text-field v-model="newRecurrence.amount" type="number" prefix="₹" variant="outlined"
-                                density="comfortable" flat rounded="lg" hide-details class="custom-input" />
-                        </v-col>
-
-                        <v-col cols="6" class="mb-4 pl-2">
-                            <label
-                                class="text-caption font-weight-black text-uppercase tracking-wider mb-2 d-block opacity-70">Billing
-                                Cycle</label>
-                            <v-select v-model="newRecurrence.frequency" :items="frequencyOptions" variant="outlined"
-                                density="comfortable" flat rounded="lg" hide-details menu-icon="" class="custom-input">
-                                <template v-slot:append-inner>
-                                    <ChevronDown :size="16" class="text-primary" />
-                                </template>
-                            </v-select>
-                        </v-col>
-
-                        <v-col cols="6" class="mb-4 pr-2">
-                            <label
-                                class="text-caption font-weight-black text-uppercase tracking-wider mb-2 d-block opacity-70">First/Next
-                                Payment</label>
-                            <v-text-field v-model="newRecurrence.start_date" type="date" variant="outlined"
-                                density="comfortable" flat rounded="lg" hide-details class="custom-input" />
-                        </v-col>
-
-                        <v-col cols="6" class="mb-4 pl-2">
-                            <label
-                                class="text-caption font-weight-black text-uppercase tracking-wider mb-2 d-block opacity-70">Source
-                                Account</label>
-                            <v-select v-model="newRecurrence.account_id"
-                                :items="store.accounts.map(a => ({ title: a.name, value: a.id }))" variant="outlined"
-                                density="comfortable" hide-details flat rounded="lg" class="custom-input" menu-icon=""
-                                persistent-placeholder placeholder="Select Account">
-                                <template v-slot:prepend-inner>
-                                    <Wallet :size="18" class="text-primary mr-2" />
-                                </template>
-                                <template v-slot:append-inner>
-                                    <ChevronDown :size="16" class="text-primary" />
-                                </template>
-                            </v-select>
-                        </v-col>
-
-                        <v-col cols="12" class="mb-6">
-                            <label
-                                class="text-caption font-weight-black text-uppercase tracking-wider mb-2 d-block opacity-70">Category</label>
-                            <v-select v-model="newRecurrence.category"
-                                :items="store.categories.map(c => ({ title: c.name, value: c.name }))" variant="outlined"
-                                density="comfortable" hide-details flat rounded="lg" class="custom-input" menu-icon=""
-                                persistent-placeholder placeholder="Search Category">
-                                <template v-slot:prepend-inner>
-                                    <component :is="getCategoryLucideIcon(newRecurrence.category)" :size="18"
-                                        class="text-primary mr-2" />
-                                </template>
-                                <template v-slot:append-inner>
-                                    <ChevronDown :size="16" class="text-primary" />
-                                </template>
-                            </v-select>
-                        </v-col>
-
-                        <v-col cols="12" class="d-flex align-center bg-primary-lighten pa-4 rounded-xl border-subtle">
-                            <div class="mr-4">
-                                <ShieldCheck :size="24" class="text-primary" />
+                <div v-else-if="historyTarget?.recent_history?.length" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    <div
+                        v-for="(point, i) in historyTarget.recent_history"
+                        :key="i"
+                        class="flex items-center justify-between p-2 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs"
+                    >
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-wf-xs flex items-center justify-center text-xs shrink-0" :style="{ backgroundColor: getCategoryDisplay(historyTarget.category).color + '20' }">
+                                <span>{{ getCategoryDisplay(historyTarget.category).icon }}</span>
                             </div>
                             <div>
-                                <div class="text-subtitle-2 font-weight-black">Private Expense</div>
-                                <div class="text-caption opacity-70">Hide this from shared family reports and summaries.
+                                <div class="font-semibold text-wf-text-primary truncate max-w-[160px]">{{ historyTarget.name }}</div>
+                                <div class="text-[10px] text-wf-text-muted">
+                                    {{ new Date(point.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) }}
                                 </div>
                             </div>
-                            <v-spacer />
-                            <v-switch v-model="newRecurrence.exclude_from_reports" color="primary" inset hide-details />
-                        </v-col>
-                    </v-row>
+                        </div>
 
-                    <div class="d-flex gap-4 mt-8">
-                        <v-btn variant="tonal" color="medium-emphasis" rounded="lg" height="52"
-                            class="text-none font-weight-black flex-grow-1" @click="showAddModal = false">
-                            <template v-slot:prepend>
-                                <X :size="20" />
-                            </template>
-                            Cancel
-                        </v-btn>
-                        <v-btn color="primary" variant="elevated" rounded="lg" height="52"
-                            class="text-none font-weight-black flex-grow-1 premium-btn" elevation="8" @click="saveRecurrence">
-                            <template v-slot:prepend>
-                                <Check :size="20" stroke-width="3" />
-                            </template>
-                            {{ newRecurrence.id ? 'Save' : 'Confirm' }}
-                        </v-btn>
+                        <span class="font-bold font-mono text-rose-500">
+                            {{ formatAmount(point.amount) }}
+                        </span>
                     </div>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
+                </div>
+
+                <div v-else class="text-center py-8 text-xs text-wf-text-muted">
+                    No recorded transaction points found for this provider.
+                </div>
+            </div>
+
+            <template #footer>
+                <WfButton variant="secondary" size="sm" @click="showHistoryModal = false">
+                    Close
+                </WfButton>
+            </template>
+        </WfModal>
+
+        <!-- Add / Edit Subscription Modal -->
+        <WfModal
+            :model-value="showAddModal"
+            @update:model-value="showAddModal = $event"
+            maxWidth="md"
+        >
+            <template #header>
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-wf-md bg-wf-primary-light text-wf-primary flex items-center justify-center border border-indigo-200 dark:border-indigo-900/50 shadow-2xs">
+                        <component :is="newRecurrence.id ? Pencil : Plus" :size="16" />
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-wf-text-primary leading-none">
+                            {{ newRecurrence.id ? 'Edit Subscription' : 'New Subscription' }}
+                        </h3>
+                        <p class="text-[11px] text-wf-text-muted mt-0.5 leading-none">
+                            {{ newRecurrence.id ? 'Update subscription cadence and rules' : 'Record a recurring bill or automated debit' }}
+                        </p>
+                    </div>
+                </div>
+            </template>
+
+            <form @submit.prevent="saveRecurrence" class="space-y-4 py-1">
+                <!-- Provider Name -->
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">
+                        Provider / Service Name
+                    </label>
+                    <WfInput
+                        v-model="newRecurrence.name"
+                        placeholder="e.g. Netflix, Rent, AWS, Gym..."
+                        required
+                    />
+                </div>
+
+                <!-- Amount & Billing Cycle -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">
+                            Amount (₹)
+                        </label>
+                        <WfInput
+                            v-model.number="newRecurrence.amount"
+                            type="number"
+                            min="0"
+                            step="any"
+                            placeholder="0.00"
+                            required
+                        />
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">
+                            Billing Frequency
+                        </label>
+                        <WfSelect
+                            v-model="newRecurrence.frequency"
+                            :items="frequencyOptions.map(f => ({ title: f, value: f }))"
+                        />
+                    </div>
+                </div>
+
+                <!-- First/Next Date & Source Account -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">
+                            First / Next Payment Date
+                        </label>
+                        <WfInput
+                            v-model="newRecurrence.start_date"
+                            type="date"
+                            required
+                        />
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">
+                            Source Account
+                        </label>
+                        <WfSelect
+                            v-model="newRecurrence.account_id"
+                            :items="store.accounts.map(a => ({ title: a.name, value: a.id }))"
+                            placeholder="Select source account"
+                        />
+                    </div>
+                </div>
+
+                <!-- Category -->
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">
+                        Category
+                    </label>
+                    <WfSelect
+                        v-model="newRecurrence.category"
+                        :items="store.categories.map(c => ({ title: `${c.icon || '🏷️'} ${c.name}`, value: c.name }))"
+                        placeholder="Select category"
+                    />
+                </div>
+
+                <!-- Private Expense Toggle -->
+                <div class="flex items-center justify-between p-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle">
+                    <div class="flex items-center gap-2.5">
+                        <ShieldCheck :size="18" class="text-wf-primary" />
+                        <div>
+                            <span class="text-xs font-bold text-wf-text-primary block">Private Expense</span>
+                            <span class="text-[11px] text-wf-text-muted">Hide from consolidated family summaries</span>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            v-model="newRecurrence.exclude_from_reports"
+                            class="sr-only peer"
+                        />
+                        <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-wf-primary"></div>
+                    </label>
+                </div>
+            </form>
+
+            <template #footer>
+                <WfButton variant="ghost" size="sm" @click="showAddModal = false">
+                    Cancel
+                </WfButton>
+                <WfButton variant="primary" size="sm" @click="saveRecurrence">
+                    <Check :size="14" class="mr-1" />
+                    <span>{{ newRecurrence.id ? 'Save Changes' : 'Confirm Subscription' }}</span>
+                </WfButton>
+            </template>
+        </WfModal>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import {
-    Plus, X, ChevronDown, CalendarClock, Trash2, Wallet,
-    CreditCard, Sparkles, RefreshCw, Calendar, Edit2, ShieldCheck,
+    Plus, X, CalendarClock, Trash2,
+    Sparkles, RefreshCw, Calendar, Edit2, ShieldCheck,
     Check, History, Info, Pencil
 } from 'lucide-vue-next'
 import { useFinanceStore } from '@/stores/finance'
@@ -403,6 +433,11 @@ import { useConfirmStore } from '@/stores/confirm'
 import { useNotificationStore } from '@/stores/notification'
 import { todayLocalString } from '@/utils/time'
 import { getCategoryLucideIcon } from '@/utils/iconMapping'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfModal from '@/components/ui/WfModal.vue'
+import WfInput from '@/components/ui/WfInput.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 
 const store = useFinanceStore()
 const authStore = useAuthStore()
@@ -419,18 +454,14 @@ const loadingHistory = ref(false)
 
 async function openHistory(item: any) {
     if (item.recent_history) {
-        // From Discovery
         historyTarget.value = { ...item, isSuggestion: true }
         showHistoryModal.value = true
     } else {
-        // Active tracking - fetch history
         historyTarget.value = { ...item, isSuggestion: false, recent_history: [] }
         showHistoryModal.value = true
         loadingHistory.value = true
         try {
-            // Search for transactions by name
             const res = await financeApi.getTransactions(undefined, 1, 10, undefined, undefined, item.name)
-            // Backend returns { data: [...], total: ... }
             const txns = res.data?.data || []
             historyTarget.value.recent_history = txns.map((t: any) => ({
                 date: t.date,
@@ -487,7 +518,6 @@ async function approveSuggestion(suggestion: any) {
     )
     if (!isConfirmed) return
 
-    // Fill the modal with suggestion data for user review
     newRecurrence.value = {
         id: null,
         name: suggestion.name,
@@ -503,7 +533,7 @@ async function approveSuggestion(suggestion: any) {
 }
 
 const newRecurrence = ref({
-    id: null,
+    id: null as string | null,
     name: '',
     amount: 0,
     category: '',
@@ -546,7 +576,6 @@ async function saveRecurrence() {
         
         showAddModal.value = false
         await store.fetchRecurring(authStore.selectedMemberId || undefined)
-        // Reset form
         resetForm()
     } catch (e) {
         console.error(e)
@@ -568,8 +597,8 @@ function resetForm() {
 }
 
 async function deleteRecurrence(id: string) {
-    const isConfirmed = await confirmDialog.prompt("Stop this subscription?", "Stop Subscription", "Stop", "Keep")
-    if (!isConfirmed) return;
+    const isConfirmed = await confirmDialog.prompt("Stop tracking this subscription?", "Stop Subscription", "Stop", "Keep")
+    if (!isConfirmed) return
     try {
         await financeApi.deleteRecurring(id)
         notification.success('Subscription tracking stopped')
@@ -590,243 +619,10 @@ function getCategoryDisplay(name: string) {
     return { icon: '🏷️', text: name, color: '#9ca3af' }
 }
 
-// Expose modal control to parent
 defineExpose({
     openAddModal: () => {
-        newRecurrence.value = {
-            id: null,
-            name: '',
-            amount: 0,
-            category: '',
-            account_id: '',
-            frequency: 'MONTHLY',
-            start_date: todayLocalString(),
-            type: 'DEBIT',
-            exclude_from_reports: false
-        }
+        resetForm()
         showAddModal.value = true
     }
 })
 </script>
-
-<style scoped>
-.suggestions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
-}
-
-.suggestion-premium-card {
-    background: rgba(var(--v-theme-surface), 0.4);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-    border-radius: 24px;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative;
-    overflow: hidden;
-}
-
-.suggestion-premium-card:hover {
-    background: rgba(var(--v-theme-surface), 0.7);
-    transform: translateY(-8px);
-    border-color: rgba(var(--v-theme-primary), 0.3);
-}
-
-.suggestion-premium-card::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 150px;
-    height: 150px;
-    background: radial-gradient(circle at top right, rgba(var(--v-theme-primary), 0.05), transparent 70%);
-    pointer-events: none;
-}
-
-.icon-orb {
-    width: 48px;
-    height: 48px;
-    background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.1), rgba(var(--v-theme-primary), 0.2));
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.1);
-}
-
-.suggestion-icon {
-    box-shadow: 0 8px 20px rgba(var(--v-theme-primary), 0.1);
-}
-
-.color-primary {
-    color: rgb(var(--v-theme-primary));
-}
-
-.bg-surface-variant-alpha {
-    background: rgba(var(--v-theme-surface-variant), 0.3);
-}
-
-.confidence-bar {
-    height: 6px;
-    background: rgba(var(--v-theme-surface-variant), 0.5);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.confidence-fill {
-    height: 100%;
-    background: linear-gradient(90deg, rgb(var(--v-theme-primary)), #10B981);
-    border-radius: 3px;
-}
-
-.active-subscription-card {
-    background: rgba(var(--v-theme-surface), 0.6);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-    transition: all 0.3s ease;
-}
-
-.active-subscription-card:hover {
-    background: rgba(var(--v-theme-surface), 0.9);
-    border-color: rgba(var(--v-theme-primary), 0.2);
-    transform: scale(1.02);
-}
-
-.border-top-dashed {
-    border-top: 1px dashed rgba(var(--v-border-color), 0.2);
-}
-
-.border-bottom-subtle {
-    border-bottom: 1px solid rgba(var(--v-border-color), 0.05);
-}
-
-.border-bottom-subtle:last-child {
-    border-bottom: none;
-}
-
-.border-dashed {
-    border: 1px dashed rgba(var(--v-border-color), 0.2);
-}
-
-.premium-btn {
-    box-shadow: 0 8px 16px rgba(var(--v-theme-primary), 0.2) !important;
-    transition: all 0.3s ease;
-}
-
-.premium-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(var(--v-theme-primary), 0.3) !important;
-}
-
-.empty-container {
-    background: rgba(var(--v-theme-surface-variant), 0.1);
-    border: 2px dashed rgba(var(--v-border-color), 0.1);
-}
-
-.empty-icon-wrapper {
-    width: 120px;
-    height: 120px;
-    background: rgba(var(--v-theme-primary), 0.05);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-}
-
-.glass-modal-card {
-    background: rgba(var(--v-theme-surface), 0.9);
-    backdrop-filter: blur(24px);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
-
-.modal-gradient-bg {
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at 75% 25%, rgba(var(--v-theme-primary), 0.05), transparent);
-    pointer-events: none;
-}
-
-.premium-glass-card {
-    background: rgba(var(--v-theme-surface), 0.7) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-    border-radius: 20px !important;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07) !important;
-    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-    position: relative;
-    overflow: hidden;
-}
-
-.modal-header-premium {
-    background: transparent;
-    position: relative;
-    overflow: hidden;
-    border-bottom: 1px solid rgba(var(--v-border-color), 0.05);
-}
-
-.header-icon-wrapper {
-    background: rgba(var(--v-theme-primary), 0.1);
-    padding: 10px;
-    border-radius: 16px;
-    border: 1px solid rgba(var(--v-theme-primary), 0.1);
-}
-
-.custom-input :deep(.v-field) {
-    background: rgba(var(--v-theme-primary), 0.03) !important;
-    border: 1px solid rgba(var(--v-theme-primary), 0.05) !important;
-    border-radius: 12px !important;
-}
-
-.bg-primary-lighten {
-    background: rgba(var(--v-theme-primary), 0.03);
-}
-
-.custom-input :deep(.v-field__outline) {
-    display: none;
-}
-
-.dismiss-btn {
-    z-index: 10;
-}
-
-.opacity-0 {
-    opacity: 0;
-}
-
-.group:hover .opacity-0 {
-    opacity: 1;
-}
-
-.line-clamp-1 {
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.rotate-180 {
-    transform: rotate(180deg);
-}
-
-.rounded-pill-extra {
-    border-radius: 40px;
-}
-
-.tracking-wider {
-    letter-spacing: 0.05em;
-}
-</style>

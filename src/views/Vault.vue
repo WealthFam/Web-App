@@ -364,7 +364,7 @@ onMounted(() => {
 
 <template>
   <MainLayout>
-    <div class="max-w-[1600px] mx-auto space-y-6 pb-16">
+    <div class="space-y-6 pb-16">
       <!-- 1. PAGE HEADER -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
         <div class="flex items-center gap-3">

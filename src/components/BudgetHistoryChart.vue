@@ -1,16 +1,28 @@
 <template>
-  <div class="budget-history-render">
+  <div class="budget-history-render space-y-3">
     <div class="chart-box-render">
-      <BaseChart type="bar" :data="chartData" :options="chartOptions" :height="300" :key="settings.maskingFactor" />
+      <BaseChart
+        type="bar"
+        :data="chartData"
+        :options="chartOptions"
+        :height="260"
+        :key="settings.maskingFactor"
+      />
     </div>
-    <div class="d-flex justify-center gap-6 mt-4">
-      <div class="lp-item limit">
-        <div class="lp-box" style="background: rgba(var(--v-theme-surface-variant), 0.3)"></div>
-        <span>Budget Limit</span>
+
+    <!-- Clean Legend Pills -->
+    <div class="flex items-center justify-center gap-6 pt-2 border-t border-wf-border-subtle text-xs">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-wf-xs bg-slate-300 dark:bg-slate-700 border border-slate-400 dark:border-slate-600"></span>
+        <span class="text-wf-text-secondary font-medium text-[11px]">Budget Limit</span>
       </div>
-      <div class="lp-item actual">
-        <div class="lp-box" style="background: rgb(var(--v-theme-primary))"></div>
-        <span>Actual Spending</span>
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-wf-xs bg-indigo-600"></span>
+        <span class="text-wf-text-secondary font-medium text-[11px]">Under Budget</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-wf-xs bg-rose-500"></span>
+        <span class="text-wf-text-secondary font-medium text-[11px]">Over Budget</span>
       </div>
     </div>
   </div>
@@ -56,24 +68,26 @@ const chartData = computed(() => {
       {
         label: 'Budget Limit',
         data: limits,
-        backgroundColor: 'rgba(var(--v-theme-surface-variant), 0.2)',
-        borderColor: 'rgba(var(--v-theme-surface-variant), 0.4)',
+        backgroundColor: 'rgba(148, 163, 184, 0.25)',
+        borderColor: 'rgba(148, 163, 184, 0.5)',
         borderWidth: 1,
-        borderRadius: 8,
-        barPercentage: 0.9,
-        categoryPercentage: 0.8
+        borderRadius: 6,
+        barPercentage: 0.85,
+        categoryPercentage: 0.75
       },
       {
         label: 'Actual Spending',
         data: spent,
         backgroundColor: (context: any) => {
           const idx = context.dataIndex
-          return spent[idx] > limits[idx] ? 'rgba(var(--v-theme-error), 0.8)' : 'rgba(var(--v-theme-primary), 0.8)'
+          const limitVal = limits[idx] || 0
+          const spentVal = spent[idx] || 0
+          return limitVal > 0 && spentVal > limitVal ? '#EF4444' : '#6366F1'
         },
         borderRadius: 6,
-        barPercentage: 0.6,
-        categoryPercentage: 0.8,
-        grouped: false, // Overlap
+        barPercentage: 0.55,
+        categoryPercentage: 0.75,
+        grouped: false // Overlap
       }
     ]
   }
@@ -81,22 +95,24 @@ const chartData = computed(() => {
 
 const chartOptions = computed(() => {
   return {
+    responsive: true,
+    maintainAspectRatio: false,
     scales: {
       x: {
         grid: { display: false },
-        ticks: { 
-            color: 'rgba(var(--v-theme-on-surface), 0.5)', 
-            font: { size: 10, weight: 'bold' } 
+        ticks: {
+          color: '#94A3B8',
+          font: { size: 10, weight: 'bold' }
         }
       },
       y: {
         beginAtZero: true,
-        grid: { 
-            color: 'rgba(var(--v-theme-on-surface), 0.05)',
-            drawBorder: false
+        grid: {
+          color: 'rgba(148, 163, 184, 0.1)',
+          drawBorder: false
         },
         ticks: {
-          color: 'rgba(var(--v-theme-on-surface), 0.5)',
+          color: '#94A3B8',
           font: { size: 10, weight: 'bold' },
           callback: (value: any) => formatAmount(value, undefined, true, true)
         }
@@ -108,15 +124,12 @@ const chartOptions = computed(() => {
         mode: 'index',
         intersect: false,
         padding: 12,
-        cornerRadius: 12,
+        cornerRadius: 8,
         callbacks: {
           label: (context: any) => {
-            let label = context.dataset.label || ''
-            if (label) label += ': '
-            if (context.parsed.y !== null) {
-              label += formatAmount(context.parsed.y, undefined, false, true)
-            }
-            return label
+            const label = context.dataset.label || ''
+            const val = context.parsed.y !== null ? formatAmount(context.parsed.y) : ''
+            return ` ${label}: ${val}`
           }
         }
       }
@@ -124,36 +137,3 @@ const chartOptions = computed(() => {
   }
 })
 </script>
-
-<style scoped>
-.legend-pills-premium {
-  display: flex;
-  gap: 1.25rem;
-}
-
-.lp-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.lp-box {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-}
-
-.lp-item.limit .lp-box {
-  background: rgba(100, 116, 139, 0.1);
-  border: 1px solid rgba(100, 116, 139, 0.3);
-}
-
-.lp-item.actual .lp-box {
-  background: #6366f1;
-}
-</style>

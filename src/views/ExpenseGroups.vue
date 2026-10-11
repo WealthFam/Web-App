@@ -164,7 +164,7 @@ onMounted(() => {
 
 <template>
     <MainLayout>
-        <div class="max-w-[1600px] mx-auto space-y-6 pb-12">
+        <div class="space-y-6 pb-12">
             <!-- HEADER: Title, Subtitle, & Segmented Tab Controls -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
                 <div class="flex items-center gap-3">
@@ -234,7 +234,7 @@ onMounted(() => {
                         </div>
                     </div>
                     <div class="mt-2">
-                        <span class="text-lg font-bold text-wf-text-primary tracking-tight">
+                        <span class="text-lg font-bold text-wf-text-primary tracking-tight font-mono tabular-nums">
                             {{ formatAmount(metrics.totalSpend) }}
                         </span>
                         <p class="text-[10px] text-wf-text-muted mt-0.5">Across current view buckets</p>
@@ -249,7 +249,7 @@ onMounted(() => {
                         </div>
                     </div>
                     <div class="mt-2">
-                        <span class="text-lg font-bold text-wf-text-primary tracking-tight">
+                        <span class="text-lg font-bold text-wf-text-primary tracking-tight font-mono tabular-nums">
                             {{ formatAmount(metrics.totalBudget) }}
                         </span>
                         <p class="text-[10px] text-wf-text-muted mt-0.5">Allocated active limits</p>
@@ -264,7 +264,7 @@ onMounted(() => {
                         </div>
                     </div>
                     <div class="mt-2">
-                        <span class="text-lg font-bold text-wf-text-primary tracking-tight">
+                        <span class="text-lg font-bold text-wf-text-primary tracking-tight font-mono tabular-nums">
                             {{ metrics.activeCount }}
                         </span>
                         <p class="text-[10px] text-wf-text-muted mt-0.5">Currently tracking</p>
@@ -280,7 +280,7 @@ onMounted(() => {
                     </div>
                     <div class="mt-2">
                         <div class="flex items-baseline gap-1.5">
-                            <span class="text-lg font-bold tracking-tight" :class="metrics.utilization >= 100 ? 'text-rose-600' : metrics.utilization >= 80 ? 'text-amber-600' : 'text-emerald-600'">
+                            <span class="text-lg font-bold tracking-tight font-mono tabular-nums" :class="metrics.utilization >= 100 ? 'text-rose-600' : metrics.utilization >= 80 ? 'text-amber-600' : 'text-emerald-600'">
                                 {{ metrics.utilization }}%
                             </span>
                             <span class="text-[10px] text-wf-text-muted">consumed</span>
@@ -442,14 +442,14 @@ onMounted(() => {
                             <div class="flex items-center justify-between mb-1.5">
                                 <div>
                                     <span class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Total Spent</span>
-                                    <span class="text-sm font-bold text-wf-text-primary">
+                                    <span class="text-sm font-bold text-wf-text-primary font-mono tabular-nums">
                                         {{ formatAmount(group.total_spend || 0) }}
                                     </span>
                                 </div>
                                 <div class="text-right">
                                     <span class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Consumed</span>
                                     <span
-                                        class="text-xs font-bold"
+                                        class="text-xs font-bold font-mono tabular-nums"
                                         :class="getConsumedReal(group) >= 100 ? 'text-rose-600' : getConsumedReal(group) >= 80 ? 'text-amber-600' : 'text-emerald-600'"
                                     >
                                         {{ getConsumedReal(group) }}%
@@ -470,12 +470,12 @@ onMounted(() => {
                             <div class="flex items-center justify-between text-[10px] font-semibold text-wf-text-muted">
                                 <span>
                                     Balance: 
-                                    <strong :class="parseFloat(group.budget) - (group.total_spend || 0) < 0 ? 'text-rose-600' : 'text-emerald-600'">
+                                    <strong class="font-mono tabular-nums" :class="parseFloat(group.budget) - (group.total_spend || 0) < 0 ? 'text-rose-600' : 'text-emerald-600'">
                                         {{ formatAmount(Math.max(0, parseFloat(group.budget) - (group.total_spend || 0))) }}
                                     </strong>
                                 </span>
                                 <span>
-                                    Target: <strong class="text-wf-text-primary">{{ formatAmount(group.budget) }}</strong>
+                                    Target: <strong class="text-wf-text-primary font-mono tabular-nums">{{ formatAmount(group.budget) }}</strong>
                                 </span>
                             </div>
                         </template>
@@ -484,7 +484,7 @@ onMounted(() => {
                             <div class="flex items-center justify-between">
                                 <div>
                                     <span class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Total Spent</span>
-                                    <span class="text-sm font-bold text-wf-text-primary">
+                                    <span class="text-sm font-bold text-wf-text-primary font-mono tabular-nums">
                                         {{ formatAmount(group.total_spend || 0) }}
                                     </span>
                                 </div>

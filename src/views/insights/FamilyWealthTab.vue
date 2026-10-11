@@ -1,215 +1,255 @@
 <template>
-    <div class="family-wealth-content pb-10">
-        <v-row v-if="loading" class="mt-4">
-            <v-col cols="12">
-                <v-skeleton-loader type="card, article" rounded="xl" class="premium-glass-card" />
-            </v-col>
-        </v-row>
+    <div class="space-y-6 pb-10">
+        <!-- Loading Skeleton -->
+        <div v-if="loading" class="space-y-6 animate-pulse">
+            <div class="h-64 rounded-wf-xl bg-slate-900/80 border border-slate-800"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="h-80 rounded-wf-xl bg-wf-surface-variant/40 border border-wf-border-subtle"></div>
+                <div class="h-80 rounded-wf-xl bg-wf-surface-variant/40 border border-wf-border-subtle"></div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div v-for="i in 4" :key="`skel-m-${i}`" class="h-48 rounded-wf-xl bg-wf-surface-variant/40 border border-wf-border-subtle"></div>
+            </div>
+        </div>
 
         <template v-else-if="wealthData">
-            <!-- Total Wealth Hero (Ultra Premium) -->
-            <v-row class="mt-4">
-                <v-col cols="12">
-                    <v-card class="wealth-hero-card pa-10 overflow-hidden" rounded="xl" elevation="24">
-                        <div class="relative-pos z-10">
-                            <v-row align="center">
-                                <v-col cols="12" md="8">
-                                    <div class="d-flex align-center mb-4">
-                                        <div class="premium-badge mr-4">
-                                            <ShieldCheck :size="16" class="text-primary" />
-                                            <span class="ml-2 font-weight-black letter-spacing-1">FAMILY
-                                                CONSOLIDATED</span>
-                                        </div>
-                                    </div>
-                                    <h2
-                                        class="text-overline font-weight-black text-white opacity-60 mb-1 letter-spacing-2">
-                                        Total Family Net Worth</h2>
-                                    <h1 class="text-h1 font-weight-black text-white mb-8 tracking-tighter">
-                                        {{ formatAmount(wealthData.total_net_worth) }}
-                                    </h1>
+            <!-- Total Wealth Hero Card (Midnight Theme) -->
+            <div class="relative rounded-wf-xl bg-slate-900 dark:bg-slate-950 border border-slate-800 text-white p-6 sm:p-8 shadow-wf-card overflow-hidden">
+                <!-- Ambient Glow Elements -->
+                <div class="absolute -top-24 -right-24 w-80 h-80 bg-blue-500/15 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-                                    <div class="d-flex flex-wrap gap-4 mt-2">
-                                        <div class="glass-stat-chip">
-                                            <TrendingUp :size="18" class="text-success-lighten-2 mr-2" />
-                                            <span class="font-weight-bold">{{ formatAmount(wealthData.total_assets) }}
-                                                Assets</span>
-                                        </div>
-                                        <div class="glass-stat-chip">
-                                            <TrendingDown :size="18" class="text-red-lighten-2 mr-2" />
-                                            <span class="font-weight-bold">{{ formatAmount(wealthData.total_liabilities)
-                                            }} Liabilities</span>
-                                        </div>
-                                    </div>
-                                </v-col>
-
-                                <v-col cols="12" md="4" class="d-none d-md-flex justify-end">
-                                    <div class="family-avatar-stack">
-                                        <v-avatar v-for="(m, i) in wealthData.members.slice(0, 4)" :key="m.user_id"
-                                            :size="64" class="stacked-avatar border-lg"
-                                            :style="{ zIndex: 10 - i, transform: `translateX(${i * -15}px)` }">
-                                            <div class="avatar-gradient-fill h-100 w-100 d-flex align-center justify-center font-weight-black text-h5 text-white"
-                                                :style="{ background: i % 2 === 0 ? 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' : 'linear-gradient(135deg, #10B981 0%, #059669 100%)' }">
-                                                {{ m.name.charAt(0).toUpperCase() }}
-                                            </div>
-                                        </v-avatar>
-                                    </div>
-                                </v-col>
-                            </v-row>
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div class="space-y-4">
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-wf-pill text-[10px] font-bold uppercase tracking-wider bg-white/10 text-slate-200 border border-white/15">
+                            <ShieldCheck :size="14" class="text-blue-400" />
+                            <span>Family Consolidated</span>
                         </div>
 
-                        <!-- Animated Aura Background -->
-                        <div class="aura-container">
-                            <div class="aura aura-1"></div>
-                            <div class="aura aura-2"></div>
-                            <div class="aura aura-3"></div>
+                        <div>
+                            <span class="text-[11px] font-bold uppercase tracking-widest text-slate-400 block mb-1">
+                                Total Family Net Worth
+                            </span>
+                            <h1 class="text-3xl sm:text-4xl md:text-5xl font-black font-mono tracking-tight text-white">
+                                {{ formatAmount(wealthData.total_net_worth) }}
+                            </h1>
                         </div>
-                    </v-card>
-                </v-col>
-            </v-row>
 
-            <!-- Interactive Charts Row -->
-            <v-row class="mt-8">
-                <v-col cols="12" md="7">
-                    <v-card rounded="xl" class="premium-glass-card h-100 no-hover border-premium">
-                        <v-card-title class="pa-6 d-flex align-center">
-                            <div class="icon-orb mr-4">
-                                <BarChart3 :size="20" class="text-primary" />
+                        <!-- Asset & Liability Stats Chips -->
+                        <div class="flex items-center gap-3 flex-wrap pt-1">
+                            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-wf-pill bg-white/5 border border-white/10 text-xs font-semibold backdrop-blur-sm">
+                                <TrendingUp :size="15" class="text-emerald-400" />
+                                <span class="font-mono text-emerald-400 font-bold">{{ formatAmount(wealthData.total_assets) }}</span>
+                                <span class="text-slate-400 text-[11px]">Assets</span>
                             </div>
-                            <div>
-                                <div class="text-h6 font-weight-black">Wealth Composition</div>
-                                <div class="text-caption font-weight-bold opacity-60">Asset vs Liability by Member</div>
+                            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-wf-pill bg-white/5 border border-white/10 text-xs font-semibold backdrop-blur-sm">
+                                <TrendingDown :size="15" class="text-rose-400" />
+                                <span class="font-mono text-rose-400 font-bold">{{ formatAmount(wealthData.total_liabilities) }}</span>
+                                <span class="text-slate-400 text-[11px]">Liabilities</span>
                             </div>
-                        </v-card-title>
-                        <v-card-text class="pa-6">
-                            <div class="chart-container" style="height: 350px;">
-                                <BaseChart type="bar" :data="compositionChartData" :options="stackedChartOptions"
-                                    :height="350" />
-                            </div>
-                        </v-card-text>
-                    </v-card>
-                </v-col>
+                        </div>
+                    </div>
 
-                <v-col cols="12" md="5">
-                    <v-card rounded="xl" class="premium-glass-card h-100 no-hover border-premium overflow-hidden">
-                        <v-card-title class="pa-6 d-flex align-center">
-                            <div class="icon-orb mr-4">
-                                <PieChart :size="20" class="text-primary" />
-                            </div>
-                            <div>
-                                <div class="text-h6 font-weight-black">Equity Distribution</div>
-                                <div class="text-caption font-weight-bold opacity-60">Percentage of net family wealth
-                                </div>
-                            </div>
-                        </v-card-title>
-                        <v-card-text class="pa-6 d-flex align-center justify-center">
-                            <div class="chart-container-inner relative-pos w-100">
-                                <BaseChart type="doughnut" :data="distributionChartData" :height="300"
-                                    :options="{ cutout: '75%', plugins: { legend: { display: false } } }" />
-                                <div class="chart-center-label">
-                                    <div class="text-overline font-weight-black opacity-60">TOTAL</div>
-                                    <div class="text-h6 font-weight-black">{{ formatAmount(wealthData.total_net_worth)
-                                    }}</div>
-                                </div>
-                            </div>
-                        </v-card-text>
-                    </v-card>
-                </v-col>
-            </v-row>
-
-            <!-- Member Profile Grid -->
-            <div class="mt-12 mb-4">
-                <h3 class="text-h6 font-weight-black d-flex align-center">
-                    <Users :size="20" class="mr-3 text-primary" />
-                    Family Member Insights
-                </h3>
+                    <!-- Member Avatar Stack -->
+                    <div v-if="wealthData.members?.length" class="flex items-center -space-x-3 self-start md:self-center pr-2">
+                        <div
+                            v-for="(m, i) in wealthData.members.slice(0, 5)"
+                            :key="m.user_id || i"
+                            class="w-12 h-12 rounded-full border-2 border-slate-900 flex items-center justify-center font-bold text-sm text-white shadow-md transition-transform hover:-translate-y-1"
+                            :style="{ backgroundColor: chartPalette[i % chartPalette.length] }"
+                            :title="m.name"
+                        >
+                            {{ m.name ? m.name.charAt(0).toUpperCase() : 'U' }}
+                        </div>
+                        <div
+                            v-if="wealthData.members.length > 5"
+                            class="w-12 h-12 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-300 shadow-md"
+                        >
+                            +{{ wealthData.members.length - 5 }}
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <v-row>
-                <v-col v-for="(member, i) in wealthData.members" :key="member.user_id" cols="12" sm="6" lg="3">
-                    <v-card rounded="xl" class="member-profile-card h-100 border-premium">
-                        <div class="pa-6">
-                            <v-avatar :color="chartPalette[i % chartPalette.length]" size="56"
-                                class="mb-4 elevation-8 profile-avatar">
-                                <span class="text-h5 text-white font-weight-black">{{
-                                    member.name.charAt(0).toUpperCase() }}</span>
-                            </v-avatar>
-
-                            <div class="text-h6 font-weight-black mb-1">{{ member.name }}</div>
-                            <v-chip size="x-small" class="font-weight-black mb-6 px-3"
-                                :color="member.role === 'OWNER' ? 'primary' : 'secondary'" variant="tonal">
-                                {{ member.role }}
-                            </v-chip>
-
-                            <v-divider class="mb-6 opacity-10"></v-divider>
-
-                            <div class="d-flex justify-space-between align-center mb-2">
-                                <span class="text-caption font-weight-bold opacity-60">NET WORTH</span>
-                                <span class="text-body-2 font-weight-black">{{ formatAmount(member.net_worth) }}</span>
+            <!-- Interactive Charts Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                <!-- Wealth Composition Bar Chart (7 cols) -->
+                <div class="lg:col-span-7">
+                    <WfCard variant="flat" padding="md" radius="xl" class="border border-wf-border h-full flex flex-col justify-between">
+                        <div class="flex items-center gap-2.5 mb-4">
+                            <div class="w-8 h-8 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/40 text-wf-primary flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50 shadow-2xs">
+                                <BarChart3 :size="18" />
                             </div>
-                            <div class="member-progress mb-6">
-                                <v-progress-linear :model-value="(member.net_worth / wealthData.total_assets) * 100"
-                                    :color="chartPalette[i % chartPalette.length]" height="8" rounded="pill">
-                                </v-progress-linear>
+                            <div>
+                                <h3 class="text-sm font-bold text-wf-text-primary leading-none">Wealth Composition</h3>
+                                <p class="text-[11px] text-wf-text-muted mt-0.5 leading-none">Asset vs liability by member</p>
                             </div>
+                        </div>
 
-                            <div class="grid-stats">
-                                <div class="stat-box">
-                                    <div class="text-overline opacity-50 font-weight-black">Accounts</div>
-                                    <div class="text-body-1 font-weight-black">{{ member.account_count }}</div>
+                        <div class="h-80 w-full">
+                            <BaseChart
+                                v-if="compositionChartData"
+                                type="bar"
+                                :data="compositionChartData"
+                                :options="stackedChartOptions"
+                                :height="320"
+                            />
+                        </div>
+                    </WfCard>
+                </div>
+
+                <!-- Equity Distribution Doughnut Chart (5 cols) -->
+                <div class="lg:col-span-5">
+                    <WfCard variant="flat" padding="md" radius="xl" class="border border-wf-border h-full flex flex-col justify-between">
+                        <div class="flex items-center gap-2.5 mb-4">
+                            <div class="w-8 h-8 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/40 text-wf-primary flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50 shadow-2xs">
+                                <PieChart :size="18" />
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-wf-text-primary leading-none">Equity Distribution</h3>
+                                <p class="text-[11px] text-wf-text-muted mt-0.5 leading-none">Percentage of net family wealth</p>
+                            </div>
+                        </div>
+
+                        <div class="h-80 w-full relative flex items-center justify-center">
+                            <BaseChart
+                                v-if="distributionChartData"
+                                type="doughnut"
+                                :data="distributionChartData"
+                                :height="280"
+                                :options="{ cutout: '75%', plugins: { legend: { display: false } } }"
+                            />
+                            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted">TOTAL NET</span>
+                                <span class="text-base font-bold font-mono text-wf-text-primary">{{ formatAmount(wealthData.total_net_worth) }}</span>
+                            </div>
+                        </div>
+                    </WfCard>
+                </div>
+            </div>
+
+            <!-- Member Profile Grid -->
+            <div class="space-y-4">
+                <div class="flex items-center gap-2">
+                    <Users :size="18" class="text-wf-primary" />
+                    <h2 class="text-sm font-bold text-wf-text-primary leading-none">Family Member Insights</h2>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <WfCard
+                        v-for="(member, i) in wealthData.members"
+                        :key="member.user_id || i"
+                        variant="flat"
+                        padding="md"
+                        radius="xl"
+                        class="border border-wf-border hover:shadow-wf-card-hover transition-all duration-200 flex flex-col justify-between"
+                    >
+                        <div class="space-y-3.5">
+                            <div class="flex items-start justify-between gap-2">
+                                <div
+                                    class="w-12 h-12 rounded-wf-xl flex items-center justify-center font-bold text-base text-white shadow-xs"
+                                    :style="{ backgroundColor: chartPalette[i % chartPalette.length] }"
+                                >
+                                    {{ member.name ? member.name.charAt(0).toUpperCase() : 'U' }}
                                 </div>
-                                <div class="stat-box text-right">
-                                    <div class="text-overline opacity-50 font-weight-black">Equity</div>
-                                    <div class="text-body-1 font-weight-black">{{ ((member.net_worth /
-                                        wealthData.total_assets) * 100).toFixed(1) }}%</div>
+                                <span
+                                    class="px-2 py-0.5 rounded-wf-pill text-[10px] font-bold uppercase tracking-wider"
+                                    :class="member.role === 'OWNER' ? 'bg-indigo-50 dark:bg-indigo-950/40 text-wf-primary border border-indigo-200 dark:border-indigo-900/50' : 'bg-wf-surface-variant text-wf-text-secondary'"
+                                >
+                                    {{ member.role }}
+                                </span>
+                            </div>
+
+                            <div>
+                                <h3 class="text-sm font-bold text-wf-text-primary truncate">{{ member.name }}</h3>
+                                <div class="flex items-center justify-between text-xs mt-1">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted">Net Worth</span>
+                                    <span class="font-bold font-mono text-wf-text-primary">{{ formatAmount(member.net_worth) }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Member Progress Bar -->
+                            <div class="space-y-1">
+                                <div class="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-wf-pill overflow-hidden">
+                                    <div
+                                        class="h-full rounded-wf-pill transition-all duration-300"
+                                        :style="{
+                                            width: `${Math.max(0, Math.min(wealthData.total_assets > 0 ? (member.net_worth / wealthData.total_assets) * 100 : 0, 100))}%`,
+                                            backgroundColor: chartPalette[i % chartPalette.length]
+                                        }"
+                                    ></div>
+                                </div>
+                            </div>
+
+                            <!-- Stats Footer -->
+                            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-wf-border-subtle text-xs">
+                                <div>
+                                    <span class="text-[9px] font-bold uppercase tracking-wider text-wf-text-muted block">Accounts</span>
+                                    <span class="font-bold font-mono text-wf-text-primary">{{ member.account_count }}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[9px] font-bold uppercase tracking-wider text-wf-text-muted block">Equity</span>
+                                    <span class="font-bold font-mono text-wf-text-primary">
+                                        {{ wealthData.total_assets > 0 ? ((member.net_worth / wealthData.total_assets) * 100).toFixed(1) : 0 }}%
+                                    </span>
                                 </div>
                             </div>
                         </div>
-                    </v-card>
-                </v-col>
+                    </WfCard>
 
-                <!-- Shared Wealth Card -->
-                <v-col v-if="wealthData.shared.account_count > 0" cols="12" sm="6" lg="3">
-                    <v-card rounded="xl" class="member-profile-card h-100 border-premium shared-theme">
-                        <div class="pa-6">
-                            <v-avatar color="surface-variant" size="56" class="mb-4 elevation-8 profile-avatar">
-                                <Users :size="28" class="text-white" />
-                            </v-avatar>
-
-                            <div class="text-h6 font-weight-black mb-1">Shared Wealth</div>
-                            <v-chip size="x-small" class="font-weight-black mb-6 px-3" color="white" variant="outlined">
-                                COLLECTIVE
-                            </v-chip>
-
-                            <v-divider class="mb-6 opacity-20"></v-divider>
-
-                            <div class="d-flex justify-space-between align-center mb-2">
-                                <span class="text-caption font-weight-bold opacity-60">NET WORTH</span>
-                                <span class="text-body-2 font-weight-black">{{ formatAmount(wealthData.shared.net_worth)
-                                }}</span>
-                            </div>
-                            <div class="member-progress mb-6">
-                                <v-progress-linear
-                                    :model-value="(wealthData.shared.net_worth / wealthData.total_assets) * 100"
-                                    color="white" height="8" rounded="pill">
-                                </v-progress-linear>
-                            </div>
-
-                            <div class="grid-stats">
-                                <div class="stat-box">
-                                    <div class="text-overline opacity-50 font-weight-black">Accounts</div>
-                                    <div class="text-body-1 font-weight-black">{{ wealthData.shared.account_count }}
-                                    </div>
+                    <!-- Shared Wealth Card (if any accounts) -->
+                    <WfCard
+                        v-if="wealthData.shared?.account_count > 0"
+                        variant="flat"
+                        padding="md"
+                        radius="xl"
+                        class="border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/20 dark:bg-indigo-950/20 hover:shadow-wf-card-hover transition-all duration-200 flex flex-col justify-between"
+                    >
+                        <div class="space-y-3.5">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="w-12 h-12 rounded-wf-xl bg-wf-primary text-white flex items-center justify-center font-bold text-base shadow-xs">
+                                    <Users :size="22" />
                                 </div>
-                                <div class="stat-box text-right">
-                                    <div class="text-overline opacity-50 font-weight-black">Equity</div>
-                                    <div class="text-body-1 font-weight-black">{{ ((wealthData.shared.net_worth /
-                                        wealthData.total_assets) * 100).toFixed(1) }}%</div>
+                                <span class="px-2 py-0.5 rounded-wf-pill text-[10px] font-bold uppercase tracking-wider bg-wf-primary text-white">
+                                    Collective
+                                </span>
+                            </div>
+
+                            <div>
+                                <h3 class="text-sm font-bold text-wf-text-primary">Shared Wealth</h3>
+                                <div class="flex items-center justify-between text-xs mt-1">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted">Net Worth</span>
+                                    <span class="font-bold font-mono text-wf-text-primary">{{ formatAmount(wealthData.shared.net_worth) }}</span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-1">
+                                <div class="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-wf-pill overflow-hidden">
+                                    <div
+                                        class="h-full rounded-wf-pill bg-wf-primary transition-all duration-300"
+                                        :style="{
+                                            width: `${Math.max(0, Math.min(wealthData.total_assets > 0 ? (wealthData.shared.net_worth / wealthData.total_assets) * 100 : 0, 100))}%`
+                                        }"
+                                    ></div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-wf-border-subtle text-xs">
+                                <div>
+                                    <span class="text-[9px] font-bold uppercase tracking-wider text-wf-text-muted block">Accounts</span>
+                                    <span class="font-bold font-mono text-wf-text-primary">{{ wealthData.shared.account_count }}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[9px] font-bold uppercase tracking-wider text-wf-text-muted block">Equity</span>
+                                    <span class="font-bold font-mono text-wf-text-primary">
+                                        {{ wealthData.total_assets > 0 ? ((wealthData.shared.net_worth / wealthData.total_assets) * 100).toFixed(1) : 0 }}%
+                                    </span>
                                 </div>
                             </div>
                         </div>
-                    </v-card>
-                </v-col>
-            </v-row>
+                    </WfCard>
+                </div>
+            </div>
         </template>
     </div>
 </template>
@@ -219,6 +259,7 @@ import { ref, onMounted, computed } from 'vue'
 import { financeApi } from '@/api/client'
 import { useCurrency } from '@/composables/useCurrency'
 import BaseChart from '@/components/BaseChart.vue'
+import WfCard from '@/components/ui/WfCard.vue'
 import { Users, PieChart, ShieldCheck, TrendingUp, TrendingDown, BarChart3 } from 'lucide-vue-next'
 
 const { formatAmount } = useCurrency()
@@ -257,7 +298,7 @@ const distributionChartData = computed(() => {
     const labels = [...wealthData.value.members.map((m: any) => m.name)]
     const data = [...wealthData.value.members.map((m: any) => Math.max(0, m.net_worth))]
 
-    if (wealthData.value.shared.net_worth > 0) {
+    if (wealthData.value.shared?.net_worth > 0) {
         labels.push('Shared')
         data.push(wealthData.value.shared.net_worth)
     }
@@ -267,9 +308,9 @@ const distributionChartData = computed(() => {
         datasets: [{
             data,
             backgroundColor: chartPalette.slice(0, labels.length),
-            hoverOffset: 15,
+            hoverOffset: 12,
             borderWidth: 0,
-            borderRadius: 8
+            borderRadius: 6
         }]
     }
 })
@@ -278,13 +319,13 @@ const compositionChartData = computed(() => {
     if (!wealthData.value) return null
 
     const labels = [...wealthData.value.members.map((m: any) => m.name)]
-    if (wealthData.value.shared.account_count > 0) labels.push('Shared')
+    if (wealthData.value.shared?.account_count > 0) labels.push('Shared')
 
     const assetsData = [...wealthData.value.members.map((m: any) => m.assets)]
-    if (wealthData.value.shared.account_count > 0) assetsData.push(wealthData.value.shared.assets)
+    if (wealthData.value.shared?.account_count > 0) assetsData.push(wealthData.value.shared.assets)
 
     const liabilitiesData = [...wealthData.value.members.map((m: any) => m.liabilities)]
-    if (wealthData.value.shared.account_count > 0) liabilitiesData.push(wealthData.value.shared.liabilities)
+    if (wealthData.value.shared?.account_count > 0) liabilitiesData.push(wealthData.value.shared.liabilities)
 
     return {
         labels,
@@ -293,13 +334,13 @@ const compositionChartData = computed(() => {
                 label: 'Assets',
                 data: assetsData,
                 backgroundColor: '#10B981',
-                borderRadius: 8
+                borderRadius: 6
             },
             {
                 label: 'Liabilities',
                 data: liabilitiesData,
                 backgroundColor: '#EF4444',
-                borderRadius: 8
+                borderRadius: 6
             }
         ]
     }
@@ -309,219 +350,30 @@ const stackedChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-        legend: { display: true, position: 'bottom' }
+        legend: {
+            display: true,
+            position: 'bottom' as const,
+            labels: { boxWidth: 10, padding: 12, font: { size: 11, weight: 'bold' } }
+        }
     },
     scales: {
-        x: { stacked: true, grid: { display: false } },
-        y: { stacked: true, grid: { color: 'rgba(var(--v-border-color), 0.05)' } }
+        x: {
+            stacked: true,
+            grid: { display: false },
+            ticks: {
+                maxRotation: 45,
+                autoSkip: true,
+                font: { size: 11, weight: 'bold' }
+            }
+        },
+        y: {
+            stacked: true,
+            grid: { color: 'rgba(150, 150, 150, 0.08)' },
+            ticks: {
+                callback: (val: any) => '₹' + val,
+                font: { size: 10 }
+            }
+        }
     }
 }
 </script>
-
-<style scoped>
-/* Ultra Premium Wealth Hero */
-.wealth-hero-card {
-    background: linear-gradient(135deg, #020617 0%, #1e1b4b 100%);
-    position: relative;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
-}
-
-.premium-badge {
-    display: inline-flex;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 6px 16px;
-    border-radius: 100px;
-    color: #94a3b8;
-    font-size: 0.7rem;
-}
-
-.glass-stat-chip {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 12px 20px;
-    border-radius: 100px;
-    color: white;
-    font-size: 0.9rem;
-}
-
-.family-avatar-stack {
-    display: flex;
-    align-items: center;
-}
-
-.stacked-avatar {
-    border: 4px solid #020617 !important;
-    transition: transform 0.3s ease;
-    cursor: pointer;
-}
-
-.stacked-avatar:hover {
-    transform: translateY(-5px) !important;
-}
-
-/* Animated Aura */
-.aura-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    pointer-events: none;
-    overflow: hidden;
-}
-
-.aura {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(100px);
-    opacity: 0.15;
-}
-
-.aura-1 {
-    width: 600px;
-    height: 600px;
-    background: #3B82F6;
-    top: -200px;
-    right: -100px;
-    animation: pulse 10s infinite alternate;
-}
-
-.aura-2 {
-    width: 400px;
-    height: 400px;
-    background: #10B981;
-    bottom: -100px;
-    left: -50px;
-    animation: pulse 15s infinite alternate-reverse;
-}
-
-.aura-3 {
-    width: 300px;
-    height: 300px;
-    background: #8B5CF6;
-    top: 20%;
-    left: 40%;
-    animation: drift 20s infinite linear;
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        opacity: 0.1;
-    }
-
-    100% {
-        transform: scale(1.2);
-        opacity: 0.2;
-    }
-}
-
-@keyframes drift {
-    0% {
-        transform: translate(0, 0);
-    }
-
-    50% {
-        transform: translate(100px, 50px);
-    }
-
-    100% {
-        transform: translate(0, 0);
-    }
-}
-
-/* General Layout & Cards */
-.border-premium {
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-}
-
-.premium-glass-card {
-    background: rgba(var(--v-theme-surface), 0.6) !important;
-    backdrop-filter: blur(20px);
-}
-
-.icon-orb {
-    width: 40px;
-    height: 40px;
-    background: rgba(var(--v-theme-primary), 0.1);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.relative-pos {
-    position: relative;
-}
-
-.z-10 {
-    z-index: 10;
-}
-
-.chart-center-label {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    pointer-events: none;
-}
-
-/* Member Profile Cards */
-.member-profile-card {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: default;
-    background: rgba(var(--v-theme-surface), 0.5) !important;
-}
-
-.member-profile-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1) !important;
-    background: rgba(var(--v-theme-surface), 0.8) !important;
-    border-color: rgba(var(--v-theme-primary), 0.3) !important;
-}
-
-.profile-avatar {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    transition: transform 0.4s ease;
-}
-
-.member-profile-card:hover .profile-avatar {
-    transform: scale(1.1) rotate(5deg);
-}
-
-.grid-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-}
-
-.stat-box {
-    padding: 12px;
-    background: rgba(var(--v-theme-on-surface), 0.03);
-    border-radius: 12px;
-}
-
-/* Shared Theme */
-.shared-theme {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
-    color: white !important;
-}
-
-.shared-theme .stat-box {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.shared-theme .text-overline,
-.shared-theme .text-caption {
-    color: rgba(255, 255, 255, 0.6) !important;
-}
-
-.shared-theme:hover {
-    background: linear-gradient(135deg, #2a3347 0%, #161e2e 100%) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
-}
-</style>

@@ -1,89 +1,95 @@
 <template>
     <MainLayout>
-        <v-container fluid class="page-container dashboard-page">
-            <!-- Animated Mesh Background (Consistent with Categories.vue) -->
-            <div class="mesh-blob blob-1"
-                style="background: rgba(var(--v-theme-primary), 0.1); width: 600px; height: 600px; top: -200px; right: -100px;">
+        <div class="space-y-6">
+            <!-- Header: Title left, Segmented Tabs right -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary">
+                            Insights
+                        </h1>
+                        <span
+                            v-if="authStore.selectedMemberId"
+                            class="px-2 py-0.5 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50"
+                        >
+                            Member Filter Active
+                        </span>
+                    </div>
+                    <p class="text-xs text-wf-text-secondary mt-0.5">
+                        Deep cashflow dynamics, subscriptions intelligence, and family wealth consolidation
+                    </p>
+                </div>
+
+                <!-- Aether V4 Segmented Tab Switcher -->
+                <div class="flex items-center p-1 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs self-start sm:self-auto">
+                    <button
+                        type="button"
+                        @click="switchTab(0)"
+                        class="px-3.5 py-1.5 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
+                        :class="[
+                            activeTab === 0
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'
+                        ]"
+                    >
+                        <BarChart3 :size="15" />
+                        <span>Analytics</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="switchTab(1)"
+                        class="px-3.5 py-1.5 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
+                        :class="[
+                            activeTab === 1
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'
+                        ]"
+                    >
+                        <RefreshCw :size="15" />
+                        <span>Subscriptions</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="switchTab(2)"
+                        class="px-3.5 py-1.5 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
+                        :class="[
+                            activeTab === 2
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'
+                        ]"
+                    >
+                        <Users :size="15" />
+                        <span>Family Wealth</span>
+                    </button>
+                </div>
             </div>
-            <div class="mesh-blob blob-2"
-                style="background: rgba(var(--v-theme-secondary), 0.05); width: 400px; height: 400px; bottom: -100px; left: -100px;">
+
+            <!-- Tab Panels -->
+            <div>
+                <!-- ANALYTICS TAB -->
+                <div v-show="activeTab === 0">
+                    <AnalyticsTab :selected-account="selectedAccount" />
+                </div>
+
+                <!-- RECURRING TAB -->
+                <div v-show="activeTab === 1">
+                    <RecurringTab />
+                </div>
+
+                <!-- FAMILY WEALTH TAB -->
+                <div v-show="activeTab === 2">
+                    <FamilyWealthTab />
+                </div>
             </div>
-
-            <div class="relative-pos z-10">
-                <!-- Header (Title left, Tabs & Actions right) -->
-                <v-row class="mb-10 align-center">
-                    <v-col cols="12" md="6">
-                        <h1 class="text-h4 font-weight-black mb-1">Insights</h1>
-                        <p class="text-subtitle-2 text-on-surface opacity-70 font-weight-bold d-flex align-center">
-                            Strategy and forecasting
-                            <v-chip v-if="authStore.selectedMemberId" size="x-small" color="primary" variant="flat"
-                                class="ml-3 font-weight-black letter-spacing-1">
-                                MEMBER FILTER ACTIVE
-                            </v-chip>
-                        </p>
-                    </v-col>
-
-                    <v-col cols="12" md="6" class="d-flex justify-md-end align-center gap-3">
-                        <!-- Segmented Tab Switcher (Match Categories.vue) -->
-                        <div class="glass-card pa-1 border rounded-pill d-flex"
-                            style="background: rgba(var(--v-theme-surface), 0.5); height: 48px;">
-                            <v-btn variant="flat" rounded="pill" height="40"
-                                class="text-none font-weight-black px-6 letter-spacing-1"
-                                :color="activeTab === 0 ? 'primary' : 'transparent'"
-                                :class="activeTab !== 0 ? 'text-medium-emphasis' : 'elevation-2'"
-                                @click="activeTab = 0">
-                                <template v-slot:prepend>
-                                    <BarChart3 :size="18" />
-                                </template>
-                                Analytics
-                            </v-btn>
-                            <v-btn variant="flat" rounded="pill" height="40"
-                                class="text-none font-weight-black px-6 letter-spacing-1"
-                                :color="activeTab === 1 ? 'primary' : 'transparent'"
-                                :class="activeTab !== 1 ? 'text-medium-emphasis' : 'elevation-2'"
-                                @click="activeTab = 1">
-                                <template v-slot:prepend>
-                                    <RefreshCw :size="18" />
-                                </template>
-                                Recurring
-                            </v-btn>
-                            <v-btn variant="flat" rounded="pill" height="40"
-                                class="text-none font-weight-black px-6 letter-spacing-1"
-                                :color="activeTab === 2 ? 'primary' : 'transparent'"
-                                :class="activeTab !== 2 ? 'text-medium-emphasis' : 'elevation-2'"
-                                @click="activeTab = 2">
-                                <template v-slot:prepend>
-                                    <Users :size="18" />
-                                </template>
-                                Family Wealth
-                            </v-btn>
-                        </div>
-                    </v-col>
-                </v-row>
-
-                <v-window v-model="activeTab" class="bg-transparent overflow-visible">
-                    <!-- ANALYTICS TAB -->
-                    <v-window-item :value="0">
-                        <AnalyticsTab :selected-account="selectedAccount" />
-                    </v-window-item>
-
-                    <!-- RECURRING TAB -->
-                    <v-window-item :value="1">
-                        <RecurringTab />
-                    </v-window-item>
-
-                    <!-- FAMILY CIRCLE TAB -->
-                    <v-window-item :value="2">
-                        <FamilyWealthTab />
-                    </v-window-item>
-                </v-window>
-            </div>
-        </v-container>
+        </div>
     </MainLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { useFinanceStore } from '@/stores/finance'
 import { useAuthStore } from '@/stores/auth'
@@ -94,17 +100,20 @@ import { BarChart3, RefreshCw, Users } from 'lucide-vue-next'
 
 const store = useFinanceStore()
 const authStore = useAuthStore()
-
-import { useRoute } from 'vue-router'
 const route = useRoute()
+const router = useRouter()
 
 const activeTab = ref(0)
 const selectedAccount = ref('')
 
+function switchTab(idx: number) {
+    activeTab.value = idx
+    router.replace({ query: { ...route.query, tab: idx } })
+}
+
 onMounted(() => {
     store.fetchAll(authStore.selectedMemberId || undefined)
 
-    // Handle deep linking to tabs
     if (route.query.tab) {
         const tab = parseInt(route.query.tab as string)
         if (!isNaN(tab)) activeTab.value = tab
@@ -123,48 +132,3 @@ watch(() => route.query.tab, (newTab) => {
     }
 })
 </script>
-
-<style scoped>
-.dashboard-page {
-    position: relative;
-    min-height: calc(100vh - 64px);
-}
-
-.mesh-blob {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.15;
-    border-radius: 50%;
-}
-
-.relative-pos {
-    position: relative;
-}
-
-.z-10 {
-    z-index: 10;
-}
-
-.gap-3 {
-    gap: 12px;
-}
-
-.account-select-premium :deep(.v-field__outline) {
-    --v-field-border-opacity: 0.1;
-    transition: border-color 0.3s ease;
-}
-
-.account-select-premium:hover :deep(.v-field__outline) {
-    --v-field-border-opacity: 0.4;
-    border-color: rgb(var(--v-theme-primary)) !important;
-}
-
-.glass-card {
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
-
-:deep(.v-window) {
-    overflow: visible !important;
-}
-</style>

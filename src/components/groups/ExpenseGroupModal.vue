@@ -515,8 +515,8 @@ onMounted(() => {
                             ></div>
                         </div>
                         <div class="flex items-center justify-between text-[11px] font-medium text-wf-text-secondary">
-                            <span>{{ formatAmount(selectedTransactionsTotal) }} linked spent</span>
-                            <span>{{ formatAmount(Math.max(0, form.budget - selectedTransactionsTotal)) }} remaining</span>
+                            <span><strong class="font-mono tabular-nums text-wf-text-primary">{{ formatAmount(selectedTransactionsTotal) }}</strong> linked spent</span>
+                            <span><strong class="font-mono tabular-nums text-wf-text-primary">{{ formatAmount(Math.max(0, form.budget - selectedTransactionsTotal)) }}</strong> remaining</span>
                         </div>
                     </div>
                 </div>
@@ -622,7 +622,7 @@ onMounted(() => {
                                         <CheckCircle2 class="w-3.5 h-3.5" />
                                         <span>Linked to this Bucket ({{ pinnedTxns.length }})</span>
                                     </div>
-                                    <span class="text-[10px] font-bold text-wf-primary">
+                                    <span class="text-[10px] font-bold text-wf-primary font-mono tabular-nums">
                                         {{ formatAmount(selectedTransactionsTotal) }}
                                     </span>
                                 </div>
@@ -655,7 +655,7 @@ onMounted(() => {
                                         </div>
                                     </div>
                                     <span
-                                        class="text-xs font-bold shrink-0 ml-3 tabular-nums"
+                                        class="text-xs font-bold shrink-0 ml-3 tabular-nums font-mono"
                                         :class="txn.amount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
                                     >
                                         {{ formatAmount(txn.amount) }}
@@ -703,7 +703,7 @@ onMounted(() => {
                                     </div>
                                 </div>
                                 <span
-                                    class="text-xs font-bold shrink-0 ml-3 tabular-nums"
+                                    class="text-xs font-bold shrink-0 ml-3 tabular-nums font-mono"
                                     :class="txn.amount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
                                 >
                                     {{ formatAmount(txn.amount) }}
