@@ -1,644 +1,19 @@
-<template>
-    <v-container fluid class="pa-0 hide-scrollbars force-no-x-scroll">
-        <!-- Market Pulse Row -->
-        <div class="position-relative mb-6">
-            <v-progress-linear v-if="isMarketPulseLoading" indeterminate color="primary" height="2"
-                class="mb-4" style="z-index: 10"></v-progress-linear>
-
-            <div class="d-flex align-center justify-space-between mb-4 px-1">
-                <div class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Market Pulse</div>
-                <v-btn-toggle v-model="marketPulsePeriod" mandatory variant="tonal" class="premium-toggle"
-                    @update:model-value="fetchMarketIndices">
-                    <v-btn value="1d" size="x-small" class="font-weight-black">1D</v-btn>
-                    <v-btn value="7d" size="x-small" class="font-weight-black">7D</v-btn>
-                    <v-btn value="30d" size="x-small" class="font-weight-black">30D</v-btn>
-                </v-btn-toggle>
-            </div>
-
-            <v-row :class="{ 'opacity-50 pointer-events-none': isMarketPulseLoading && marketIndices.length }">
-                <template v-if="isMarketPulseLoading && !marketIndices.length">
-                    <v-col v-for="i in 6" :key="`pulse-skel-${i}`" cols="12" sm="6" md="4" lg="2">
-                        <PremiumSkeleton type="pulse-card" glass />
-                    </v-col>
-                </template>
-                <template v-else>
-                    <v-col v-for="index in marketIndices" :key="index.name" cols="12" sm="6" md="4" lg="2">
-                        <v-card class="premium-glass-card rounded-24 overflow-hidden border premium-market-card"
-                            elevation="0">
-                            <div class="pa-4 d-flex flex-column justify-space-between h-100">
-                                <div class="mb-4">
-                                    <div
-                                        class="text-[10px] font-weight-black text-medium-emphasis uppercase letter-spacing-1 mb-1 d-flex justify-space-between align-center">
-                                        <span>{{ index.name }}</span>
-                                        <span v-if="index.last_updated" class="opacity-40 font-weight-bold" style="font-size: 8px;">{{ index.last_updated }}</span>
-                                    </div>
-                                    <div class="text-h6 font-weight-black text-content line-height-tight">{{ index.value
-                                        }}</div>
-                                    <div class="d-flex align-center gap-1 mt-1">
-                                        <span class="text-[11px] font-weight-black"
-                                            :class="index.isUp ? 'text-success' : 'text-error'">
-                                            {{ index.change }} ({{ index.percent }})
-                                        </span>
-                                        <TrendingUp v-if="index.isUp" :size="10" class="text-success" />
-                                        <TrendingDown v-else :size="10" class="text-error" />
-                                    </div>
-                                </div>
-                                <div style="height: 32px" class="mt-auto">
-                                    <Sparkline v-if="index.sparkline && index.sparkline.length > 1"
-                                        :data="index.sparkline" :labels="index.labels"
-                                        :color="index.isUp ? '#10b981' : '#ef4444'" :height="32" :smooth="true"
-                                        :glow="true" :is-currency="false" />
-                                </div>
-                            </div>
-                        </v-card>
-                    </v-col>
-                </template>
-            </v-row>
-        </div>
-        <!-- Portfolio Header Summary -->
-        <v-row class="mb-12">
-            <template v-if="isLoading">
-                <v-col cols="12" md="4" v-for="i in 3" :key="`skel-card-${i}`">
-                    <PremiumSkeleton type="stat-card" glass />
-                </v-col>
-            </template>
-            <template v-else>
-                <!-- Current Value -->
-                <v-col cols="12" md="4">
-                    <v-card class="premium-glass-card h-100 pa-0 card-glow-transition d-flex flex-column"
-                        :class="latestInsights.dayChange >= 0 ? 'hover-success-glow' : 'hover-error-glow'" rounded="24">
-                        <div class="pa-8 pb-4">
-                            <div class="d-flex align-center justify-space-between mb-4">
-                                <span
-                                    class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Current
-                                    Value</span>
-                                <div class="pa-2 rounded-lg"
-                                    :class="latestInsights.dayChange >= 0 ? 'bg-success-opacity' : 'bg-error-opacity'">
-                                    <TrendingUp v-if="latestInsights.dayChange >= 0" :size="18" class="text-success" />
-                                    <TrendingDown v-else :size="18" class="text-error" />
-                                </div>
-                            </div>
-                            <div>
-                                <div class="text-h4 font-weight-black text-content mb-1">
-                                    {{ formatAmount(portfolioStats.current) }}
-                                </div>
-                                <div class="d-flex align-center gap-2">
-                                    <span :class="latestInsights.dayChange >= 0 ? 'text-success' : 'text-error'"
-                                        class="text-caption font-weight-bold">
-                                        {{ latestInsights.dayChange >= 0 ? '+' : '' }}{{
-                                        formatAmount(latestInsights.dayChange) }}
-                                        ({{ latestInsights.dayChangePercent.toFixed(2) }}%)
-                                    </span>
-                                    <span class="text-caption opacity-40 font-weight-bold uppercase">vs yesterday</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <v-spacer></v-spacer>
-
-                        <div class="mt-auto">
-                            <div class="px-8 d-flex align-center justify-space-between mb-2">
-                                <span class="text-[10px] font-weight-black opacity-50 uppercase tracking-tighter">7D
-                                    Trend</span>
-                                <v-chip size="x-small" :color="portfolioStats.pl >= 0 ? 'success' : 'error'"
-                                    variant="tonal" class="font-weight-black">
-                                    {{ Math.abs(portfolioStats.plPercent).toFixed(2) }}% Returns
-                                </v-chip>
-                            </div>
-                            <div class="px-2" style="height: 60px; margin-bottom: 8px;">
-                                <Sparkline v-if="cvSparkline.length > 1" :data="cvSparkline"
-                                    :color="latestInsights.dayChange >= 0 ? '#10b981' : '#ef4444'" :height="40" />
-                            </div>
-                        </div>
-                    </v-card>
-                </v-col>
-
-                <!-- Total Invested -->
-                <v-col cols="12" md="4">
-                    <v-card
-                        class="premium-glass-card h-100 pa-0 hover-primary-glow card-glow-transition d-flex flex-column"
-                        rounded="24">
-                        <div class="pa-8 pb-4">
-                            <div class="d-flex align-center justify-space-between mb-4">
-                                <span
-                                    class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Invested
-                                    Capital</span>
-                                <div class="pa-2 rounded-lg bg-primary-opacity">
-                                    <Clock :size="18" class="text-primary" />
-                                </div>
-                            </div>
-                            <div>
-                                <div class="text-h4 font-weight-black text-content mb-1">
-                                    {{ formatAmount(portfolioStats.invested) }}
-                                </div>
-                                <div class="d-flex align-center gap-2">
-                                    <span class="text-primary text-caption font-weight-bold">
-                                        {{ (portfolioStats.current / (portfolioStats.invested || 1)).toFixed(2) }}x
-                                    </span>
-                                    <span class="text-caption opacity-40 font-weight-bold uppercase">Growth
-                                        factor</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <v-spacer></v-spacer>
-
-                        <div class="mt-auto">
-                            <div class="px-8 d-flex align-center justify-space-between mb-2">
-                                <span
-                                    class="text-[10px] font-weight-black opacity-50 uppercase tracking-tighter">Accumulation
-                                    Path</span>
-                                <span class="text-[10px] font-weight-bold opacity-60">{{ portfolio.length }}
-                                    Schemes</span>
-                            </div>
-                            <div class="px-2" style="height: 60px; margin-bottom: 8px;">
-                                <Sparkline v-if="icSparkline.length > 1" :data="icSparkline" color="#3b82f6"
-                                    :height="40" />
-                            </div>
-                        </div>
-                    </v-card>
-                </v-col>
-
-                <!-- Overall P&L / XIRR -->
-                <v-col cols="12" md="4">
-                    <v-card class="premium-glass-card h-100 pa-0 card-glow-transition d-flex flex-column"
-                        :class="portfolioStats.pl >= 0 ? 'hover-success-glow' : 'hover-error-glow'" rounded="24">
-                        <div class="pa-8 pb-4">
-                            <div class="d-flex align-center justify-space-between mb-4">
-                                <span class="text-overline font-weight-black text-medium-emphasis letter-spacing-1">Net
-                                    Gain/Loss</span>
-                                <div class="pa-2 rounded-lg"
-                                    :class="portfolioStats.pl >= 0 ? 'bg-success-opacity' : 'bg-error-opacity'">
-                                    <Target :size="18"
-                                        :class="portfolioStats.pl >= 0 ? 'text-success' : 'text-error'" />
-                                </div>
-                            </div>
-                            <div>
-                                <div class="text-h4 font-weight-black mb-1"
-                                    :class="portfolioStats.pl >= 0 ? 'text-success' : 'text-error'">
-                                    {{ portfolioStats.pl >= 0 ? '+' : '' }}{{ formatAmount(portfolioStats.pl) }}
-                                </div>
-                                <div class="d-flex align-center gap-2">
-                                    <span :class="portfolioStats.pl >= 0 ? 'text-success' : 'text-error'"
-                                        class="text-caption font-weight-bold" v-if="analytics?.xirr != null">
-                                        {{ analytics.xirr.toFixed(2) }}% Annualized
-                                    </span>
-                                    <span class="text-caption opacity-40 font-weight-bold uppercase"
-                                        v-if="analytics?.xirr != null">XIRR Return</span>
-                                </div>
-                                <div v-if="analytics?.last_updated_at" class="text-[10px] opacity-40 font-weight-bold mt-2">
-                                    NAV: {{ analytics.last_updated_at }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <v-spacer></v-spacer>
-
-                        <div class="mt-auto">
-                            <div class="px-8 d-flex align-center justify-space-between mb-2">
-                                <span class="text-[10px] font-weight-black opacity-50 uppercase tracking-tighter">Profit
-                                    Velocity</span>
-                                <v-chip size="x-small" variant="tonal"
-                                    :color="portfolioStats.pl >= 0 ? 'success' : 'error'"
-                                    class="font-weight-black px-1">
-                                    {{ portfolioStats.pl >= 0 ? 'PROFIT' : 'LOSS' }}
-                                </v-chip>
-                            </div>
-                            <div class="px-2" style="height: 60px; margin-bottom: 8px;">
-                                <Sparkline v-if="ngSparkline.length > 1" :data="ngSparkline"
-                                    :color="portfolioStats.pl >= 0 ? '#10b981' : '#ef4444'" :height="40" />
-                            </div>
-                        </div>
-                    </v-card>
-                </v-col>
-            </template>
-        </v-row>
-
-        <!-- Portfolio Performance Chart (Restored) -->
-        <v-row class="mb-12">
-            <v-col cols="12">
-                <v-card class="premium-glass-card pa-10 overflow-hidden" rounded="32">
-                    <div class="d-flex align-center justify-space-between mb-6">
-                        <div>
-                            <h3 class="text-subtitle-1 font-weight-black text-content d-flex align-center gap-2">
-                                <Activity :size="20" class="text-primary" /> Performance Timeline
-                            </h3>
-                            <p class="text-caption opacity-60">Historical net value vs. invested capital trend</p>
-                        </div>
-                <div class="d-flex align-center gap-4">
-                    <!-- Sync Status Indicator -->
-                    <div v-if="mfStore.syncStatus" class="d-flex align-center gap-2 px-4 rounded-pill bg-surface-variant-opacity-10 border border-white-10" style="height: 40px;">
-                        <div class="status-dot" :class="mfStore.isSyncing ? 'status-syncing' : (mfStore.syncStatus.status === 'completed' ? 'status-online' : 'status-error')"></div>
-                        <span class="text-[10px] font-weight-black opacity-60 uppercase letter-spacing-1">
-                            {{ mfStore.isSyncing ? 'Syncing NAVs...' : (mfStore.syncStatus.status === 'completed' ? 'NAVs Current' : 'Sync Error') }}
-                        </span>
-                        <span v-if="!mfStore.isSyncing && mfStore.syncStatus.completed_at" class="text-[9px] opacity-40 font-weight-bold">
-                            {{ formatDateShort(mfStore.syncStatus.completed_at) }}
-                        </span>
-                    </div>
-
-                    <v-btn color="primary" variant="tonal" rounded="pill" class="text-none font-weight-black mr-2 px-6"
-                        height="40" @click="handleManualSync"
-                        :loading="mfStore.isSyncing || mfStore.syncStatus?.status === 'running'" border="thin">
-                        <RefreshCw :size="16" class="mr-2" /> Sync NAVs
-                    </v-btn>
-
-                    <v-btn variant="tonal" color="primary" rounded="pill" class="text-none font-weight-black px-6 mr-2"
-                        height="40" @click="hardRefreshTimeline" :loading="isTimelineRefreshing" border="thin">
-                        <RefreshCcw :size="16" class="mr-2" /> Recalculate Trends
-                    </v-btn>
-                    
-                    <v-menu location="bottom end">
-                        <template v-slot:activator="{ props }">
-                            <v-btn v-bind="props" icon size="40" variant="tonal" color="primary" rounded="pill" border="thin">
-                                <Settings :size="18" />
-                            </v-btn>
-                        </template>
-                        <v-list density="compact" rounded="xl" class="pa-2" width="240">
-                            <v-list-item @click="mfStore.triggerSync" :disabled="mfStore.isSyncing" rounded="lg" class="mb-1">
-                                <template v-slot:prepend><RefreshCcw :size="14" class="mr-3" /></template>
-                                <v-list-item-title class="text-caption font-weight-bold">Sync Latest NAVs</v-list-item-title>
-                            </v-list-item>
-                            
-                            <v-divider class="my-2 opacity-10"></v-divider>
-                            
-                            <v-list-item @click="handleRebuildHoldings" rounded="lg" class="mb-1" :loading="isRebuilding">
-                                <template v-slot:prepend><Activity :size="14" class="mr-3 text-warning" /></template>
-                                <v-list-item-title class="text-caption font-weight-bold">Rebuild Holdings</v-list-item-title>
-                                <v-list-item-subtitle class="text-[9px]">Fixes unit/cost desync</v-list-item-subtitle>
-                            </v-list-item>
-                            
-                            <v-list-item @click="handleCleanupDuplicates" rounded="lg">
-                                <template v-slot:prepend><Trash2 :size="14" class="mr-3 text-error" /></template>
-                                <v-list-item-title class="text-caption font-weight-bold">Cleanup Duplicates</v-list-item-title>
-                            </v-list-item>
-                        </v-list>
-                    </v-menu>
-
-                    <div class="d-flex gap-2">
-                        <v-chip variant="tonal" color="primary" rounded="pill" class="font-weight-black px-4" style="height: 40px !important;">
-                            <Calendar :size="16" class="mr-2" /> 1 YEAR
-                        </v-chip>
-
-                        <v-menu :close-on-content-click="false" location="bottom end">
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" variant="tonal" color="primary" rounded="pill" height="40"
-                                    class="text-none font-weight-black px-6" border="thin">
-                                    <TrendingUp :size="16" class="mr-2" /> Benchmarks
-                                </v-btn>
-                            </template>
-                                    <v-list density="compact" class="pa-2" width="220" rounded="xl">
-                                        <v-list-item v-for="bm in benchmarksData" :key="bm.symbol" density="compact"
-                                            rounded="lg" class="mb-1">
-                                            <template v-slot:prepend>
-                                                <div class="mr-3"
-                                                    :style="{ width: '12px', height: '12px', borderRadius: '3px', background: bm.styling?.color }">
-                                                </div>
-                                            </template>
-                                            <v-list-item-title class="text-caption font-weight-bold">{{ bm.label
-                                                }}</v-list-item-title>
-                                            <template v-slot:append>
-                                                <v-checkbox-btn v-model="selectedBenchmarkSymbols" :value="bm.symbol"
-                                                    density="compact" color="primary"></v-checkbox-btn>
-                                            </template>
-                                        </v-list-item>
-                                    </v-list>
-                                </v-menu>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="height: 320px; position: relative;">
-                        <div v-if="isTimelineLoading" class="fill-height d-flex align-center justify-center">
-                            <v-progress-circular indeterminate color="primary" />
-                        </div>
-                        <FundPerformanceChart v-else-if="timelineData.length" :data="timelineData"
-                            :benchmarks="filteredBenchmarksData" :height="320" valueLabel="Portfolio Value"
-                            investedLabel="Net Invested" @toggle-benchmark="(symbol) => {
-                                if (selectedBenchmarkSymbols.includes(symbol)) {
-                                    selectedBenchmarkSymbols = selectedBenchmarkSymbols.filter(s => s !== symbol)
-                                } else {
-                                    selectedBenchmarkSymbols.push(symbol)
-                                }
-                            }" />
-                        <div v-else class="fill-height d-flex flex-column align-center justify-center opacity-40">
-                            <div class="pa-4 rounded-circle bg-surface-variant mb-4">
-                                <TrendingUp :size="32" />
-                            </div>
-                            <div class="text-body-2 font-weight-bold">Awaiting historical data synchronization...</div>
-                        </div>
-                    </div>
-                </v-card>
-            </v-col>
-        </v-row>
-
-        <!-- Category & Asset Allocation (Donut Charts) -->
-        <v-row class="mb-12" v-if="analytics">
-            <v-col cols="12" md="6">
-                <v-card class="premium-glass-card pa-10 h-100 rounded-32" elevation="0">
-                    <div class="d-flex align-center justify-space-between mb-10">
-                        <div>
-                            <h3 class="text-h6 font-weight-black text-content uppercase letter-spacing-1">Category
-                                Exposure</h3>
-                            <p class="text-caption opacity-60">Portfolio diversification by scheme type</p>
-                        </div>
-                        <v-avatar color="primary-lighten" size="44">
-                            <Target :size="24" class="text-primary" />
-                        </v-avatar>
-                    </div>
-
-                    <div class="px-4">
-                        <PortfolioDonutChart :data="categoryData" label="Type" :size="260" :strokeWidth="18"
-                            showLegend />
-                    </div>
-                </v-card>
-            </v-col>
-
-            <v-col cols="12" md="6">
-                <v-card class="premium-glass-card pa-10 h-100 rounded-32" elevation="0">
-                    <div class="d-flex align-center justify-space-between mb-10">
-                        <div>
-                            <h3 class="text-h6 font-weight-black text-content uppercase letter-spacing-1">Asset
-                                Allocation</h3>
-                            <p class="text-caption opacity-60">Broad asset class distribution</p>
-                        </div>
-                        <v-avatar color="secondary-lighten" size="44">
-                            <Briefcase :size="24" class="text-secondary" />
-                        </v-avatar>
-                    </div>
-
-                    <div class="px-4">
-                        <PortfolioDonutChart :data="assetData" label="Assets" :size="260" :strokeWidth="18"
-                            showLegend />
-                    </div>
-                </v-card>
-            </v-col>
-        </v-row>
-
-        <!-- Market Velocity Row -->
-        <v-row class="mb-12">
-            <!-- Top Performance Snapshot -->
-            <v-col cols="12">
-                <v-card class="premium-glass-card h-100 pa-0 overflow-hidden rounded-24" elevation="0">
-                    <div class="pa-8 d-flex align-center justify-space-between">
-                        <div>
-                            <h3 class="text-subtitle-1 font-weight-black text-content uppercase letter-spacing-1">Market
-                                Velocity</h3>
-                            <p class="text-caption opacity-60">Top performing and declining assets</p>
-                        </div>
-                        <v-chip size="x-small" variant="tonal" color="primary" class="font-weight-black">TOP
-                            MOVERS</v-chip>
-                    </div>
-
-                    <div class="px-8 pb-8">
-                        <v-row>
-                            <v-col cols="6" class="border-e">
-                                <h4
-                                    class="text-[10px] font-weight-black text-success mb-4 uppercase letter-spacing-1 d-flex align-center gap-1">
-                                    <TrendingUp :size="12" /> Top Gainers
-                                </h4>
-                                <div class="d-flex flex-column gap-4">
-                                    <div v-for="item in topGainers" :key="item.id" class="mini-mover-row group pointer"
-                                        @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)">
-                                        <div
-                                            class="text-truncate text-[11px] font-weight-black text-content group-hover:text-primary transition-all flex-grow-1 mr-4"
-                                            style="min-width: 0">
-                                            {{ item.scheme_name }}</div>
-                                        <div class="text-success font-weight-black text-[11px] flex-shrink-0" style="white-space: nowrap">+{{
-                                            formatAmount(item.profit_loss) }}</div>
-                                    </div>
-                                    <div v-if="!topGainers.length" class="text-[10px] opacity-30 py-2">No gainers found
-                                    </div>
-                                </div>
-                            </v-col>
-
-                            <v-col cols="6" class="ps-6">
-                                <h4
-                                    class="text-[10px] font-weight-black text-error mb-4 uppercase letter-spacing-1 d-flex align-center gap-1">
-                                    <TrendingDown :size="12" /> Top Losers
-                                </h4>
-                                <div class="d-flex flex-column gap-4">
-                                    <div v-for="item in topLosers" :key="item.id" class="mini-mover-row group pointer"
-                                        @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)">
-                                        <div
-                                            class="text-truncate text-[11px] font-weight-black text-content group-hover:text-primary transition-all flex-grow-1 mr-4"
-                                            style="min-width: 0">
-                                            {{ item.scheme_name }}</div>
-                                        <div class="text-error font-weight-black text-[11px] flex-shrink-0" style="white-space: nowrap">{{
-                                            formatAmount(item.profit_loss)
-                                            }}</div>
-                                    </div>
-                                    <div v-if="!topLosers.length" class="text-[10px] opacity-30 py-2">All funds positive
-                                    </div>
-                                </div>
-                            </v-col>
-                        </v-row>
-                    </div>
-                </v-card>
-            </v-col>
-        </v-row>
-
-        <!-- Holdings Table -->
-        <v-card class="premium-glass-card rounded-24 overflow-visible border" elevation="0">
-            <div class="px-4 py-4 d-flex justify-space-between align-center border-b">
-                <div>
-                    <h3 class="text-subtitle-1 font-weight-black text-content">Portfolio Holdings</h3>
-                    <p class="text-[10px] text-medium-emphasis">Complete breakdown of all registered folios</p>
-                </div>
-                <v-text-field v-model="search" density="compact" variant="outlined" hide-details placeholder="Search..."
-                    style="max-width: 200px" class="glass-input-rounded text-caption">
-                    <template v-slot:prepend-inner>
-                        <Search :size="18" class="text-medium-emphasis mr-2" />
-                    </template>
-                </v-text-field>
-            </div>
-
-            <div v-if="isLoading">
-                <div v-for="i in 5" :key="`skel-table-${i}`"
-                    class="d-flex align-center px-8 py-6 border-b glass-loader-row">
-                    <v-skeleton-loader type="avatar" size="32" class="mr-4 skeleton-glass"></v-skeleton-loader>
-                    <div class="flex-grow-1 mr-4">
-                        <v-skeleton-loader type="text" width="40%" class="mb-1 skeleton-glass"></v-skeleton-loader>
-                        <v-skeleton-loader type="text" width="20%" height="12"
-                            class="skeleton-glass"></v-skeleton-loader>
-                    </div>
-                </div>
-            </div>
-
-            <v-data-table v-else :headers="headers" :items="sortedPortfolio" :search="search" hover
-                class="premium-table-hardened bg-transparent no-scroll-table" density="comfortable" item-value="id"
-                v-model:expanded="expanded" :items-per-page="10" height="auto">
-                <!-- Fund Name Column -->
-                <template #[`item.scheme_name`]="{ item }">
-                    <div class="d-flex align-center py-3">
-                        <div class="mr-4 flex-shrink-0" style="width: 4px; height: 36px; border-radius: 4px;"
-                            :style="{ background: getRandomColor(item.scheme_name) }"></div>
-
-                        <v-btn v-if="item.has_multiple" icon density="compact" variant="tonal" size="28" class="mr-3"
-                            @click.stop="toggleGroup(item.id)">
-                            <ChevronDown v-if="expanded.includes(item.id)" :size="16" />
-                            <ChevronRight v-else :size="16" />
-                        </v-btn>
-                        <div v-else class="mr-3" style="width: 28px"></div>
-
-                        <div class="cursor-pointer group flex-grow-1 overflow-hidden"
-                            @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)">
-                            <div
-                                class="font-weight-black text-body-2 text-content group-hover-text-primary transition-all text-truncate">
-                                {{ item.scheme_name }}</div>
-                            <div class="d-flex align-center gap-2 mt-1 wrap">
-                                <span class="text-[10px] font-weight-black opacity-50">{{ item.scheme_code }}</span>
-                                <v-chip v-if="item.goal_id" size="x-small" color="success" variant="flat"
-                                    class="font-weight-black text-[9px] px-1" height="16">
-                                    {{ item.goal_name || 'LINKED' }}
-                                </v-chip>
-                                <span class="text-[10px] font-weight-black text-primary opacity-80" v-if="item.units">
-                                    {{ Number(item.units).toFixed(2) }} Units @ {{ formatAmount(item.average_price) }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- Category -->
-                <template #[`item.category`]="{ item }">
-                    <v-chip size="x-small" variant="tonal" color="primary"
-                        class="font-weight-black letter-spacing-1 px-2" style="font-size: 9px">
-                        {{ item.category?.toUpperCase() || 'OTHER' }}
-                    </v-chip>
-                </template>
-
-                <!-- Sparkline Trend -->
-                <template #[`item.sparkline`]="{ item }">
-                    <div class="d-flex align-center justify-center" style="height: 100%">
-                        <div v-if="item.sparkline && item.sparkline.length > 1" style="width: 100px; height: 24px">
-                            <Sparkline :data="item.sparkline" :color="item.profit_loss >= 0 ? '#10b981' : '#ef4444'"
-                                :height="24" :width="100" />
-                        </div>
-                        <div v-else class="text-[10px] opacity-20 text-center">NO TREND</div>
-                    </div>
-                </template>
-
-                <!-- Value Columns -->
-                <template #[`item.current_value`]="{ item }">
-                    <div class="d-flex flex-column align-end">
-                        <span class="font-weight-black text-body-2">{{ formatAmount(item.current_value) }}</span>
-                        <div v-if="item.last_nav" class="text-[9px] opacity-60 font-weight-bold">
-                            NAV {{ formatAmount(item.last_nav) }} <span class="opacity-70">({{ item.last_updated_at
-                                }})</span>
-                        </div>
-                    </div>
-                </template>
-
-                <template #[`item.profit_loss`]="{ item }">
-                    <div class="d-flex flex-column align-end">
-                        <span :class="item.profit_loss >= 0 ? 'text-success' : 'text-error'"
-                            class="font-weight-black text-body-2">
-                            {{ item.profit_loss >= 0 ? '+' : '' }}{{ formatAmount(item.profit_loss) }}
-                        </span>
-                        <div :class="item.profit_loss >= 0 ? 'text-success' : 'text-error'"
-                            class="text-[10px] font-weight-black opacity-80">
-                            {{ item.profit_loss >= 0 ? '▲' : '▼' }} {{ Number(item.profit_loss_pct || 0).toFixed(2) }}%
-                        </div>
-                    </div>
-                </template>
-
-                <!-- Actions -->
-                <template #[`item.actions`]="{ item }">
-                    <div class="d-flex justify-end gap-1">
-                        <v-btn icon variant="tonal" density="compact" color="primary" class="rounded-lg" icon-only
-                            @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)">
-                            <EyeIconMain :size="16" />
-                        </v-btn>
-                        <v-btn icon variant="tonal" density="compact" color="error" class="rounded-lg"
-                            @click="openDeleteModal(item)">
-                            <Trash2 :size="16" />
-                        </v-btn>
-                    </div>
-                </template>
-
-                <!-- Expanded Row for Grouped Folios -->
-                <template #expanded-row="{ columns, item }">
-                    <tr>
-                        <td :colspan="columns.length" class="pa-0">
-                            <div class="bg-surface-variant-opacity-10 py-1">
-                                <div v-for="child in item.children" :key="child.id"
-                                    class="d-flex align-center px-6 py-3 border-b hover-bg-opacity-5 transition-all"
-                                    style="min-height: 64px">
-                                    <div class="flex-grow-1">
-                                        <div
-                                            class="text-caption font-weight-black opacity-60 uppercase letter-spacing-1">
-                                            Folio</div>
-                                        <div class="text-body-2 font-weight-bold">{{ child.folio_number || 'Direct' }}
-                                        </div>
-                                    </div>
-                                    <div class="mx-4 text-right" style="min-width: 100px">
-                                        <div
-                                            class="text-caption font-weight-black opacity-60 uppercase letter-spacing-1">
-                                            Units</div>
-                                        <div class="text-body-2 font-weight-bold">{{ Number(child.units).toFixed(3) }}
-                                        </div>
-                                    </div>
-                                    <div class="mx-4 text-center d-flex flex-column align-center justify-center"
-                                        style="min-width: 100px">
-                                        <div
-                                            class="text-[9px] font-weight-black opacity-60 uppercase letter-spacing-1 mb-1">
-                                            Trend</div>
-                                        <div v-if="child.sparkline && child.sparkline.length > 1"
-                                            style="height: 16px; width: 80px">
-                                            <Sparkline :data="child.sparkline"
-                                                :color="child.profit_loss >= 0 ? '#10b981' : '#ef4444'" :height="16"
-                                                :width="80" />
-                                        </div>
-                                        <div v-else class="text-[9px] opacity-30">N/A</div>
-                                    </div>
-                                    <div class="mx-4 text-right" style="min-width: 120px">
-                                        <div
-                                            class="text-caption font-weight-black opacity-60 uppercase letter-spacing-1">
-                                            Current</div>
-                                        <div class="text-body-2 font-weight-black">{{ formatAmount(child.current_value)
-                                            }}</div>
-                                    </div>
-                                    <div class="d-flex gap-1 ml-8">
-                                        <v-btn icon variant="tonal" density="compact" color="primary" class="rounded-lg"
-                                            @click="$router.push(`/mutual-funds/${child.id}`)">
-                                            <EyeIconMain :size="14" />
-                                        </v-btn>
-                                        <v-btn icon variant="tonal" density="compact" color="error" class="rounded-lg"
-                                            @click="openDeleteModal(child)">
-                                            <Trash2 :size="14" />
-                                        </v-btn>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                </template>
-            </v-data-table>
-        </v-card>
-
-        <!-- Modals -->
-        <LinkGoalModal v-model="showLinkGoalModal" :holding="selectedHolding" @saved="fetchPortfolio" />
-        <DeleteHoldingDeepDiveModal v-model="showDeleteModal" :holding="selectedHolding" :loading="isManagementLoading"
-            @delete-holding="handleDeleteHolding" @delete-transactions="handleBulkDelete" />
-    </v-container>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import {
     TrendingUp, TrendingDown, Clock, Search, Target,
-    Eye as EyeIconMain, ChevronDown, ChevronRight,
-    Trash2, Activity, Briefcase, RefreshCcw, Settings, Calendar, RefreshCw
+    Eye as EyeIconMain, ChevronDown, ChevronRight, ChevronLeft,
+    Trash2, Activity, RefreshCcw, Settings, Calendar, RefreshCw,
+    Zap, ArrowUpDown, PieChart, X
 } from 'lucide-vue-next'
 
+import WfCard from '@/components/ui/WfCard.vue'
 import { useMutualFundStore } from '@/stores/finance/mutualFunds'
 import { useNotificationStore } from '@/stores/notification'
 import { useAuthStore } from '@/stores/auth'
 import { financeApi } from '@/api/client'
 import { useCurrency } from '@/composables/useCurrency'
 
-import PremiumSkeleton from '@/components/common/PremiumSkeleton.vue'
 import Sparkline from '@/components/Sparkline.vue'
 import FundPerformanceChart from './components/FundPerformanceChart.vue'
 import PortfolioDonutChart from './components/PortfolioDonutChart.vue'
@@ -650,7 +25,7 @@ const authStore = useAuthStore()
 const { formatAmount } = useCurrency()
 const notify = useNotificationStore()
 
-// State
+// Props & State
 const props = defineProps<{
     active?: boolean
 }>()
@@ -658,11 +33,16 @@ const props = defineProps<{
 const portfolio = ref<any[]>([])
 const analytics = ref<any>(null)
 const timelineData = ref<any[]>([])
-const benchmarkData = ref<any[]>([]); const benchmarksData = ref<any[]>([]); const selectedBenchmarkSymbols = ref<string[]>([])
+const benchmarkData = ref<any[]>([])
+const benchmarksData = ref<any[]>([])
+const selectedBenchmarkSymbols = ref<string[]>([])
 const isLoading = ref(true)
 const isTimelineLoading = ref(true)
 const isTimelineRefreshing = ref(false)
 const search = ref('')
+const selectedCategory = ref('ALL')
+const intelligenceTab = ref<'allocation' | 'movers'>('allocation')
+const allocationType = ref<'category' | 'asset'>('category')
 const expanded = ref<string[]>([])
 const selectedHolding = ref<any>(null)
 const showLinkGoalModal = ref(false)
@@ -673,16 +53,20 @@ const marketPulsePeriod = ref('1d')
 const isMarketPulseLoading = ref(false)
 const isRebuilding = ref(false)
 
-// Headers
-const headers = [
-    { title: 'Scheme Details', key: 'scheme_name', align: 'start' as const, width: '30%' },
-    { title: 'Category', key: 'category', align: 'start' as const, minWidth: '100px' },
-    { title: 'Trend', key: 'sparkline', align: 'center' as const, sortable: false, width: '100px' },
-    { title: 'Invested', key: 'invested_value', align: 'end' as const, minWidth: '110px' },
-    { title: 'Current Value', key: 'current_value', align: 'end' as const, minWidth: '110px' },
-    { title: 'Returns', key: 'profit_loss', align: 'end' as const, minWidth: '110px' },
-    { title: '', key: 'actions', align: 'end' as const, sortable: false, width: '90px' },
-]
+// Pagination & Sorting State
+const currentPage = ref(1)
+const pageSize = ref(10)
+const sortKey = ref<'current_value' | 'invested_value' | 'profit_loss' | 'scheme_name'>('current_value')
+const sortOrder = ref<'asc' | 'desc'>('desc')
+
+function setSort(key: 'current_value' | 'invested_value' | 'profit_loss' | 'scheme_name') {
+    if (sortKey.value === key) {
+        sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+    } else {
+        sortKey.value = key
+        sortOrder.value = 'desc'
+    }
+}
 
 // Computed
 const portfolioStats = computed(() => {
@@ -701,7 +85,7 @@ const latestInsights = computed(() => {
     if (timelineData.value.length < 2) return { dayChange: 0, dayChangePercent: 0 }
     const last = timelineData.value[timelineData.value.length - 1]
     const prev = timelineData.value[timelineData.value.length - 2]
-    const dayChange = last.value - prev.value
+    const dayChange = (last.value - prev.value)
     const dayChangePercent = prev.value ? (dayChange / prev.value) * 100 : 0
     return { dayChange, dayChangePercent }
 })
@@ -746,6 +130,52 @@ const sortedPortfolio = computed(() => {
     return result
 })
 
+const availableCategories = computed(() => {
+    const cats = new Set<string>()
+    sortedPortfolio.value.forEach(item => {
+        if (item.category) cats.add(item.category.toUpperCase())
+    })
+    return ['ALL', ...Array.from(cats)]
+})
+
+const filteredHoldings = computed(() => {
+    let list = [...sortedPortfolio.value]
+    if (selectedCategory.value !== 'ALL') {
+        list = list.filter(item => item.category?.toUpperCase() === selectedCategory.value)
+    }
+    if (search.value && search.value.trim()) {
+        const q = search.value.toLowerCase().trim()
+        list = list.filter(item =>
+            item.scheme_name?.toLowerCase().includes(q) ||
+            item.category?.toLowerCase().includes(q) ||
+            item.scheme_code?.toString().includes(q)
+        )
+    }
+
+    list.sort((a, b) => {
+        let valA = a[sortKey.value]
+        let valB = b[sortKey.value]
+        if (typeof valA === 'string') valA = valA.toLowerCase()
+        if (typeof valB === 'string') valB = valB.toLowerCase()
+        if (valA < valB) return sortOrder.value === 'asc' ? -1 : 1
+        if (valA > valB) return sortOrder.value === 'asc' ? 1 : -1
+        return 0
+    })
+
+    return list
+})
+
+const totalPages = computed(() => Math.ceil(filteredHoldings.value.length / pageSize.value) || 1)
+
+const paginatedHoldings = computed(() => {
+    const start = (currentPage.value - 1) * pageSize.value
+    return filteredHoldings.value.slice(start, start + pageSize.value)
+})
+
+watch([search, selectedCategory], () => {
+    currentPage.value = 1
+})
+
 const topGainers = computed(() => sortedPortfolio.value.filter(i => i.profit_loss > 0).sort((a, b) => b.profit_loss - a.profit_loss).slice(0, 3))
 const topLosers = computed(() => sortedPortfolio.value.filter(i => i.profit_loss < 0).sort((a, b) => a.profit_loss - b.profit_loss).slice(0, 3))
 
@@ -765,12 +195,11 @@ const assetData = computed(() => {
     })).filter(i => i.value > 0)
 })
 
-
 const filteredBenchmarksData = computed(() => {
     return benchmarksData.value.filter(bm => selectedBenchmarkSymbols.value.includes(bm.symbol))
 })
 
-// Methods
+// API Operations
 async function fetchPortfolio() {
     isLoading.value = true
     try {
@@ -778,7 +207,11 @@ async function fetchPortfolio() {
         const data = res.data?.data || res.data
         portfolio.value = Array.isArray(data) ? data : []
         mfStore.portfolio = portfolio.value
-    } catch (e) { console.error(e) } finally { isLoading.value = false }
+    } catch (e) {
+        console.error(e)
+    } finally {
+        isLoading.value = false
+    }
 }
 
 async function fetchAnalytics() {
@@ -786,21 +219,21 @@ async function fetchAnalytics() {
         const res = await financeApi.getAnalytics(authStore.selectedMemberId || undefined)
         analytics.value = res.data?.data || res.data
         mfStore.analytics = analytics.value
-    } catch (e) { console.error(e) }
+    } catch (e) {
+        console.error(e)
+    }
 }
 
 async function fetchPortfolioTimeline() {
     isTimelineLoading.value = true
     try {
-        // Fetch portfolio-wide timeline (no scheme_code/holding_id)
         const res = await financeApi.getPerformanceTimeline('1y', '1d', authStore.selectedMemberId || undefined)
         timelineData.value = res.data?.timeline || []
         benchmarkData.value = res.data?.benchmark || []
-        benchmarksData.value = res.data?.benchmarks || [];
+        benchmarksData.value = res.data?.benchmarks || []
         if (selectedBenchmarkSymbols.value.length === 0 && benchmarksData.value.length > 0) {
-            // Default to Nifty 50 if available, else first standard
-            const nifty = benchmarksData.value.find(b => b.symbol === '120716');
-            selectedBenchmarkSymbols.value = nifty ? [nifty.symbol] : [benchmarksData.value[0].symbol];
+            const nifty = benchmarksData.value.find(b => b.symbol === '120716')
+            selectedBenchmarkSymbols.value = nifty ? [nifty.symbol] : [benchmarksData.value[0].symbol]
         }
     } catch (e) {
         console.error("Failed to fetch portfolio timeline", e)
@@ -861,7 +294,9 @@ async function handleCleanupDuplicates() {
     try {
         await mfStore.cleanupDuplicates()
         await refreshAll()
-    } catch (e) { console.error(e) }
+    } catch (e) {
+        console.error(e)
+    }
 }
 
 async function refreshAll() {
@@ -889,7 +324,12 @@ async function handleDeleteHolding(id: string) {
         await financeApi.deleteHolding(id)
         notify.success("Holding removed")
         await fetchPortfolio()
-    } catch (e) { notify.error("Delete failed") } finally { isManagementLoading.value = false; showDeleteModal.value = false }
+    } catch (e) {
+        notify.error("Delete failed")
+    } finally {
+        isManagementLoading.value = false
+        showDeleteModal.value = false
+    }
 }
 
 async function handleBulkDelete(ids: string[]) {
@@ -898,7 +338,12 @@ async function handleBulkDelete(ids: string[]) {
         await financeApi.bulkDeleteFundTransactions(ids)
         notify.success(`Cleaned ${ids.length} records`)
         await fetchPortfolio()
-    } catch (e) { notify.error("Cleanup failed") } finally { isManagementLoading.value = false; showDeleteModal.value = false }
+    } catch (e) {
+        notify.error("Cleanup failed")
+    } finally {
+        isManagementLoading.value = false
+        showDeleteModal.value = false
+    }
 }
 
 function toggleGroup(id: string) {
@@ -909,7 +354,8 @@ function toggleGroup(id: string) {
 
 function getRandomColor(name: string) {
     const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
-    let hash = 0; for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+    let hash = 0
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
     return colors[Math.abs(hash) % colors.length]
 }
 
@@ -932,12 +378,10 @@ onMounted(() => {
     fetchMarketIndices()
 })
 
-// Refresh data when tab becomes active
 watch(() => props.active, (isActive) => {
     if (isActive) {
         refreshAll()
         fetchMarketIndices()
-        // If a sync is already running in background, start polling
         if (mfStore.syncStatus?.status === 'running') {
             startSyncPolling()
         }
@@ -954,153 +398,720 @@ const emit = defineEmits(['update:count'])
 watch(portfolio, (val) => emit('update:count', val.length))
 </script>
 
+<template>
+    <div class="space-y-4">
+        <!-- 1. Market Pulse Mini Bar -->
+        <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border p-3 sm:p-4 shadow-2xs">
+            <div class="flex items-center justify-between mb-2.5">
+                <div class="flex items-center gap-1.5 text-xs font-bold text-wf-text-secondary uppercase tracking-wider">
+                    <Zap :size="13" class="text-amber-500" />
+                    <span>Market Pulse</span>
+                </div>
+                <div class="flex items-center p-0.5 rounded-wf-sm bg-wf-surface-variant border border-wf-border">
+                    <button v-for="p in ['1d', '7d', '30d']" :key="p"
+                        @click="marketPulsePeriod = p; fetchMarketIndices()"
+                        class="px-2 py-0.5 text-[10px] font-bold rounded-wf-xs transition-all uppercase"
+                        :class="marketPulsePeriod === p ? 'bg-wf-surface text-wf-primary shadow-xs font-black' : 'text-wf-text-muted hover:text-wf-text-primary'">
+                        {{ p }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                <template v-if="isMarketPulseLoading && !marketIndices.length">
+                    <div v-for="i in 6" :key="`skel-pulse-${i}`"
+                        class="p-2.5 rounded-wf-sm bg-wf-surface-variant/40 animate-pulse h-14"></div>
+                </template>
+                <template v-else>
+                    <div v-for="index in marketIndices" :key="index.symbol"
+                        class="p-2.5 rounded-wf-sm bg-wf-surface-variant/30 border border-wf-border-subtle flex flex-col justify-between hover:border-wf-border transition-all">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-wf-text-secondary truncate max-w-[85px]"
+                                :title="index.name">{{ index.name }}</span>
+                            <span class="text-[10px] font-bold font-mono"
+                                :class="index.isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
+                                {{ (index.changePercent != null ? index.changePercent : 0) >= 0 ? '+' : '' }}{{ Number(index.changePercent || 0).toFixed(2) }}%
+                            </span>
+                        </div>
+                        <div class="flex items-baseline justify-between mt-1">
+                            <span class="text-xs font-bold font-mono text-wf-text-primary">{{
+                                index.currentPrice != null ? index.currentPrice.toLocaleString('en-IN') : '0' }}</span>
+                            <div class="w-14 h-4">
+                                <Sparkline v-if="index.sparkline && index.sparkline.length > 1" :data="index.sparkline"
+                                    :labels="index.labels" :color="index.isUp ? '#10b981' : '#ef4444'" :height="16"
+                                    :smooth="true" :glow="true" :is-currency="false" />
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </WfCard>
+
+        <!-- 2. Portfolio Header KPI Cards (4 Cards Grid) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <template v-if="isLoading">
+                <div v-for="i in 4" :key="`skel-card-${i}`"
+                    class="p-4 sm:p-5 rounded-wf-lg border border-wf-border bg-wf-surface h-28 animate-pulse"></div>
+            </template>
+            <template v-else>
+                <!-- Card 1: Current Value -->
+                <WfCard variant="flat" padding="none" radius="lg"
+                    class="border border-wf-border p-4 sm:p-5 shadow-2xs flex flex-col justify-between hover:border-wf-primary/40 transition-all">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">Current Value</span>
+                            <div class="w-7 h-7 rounded-wf-sm flex items-center justify-center shrink-0"
+                                :class="latestInsights.dayChange >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'">
+                                <TrendingUp v-if="latestInsights.dayChange >= 0" :size="14" />
+                                <TrendingDown v-else :size="14" />
+                            </div>
+                        </div>
+                        <div class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary font-mono">
+                            {{ formatAmount(portfolioStats.current) }}
+                        </div>
+                        <div class="flex items-center gap-1.5 mt-1 text-xs font-semibold">
+                            <span :class="latestInsights.dayChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
+                                {{ latestInsights.dayChange >= 0 ? '+' : '' }}{{ formatAmount(latestInsights.dayChange) }}
+                                ({{ Number(latestInsights?.dayChangePercent || 0).toFixed(2) }}%)
+                            </span>
+                            <span class="text-[10px] text-wf-text-muted uppercase">vs yesterday</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3.5 pt-2.5 border-t border-wf-border-subtle flex items-center justify-between">
+                        <span class="text-[10px] font-bold uppercase text-wf-text-secondary">7D Net Trend</span>
+                        <div class="w-24 h-5">
+                            <Sparkline v-if="cvSparkline.length > 1" :data="cvSparkline"
+                                :color="latestInsights.dayChange >= 0 ? '#10b981' : '#ef4444'" :height="20" />
+                        </div>
+                    </div>
+                </WfCard>
+
+                <!-- Card 2: Invested Capital -->
+                <WfCard variant="flat" padding="none" radius="lg"
+                    class="border border-wf-border p-4 sm:p-5 shadow-2xs flex flex-col justify-between hover:border-wf-primary/40 transition-all">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">Invested Capital</span>
+                            <div class="w-7 h-7 rounded-wf-sm bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                                <Clock :size="14" />
+                            </div>
+                        </div>
+                        <div class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary font-mono">
+                            {{ formatAmount(portfolioStats.invested) }}
+                        </div>
+                        <div class="flex items-center gap-1.5 mt-1 text-xs font-semibold">
+                            <span class="text-wf-primary font-mono font-bold">
+                                {{ (portfolioStats.invested ? portfolioStats.current / portfolioStats.invested : 1).toFixed(2) }}x
+                            </span>
+                            <span class="text-[10px] text-wf-text-muted uppercase">Growth factor</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3.5 pt-2.5 border-t border-wf-border-subtle flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-wf-text-muted uppercase">{{ portfolio.length }} Active Folios</span>
+                        <div class="w-24 h-5">
+                            <Sparkline v-if="icSparkline.length > 1" :data="icSparkline" color="#3b82f6" :height="20" />
+                        </div>
+                    </div>
+                </WfCard>
+
+                <!-- Card 3: Net Gain/Loss -->
+                <WfCard variant="flat" padding="none" radius="lg"
+                    class="border border-wf-border p-4 sm:p-5 shadow-2xs flex flex-col justify-between hover:border-wf-primary/40 transition-all">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">Total Return</span>
+                            <div class="w-7 h-7 rounded-wf-sm flex items-center justify-center shrink-0"
+                                :class="portfolioStats.pl >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'">
+                                <Target :size="14" />
+                            </div>
+                        </div>
+                        <div class="text-xl sm:text-2xl font-bold tracking-tight font-mono"
+                            :class="portfolioStats.pl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
+                            {{ portfolioStats.pl >= 0 ? '+' : '' }}{{ formatAmount(portfolioStats.pl) }}
+                        </div>
+                        <div class="flex items-center gap-1.5 mt-1 text-xs font-semibold">
+                            <span class="px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold font-mono"
+                                :class="portfolioStats.pl >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'">
+                                {{ (portfolioStats?.pl || 0) >= 0 ? '+' : '' }}{{ Number(portfolioStats?.plPercent || 0).toFixed(2) }}% Absolute
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3.5 pt-2.5 border-t border-wf-border-subtle flex items-center justify-between">
+                        <span class="text-[10px] font-bold uppercase text-wf-text-secondary">P&L Curve</span>
+                        <div class="w-24 h-5">
+                            <Sparkline v-if="ngSparkline.length > 1" :data="ngSparkline"
+                                :color="portfolioStats.pl >= 0 ? '#10b981' : '#ef4444'" :height="20" />
+                        </div>
+                    </div>
+                </WfCard>
+
+                <!-- Card 4: Portfolio XIRR / Annualized -->
+                <WfCard variant="flat" padding="none" radius="lg"
+                    class="border border-wf-border p-4 sm:p-5 shadow-2xs flex flex-col justify-between hover:border-wf-primary/40 transition-all">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">Portfolio XIRR</span>
+                            <div class="w-7 h-7 rounded-wf-sm bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                                <Zap :size="14" />
+                            </div>
+                        </div>
+                        <div class="text-xl sm:text-2xl font-bold tracking-tight font-mono text-wf-text-primary">
+                            {{ analytics?.xirr != null ? Number(analytics.xirr).toFixed(2) + '%' : 'N/A' }}
+                        </div>
+                        <div class="flex items-center gap-1.5 mt-1 text-xs font-semibold">
+                            <span class="text-wf-text-secondary font-mono text-[11px]">
+                                Annualized CAGR
+                            </span>
+                            <span class="px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold bg-wf-surface-variant text-wf-primary uppercase">
+                                Active
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3.5 pt-2.5 border-t border-wf-border-subtle flex items-center justify-between text-[10px] text-wf-text-muted">
+                        <span>NAV Sync</span>
+                        <span class="font-mono text-wf-text-secondary">{{ analytics?.last_updated_at || 'Recent' }}</span>
+                    </div>
+                </WfCard>
+            </template>
+        </div>
+
+        <!-- 3. Executive Split Row: Performance Timeline (7 cols) + Intelligence Hub (5 cols) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
+            <!-- Left: Performance Timeline Chart (7 cols) -->
+            <WfCard variant="flat" padding="none" radius="lg"
+                class="lg:col-span-7 border border-wf-border p-4 sm:p-5 shadow-2xs overflow-hidden flex flex-col justify-between">
+                <div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3.5">
+                        <div class="min-w-0">
+                            <h3 class="text-xs sm:text-sm font-bold text-wf-text-primary flex items-center gap-2">
+                                <Activity :size="16" class="text-wf-primary shrink-0" />
+                                <span class="truncate">Performance Timeline</span>
+                            </h3>
+                            <p class="text-[11px] text-wf-text-secondary truncate">Historical valuation vs invested capital curve</p>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <!-- Sync Status Indicator -->
+                            <div v-if="mfStore.syncStatus"
+                                class="flex items-center gap-1.5 px-2 py-0.5 rounded-wf-sm bg-wf-surface-variant border border-wf-border text-[10px] font-semibold text-wf-text-secondary">
+                                <div class="status-dot"
+                                    :class="mfStore.isSyncing ? 'status-syncing' : (mfStore.syncStatus.status === 'completed' ? 'status-online' : 'status-error')">
+                                </div>
+                                <span>{{ mfStore.isSyncing ? 'Syncing...' : (mfStore.syncStatus.status === 'completed' ? 'NAVs Current' : 'Sync Error') }}</span>
+                                <span v-if="!mfStore.isSyncing && mfStore.syncStatus.completed_at"
+                                    class="text-[9px] text-wf-text-muted">
+                                    {{ formatDateShort(mfStore.syncStatus.completed_at) }}
+                                </span>
+                            </div>
+
+                            <button type="button" @click="handleManualSync"
+                                :disabled="mfStore.isSyncing || mfStore.syncStatus?.status === 'running'"
+                                class="h-7 px-2.5 rounded-wf-sm text-xs font-semibold bg-wf-primary-light text-wf-primary hover:bg-indigo-100 border border-transparent transition-all flex items-center gap-1.5 disabled:opacity-50">
+                                <RefreshCw :size="12" :class="{ 'animate-spin': mfStore.isSyncing }" />
+                                <span>Sync NAVs</span>
+                            </button>
+
+                            <button type="button" @click="hardRefreshTimeline" :disabled="isTimelineRefreshing"
+                                class="h-7 px-2 rounded-wf-sm text-xs font-semibold bg-wf-surface-variant text-wf-text-secondary hover:text-wf-text-primary border border-wf-border transition-all flex items-center gap-1 disabled:opacity-50"
+                                title="Recalculate portfolio history">
+                                <RefreshCcw :size="12" :class="{ 'animate-spin': isTimelineRefreshing }" />
+                            </button>
+
+                            <!-- Settings Menu -->
+                            <v-menu location="bottom end">
+                                <template v-slot:activator="{ props: menuProps }">
+                                    <button v-bind="menuProps" type="button"
+                                        class="h-7 w-7 rounded-wf-sm bg-wf-surface-variant hover:bg-wf-surface border border-wf-border text-wf-text-secondary flex items-center justify-center transition-colors"
+                                        title="Timeline Options">
+                                        <Settings :size="13" />
+                                    </button>
+                                </template>
+                                <div class="p-1.5 rounded-wf-md border border-wf-border bg-wf-surface shadow-lg min-w-[200px] space-y-1 text-xs">
+                                    <button type="button" @click="handleRebuildHoldings" :disabled="isRebuilding"
+                                        class="w-full px-2.5 py-1.5 rounded-wf-sm text-left hover:bg-wf-surface-variant flex items-center gap-2 text-amber-500">
+                                        <Activity :size="13" />
+                                        <div>
+                                            <div class="font-semibold text-wf-text-primary">Rebuild Holdings</div>
+                                            <div class="text-[9px] text-wf-text-muted">Fixes unit/cost desync</div>
+                                        </div>
+                                    </button>
+                                    <button type="button" @click="handleCleanupDuplicates"
+                                        class="w-full px-2.5 py-1.5 rounded-wf-sm text-left hover:bg-rose-500/10 flex items-center gap-2 text-rose-500">
+                                        <Trash2 :size="13" />
+                                        <span>Cleanup Duplicates</span>
+                                    </button>
+                                </div>
+                            </v-menu>
+
+                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-wf-sm bg-wf-surface-variant text-wf-primary border border-wf-border flex items-center gap-1">
+                                <Calendar :size="12" /> 1Y
+                            </span>
+
+                            <!-- Benchmarks Popover -->
+                            <v-menu :close-on-content-click="false" location="bottom end">
+                                <template v-slot:activator="{ props: bmProps }">
+                                    <button v-bind="bmProps" type="button"
+                                        class="h-7 px-2.5 rounded-wf-sm text-xs font-semibold bg-wf-primary-light text-wf-primary hover:bg-indigo-100 border border-transparent transition-all flex items-center gap-1.5">
+                                        <TrendingUp :size="12" />
+                                        <span>Benchmarks ({{ selectedBenchmarkSymbols.length }})</span>
+                                    </button>
+                                </template>
+                                <div class="p-2 rounded-wf-md border border-wf-border bg-wf-surface shadow-lg min-w-[210px] space-y-1">
+                                    <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted px-2 py-1">
+                                        Select Indices
+                                    </div>
+                                    <div v-for="bm in benchmarksData" :key="bm.symbol"
+                                        @click="selectedBenchmarkSymbols.includes(bm.symbol) ? selectedBenchmarkSymbols = selectedBenchmarkSymbols.filter(s => s !== bm.symbol) : selectedBenchmarkSymbols.push(bm.symbol)"
+                                        class="flex items-center justify-between p-1.5 rounded-wf-sm hover:bg-wf-surface-variant cursor-pointer text-xs">
+                                        <div class="flex items-center gap-2">
+                                            <input type="checkbox" :checked="selectedBenchmarkSymbols.includes(bm.symbol)"
+                                                class="rounded border-wf-border text-wf-primary focus:ring-0" />
+                                            <span class="font-medium text-wf-text-primary text-[11px]">{{ bm.label }}</span>
+                                        </div>
+                                        <div class="w-2.5 h-2.5 rounded-xs" :style="{ background: bm.styling?.color }"></div>
+                                    </div>
+                                </div>
+                            </v-menu>
+                        </div>
+                    </div>
+
+                    <!-- Chart Canvas -->
+                    <div class="w-full relative overflow-hidden pb-1">
+                        <div v-if="isTimelineLoading" class="h-[260px] flex items-center justify-center">
+                            <v-progress-circular indeterminate color="primary" />
+                        </div>
+                        <FundPerformanceChart v-else-if="timelineData.length" :data="timelineData"
+                            :benchmarks="filteredBenchmarksData" :height="260" valueLabel="Portfolio Value"
+                            investedLabel="Net Invested" @toggle-benchmark="(symbol) => {
+                                if (selectedBenchmarkSymbols.includes(symbol)) {
+                                    selectedBenchmarkSymbols = selectedBenchmarkSymbols.filter(s => s !== symbol)
+                                } else {
+                                    selectedBenchmarkSymbols.push(symbol)
+                                }
+                            }" />
+                        <div v-else class="h-[260px] flex flex-col items-center justify-center opacity-40">
+                            <div class="p-3 rounded-full bg-wf-surface-variant mb-2">
+                                <TrendingUp :size="24" />
+                            </div>
+                            <div class="text-xs font-semibold">Awaiting historical data synchronization...</div>
+                        </div>
+                    </div>
+                </div>
+            </WfCard>
+
+            <!-- Right: Allocation & Top Movers Intelligence Hub (5 cols) -->
+            <WfCard variant="flat" padding="none" radius="lg"
+                class="lg:col-span-5 border border-wf-border p-4 sm:p-5 shadow-2xs overflow-hidden flex flex-col justify-between">
+                <div>
+                    <!-- Intelligence Hub Header with Tabs -->
+                    <div class="flex items-center justify-between pb-3 mb-3 border-b border-wf-border-subtle">
+                        <div class="flex items-center p-0.5 bg-wf-surface-variant border border-wf-border rounded-wf-sm">
+                            <button type="button" @click="intelligenceTab = 'allocation'"
+                                class="px-2.5 py-1 text-xs font-bold rounded-wf-xs transition-all flex items-center gap-1.5"
+                                :class="intelligenceTab === 'allocation' ? 'bg-wf-surface text-wf-primary shadow-xs' : 'text-wf-text-secondary hover:text-wf-text-primary'">
+                                <PieChart :size="13" />
+                                <span>Allocation</span>
+                            </button>
+                            <button type="button" @click="intelligenceTab = 'movers'"
+                                class="px-2.5 py-1 text-xs font-bold rounded-wf-xs transition-all flex items-center gap-1.5"
+                                :class="intelligenceTab === 'movers' ? 'bg-wf-surface text-wf-primary shadow-xs' : 'text-wf-text-secondary hover:text-wf-text-primary'">
+                                <TrendingUp :size="13" />
+                                <span>Top Movers</span>
+                            </button>
+                        </div>
+
+                        <!-- Sub-selector for Allocation -->
+                        <div v-if="intelligenceTab === 'allocation'" class="flex items-center gap-1">
+                            <button type="button" @click="allocationType = 'category'"
+                                class="px-2 py-0.5 text-[10px] font-bold rounded-wf-xs transition-all uppercase"
+                                :class="allocationType === 'category' ? 'bg-wf-primary-light text-wf-primary font-black border border-indigo-200 dark:border-indigo-900/50' : 'text-wf-text-muted hover:text-wf-text-primary'">
+                                Category
+                            </button>
+                            <button type="button" @click="allocationType = 'asset'"
+                                class="px-2 py-0.5 text-[10px] font-bold rounded-wf-xs transition-all uppercase"
+                                :class="allocationType === 'asset' ? 'bg-wf-primary-light text-wf-primary font-black border border-indigo-200 dark:border-indigo-900/50' : 'text-wf-text-muted hover:text-wf-text-primary'">
+                                Asset Class
+                            </button>
+                        </div>
+
+                        <div v-else class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted">
+                            Gainers / Losers
+                        </div>
+                    </div>
+
+                    <!-- Tab 1: Allocation Donut Charts -->
+                    <div v-if="intelligenceTab === 'allocation'" class="space-y-2">
+                        <!-- Category Allocation View -->
+                        <div v-if="allocationType === 'category'">
+                            <div class="flex items-center justify-between mb-1.5 text-xs">
+                                <span class="font-bold text-wf-text-secondary uppercase text-[10px] tracking-wider">Category Exposure</span>
+                                <span class="font-mono text-[10px] text-wf-text-muted">{{ categoryData.length }} Sectors</span>
+                            </div>
+                            <PortfolioDonutChart v-if="categoryData.length" :data="categoryData" :size="160" :show-legend="true" />
+                            <div v-else class="py-12 text-center text-xs text-wf-text-muted">No category allocation data</div>
+                        </div>
+
+                        <!-- Asset Class View -->
+                        <div v-else>
+                            <div class="flex items-center justify-between mb-1.5 text-xs">
+                                <span class="font-bold text-wf-text-secondary uppercase text-[10px] tracking-wider">Asset Class Breakdown</span>
+                                <span class="font-mono text-[10px] text-wf-text-muted">{{ assetData.length }} Classes</span>
+                            </div>
+                            <PortfolioDonutChart v-if="assetData.length" :data="assetData" :size="160" :show-legend="true" />
+                            <div v-else class="py-12 text-center text-xs text-wf-text-muted">No asset allocation data</div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Top Movers View -->
+                    <div v-else class="space-y-3.5">
+                        <!-- Top Gainers -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                                    <TrendingUp :size="12" /> Top Gainers
+                                </span>
+                                <span class="text-[10px] font-mono text-wf-text-muted">Realized P&L</span>
+                            </div>
+                            <div class="space-y-1.5">
+                                <div v-for="item in topGainers" :key="item.id"
+                                    class="flex items-center justify-between p-2 rounded-wf-sm bg-wf-surface-variant/30 hover:bg-wf-surface-variant border border-wf-border-subtle transition-all cursor-pointer group"
+                                    @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)">
+                                    <span class="text-xs font-semibold text-wf-text-primary group-hover:text-wf-primary transition-colors truncate mr-2">
+                                        {{ item.scheme_name }}
+                                    </span>
+                                    <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0 font-mono">
+                                        +{{ formatAmount(item.profit_loss) }}
+                                    </span>
+                                </div>
+                                <div v-if="!topGainers.length" class="text-xs text-wf-text-muted py-2 text-center">No gainers found</div>
+                            </div>
+                        </div>
+
+                        <!-- Top Losers -->
+                        <div class="pt-2 border-t border-wf-border-subtle">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider flex items-center gap-1">
+                                    <TrendingDown :size="12" /> Top Losers
+                                </span>
+                                <span class="text-[10px] font-mono text-wf-text-muted">Realized P&L</span>
+                            </div>
+                            <div class="space-y-1.5">
+                                <div v-for="item in topLosers" :key="item.id"
+                                    class="flex items-center justify-between p-2 rounded-wf-sm bg-wf-surface-variant/30 hover:bg-wf-surface-variant border border-wf-border-subtle transition-all cursor-pointer group"
+                                    @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)">
+                                    <span class="text-xs font-semibold text-wf-text-primary group-hover:text-wf-primary transition-colors truncate mr-2">
+                                        {{ item.scheme_name }}
+                                    </span>
+                                    <span class="text-xs font-bold text-rose-600 dark:text-rose-400 shrink-0 font-mono">
+                                        {{ formatAmount(item.profit_loss) }}
+                                    </span>
+                                </div>
+                                <div v-if="!topLosers.length" class="text-xs text-wf-text-muted py-2 text-center">All funds positive</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </WfCard>
+        </div>
+
+        <!-- 4. Portfolio Holdings Semantic Table Card (Aether V4 Standard) -->
+        <WfCard variant="flat" padding="none" radius="lg"
+            class="border border-wf-border bg-wf-surface overflow-hidden flex flex-col shadow-2xs">
+            <!-- Toolbar with Category Filters & Search -->
+            <div class="p-3.5 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-wf-border bg-wf-surface">
+                <div class="flex flex-wrap items-center gap-2">
+                    <div>
+                        <h3 class="text-xs sm:text-sm font-bold text-wf-text-primary leading-tight">Portfolio Holdings</h3>
+                        <p class="text-[11px] text-wf-text-muted leading-tight">Complete breakdown of registered folios</p>
+                    </div>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
+                        {{ filteredHoldings.length }} Schemes
+                    </span>
+                </div>
+
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                    <!-- Category Filter Dropdown -->
+                    <select v-model="selectedCategory"
+                        class="h-8 px-2.5 rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-wf-primary focus:border-wf-primary cursor-pointer shrink-0 max-w-[200px] truncate">
+                        <option v-for="cat in availableCategories" :key="cat" :value="cat">
+                            {{ cat === 'ALL' ? 'All Categories' : cat }}
+                        </option>
+                    </select>
+
+                    <!-- Search Input -->
+                    <div class="relative w-full sm:w-60">
+                        <Search class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-wf-text-muted pointer-events-none" />
+                        <input v-model="search" type="text" placeholder="Search schemes or folios..."
+                            class="w-full h-8 pl-8 pr-7 text-xs rounded-wf-md border border-wf-border bg-wf-surface-variant/40 focus:outline-none focus:ring-1 focus:ring-wf-primary focus:border-wf-primary text-wf-text-primary placeholder:text-wf-text-muted transition-all" />
+                        <button v-if="search" @click="search = ''"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 text-wf-text-muted hover:text-wf-text-primary">
+                            <X :size="12" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div v-if="isLoading" class="p-4 sm:p-5 space-y-2.5">
+                <div v-for="i in 5" :key="`skel-table-${i}`"
+                    class="h-10 rounded-wf-md bg-wf-surface-variant/50 animate-pulse">
+                </div>
+            </div>
+
+            <!-- Semantic Table -->
+            <div v-else-if="filteredHoldings.length > 0" class="overflow-x-auto flex-1 min-h-0">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="border-b border-wf-border bg-wf-surface-variant/40 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
+                            <th class="py-2.5 px-3.5 cursor-pointer select-none hover:text-wf-text-primary"
+                                @click="setSort('scheme_name')">
+                                <div class="flex items-center gap-1">
+                                    <span>Scheme Details</span>
+                                    <ArrowUpDown :size="10" />
+                                </div>
+                            </th>
+                            <th class="py-2.5 px-3.5 w-[120px]">Category</th>
+                            <th class="py-2.5 px-3.5 text-center w-[100px]">Trend</th>
+                            <th class="py-2.5 px-3.5 text-right w-[120px] cursor-pointer select-none hover:text-wf-text-primary"
+                                @click="setSort('invested_value')">
+                                <div class="flex items-center justify-end gap-1">
+                                    <span>Invested</span>
+                                    <ArrowUpDown :size="10" />
+                                </div>
+                            </th>
+                            <th class="py-2.5 px-3.5 text-right w-[130px] cursor-pointer select-none hover:text-wf-text-primary"
+                                @click="setSort('current_value')">
+                                <div class="flex items-center justify-end gap-1">
+                                    <span>Current Value</span>
+                                    <ArrowUpDown :size="10" />
+                                </div>
+                            </th>
+                            <th class="py-2.5 px-3.5 text-right w-[120px] cursor-pointer select-none hover:text-wf-text-primary"
+                                @click="setSort('profit_loss')">
+                                <div class="flex items-center justify-end gap-1">
+                                    <span>Returns</span>
+                                    <ArrowUpDown :size="10" />
+                                </div>
+                            </th>
+                            <th class="py-2.5 px-3.5 text-right w-[70px]">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-wf-border-subtle">
+                        <template v-for="item in paginatedHoldings" :key="item.id">
+                            <!-- Parent Row -->
+                            <tr class="hover:bg-wf-surface-variant/30 transition-colors group">
+                                <!-- Scheme Details -->
+                                <td class="py-2.5 px-3.5">
+                                    <div class="flex items-center">
+                                        <div class="mr-2.5 shrink-0 w-1 h-7 rounded-wf-pill"
+                                            :style="{ background: getRandomColor(item.scheme_name) }"></div>
+
+                                        <button v-if="item.has_multiple" type="button"
+                                            @click.stop="toggleGroup(item.id)"
+                                            class="w-5 h-5 rounded-wf-xs flex items-center justify-center mr-1.5 text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant transition-all shrink-0"
+                                            title="Toggle Grouped Folios">
+                                            <ChevronDown v-if="expanded.includes(item.id)" :size="14" />
+                                            <ChevronRight v-else :size="14" />
+                                        </button>
+                                        <div v-else class="w-2 shrink-0"></div>
+
+                                        <div class="cursor-pointer group/link flex-grow overflow-hidden min-w-0"
+                                            @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)">
+                                            <div class="font-bold text-xs text-wf-text-primary group-hover/link:text-wf-primary transition-colors truncate"
+                                                :title="item.scheme_name">
+                                                {{ item.scheme_name }}
+                                            </div>
+                                            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                                <span class="text-[10px] text-wf-text-muted font-mono">{{
+                                                    item.scheme_code }}</span>
+                                                <span v-if="item.goal_name"
+                                                    class="px-1 py-0.2 rounded-wf-pill text-[9px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                                    {{ item.goal_name }}
+                                                </span>
+                                                <span v-if="item.units"
+                                                    class="text-[10px] font-semibold text-wf-primary font-mono">
+                                                    {{ Number(item?.units || 0).toFixed(2) }} Units @ {{
+                                                    formatAmount(item.average_price) }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Category -->
+                                <td class="py-2.5 px-3.5">
+                                    <span
+                                        class="px-1.5 py-0.5 rounded-wf-xs text-[9px] font-bold bg-wf-surface-variant text-wf-primary border border-wf-border-subtle uppercase">
+                                        {{ item.category?.toUpperCase() || 'MUTUAL FUND' }}
+                                    </span>
+                                </td>
+
+                                <!-- Sparkline -->
+                                <td class="py-2.5 px-3.5 text-center">
+                                    <div class="flex items-center justify-center">
+                                        <div v-if="item.sparkline && item.sparkline.length > 1" class="w-16 h-4">
+                                            <Sparkline :data="item.sparkline"
+                                                :color="item.profit_loss >= 0 ? '#10b981' : '#ef4444'" :height="16"
+                                                :width="64" />
+                                        </div>
+                                        <span v-else class="text-[9px] text-wf-text-muted uppercase">N/A</span>
+                                    </div>
+                                </td>
+
+                                <!-- Invested Value -->
+                                <td class="py-2.5 px-3.5 text-right font-mono font-semibold text-wf-text-primary">
+                                    {{ formatAmount(item.invested_value) }}
+                                </td>
+
+                                <!-- Current Value -->
+                                <td class="py-2.5 px-3.5 text-right">
+                                    <div class="font-mono font-bold text-wf-text-primary">{{
+                                        formatAmount(item.current_value) }}</div>
+                                    <div v-if="item.last_nav" class="text-[9px] text-wf-text-muted font-mono">
+                                        NAV {{ formatAmount(item.last_nav) }}
+                                    </div>
+                                </td>
+
+                                <!-- Returns -->
+                                <td class="py-2.5 px-3.5 text-right">
+                                    <div :class="item.profit_loss >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
+                                        class="font-mono font-bold">
+                                        {{ item.profit_loss >= 0 ? '+' : '' }}{{ formatAmount(item.profit_loss) }}
+                                    </div>
+                                    <div :class="item.profit_loss >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
+                                        class="text-[10px] font-bold font-mono">
+                                        {{ item.profit_loss >= 0 ? '▲' : '▼' }} {{ Number(item.profit_loss_pct ||
+                                        0).toFixed(2) }}%
+                                    </div>
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="py-2.5 px-3.5 text-right">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <button type="button"
+                                            @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)"
+                                            class="w-6 h-6 rounded-wf-xs flex items-center justify-center text-wf-primary hover:bg-wf-primary/10 transition-colors"
+                                            title="View Details">
+                                            <EyeIconMain :size="13" />
+                                        </button>
+                                        <button type="button" @click="openDeleteModal(item)"
+                                            class="w-6 h-6 rounded-wf-xs flex items-center justify-center text-rose-500 hover:bg-rose-500/10 transition-colors"
+                                            title="Remove Holding">
+                                            <Trash2 :size="13" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- Nested Child Folios Row -->
+                            <tr v-if="item.has_multiple && expanded.includes(item.id)" class="bg-wf-surface-variant/20">
+                                <td colspan="7" class="p-0">
+                                    <div
+                                        class="divide-y divide-wf-border-subtle border-t border-b border-wf-border-subtle pl-6">
+                                        <div v-for="child in item.children" :key="child.id"
+                                            class="flex items-center justify-between px-4 py-2 hover:bg-wf-surface-variant/40 transition-colors text-xs">
+                                            <div class="min-w-0 pr-4">
+                                                <div
+                                                    class="text-[9px] font-bold uppercase tracking-wider text-wf-text-muted">
+                                                    Folio Number</div>
+                                                <div class="font-mono font-bold text-wf-text-primary">{{
+                                                    child.folio_number || 'Direct' }}</div>
+                                            </div>
+                                            <div class="text-right px-4 font-mono">
+                                                <div
+                                                    class="text-[9px] font-bold uppercase tracking-wider text-wf-text-muted">
+                                                    Units</div>
+                                                <div class="font-semibold text-wf-text-primary">{{
+                                                    Number(child?.units || 0).toFixed(3) }}</div>
+                                            </div>
+                                            <div class="text-right px-4 font-mono">
+                                                <div
+                                                    class="text-[9px] font-bold uppercase tracking-wider text-wf-text-muted">
+                                                    Current Value</div>
+                                                <div class="font-bold text-wf-text-primary">{{
+                                                    formatAmount(child.current_value) }}</div>
+                                            </div>
+                                            <div class="flex items-center gap-1 pl-4">
+                                                <button type="button" @click="$router.push(`/mutual-funds/${child.id}`)"
+                                                    class="w-5 h-5 rounded-wf-xs flex items-center justify-center text-wf-primary hover:bg-wf-primary/10 transition-colors"
+                                                    title="View Folio">
+                                                    <EyeIconMain :size="12" />
+                                                </button>
+                                                <button type="button" @click="openDeleteModal(child)"
+                                                    class="w-5 h-5 rounded-wf-xs flex items-center justify-center text-rose-500 hover:bg-rose-500/10 transition-colors"
+                                                    title="Remove Folio">
+                                                    <Trash2 :size="12" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty Search Results -->
+            <div v-else class="text-center py-12 px-4 space-y-1">
+                <p class="text-xs font-semibold text-wf-text-primary">No matching mutual fund holdings</p>
+                <p class="text-[11px] text-wf-text-muted">Try clearing your filters or search query, or import your CAS statement.
+                </p>
+            </div>
+
+            <!-- Custom Compact Pagination (Aether V4 Standard) -->
+            <div
+                class="p-3 px-4 sm:px-5 border-t border-wf-border bg-wf-surface flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+                <div class="text-[11px] text-wf-text-muted">
+                    Showing <span class="font-semibold text-wf-text-primary">{{ filteredHoldings.length ? (currentPage - 1) * pageSize + 1 : 0 }}</span>
+                    to <span class="font-semibold text-wf-text-primary">{{ Math.min(currentPage * pageSize, filteredHoldings.length) }}</span>
+                    of <span class="font-semibold text-wf-text-primary">{{ filteredHoldings.length }}</span> holdings
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <!-- Page Size Selector -->
+                    <div class="flex items-center gap-1 text-[11px] text-wf-text-muted">
+                        <span>Rows:</span>
+                        <select v-model="pageSize"
+                            class="h-6.5 px-2 rounded-wf-xs border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary text-[11px] font-semibold focus:outline-none focus:border-wf-primary cursor-pointer">
+                            <option :value="10">10</option>
+                            <option :value="25">25</option>
+                            <option :value="50">50</option>
+                        </select>
+                    </div>
+
+                    <!-- Navigation Controls -->
+                    <div class="flex items-center gap-1">
+                        <button type="button" :disabled="currentPage === 1" @click="currentPage--"
+                            class="h-6.5 w-6.5 rounded-wf-xs border border-wf-border bg-wf-surface-variant/30 hover:bg-wf-surface-variant flex items-center justify-center text-wf-text-secondary disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                            title="Previous Page">
+                            <ChevronLeft :size="13" />
+                        </button>
+                        <span class="px-2 text-[11px] font-semibold text-wf-text-primary">
+                            {{ currentPage }} / {{ totalPages }}
+                        </span>
+                        <button type="button" :disabled="currentPage === totalPages" @click="currentPage++"
+                            class="h-6.5 w-6.5 rounded-wf-xs border border-wf-border bg-wf-surface-variant/30 hover:bg-wf-surface-variant flex items-center justify-center text-wf-text-secondary disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                            title="Next Page">
+                            <ChevronRight :size="13" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </WfCard>
+
+        <!-- Modals -->
+        <LinkGoalModal v-model="showLinkGoalModal" :holding="selectedHolding" @saved="fetchPortfolio" />
+        <DeleteHoldingDeepDiveModal v-model="showDeleteModal" :holding="selectedHolding" :loading="isManagementLoading"
+            @delete-holding="handleDeleteHolding" @delete-transactions="handleBulkDelete" />
+    </div>
+</template>
+
 <style scoped>
-.rounded-20 {
-    border-radius: 20px !important;
-}
-
-.rounded-24 {
-    border-radius: 24px !important;
-}
-
-.letter-spacing-1 {
-    letter-spacing: 1px;
-}
-
-.premium-glass-card {
-    background: rgba(var(--v-theme-surface), 0.6) !important;
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-}
-
-.card-glow-transition {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.hover-success-glow:hover {
-    box-shadow: 0 0 30px rgba(var(--v-theme-success), 0.15) !important;
-    transform: translateY(-4px);
-    border-color: rgba(var(--v-theme-success), 0.3) !important;
-}
-
-.hover-error-glow:hover {
-    box-shadow: 0 0 30px rgba(var(--v-theme-error), 0.15) !important;
-    transform: translateY(-4px);
-    border-color: rgba(var(--v-theme-error), 0.3) !important;
-}
-
-.hover-primary-glow:hover {
-    box-shadow: 0 0 30px rgba(var(--v-theme-primary), 0.15) !important;
-    transform: translateY(-4px);
-    border-color: rgba(var(--v-theme-primary), 0.3) !important;
-}
-
-.bg-success-opacity {
-    background: rgba(var(--v-theme-success), 0.1);
-}
-
-.bg-error-opacity {
-    background: rgba(var(--v-theme-error), 0.1);
-}
-
-.bg-primary-opacity {
-    background: rgba(var(--v-theme-primary), 0.1);
-}
-
-.border-t-dashed {
-    border-top: 1px dashed rgba(var(--v-border-color), 0.15);
-}
-
-.tracking-tighter {
-    letter-spacing: -0.5px;
-}
-
-.allocation-glow {
-    height: 100%;
-    background: inherit;
-    box-shadow: 0 0 10px rgba(var(--v-theme-primary), 0.3);
-    border-radius: 6px;
-}
-
-.mini-mover-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 2px 0;
-    transition: all 0.2s;
-}
-
-.pointer {
-    cursor: pointer;
-}
-
-.no-scroll-table :deep(.v-table__wrapper) {
-    overflow-y: visible !important;
-    overflow-x: hidden !important;
-    height: auto !important;
-}
-
-/* Hide scrollbars globally for cleaner UI */
-::-webkit-scrollbar {
-    width: 0px;
-    height: 0px;
-}
-* {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-.bg-surface-variant-opacity {
-    background: rgba(var(--v-theme-on-surface), 0.05);
-}
-
-/* Market Pulse Premium UI */
-.premium-toggle {
-    background: rgba(var(--v-theme-surface), 0.6) !important;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-    padding: 6px;
-    border-radius: 24px !important;
-    height: auto !important;
-    gap: 8px;
-    /* Increased gap as requested */
-}
-
-.premium-toggle .v-btn {
-    border-radius: 20px !important;
-    /* Matches pill shape */
-    text-transform: none !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.2px !important;
-    min-width: 52px !important;
-    height: 32px !important;
-    border: none !important;
-    color: rgba(var(--v-theme-on-surface), 0.6) !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.premium-toggle .v-btn--active {
-    background: rgb(var(--v-theme-primary)) !important;
-    color: white !important;
-    box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.2) !important;
-}
-
-.premium-toggle .v-btn:hover:not(.v-btn--active) {
-    color: rgba(var(--v-theme-on-surface), 0.9) !important;
-    background: rgba(var(--v-theme-on-surface), 0.05) !important;
-}
-
-.premium-market-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.premium-market-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(var(--v-theme-primary), 0.2) !important;
-    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.12) !important;
-}
-
 .status-dot {
     width: 8px;
     height: 8px;
@@ -1108,26 +1119,22 @@ watch(portfolio, (val) => emit('update:count', val.length))
 }
 
 .status-online {
-    background-color: rgb(var(--v-theme-success));
-    box-shadow: 0 0 8px rgba(var(--v-theme-success), 0.5);
+    background-color: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
 }
 
 .status-syncing {
-    background-color: rgb(var(--v-theme-primary));
+    background-color: #6366f1;
     animation: pulse 1.5s infinite;
 }
 
 .status-error {
-    background-color: rgb(var(--v-theme-error));
+    background-color: #ef4444;
 }
 
 @keyframes pulse {
     0% { transform: scale(0.9); opacity: 0.7; }
     50% { transform: scale(1.1); opacity: 1; }
     100% { transform: scale(0.9); opacity: 0.7; }
-}
-
-.bg-surface-variant-opacity-10 {
-    background: rgba(var(--v-theme-on-surface), 0.05);
 }
 </style>

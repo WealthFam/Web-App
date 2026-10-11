@@ -131,10 +131,10 @@ function toggleActionMenu(id: string) {
 <template>
     <div class="space-y-4">
         <!-- 1. TOOLBAR -->
-        <WfCard variant="flat" padding="sm" radius="lg" class="border border-wf-border bg-wf-surface flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5 flex-1 max-w-lg">
+        <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border bg-wf-surface flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2 shadow-2xs">
+            <div class="flex items-center gap-2 flex-1 max-w-lg">
                 <!-- Category Filter Dropdown -->
-                <div class="flex items-center h-8 px-2.5 bg-wf-surface border border-wf-border rounded-wf-sm text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-1.5 w-44 shrink-0">
+                <div class="flex items-center h-8 px-2.5 bg-wf-surface-variant/40 border border-wf-border rounded-wf-md text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-1.5 w-44 shrink-0">
                     <Filter class="w-3.5 h-3.5 text-wf-text-muted shrink-0 pointer-events-none" />
                     <select
                         v-model="rulesStore.categoryFilter"
@@ -148,7 +148,7 @@ function toggleActionMenu(id: string) {
                 </div>
 
                 <!-- Search Input -->
-                <div class="flex-1 flex items-center h-8 px-2.5 bg-wf-surface border border-wf-border rounded-wf-sm text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-2">
+                <div class="flex-1 flex items-center h-8 px-2.5 bg-wf-surface-variant/40 border border-wf-border rounded-wf-md text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-2">
                     <Search class="w-3.5 h-3.5 text-wf-text-muted shrink-0 pointer-events-none" />
                     <input
                         v-model="rulesStore.searchQuery"
@@ -205,10 +205,10 @@ function toggleActionMenu(id: string) {
         <input type="file" ref="ruleFileInput" class="hidden" accept=".json" @change="handleRuleImport" />
 
         <!-- 2. RULES TABLE -->
-        <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border bg-wf-surface overflow-hidden flex flex-col">
+        <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border bg-wf-surface overflow-hidden flex flex-col shadow-2xs">
             <!-- Loading Skeleton -->
             <div v-if="rulesStore.loading" class="p-6 space-y-3">
-                <div v-for="i in 5" :key="`rule-skel-${i}`" class="h-12 rounded-wf-md bg-wf-surface-variant animate-pulse" />
+                <div v-for="i in 5" :key="`rule-skel-${i}`" class="h-10 rounded-wf-md bg-wf-surface-variant animate-pulse" />
             </div>
 
             <!-- Table Layout -->
@@ -216,13 +216,13 @@ function toggleActionMenu(id: string) {
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="border-b border-wf-border bg-wf-surface-variant/40 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
-                            <th class="py-3 px-4 w-[240px]">Rule Name</th>
-                            <th class="py-3 px-3">Keywords</th>
-                            <th class="py-3 px-3 w-[160px]">Category</th>
-                            <th class="py-3 px-3 text-center w-[110px]">Priority</th>
-                            <th class="py-3 px-3 text-center w-[90px]">Hits</th>
-                            <th class="py-3 px-3 text-center w-[100px]">Status</th>
-                            <th class="py-3 px-4 text-right w-[60px]"></th>
+                            <th class="py-2 px-3 w-[220px]">Rule Name</th>
+                            <th class="py-2 px-3">Keywords</th>
+                            <th class="py-2 px-3 w-[150px]">Category</th>
+                            <th class="py-2 px-3 text-center w-[100px]">Priority</th>
+                            <th class="py-2 px-3 text-center w-[80px]">Hits</th>
+                            <th class="py-2 px-3 text-center w-[90px]">Status</th>
+                            <th class="py-2 px-3 text-right w-[50px]"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-wf-border-subtle">
@@ -232,17 +232,17 @@ function toggleActionMenu(id: string) {
                             class="hover:bg-wf-surface-variant/40 transition-colors group"
                         >
                             <!-- Name Column -->
-                            <td class="py-3 px-4">
-                                <div class="flex items-center gap-2.5">
-                                    <div class="w-8 h-8 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-wf-primary shrink-0">
-                                        <FileText class="w-4 h-4" />
+                            <td class="py-1.5 px-3">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-wf-primary shrink-0">
+                                        <FileText class="w-3.5 h-3.5" />
                                     </div>
                                     <div class="min-w-0">
-                                        <span class="font-bold text-xs text-wf-text-primary block truncate max-w-[180px]" :title="item.name">
+                                        <span class="font-bold text-xs text-wf-text-primary block truncate max-w-[170px]" :title="item.name">
                                             {{ item.name }}
                                         </span>
-                                        <span v-if="item.exclude_from_reports" class="inline-flex items-center gap-1 text-[10px] font-bold text-wf-error">
-                                            <EyeOff class="w-3 h-3" />
+                                        <span v-if="item.exclude_from_reports" class="inline-flex items-center gap-1 text-[9px] font-bold text-wf-error">
+                                            <EyeOff class="w-2.5 h-2.5" />
                                             <span>Hidden</span>
                                         </span>
                                     </div>
@@ -250,18 +250,18 @@ function toggleActionMenu(id: string) {
                             </td>
 
                             <!-- Keywords Column -->
-                            <td class="py-3 px-3">
+                            <td class="py-1.5 px-3">
                                 <div class="flex flex-wrap items-center gap-1">
                                     <span
                                         v-for="(k, idx) in item.keywords.slice(0, 3)"
                                         :key="idx"
-                                        class="px-1.5 py-0.5 rounded-wf-xs text-[10px] font-mono font-bold bg-wf-surface border border-wf-border text-wf-text-primary"
+                                        class="px-1.5 py-0.2 rounded-wf-xs text-[9px] font-mono font-bold bg-wf-surface border border-wf-border text-wf-text-primary"
                                     >
                                         {{ k }}
                                     </span>
                                     <span
                                         v-if="item.keywords.length > 3"
-                                        class="text-[10px] font-bold text-wf-primary px-1"
+                                        class="text-[9px] font-bold text-wf-primary px-1"
                                     >
                                         +{{ item.keywords.length - 3 }}
                                     </span>
@@ -269,14 +269,14 @@ function toggleActionMenu(id: string) {
                             </td>
 
                             <!-- Category Column -->
-                            <td class="py-3 px-3">
+                            <td class="py-1.5 px-3">
                                 <div class="flex items-center gap-1.5 flex-wrap">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-wf-sm text-[11px] font-semibold bg-wf-surface border border-wf-border text-wf-text-primary">
+                                    <span class="inline-flex items-center px-1.5 py-0.2 rounded-wf-sm text-[10px] font-semibold bg-wf-surface border border-wf-border text-wf-text-primary">
                                         {{ categoriesStore.getCategoryDisplay(item.category) }}
                                     </span>
                                     <span
                                         v-if="item.is_transfer"
-                                        class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-wf-sm text-[10px] font-bold bg-indigo-50 text-wf-primary dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50"
+                                        class="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-wf-xs text-[9px] font-bold bg-indigo-50 text-wf-primary dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50"
                                     >
                                         <Shuffle class="w-2.5 h-2.5" />
                                         Transfer
@@ -285,41 +285,41 @@ function toggleActionMenu(id: string) {
                             </td>
 
                             <!-- Priority Stepper -->
-                            <td class="py-3 px-3 text-center">
-                                <div class="inline-flex items-center gap-1">
+                            <td class="py-1.5 px-3 text-center">
+                                <div class="inline-flex items-center gap-0.5">
                                     <button
                                         @click="updatePriority(item, 1)"
-                                        class="p-1 rounded-wf-xs hover:bg-wf-surface-variant text-wf-text-muted hover:text-wf-text-primary transition-colors"
+                                        class="p-0.5 rounded-wf-xs hover:bg-wf-surface-variant text-wf-text-muted hover:text-wf-text-primary transition-colors"
                                         title="Increase priority"
                                     >
-                                        <ArrowUp class="w-3.5 h-3.5" />
+                                        <ArrowUp class="w-3 h-3" />
                                     </button>
-                                    <span class="w-8 py-0.5 rounded-wf-xs text-[11px] font-mono font-bold bg-wf-surface border border-wf-border text-center text-wf-text-primary">
+                                    <span class="w-7 py-0.2 rounded-wf-xs text-[10px] font-mono font-bold bg-wf-surface border border-wf-border text-center text-wf-text-primary">
                                         {{ item.priority }}
                                     </span>
                                     <button
                                         @click="updatePriority(item, -1)"
-                                        class="p-1 rounded-wf-xs hover:bg-wf-surface-variant text-wf-text-muted hover:text-wf-text-primary transition-colors"
+                                        class="p-0.5 rounded-wf-xs hover:bg-wf-surface-variant text-wf-text-muted hover:text-wf-text-primary transition-colors"
                                         title="Decrease priority"
                                     >
-                                        <ArrowDown class="w-3.5 h-3.5" />
+                                        <ArrowDown class="w-3 h-3" />
                                     </button>
                                 </div>
                             </td>
 
                             <!-- Hit Count -->
-                            <td class="py-3 px-3 text-center">
-                                <div class="inline-flex items-center gap-1 text-xs font-semibold">
-                                    <Zap class="w-3.5 h-3.5" :class="(item.hit_count || 0) > 0 ? 'text-wf-success' : 'text-slate-300 dark:text-slate-600'" />
+                            <td class="py-1.5 px-3 text-center">
+                                <div class="inline-flex items-center gap-1 text-[11px] font-semibold">
+                                    <Zap class="w-3 h-3" :class="(item.hit_count || 0) > 0 ? 'text-wf-success' : 'text-slate-300 dark:text-slate-600'" />
                                     <span class="tabular-nums">{{ item.hit_count || 0 }}</span>
                                 </div>
                             </td>
 
                             <!-- Status Column -->
-                            <td class="py-3 px-3 text-center">
+                            <td class="py-1.5 px-3 text-center">
                                 <span
                                     v-if="item.is_valid === false"
-                                    class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-wf-sm text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/60"
+                                    class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/60"
                                     :title="item.validation_error || 'Rule is malformed.'"
                                 >
                                     <AlertCircle class="w-2.5 h-2.5" />
@@ -327,62 +327,62 @@ function toggleActionMenu(id: string) {
                                 </span>
                                 <span
                                     v-else
-                                    class="inline-flex items-center px-1.5 py-0.5 rounded-wf-sm text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/60"
+                                    class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/60"
                                 >
                                     Active
                                 </span>
                             </td>
 
                             <!-- Action Menu -->
-                            <td class="py-3 px-4 text-right relative">
+                            <td class="py-1.5 px-3 text-right relative">
                                 <button
                                     @click="toggleActionMenu(item.id)"
-                                    class="p-1 rounded-wf-sm text-wf-text-muted hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
+                                    class="p-0.5 rounded-wf-xs text-wf-text-muted hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
                                     title="Rule options"
                                 >
-                                    <MoreVertical class="w-4 h-4" />
+                                    <MoreVertical class="w-3.5 h-3.5" />
                                 </button>
 
                                 <!-- Action Dropdown Menu -->
                                 <div
                                     v-if="activeMenuRuleId === item.id"
-                                    class="absolute right-4 top-10 w-44 bg-wf-surface border border-wf-border rounded-wf-md shadow-wf-modal z-20 py-1 text-left text-xs"
+                                    class="absolute right-3 top-8 w-40 bg-wf-surface border border-wf-border rounded-wf-md shadow-wf-modal z-20 py-1 text-left text-xs"
                                 >
                                     <button
                                         @click="handleApplyToLedger(item)"
-                                        class="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary"
+                                        class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary text-[11px]"
                                     >
-                                        <Zap class="w-3.5 h-3.5 text-wf-primary" />
+                                        <Zap class="w-3 h-3 text-wf-primary" />
                                         <span>Apply to Ledger</span>
                                     </button>
                                     <button
                                         @click="emit('apply-triage-rule', item.id); activeMenuRuleId = null"
-                                        class="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary"
+                                        class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary text-[11px]"
                                     >
-                                        <Inbox class="w-3.5 h-3.5 text-amber-500" />
+                                        <Inbox class="w-3 h-3 text-amber-500" />
                                         <span>Apply to Triage</span>
                                     </button>
-                                    <div class="h-px bg-wf-border my-1"></div>
+                                    <div class="h-px bg-wf-border my-0.5"></div>
                                     <button
                                         @click="emit('edit-rule', item); activeMenuRuleId = null"
-                                        class="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary"
+                                        class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary text-[11px]"
                                     >
-                                        <Pencil class="w-3.5 h-3.5 text-wf-text-secondary" />
+                                        <Pencil class="w-3 h-3 text-wf-text-secondary" />
                                         <span>Edit Rule</span>
                                     </button>
                                     <button
                                         @click="duplicateRule(item)"
-                                        class="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary"
+                                        class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary text-[11px]"
                                     >
-                                        <Copy class="w-3.5 h-3.5 text-wf-text-secondary" />
+                                        <Copy class="w-3 h-3 text-wf-text-secondary" />
                                         <span>Duplicate</span>
                                     </button>
-                                    <div class="h-px bg-wf-border my-1"></div>
+                                    <div class="h-px bg-wf-border my-0.5"></div>
                                     <button
                                         @click="confirmDelete(item.id)"
-                                        class="w-full px-3 py-1.5 flex items-center gap-2 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-wf-error"
+                                        class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-wf-error text-[11px]"
                                     >
-                                        <Trash2 class="w-3.5 h-3.5" />
+                                        <Trash2 class="w-3 h-3" />
                                         <span>Delete</span>
                                     </button>
                                 </div>
@@ -393,17 +393,17 @@ function toggleActionMenu(id: string) {
             </div>
 
             <!-- Empty State -->
-            <div v-else class="p-12 text-center flex flex-col items-center justify-center text-wf-text-muted">
-                <FileText class="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2 stroke-[1.5]" />
+            <div v-else class="p-10 text-center flex flex-col items-center justify-center text-wf-text-muted">
+                <FileText class="w-8 h-8 text-slate-300 dark:text-slate-600 mb-1.5 stroke-[1.5]" />
                 <h3 class="text-xs font-bold text-wf-text-primary">No Rules Found</h3>
-                <p class="text-[11px] text-wf-text-muted mt-0.5 max-w-sm">{{ rulesStore.emptyRulesMsg }}</p>
-                <div v-if="!rulesStore.searchQuery" class="mt-4">
+                <p class="text-[10px] text-wf-text-muted mt-0.5 max-w-sm">{{ rulesStore.emptyRulesMsg }}</p>
+                <div v-if="!rulesStore.searchQuery" class="mt-3">
                     <WfButton
                         variant="primary"
                         size="sm"
                         @click="emit('open-add-rule')"
                     >
-                        <Plus class="w-3.5 h-3.5 mr-1" />
+                        <Plus class="w-3 h-3 mr-1" />
                         <span>Create First Rule</span>
                     </WfButton>
                 </div>
@@ -412,14 +412,14 @@ function toggleActionMenu(id: string) {
             <!-- Pagination Footer -->
             <div
                 v-if="rulesStore.totalRules > 0"
-                class="p-3 border-t border-wf-border bg-wf-surface-variant/30 flex items-center justify-between text-xs shrink-0"
+                class="p-2.5 px-3 border-t border-wf-border bg-wf-surface-variant/30 flex items-center justify-between text-xs shrink-0"
             >
                 <div class="flex items-center gap-2">
                     <span class="text-[11px] text-wf-text-secondary font-medium">Rows per page:</span>
                     <select
                         :value="rulesStore.pageSize"
                         @change="handlePageSizeChange"
-                        class="h-7 px-2 text-xs font-semibold bg-wf-surface border border-wf-border rounded-wf-xs text-wf-text-primary focus:outline-none"
+                        class="h-6.5 px-1.5 text-xs font-semibold bg-wf-surface border border-wf-border rounded-wf-xs text-wf-text-primary focus:outline-none"
                     >
                         <option :value="10">10</option>
                         <option :value="20">20</option>
@@ -428,7 +428,7 @@ function toggleActionMenu(id: string) {
                     </select>
                 </div>
 
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3">
                     <span class="text-[11px] text-wf-text-secondary font-medium">
                         {{ (rulesStore.currentPage - 1) * rulesStore.pageSize + 1 }} - {{ Math.min(rulesStore.currentPage * rulesStore.pageSize, rulesStore.totalRules) }} of {{ rulesStore.totalRules }}
                     </span>
@@ -436,7 +436,7 @@ function toggleActionMenu(id: string) {
                         <button
                             :disabled="rulesStore.currentPage === 1"
                             @click="prevPage"
-                            class="p-1.5 rounded-wf-sm border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                            class="p-1 rounded-wf-xs border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
                             title="Previous page"
                         >
                             <ChevronLeft class="w-3.5 h-3.5" />
@@ -444,7 +444,7 @@ function toggleActionMenu(id: string) {
                         <button
                             :disabled="rulesStore.currentPage * rulesStore.pageSize >= rulesStore.totalRules"
                             @click="nextPage"
-                            class="p-1.5 rounded-wf-sm border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                            class="p-1 rounded-wf-xs border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
                             title="Next page"
                         >
                             <ChevronRight class="w-3.5 h-3.5" />

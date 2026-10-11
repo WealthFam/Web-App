@@ -10,16 +10,17 @@ import { useCurrency } from '@/composables/useCurrency'
 import {
     History, Shield, Edit2, ChevronLeft, Check, TrendingUp,
     Target, Briefcase, Globe, Fingerprint, AlertCircle, Search,
-    Zap, RefreshCw, ZapOff
+    Zap, RefreshCw, ZapOff, Trash2, Edit
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfModal from '@/components/ui/WfModal.vue'
 import InvestModal from './mutual-funds/modals/InvestModal.vue'
 import RedeemModal from './mutual-funds/modals/RedeemModal.vue'
 import LinkGoalModal from './mutual-funds/modals/LinkGoalModal.vue'
 import DeleteHoldingDeepDiveModal from './mutual-funds/modals/DeleteHoldingDeepDiveModal.vue'
 import DeleteTransactionModal from './mutual-funds/modals/DeleteTransactionModal.vue'
 import EditTransactionModal from './mutual-funds/modals/EditTransactionModal.vue'
-import { Trash2, Edit } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -37,7 +38,7 @@ const showRedeemModal = ref(false)
 const showUserModal = ref(false)
 const showGoalModal = ref(false)
 
-// New Management Modals
+// Management Modals
 const showDeepDiveModal = ref(false)
 const showEditTxnModal = ref(false)
 const showDeleteTxnModal = ref(false)
@@ -47,7 +48,7 @@ const isTimelineLoading = ref(true)
 const isInsightsLoading = ref(false)
 const fundInsights = ref<any>(null)
 const insightsError = ref<string | null>(null)
-const benchmarkData = ref<any[]>([]);
+const benchmarkData = ref<any[]>([])
 const benchmarksData = ref<any[]>([])
 const selectedBenchmarkSymbols = ref<string[]>(['120716']) // Default to Nifty 50
 
@@ -62,7 +63,7 @@ const searchQuery = ref('')
 async function fetchHoldingDetails() {
     isLoading.value = true
     try {
-        let res;
+        let res
         const isSchemeCode = /^\d+$/.test(holdingId) || route.query.type === 'aggregate'
         if (isSchemeCode) {
             res = await financeApi.getSchemeDetails(holdingId)
@@ -107,7 +108,7 @@ async function updateOwner(userId: string | null) {
     try {
         await financeApi.updateHolding(holdingId, { user_id: userId })
         notify.success("Ownership updated")
-        fetchHoldingDetails() // Refresh to get correct aggregate state if needed
+        fetchHoldingDetails()
     } catch (e) {
         notify.error("Failed to update ownership")
     } finally {
@@ -206,19 +207,21 @@ async function fetchPerformanceTimeline() {
     isTimelineLoading.value = true
     try {
         const isSchemeCode = /^\d+$/.test(holdingId) || route.query.type === 'aggregate'
-        // For individual funds, we use the portfolio timeline API but filter for this specific item
-        const res = await financeApi.getPerformanceTimeline('all', '1d', undefined, isSchemeCode ? holdingId : undefined, isSchemeCode ? undefined : holdingId)
+        const res = await financeApi.getPerformanceTimeline(
+            'all',
+            '1d',
+            undefined,
+            isSchemeCode ? holdingId : undefined,
+            isSchemeCode ? undefined : holdingId
+        )
 
-        // Store full timeline for chart (Value, Invested) AND Benchmark
         timelineData.value = res.data?.timeline || []
         benchmarkData.value = res.data?.benchmark || []
         benchmarksData.value = res.data?.benchmarks || []
 
-        // Auto-select category benchmark instead of Nifty 50 if available
         if (res.data?.category_benchmark_symbol) {
             selectedBenchmarkSymbols.value = [res.data.category_benchmark_symbol]
         }
-
     } catch (e) {
         console.error("Failed to fetch timeline", e)
     } finally {
@@ -234,22 +237,11 @@ const formattedSummary = computed(() => {
 const getInsightColor = (type: string) => {
     const t = (type || '').toLowerCase()
     switch (t) {
-        case 'success': return 'rgba(var(--v-theme-success), 0.1)'
-        case 'warning': return 'rgba(var(--v-theme-warning), 0.1)'
+        case 'success': return 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
+        case 'warning': return 'bg-amber-500/10 border-amber-500/20 text-amber-500'
         case 'danger':
-        case 'error': return 'rgba(var(--v-theme-error), 0.1)'
-        default: return 'rgba(var(--v-theme-primary), 0.05)'
-    }
-}
-
-const getInsightBorderColor = (type: string) => {
-    const t = (type || '').toLowerCase()
-    switch (t) {
-        case 'success': return 'rgba(var(--v-theme-success), 0.4)'
-        case 'warning': return 'rgba(var(--v-theme-warning), 0.4)'
-        case 'danger':
-        case 'error': return 'rgba(var(--v-theme-error), 0.4)'
-        default: return 'rgba(var(--v-theme-primary), 0.2)'
+        case 'error': return 'bg-rose-500/10 border-rose-500/20 text-rose-500'
+        default: return 'bg-primary/10 border-primary/20 text-primary'
     }
 }
 
@@ -262,17 +254,14 @@ onMounted(() => {
 function formatDate(dateStr: string) {
     if (!dateStr) return '-'
     const date = new Date(dateStr)
-    if (isNaN(date.getTime())) return dateStr // Return raw string if parsing fails (e.g. already formatted from backend)
-    return date.toLocaleString('en-GB', { 
-        day: 'numeric', 
-        month: 'short', 
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+    if (isNaN(date.getTime())) return dateStr
+    return date.toLocaleString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
     })
 }
 
-// Filtered Users
 const filteredUsers = computed(() => {
     if (!searchQuery.value) return familyMembers.value
     const q = searchQuery.value.toLowerCase()
@@ -288,628 +277,583 @@ function isImageUrl(url: string) {
 
 <template>
     <MainLayout>
-        <v-container fluid class="page-container">
-            <!-- Mesh Background -->
-            <div class="mesh-blob blob-1"></div>
-            <div class="mesh-blob blob-2"></div>
+        <div class="space-y-4 max-w-7xl mx-auto px-2 sm:px-4 pb-8">
+            <!-- Loading State -->
+            <div v-if="isLoading && !holding" class="flex flex-col items-center justify-center min-h-[50vh] gap-3">
+                <v-progress-circular indeterminate color="primary" size="36" width="3" />
+                <span class="text-xs font-semibold text-wf-text-muted">Loading holding architecture...</span>
+            </div>
 
-            <div class="relative-pos z-10" v-if="holding">
-                <!-- Header -->
-                <div class="d-flex flex-column flex-md-row justify-space-between align-md-center gap-4 mb-6">
-                    <div class="d-flex align-center gap-4">
-                        <v-btn icon variant="tonal" rounded="lg" color="primary" @click="router.back()">
-                            <ChevronLeft :size="24" />
-                        </v-btn>
-                        <div>
-                            <h1 class="text-h6 font-weight-black text-content line-clamp-1">{{ holding.scheme_name }}
-                            </h1>
-                            <div class="d-flex align-center gap-3 mt-1 flex-wrap">
-                                <v-chip size="x-small" label color="primary" variant="tonal" class="font-weight-black">
-                                    {{ holding.category || 'Mutual Fund' }}
-                                </v-chip>
-                                <div
-                                    class="d-flex align-center gap-1 text-caption font-weight-bold text-medium-emphasis">
-                                    <Fingerprint :size="14" class="opacity-60" />
-                                    <span>{{ holding.scheme_code }}</span>
+            <template v-else-if="holding">
+                <!-- Header Card -->
+                <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <button
+                                type="button"
+                                @click="router.back()"
+                                class="h-9 w-9 rounded-wf-lg border border-wf-border bg-wf-surface-variant hover:bg-wf-surface-variant/80 flex items-center justify-center text-wf-text-muted hover:text-wf-text-primary transition-colors flex-shrink-0"
+                                title="Go Back"
+                            >
+                                <ChevronLeft :size="20" />
+                            </button>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2.5 flex-wrap">
+                                    <h1 class="text-base sm:text-lg font-bold text-wf-text-primary truncate">
+                                        {{ holding.scheme_name }}
+                                    </h1>
+                                    <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-wf-full bg-primary/10 text-primary border border-primary/20">
+                                        {{ holding.category || 'Mutual Fund' }}
+                                    </span>
                                 </div>
-                                <div v-if="holding.isin_growth"
-                                    class="d-flex align-center gap-1 text-caption font-weight-bold text-medium-emphasis">
-                                    <Globe :size="14" class="opacity-60" />
-                                    <span>{{ holding.isin_growth }} (Growth)</span>
-                                </div>
-                                <div v-if="holding.fund_house"
-                                    class="d-flex align-center gap-1 text-caption font-weight-bold text-medium-emphasis">
-                                    <Briefcase :size="14" class="opacity-60" />
-                                    <span>{{ holding.fund_house }}</span>
+                                <div class="flex items-center gap-3.5 mt-1.5 flex-wrap text-xs text-wf-text-muted">
+                                    <div class="flex items-center gap-1 font-mono text-xs">
+                                        <Fingerprint :size="13" class="opacity-70 text-primary" />
+                                        <span>{{ holding.scheme_code }}</span>
+                                    </div>
+                                    <div v-if="holding.isin_growth" class="flex items-center gap-1 font-mono text-xs">
+                                        <Globe :size="13" class="opacity-70" />
+                                        <span>{{ holding.isin_growth }}</span>
+                                    </div>
+                                    <div v-if="holding.fund_house" class="flex items-center gap-1 font-medium">
+                                        <Briefcase :size="13" class="opacity-70" />
+                                        <span>{{ holding.fund_house }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="d-flex align-center gap-2">
-                        <v-btn color="error" variant="tonal" class="font-weight-bold" @click="showDeepDiveModal = true">
-                            Remove Records
-                        </v-btn>
-                        <v-btn color="primary" variant="tonal" class="font-weight-bold px-6"
-                            @click="showRedeemModal = true">
-                            Redeem
-                        </v-btn>
-                        <v-btn color="primary" class="font-weight-bold px-8 shadow-lg" @click="showInvestModal = true">
-                            Invest More
-                        </v-btn>
+                        <!-- Action Buttons -->
+                        <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+                            <button
+                                type="button"
+                                @click="showDeepDiveModal = true"
+                                class="h-9 px-3 text-xs font-semibold rounded-wf-md border border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 active:scale-95 transition-all flex items-center gap-1.5"
+                            >
+                                <Trash2 :size="13" />
+                                <span>Manage Records</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="showRedeemModal = true"
+                                class="h-9 px-3.5 text-xs font-semibold rounded-wf-md border border-wf-border bg-wf-surface-variant hover:bg-wf-surface-variant/80 text-wf-text-primary active:scale-95 transition-all"
+                            >
+                                Redeem
+                            </button>
+                            <button
+                                type="button"
+                                @click="showInvestModal = true"
+                                class="h-9 px-4 text-xs font-bold rounded-wf-md bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5"
+                            >
+                                <span>Invest More</span>
+                            </button>
+                        </div>
                     </div>
+                </WfCard>
+
+                <!-- KPI Metric Strip (4 Cards) -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <!-- Invested Value -->
+                    <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted mb-1.5">
+                            Invested Value
+                        </div>
+                        <div class="text-base sm:text-xl font-bold font-mono text-wf-text-primary">
+                            {{ formatAmount(holding.invested_value) }}
+                        </div>
+                    </WfCard>
+
+                    <!-- Current Value -->
+                    <WfCard padding="md" radius="xl" class="border-primary/25 bg-primary/5 shadow-wf-card">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-primary mb-1.5">
+                            Current Value
+                        </div>
+                        <div class="text-base sm:text-xl font-bold font-mono text-primary">
+                            {{ formatAmount(holding.current_value) }}
+                        </div>
+                    </WfCard>
+
+                    <!-- Absolute Returns -->
+                    <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted mb-1.5">
+                            Absolute Returns
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span
+                                class="text-base sm:text-xl font-bold font-mono"
+                                :class="holding.profit_loss >= 0 ? 'text-emerald-500' : 'text-rose-500'"
+                            >
+                                {{ holding.profit_loss >= 0 ? '+' : '' }}{{ formatAmount(holding.profit_loss) }}
+                            </span>
+                            <span
+                                class="px-1.5 py-0.5 text-[10px] font-bold rounded-wf-sm font-mono"
+                                :class="holding.profit_loss >= 0 ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'"
+                            >
+                                {{ ((holding.profit_loss / (holding.invested_value || 1)) * 100).toFixed(2) }}%
+                            </span>
+                        </div>
+                    </WfCard>
+
+                    <!-- Personal XIRR -->
+                    <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted mb-1.5">
+                            Personal XIRR
+                        </div>
+                        <div class="text-base sm:text-xl font-bold font-mono" :class="holding.xirr >= 0 ? 'text-emerald-500' : 'text-rose-500'">
+                            {{ holding.xirr ? holding.xirr.toFixed(2) + '%' : 'N/A' }}
+                        </div>
+                    </WfCard>
                 </div>
 
-                <v-row>
-                    <!-- Left Column: Chart & Stats -->
-                    <v-col cols="12" lg="8">
-                        <!-- KPI Row -->
-                        <v-row class="mb-4">
-                            <v-col cols="12" sm="4">
-                                <v-card class="premium-glass-card pa-4 h-100" rounded="xl">
-                                    <div class="text-overline text-medium-emphasis font-weight-bold mb-1">Invested Value
-                                    </div>
-                                    <div class="text-h5 font-weight-black text-content">{{
-                                        formatAmount(holding.invested_value) }}</div>
-                                </v-card>
-                            </v-col>
-                            <v-col cols="12" sm="4">
-                                <v-card class="premium-glass-card pa-4 h-100 border-primary border-opacity-10"
-                                    rounded="xl">
-                                    <div class="text-overline text-primary font-weight-bold mb-1">Current Value</div>
-                                    <div class="text-h5 font-weight-black text-content">{{
-                                        formatAmount(holding.current_value) }}</div>
-                                </v-card>
-                            </v-col>
-                            <v-col cols="12" sm="4">
-                                <v-card class="premium-glass-card pa-4 h-100" rounded="xl">
-                                    <div class="text-overline text-medium-emphasis font-weight-bold mb-1">Absolute
-                                        Returns</div>
-                                    <div class="d-flex align-center gap-2">
-                                        <div class="text-h5 font-weight-black"
-                                            :class="holding.profit_loss >= 0 ? 'text-success' : 'text-error'">
-                                            {{ holding.profit_loss >= 0 ? '+' : '' }}{{
-                                                formatAmount(holding.profit_loss) }}
-                                        </div>
-                                        <v-chip size="x-small" :color="holding.profit_loss >= 0 ? 'success' : 'error'"
-                                            variant="tonal" class="font-weight-black">
-                                            {{ ((holding.profit_loss / (holding.invested_value || 1)) * 100).toFixed(2)
-                                            }}%
-                                        </v-chip>
-                                    </div>
-                                </v-card>
-                            </v-col>
-                        </v-row>
-
-                        <v-card class="premium-glass-card pa-6 mb-6" rounded="xl">
-                            <div class="d-flex align-center justify-space-between mb-6">
-                                <h3 class="text-subtitle-1 font-weight-black text-content d-flex align-center gap-2">
-                                    <TrendingUp :size="20" class="text-primary" /> Portfolio Growth
-                                </h3>
-                                <div class="text-caption font-weight-bold text-medium-emphasis">
-                                    Showing history from {{ formatDate((holding.nav_history &&
-                                        holding.nav_history.length) ? holding.nav_history[0].date : '') }}
+                <!-- Main Content Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    <!-- Left: Performance Chart & Activity History (8 cols) -->
+                    <div class="lg:col-span-8 space-y-4">
+                        <!-- Portfolio Growth Chart -->
+                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card">
+                            <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                                <div class="flex items-center gap-2">
+                                    <TrendingUp :size="16" class="text-primary" />
+                                    <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary">Portfolio Growth Timeline</span>
+                                    <span v-if="holding.nav_history?.length" class="text-xs text-wf-text-muted">
+                                        (from {{ formatDate(holding.nav_history[0].date) }})
+                                    </span>
                                 </div>
+
+                                <!-- Benchmarks Dropdown Menu -->
+                                <v-menu :close-on-content-click="false" location="bottom end" offset="6">
+                                    <template v-slot:activator="{ props }">
+                                        <button
+                                            v-bind="props"
+                                            type="button"
+                                            class="h-7 px-2.5 text-xs font-bold rounded-wf-md border border-primary/25 bg-primary/10 text-primary hover:bg-primary/20 flex items-center gap-1.5 transition-colors"
+                                        >
+                                            <span>BENCHMARKS ({{ selectedBenchmarkSymbols.length }})</span>
+                                        </button>
+                                    </template>
+                                    <div class="p-2.5 rounded-wf-xl border border-wf-border bg-wf-surface shadow-wf-modal min-w-[220px] space-y-1">
+                                        <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted px-2 py-1">Benchmark Indices</div>
+                                        <div
+                                            v-for="bm in benchmarksData"
+                                            :key="bm.symbol"
+                                            class="flex items-center justify-between p-2 rounded-wf-md hover:bg-wf-surface-variant cursor-pointer text-xs transition-colors"
+                                            @click="selectedBenchmarkSymbols.includes(bm.symbol) ? selectedBenchmarkSymbols = selectedBenchmarkSymbols.filter(s => s !== bm.symbol) : selectedBenchmarkSymbols.push(bm.symbol)"
+                                        >
+                                            <div class="flex items-center gap-2.5">
+                                                <input
+                                                    type="checkbox"
+                                                    :checked="selectedBenchmarkSymbols.includes(bm.symbol)"
+                                                    class="rounded border-wf-border text-primary focus:ring-0"
+                                                />
+                                                <span class="font-medium text-wf-text-primary text-xs">{{ bm.label }}</span>
+                                            </div>
+                                            <div class="w-2.5 h-2.5 rounded-full" :style="{ background: bm.styling?.color || '#94a3b8' }"></div>
+                                        </div>
+                                    </div>
+                                </v-menu>
                             </div>
 
-                            <!-- Chart Area -->
-                            <div style="height: 380px;">
-                                <div v-if="isTimelineLoading"
-                                    class="d-flex align-center justify-center h-100 flex-column animate-fade-in">
-                                    <v-progress-circular indeterminate color="primary" size="48" width="3" />
-                                    <div class="text-caption mt-4 font-weight-bold opacity-40">Calculating Growth...
-                                    </div>
+                            <!-- Chart Canvas -->
+                            <div class="h-[340px] sm:h-[380px] w-full">
+                                <div v-if="isTimelineLoading" class="flex flex-col items-center justify-center h-full gap-2">
+                                    <v-progress-circular indeterminate color="primary" size="32" width="2" />
+                                    <span class="text-xs font-medium text-wf-text-muted">Calculating Portfolio History...</span>
                                 </div>
-
                                 <template v-else>
-                                    <div class="px-6 pt-4 d-flex align-center justify-end">
-                                        <v-menu :close-on-content-click="false" location="bottom end" offset="8">
-                                            <template v-slot:activator="{ props }">
-                                                <v-btn v-bind="props" variant="tonal" size="small" rounded="lg"
-                                                    class="text-caption font-weight-black" color="primary"
-                                                    prepend-icon="mdi-chart-line">
-                                                    BENCHMARKS ({{ selectedBenchmarkSymbols.length }})
-                                                </v-btn>
-                                            </template>
-                                            <v-list class="premium-glass-card border" min-width="220">
-                                                <v-list-subheader
-                                                    class="text-overline font-weight-black opacity-60">SELECT
-                                                    INDICES</v-list-subheader>
-                                                <v-list-item v-for="bm in benchmarksData" :key="bm.symbol"
-                                                    density="compact"
-                                                    @click="selectedBenchmarkSymbols.includes(bm.symbol) ? selectedBenchmarkSymbols = selectedBenchmarkSymbols.filter(s => s !== bm.symbol) : selectedBenchmarkSymbols.push(bm.symbol)">
-                                                    <template v-slot:prepend>
-                                                        <v-checkbox-btn v-model="selectedBenchmarkSymbols"
-                                                            :value="bm.symbol" color="primary" />
-                                                    </template>
-                                                    <v-list-item-title class="text-caption font-weight-bold">{{ bm.label
-                                                        }}</v-list-item-title>
-                                                    <template v-slot:append>
-                                                        <div class="legend-dot-mini"
-                                                            :style="{ background: bm.styling?.color }"></div>
-                                                    </template>
-                                                </v-list-item>
-                                            </v-list>
-                                        </v-menu>
-                                    </div>
-
-                                    <FundPerformanceChart v-if="chartData.length" :data="chartData"
-                                        :markers="chartMarkers" :benchmarks="filteredBenchmarksData" @toggle-benchmark="(symbol) => {
+                                    <FundPerformanceChart
+                                        v-if="chartData.length"
+                                        :data="chartData"
+                                        :markers="chartMarkers"
+                                        :benchmarks="filteredBenchmarksData"
+                                        @toggle-benchmark="(symbol) => {
                                             if (selectedBenchmarkSymbols.includes(symbol)) {
                                                 selectedBenchmarkSymbols = selectedBenchmarkSymbols.filter(s => s !== symbol)
                                             } else {
                                                 selectedBenchmarkSymbols.push(symbol)
                                             }
-                                        }" />
-                                    <div v-else
-                                        class="d-flex align-center justify-center h-100 text-medium-emphasis font-weight-bold">
-                                        No history available for simulation
+                                        }"
+                                    />
+                                    <div v-else class="flex items-center justify-center h-full text-xs font-medium text-wf-text-muted">
+                                        No historical records available for simulation
                                     </div>
                                 </template>
                             </div>
-                        </v-card>
+                        </WfCard>
 
-                        <!-- Transactions History -->
-                        <div class="mb-4">
-                            <h3 class="text-h6 font-weight-black mb-4 d-flex align-center gap-2">
-                                <History :size="20" class="text-primary" /> Activity History
-                            </h3>
-                            <v-card class="premium-glass-card" rounded="xl">
-                                <v-table class="bg-transparent">
+                        <!-- Activity History Table -->
+                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <History :size="16" class="text-primary" />
+                                    <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary">Activity History</span>
+                                </div>
+                                <span class="px-2 py-0.5 text-xs font-bold rounded-wf-full bg-wf-surface-variant text-wf-text-secondary border border-wf-border">
+                                    {{ transactions.length }} Records
+                                </span>
+                            </div>
+
+                            <div class="overflow-x-auto rounded-wf-lg border border-wf-border">
+                                <table class="w-full text-left border-collapse text-xs">
                                     <thead>
-                                        <tr>
-                                            <th
-                                                class="text-caption font-weight-bold text-medium-emphasis text-uppercase">
-                                                Date</th>
-                                            <th
-                                                class="text-caption font-weight-bold text-medium-emphasis text-uppercase">
-                                                Type</th>
-                                            <th
-                                                class="text-right text-caption font-weight-bold text-medium-emphasis text-uppercase">
-                                                Units</th>
-                                            <th
-                                                class="text-right text-caption font-weight-bold text-medium-emphasis text-uppercase">
-                                                NAV</th>
-                                            <th
-                                                class="text-right text-caption font-weight-bold text-medium-emphasis text-uppercase">
-                                                Amount</th>
-                                            <th
-                                                class="text-right text-caption font-weight-bold text-medium-emphasis text-uppercase">
-                                                Actions</th>
+                                        <tr class="bg-wf-surface-variant/50 border-b border-wf-border text-[10px] font-bold uppercase tracking-wider text-wf-text-muted">
+                                            <th class="py-2.5 px-3">Date</th>
+                                            <th class="py-2.5 px-3">Type</th>
+                                            <th class="py-2.5 px-3 text-right">Units</th>
+                                            <th class="py-2.5 px-3 text-right">NAV</th>
+                                            <th class="py-2.5 px-3 text-right">Amount</th>
+                                            <th class="py-2.5 px-3 text-right">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        <tr v-for="t in transactions" :key="t.id" class="hover-row transition-colors">
-                                            <td class="font-weight-bold text-body-2">{{ formatDate(t.date) }}</td>
-                                            <td>
-                                                <v-chip size="x-small" :color="t.type === 'BUY' ? 'success' : 'error'"
-                                                    variant="tonal" class="font-weight-black">
-                                                    {{ t.type }}
-                                                </v-chip>
+                                    <tbody class="divide-y divide-wf-border">
+                                        <tr v-for="t in transactions" :key="t.id" class="hover:bg-wf-surface-variant/30 transition-colors">
+                                            <td class="py-2.5 px-3 font-medium text-wf-text-primary">
+                                                {{ formatDate(t.date) }}
                                             </td>
-                                            <td class="text-right font-weight-medium text-body-2">{{
-                                                Number(t.units).toFixed(3) }}</td>
-                                            <td class="text-right font-weight-medium text-body-2">{{ formatAmount(t.nav)
-                                                }}</td>
-                                            <td class="text-right font-weight-black text-body-2">{{
-                                                formatAmount(t.amount) }}</td>
-                                            <td class="text-right">
-                                                <div class="d-flex justify-end gap-1">
-                                                    <v-btn icon variant="text" size="x-small" color="primary"
-                                                        @click="openEditTxn(t)">
-                                                        <Edit :size="14" />
-                                                    </v-btn>
-                                                    <v-btn icon variant="text" size="x-small" color="error"
-                                                        @click="openDeleteTxn(t)">
-                                                        <Trash2 :size="14" />
-                                                    </v-btn>
+                                            <td class="py-2.5 px-3">
+                                                <span
+                                                    class="px-2 py-0.5 text-[10px] font-bold rounded-wf-sm"
+                                                    :class="t.type === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'"
+                                                >
+                                                    {{ t.type }}
+                                                </span>
+                                            </td>
+                                            <td class="py-2.5 px-3 text-right font-mono text-wf-text-muted">
+                                                {{ Number(t.units).toFixed(3) }}
+                                            </td>
+                                            <td class="py-2.5 px-3 text-right font-mono text-wf-text-muted">
+                                                {{ formatAmount(t.nav) }}
+                                            </td>
+                                            <td class="py-2.5 px-3 text-right font-mono font-bold text-wf-text-primary">
+                                                {{ formatAmount(t.amount) }}
+                                            </td>
+                                            <td class="py-2.5 px-3 text-right">
+                                                <div class="flex items-center justify-end gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        @click="openEditTxn(t)"
+                                                        class="h-7 w-7 rounded-wf-md hover:bg-wf-surface-variant flex items-center justify-center text-primary transition-colors"
+                                                        title="Edit Transaction"
+                                                    >
+                                                        <Edit :size="13" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        @click="openDeleteTxn(t)"
+                                                        class="h-7 w-7 rounded-wf-md hover:bg-rose-500/10 flex items-center justify-center text-rose-500 transition-colors"
+                                                        title="Delete Transaction"
+                                                    >
+                                                        <Trash2 :size="13" />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
                                         <tr v-if="!transactions.length">
-                                            <td colspan="5"
-                                                class="text-center py-6 text-medium-emphasis font-weight-medium">
-                                                No transactions found
+                                            <td colspan="6" class="py-8 text-center text-xs font-medium text-wf-text-muted">
+                                                No transactions recorded for this holding
                                             </td>
                                         </tr>
                                     </tbody>
-                                </v-table>
-                            </v-card>
-                        </div>
-                    </v-col>
+                                </table>
+                            </div>
+                        </WfCard>
+                    </div>
 
-                    <!-- Right Column: Goals, Attribution, Controls -->
-                    <v-col cols="12" lg="4">
-                        <!-- Goal Linking Card (New feature restoration) -->
-                        <v-card class="premium-glass-card pa-6 mb-6" rounded="xl">
-                            <div class="d-flex align-center justify-space-between mb-4">
-                                <h3 class="text-subtitle-1 font-weight-black text-content d-flex align-center gap-2">
-                                    <Target :size="20" class="text-primary" /> Linked Goal
-                                </h3>
-                                <v-btn icon variant="text" size="small" color="primary" @click="showGoalModal = true">
-                                    <Edit2 :size="16" />
-                                </v-btn>
+                    <!-- Right: Goal, Ownership, Key Metrics, Insights (4 cols) -->
+                    <div class="lg:col-span-4 space-y-4">
+                        <!-- Linked Goal Card -->
+                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary flex items-center gap-1.5">
+                                    <Target :size="14" class="text-primary" />
+                                    <span>Linked Goal</span>
+                                </span>
+                                <button
+                                    type="button"
+                                    @click="showGoalModal = true"
+                                    class="h-7 w-7 rounded-wf-md hover:bg-wf-surface-variant flex items-center justify-center text-primary transition-colors"
+                                    title="Edit Goal Link"
+                                >
+                                    <Edit2 :size="13" />
+                                </button>
                             </div>
 
-                            <div v-if="holding.goal"
-                                class="goal-preview-box pa-4 rounded-xl border border-primary border-opacity-10 bg-primary bg-opacity-5">
-                                <div class="d-flex align-center gap-4">
-                                    <v-avatar :style="{ background: holding.goal.color + '20' }" rounded="lg" size="48">
-                                        <span class="text-h5" :style="{ color: holding.goal.color }">{{
-                                            holding.goal.icon }}</span>
-                                    </v-avatar>
-                                    <div>
-                                        <div class="text-subtitle-1 font-weight-black text-content">{{ holding.goal.name
-                                        }}</div>
-                                        <div class="text-caption font-weight-bold opacity-60">TARGET: {{
-                                            formatAmount(holding.goal.target_amount) }}</div>
-                                    </div>
-                                </div>
-                                <v-progress-linear
-                                    :model-value="Math.max(0, (holding.current_value / holding.goal.target_amount) * 100)"
-                                    color="primary" height="6" rounded="pill" class="mt-4" />
-                                <div class="d-flex justify-space-between mt-1">
-                                    <span class="text-caption font-weight-bold text-primary">Contribution</span>
-                                    <span class="text-caption font-weight-bold text-primary">
-                                        {{ ((holding.current_value / holding.goal.target_amount) * 100).toFixed(1) }}%
-                                    </span>
-                                </div>
-                            </div>
-                            <div v-else
-                                class="text-center py-6 px-4 rounded-xl border-dashed border-opacity-20 border-primary">
-                                <AlertCircle :size="32" class="text-medium-emphasis opacity-20 mb-2 mx-auto d-block" />
-                                <div class="text-caption font-weight-bold text-medium-emphasis mb-4">
-                                    Not linked to any goal. Link it to track progress.
-                                </div>
-                                <v-btn variant="tonal" size="small" color="primary" class="font-weight-bold text-none"
-                                    @click="showGoalModal = true">
-                                    Connect to Goal
-                                </v-btn>
-                            </div>
-                        </v-card>
-
-                        <!-- Ownership Details -->
-                        <v-card class="premium-glass-card pa-6 mb-6" rounded="xl">
-                            <div class="d-flex align-center justify-space-between mb-4">
-                                <h3 class="text-subtitle-1 font-weight-black text-content d-flex align-center gap-2">
-                                    <Shield :size="20" class="text-primary" /> Ownership
-                                </h3>
-                                <v-btn icon variant="text" size="small" color="primary" @click="showUserModal = true">
-                                    <Edit2 :size="16" />
-                                </v-btn>
-                            </div>
-
-                            <div class="d-flex align-center gap-4 p-1">
-                                <v-avatar color="primary" size="48" variant="tonal" rounded="lg">
-                                    <img v-if="isImageUrl(holding.user_avatar)" :src="holding.user_avatar" alt="User" />
-                                    <span v-else class="text-h6 font-weight-bold">{{ holding.user_name?.charAt(0)
-                                    }}</span>
-                                </v-avatar>
-                                <div>
-                                    <div class="text-subtitle-1 font-weight-black text-content">{{ holding.user_name ||
-                                        'Unassigned' }}</div>
-                                    <div class="text-caption font-weight-bold opacity-60">Assigned Member</div>
-                                </div>
-                            </div>
-
-                            <v-divider class="my-4" opacity="5" />
-
-                            <div class="space-y-4">
-                                <div class="d-flex justify-space-between align-center">
+                            <div v-if="holding.goal" class="p-3 rounded-wf-lg border border-primary/20 bg-primary/5 space-y-2.5">
+                                <div class="flex items-center gap-2.5">
                                     <div
-                                        class="d-flex align-center gap-2 text-caption font-weight-bold text-medium-emphasis">
-                                        <History :size="14" /> Last Updated
+                                        class="w-8 h-8 rounded-wf-md flex items-center justify-center text-sm font-bold flex-shrink-0"
+                                        :style="{ background: (holding.goal.color || '#3b82f6') + '20', color: holding.goal.color || '#3b82f6' }"
+                                    >
+                                        {{ holding.goal.icon || '🎯' }}
                                     </div>
-                                    <div class="text-caption font-weight-bold text-content">
-                                        {{ formatDate(holding.last_updated_at) }}
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-bold text-wf-text-primary truncate">{{ holding.goal.name }}</div>
+                                        <div class="text-[11px] font-mono text-wf-text-muted">Target: {{ formatAmount(holding.goal.target_amount) }}</div>
                                     </div>
                                 </div>
-                                <div class="d-flex justify-space-between align-center mt-2">
-                                    <div class="text-caption font-weight-bold text-medium-emphasis">Folio Number</div>
-                                    <div class="text-caption font-weight-bold text-content font-mono">{{
-                                        holding.folio_number || 'N/A' }}</div>
+                                <div class="space-y-1">
+                                    <div class="w-full bg-wf-surface-variant rounded-full h-1.5 overflow-hidden">
+                                        <div
+                                            class="bg-primary h-full rounded-full transition-all"
+                                            :style="{ width: Math.min(100, Math.max(0, (holding.current_value / (holding.goal.target_amount || 1)) * 100)) + '%' }"
+                                        ></div>
+                                    </div>
+                                    <div class="flex justify-between text-[11px] font-semibold text-primary">
+                                        <span>Contribution</span>
+                                        <span>{{ ((holding.current_value / (holding.goal.target_amount || 1)) * 100).toFixed(1) }}%</span>
+                                    </div>
                                 </div>
                             </div>
-                        </v-card>
-                        <!-- Additional Stats -->
-                        <v-card class="premium-glass-card pa-6 mb-6" rounded="xl">
-                            <h3 class="text-subtitle-1 font-weight-black text-content d-flex align-center gap-2 mb-4">
-                                <AlertCircle :size="20" class="text-primary" /> Key Metrics
-                            </h3>
-                            <div class="space-y-3">
-                                <div class="d-flex justify-space-between align-center">
-                                    <span class="text-caption font-weight-bold text-medium-emphasis">Avg Purchase
-                                        Price</span>
-                                    <span class="text-caption font-weight-bold text-content">{{
-                                        formatAmount(holding.average_price) }}</span>
+                            <div v-else class="p-4 text-center rounded-wf-lg border border-dashed border-wf-border space-y-2">
+                                <AlertCircle :size="22" class="text-wf-text-muted opacity-40 mx-auto" />
+                                <div class="text-xs text-wf-text-muted">Not linked to any goal. Link to monitor target allocation.</div>
+                                <button
+                                    type="button"
+                                    @click="showGoalModal = true"
+                                    class="h-7 px-3 text-xs font-semibold rounded-wf-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                                >
+                                    Connect to Goal
+                                </button>
+                            </div>
+                        </WfCard>
+
+                        <!-- Ownership Card -->
+                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary flex items-center gap-1.5">
+                                    <Shield :size="14" class="text-primary" />
+                                    <span>Ownership & Account</span>
+                                </span>
+                                <button
+                                    type="button"
+                                    @click="showUserModal = true"
+                                    class="h-7 w-7 rounded-wf-md hover:bg-wf-surface-variant flex items-center justify-center text-primary transition-colors"
+                                    title="Change Owner"
+                                >
+                                    <Edit2 :size="13" />
+                                </button>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold overflow-hidden flex-shrink-0">
+                                    <img v-if="isImageUrl(holding.user_avatar)" :src="holding.user_avatar" class="w-full h-full object-cover" />
+                                    <span v-else>{{ holding.user_name?.charAt(0) || 'U' }}</span>
                                 </div>
-                                <div class="d-flex justify-space-between align-center">
-                                    <span class="text-caption font-weight-bold text-medium-emphasis">XIRR
-                                        (Personal)</span>
-                                    <span class="text-caption font-weight-bold"
-                                        :class="holding.xirr >= 0 ? 'text-success' : 'text-error'">
-                                        {{ holding.xirr ? holding.xirr.toFixed(2) + '%' : 'N/A' }}
-                                    </span>
-                                </div>
-                                <div class="d-flex justify-space-between align-center">
-                                    <span class="text-caption font-weight-bold text-medium-emphasis">Current
-                                        Units</span>
-                                    <span class="text-caption font-weight-bold text-content">{{ holding.units.toFixed(3)
-                                        }}</span>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-wf-text-primary truncate">
+                                        {{ holding.user_name || 'Unassigned Folio' }}
+                                    </div>
+                                    <div class="text-[11px] text-wf-text-muted">Assigned Member</div>
                                 </div>
                             </div>
-                        </v-card>
 
-                        <!-- Fund Insights -->
-                        <v-card class="premium-glass-card pa-0 mb-6 overflow-hidden" rounded="xl" v-if="holding">
-                            <div class="pa-6 pb-0">
-                                <div class="d-flex align-center justify-space-between mb-4">
-                                    <h3
-                                        class="text-subtitle-1 font-weight-black text-content d-flex align-center gap-2">
-                                        <TrendingUp :size="20" class="text-primary" /> Fund Analysis
-                                    </h3>
-                                    <v-btn icon variant="text" size="small" color="primary"
-                                        @click="fetchFundInsights(true)" :loading="isInsightsLoading">
-                                        <RefreshCw :size="16" :class="{ 'animate-spin': isInsightsLoading }" />
-                                    </v-btn>
+                            <div class="pt-2 border-t border-wf-border space-y-2 text-xs">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="text-wf-text-muted">Folio Number</span>
+                                    <span class="font-mono font-bold text-wf-text-primary">{{ holding.folio_number || 'N/A' }}</span>
                                 </div>
-
-                                <!-- Loading State -->
-                                <div v-if="isInsightsLoading" class="py-8 d-flex flex-column align-center justify-center">
-                                    <v-progress-circular indeterminate color="primary" size="32" width="3" />
-                                    <div class="text-caption mt-4 font-weight-bold opacity-40">Calculating Analysis...
-                                    </div>
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="text-wf-text-muted">Last Updated</span>
+                                    <span class="text-wf-text-primary font-medium">{{ formatDate(holding.last_updated_at) }}</span>
                                 </div>
+                            </div>
+                        </WfCard>
 
-                                <!-- Error State -->
-                                <div v-else-if="insightsError && !fundInsights"
-                                    class="py-8 px-6 d-flex flex-column align-center text-center">
-                                    <div class="pa-4 rounded-circle bg-warning-light mb-4">
-                                        <ZapOff :size="28" class="text-warning" />
-                                    </div>
-                                    <div class="text-body-2 font-weight-bold text-content mb-2">Analysis Unavailable
-                                    </div>
-                                    <div class="text-caption opacity-60 mb-4">{{ insightsError }}</div>
-                                    <v-btn variant="tonal" size="small" color="primary" rounded="pill"
-                                        @click="fetchFundInsights(true)">
-                                        Retry Analysis
-                                    </v-btn>
+                        <!-- Key Metrics Card -->
+                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card space-y-3">
+                            <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary flex items-center gap-1.5">
+                                <AlertCircle :size="14" class="text-primary" />
+                                <span>Holding Parameters</span>
+                            </span>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-wf-text-muted">Avg Purchase NAV</span>
+                                    <span class="font-mono font-bold text-wf-text-primary">{{ formatAmount(holding.average_price) }}</span>
                                 </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-wf-text-muted">Holding Units</span>
+                                    <span class="font-mono font-bold text-wf-text-primary">{{ Number(holding.units || 0).toFixed(3) }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-wf-text-muted">Latest NAV</span>
+                                    <span class="font-mono font-bold text-primary">{{ formatAmount(holding.last_nav) }}</span>
+                                </div>
+                            </div>
+                        </WfCard>
 
-                                <template v-else-if="fundInsights">
-                                    <!-- Highlights Grid -->
-                                    <div class="d-flex flex-column gap-3 mb-6">
-                                        <div v-for="insight in fundInsights.highlights" :key="insight.id"
-                                            class="pa-4 rounded-xl border transition-all hover-translate-x" :style="{
-                                                background: getInsightColor(insight.type),
-                                                borderColor: getInsightBorderColor(insight.type)
-                                            }">
-                                            <div class="d-flex gap-3 align-start">
-                                                <span class="text-h6">{{ insight.icon }}</span>
-                                                <div>
-                                                    <div
-                                                        class="text-caption font-weight-black text-uppercase letter-spacing-1 mb-1">
-                                                        {{ insight.title }}
-                                                    </div>
-                                                    <div
-                                                        class="text-body-2 font-weight-medium line-height-tight opacity-80">
-                                                        {{ insight.content }}
-                                                    </div>
+                        <!-- AI Fund Insights Card -->
+                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary flex items-center gap-1.5">
+                                    <TrendingUp :size="14" class="text-primary" />
+                                    <span>Fund Analysis</span>
+                                </span>
+                                <button
+                                    type="button"
+                                    @click="fetchFundInsights(true)"
+                                    :disabled="isInsightsLoading"
+                                    class="h-7 w-7 rounded-wf-md hover:bg-wf-surface-variant flex items-center justify-center text-primary disabled:opacity-50 transition-colors"
+                                    title="Recalculate Analysis"
+                                >
+                                    <RefreshCw :size="13" :class="{ 'animate-spin': isInsightsLoading }" />
+                                </button>
+                            </div>
+
+                            <div v-if="isInsightsLoading" class="py-8 flex flex-col items-center justify-center gap-2">
+                                <v-progress-circular indeterminate color="primary" size="24" width="2" />
+                                <span class="text-xs font-medium text-wf-text-muted">Computing AI Intelligence...</span>
+                            </div>
+
+                            <div v-else-if="insightsError && !fundInsights" class="py-6 text-center space-y-2">
+                                <ZapOff :size="22" class="text-amber-500 mx-auto" />
+                                <div class="text-xs font-bold text-wf-text-primary">Analysis Unavailable</div>
+                                <div class="text-[11px] text-wf-text-muted">{{ insightsError }}</div>
+                                <button
+                                    type="button"
+                                    @click="fetchFundInsights(true)"
+                                    class="h-7 px-3 text-xs font-semibold rounded-wf-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors mt-1"
+                                >
+                                    Retry Analysis
+                                </button>
+                            </div>
+
+                            <template v-else-if="fundInsights">
+                                <!-- Highlights -->
+                                <div class="space-y-2">
+                                    <div
+                                        v-for="insight in fundInsights.highlights"
+                                        :key="insight.id"
+                                        class="p-2.5 rounded-wf-md border text-xs"
+                                        :class="getInsightColor(insight.type)"
+                                    >
+                                        <div class="flex items-start gap-2">
+                                            <span class="text-sm flex-shrink-0">{{ insight.icon }}</span>
+                                            <div>
+                                                <div class="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-wf-text-primary">
+                                                    {{ insight.title }}
+                                                </div>
+                                                <div class="text-[11px] leading-relaxed text-wf-text-secondary">
+                                                    {{ insight.content }}
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
 
-                                    <!-- Summary Content -->
-                                    <div class="pa-6 pt-0 mf-insights-markdown" v-html="formattedSummary"></div>
+                                <!-- Summary Markdown -->
+                                <div class="text-xs leading-relaxed text-wf-text-secondary mf-insights-markdown" v-html="formattedSummary"></div>
 
-                                    <!-- Suggestions Section -->
-                                    <div class="pa-6 pt-0"
-                                        v-if="fundInsights.suggestions && fundInsights.suggestions.length">
-                                        <v-divider class="mb-4" opacity="5" />
-                                        <div class="text-overline font-weight-black text-primary mb-3">Tactical Moves
-                                        </div>
-                                        <div class="d-flex flex-column gap-3">
-                                            <div v-for="suggestion in fundInsights.suggestions" :key="suggestion.id"
-                                                class="d-flex gap-2">
-                                                <Zap :size="14" class="text-primary mt-1 flex-shrink-0" />
-                                                <div>
-                                                    <div class="text-caption font-weight-black text-content">{{
-                                                        suggestion.title }}</div>
-                                                    <div class="text-caption font-weight-medium opacity-60">{{
-                                                        suggestion.content }}</div>
-                                                    </div>
-                                            </div>
+                                <!-- Tactical Suggestions -->
+                                <div v-if="fundInsights.suggestions?.length" class="pt-2 border-t border-wf-border space-y-2">
+                                    <div class="text-[10px] font-bold uppercase tracking-wider text-primary">Tactical Suggestions</div>
+                                    <div v-for="suggestion in fundInsights.suggestions" :key="suggestion.id" class="flex items-start gap-2 text-xs">
+                                        <Zap :size="13" class="text-primary mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <div class="font-bold text-wf-text-primary text-[11px]">{{ suggestion.title }}</div>
+                                            <div class="text-[11px] text-wf-text-muted">{{ suggestion.content }}</div>
                                         </div>
                                     </div>
-                                </template>
-                            </div>
-                        </v-card>
-                    </v-col>
-                </v-row>
-            </div>
-
-            <div v-if="isLoading && !holding" class="d-flex align-center justify-center h-screen-50">
-                <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
-            </div>
-        </v-container>
-
-        <!-- Link Goal Modal -->
-        <LinkGoalModal v-model="showGoalModal" :holding="holding" @success="fetchHoldingDetails" />
-
-        <!-- User Selection Dialog -->
-        <v-dialog v-model="showUserModal" max-width="400">
-            <v-card class="premium-glass-card pa-4" rounded="xl">
-                <v-card-title class="font-weight-black">Assign Owner</v-card-title>
-                <v-text-field v-model="searchQuery" placeholder="Search members..." density="comfortable"
-                    variant="outlined" rounded="lg" class="mt-2">
-                    <template v-slot:prepend-inner>
-                        <Search :size="18" class="text-medium-emphasis mr-2" />
-                    </template>
-                </v-text-field>
-                <v-list bg-color="transparent">
-                    <v-list-item v-for="user in filteredUsers" :key="user.id" @click="updateOwner(user.id)" rounded="lg"
-                        class="mb-1">
-                        <template v-slot:prepend>
-                            <v-avatar size="32" color="primary" variant="tonal">
-                                <img v-if="isImageUrl(user.avatar)" :src="user.avatar" />
-                                <span v-else>{{ user.avatar || user.full_name[0] }}</span>
-                            </v-avatar>
-                        </template>
-                        <v-list-item-title class="font-weight-bold">{{ user.full_name }}</v-list-item-title>
-                        <template v-slot:append>
-                            <Check v-if="holding?.user_id === user.id" :size="20" class="text-primary" />
-                        </template>
-                    </v-list-item>
-                </v-list>
-            </v-card>
-        </v-dialog>
-
-        <!-- Management Modals -->
-        <DeleteHoldingDeepDiveModal v-model="showDeepDiveModal" :holding="holding" :loading="isManagementLoading"
-            @delete-holding="deleteHolding" @delete-transactions="handleBulkDelete" />
-
-        <EditTransactionModal v-model="showEditTxnModal" :transaction="activeTransaction" :loading="isManagementLoading"
-            @save="handleEditTransaction" />
-
-        <DeleteTransactionModal v-model="showDeleteTxnModal" :transaction="activeTransaction"
-            :loading="isManagementLoading" @confirm="handleSingleDelete" />
+                                </div>
+                            </template>
+                        </WfCard>
+                    </div>
+                </div>
+            </template>
+        </div>
 
         <!-- Modals -->
+        <LinkGoalModal v-model="showGoalModal" :holding="holding" @success="fetchHoldingDetails" />
+
+        <!-- User Selection Dialog using WfModal -->
+        <WfModal
+            v-model="showUserModal"
+            title="Assign Ownership"
+            description="Designate folio ownership to a family member"
+            maxWidth="sm"
+        >
+            <div class="space-y-3">
+                <div class="relative">
+                    <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-wf-text-muted" />
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        placeholder="Search members..."
+                        class="w-full h-9 pl-9 pr-3 text-xs rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    />
+                </div>
+                <div class="max-h-60 overflow-y-auto space-y-1 divide-y divide-wf-border/40 pr-1">
+                    <button
+                        v-for="user in filteredUsers"
+                        :key="user.id"
+                        type="button"
+                        @click="updateOwner(user.id)"
+                        class="w-full p-2.5 rounded-wf-md hover:bg-wf-surface-variant flex items-center justify-between text-left transition-colors"
+                    >
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold overflow-hidden">
+                                <img v-if="isImageUrl(user.avatar)" :src="user.avatar" class="w-full h-full object-cover" />
+                                <span v-else>{{ user.avatar || user.full_name[0] }}</span>
+                            </div>
+                            <span class="text-xs font-semibold text-wf-text-primary">{{ user.full_name }}</span>
+                        </div>
+                        <Check v-if="holding?.user_id === user.id" :size="15" class="text-primary flex-shrink-0" />
+                    </button>
+                </div>
+            </div>
+        </WfModal>
+
+        <!-- Management Modals -->
+        <DeleteHoldingDeepDiveModal
+            v-model="showDeepDiveModal"
+            :holding="holding"
+            :loading="isManagementLoading"
+            @delete-holding="deleteHolding"
+            @delete-transactions="handleBulkDelete"
+        />
+
+        <EditTransactionModal
+            v-model="showEditTxnModal"
+            :transaction="activeTransaction"
+            :loading="isManagementLoading"
+            @save="handleEditTransaction"
+        />
+
+        <DeleteTransactionModal
+            v-model="showDeleteTxnModal"
+            :transaction="activeTransaction"
+            :loading="isManagementLoading"
+            @confirm="handleSingleDelete"
+        />
+
         <InvestModal v-model="showInvestModal" :fund="holding" @success="fetchHoldingDetails" />
         <RedeemModal v-model="showRedeemModal" :holding="holding" @success="fetchHoldingDetails" />
-
     </MainLayout>
 </template>
 
-
-
 <style scoped>
-.page-container {
-    min-height: calc(100vh - 64px);
-}
-
-.relative-pos {
-    position: relative;
-}
-
-.z-10 {
-    z-index: 10;
-}
-
-.mesh-blob {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.15;
-    border-radius: 50%;
-    z-index: 0;
-}
-
-.blob-1 {
-    background: rgb(var(--v-theme-primary));
-    width: 500px;
-    height: 500px;
-    top: -100px;
-    right: -100px;
-}
-
-.blob-2 {
-    background: rgb(var(--v-theme-secondary));
-    width: 400px;
-    height: 400px;
-    bottom: 0;
-    left: 0;
-}
-
-.premium-glass-card {
-    background: rgba(var(--v-theme-surface), 0.7) !important;
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(var(--v-border-color), 0.15) !important;
-    box-shadow: none !important;
-}
-
-.hover-bg:hover {
-    background-color: rgba(var(--v-theme-on-surface), 0.05) !important;
-}
-
-.hover-row:hover {
-    background-color: rgba(var(--v-theme-on-surface), 0.02);
-}
-
-.bg-error-light {
-    background: rgba(var(--v-theme-error), 0.1);
-    padding: 1rem;
-}
-
-.text-gradient {
-    background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #6366f1 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.hover-translate-x:hover {
-    transform: translateX(4px);
-}
-
-.animate-spin {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.letter-spacing-1 {
-    letter-spacing: 0.5px;
-}
-
-/* Insights Markdown Styling */
-.mf-insights-markdown {
-    font-size: 0.85rem;
-    line-height: 1.6;
-    color: rgba(var(--v-theme-on-surface), 0.8);
-}
-
 .mf-insights-markdown :deep(h3) {
-    font-size: 0.95rem;
+    font-size: 0.75rem;
     font-weight: 800;
-    margin-top: 1.25rem;
-    margin-bottom: 0.5rem;
-    color: rgb(var(--v-theme-on-surface));
+    margin-top: 0.75rem;
+    margin-bottom: 0.25rem;
+    color: var(--wf-text-primary, #0f172a);
     text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.legend-dot-mini {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-left: 8px;
 }
 
 .mf-insights-markdown :deep(strong) {
-    color: rgb(var(--v-theme-primary));
-    font-weight: 900;
+    color: var(--wf-text-primary, #0f172a);
+    font-weight: 700;
 }
 
 .mf-insights-markdown :deep(p) {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
 }
 
 .mf-insights-markdown :deep(ul) {
-    padding-left: 1.25rem;
-    margin-bottom: 0.75rem;
+    padding-left: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .mf-insights-markdown :deep(li) {
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 </style>

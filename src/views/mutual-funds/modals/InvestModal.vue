@@ -1,21 +1,26 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useNotificationStore } from '@/stores/notification'
-import { CheckCircle, ArrowRight, X } from 'lucide-vue-next'
+import { CheckCircle, ArrowRight, Calendar, DollarSign, Sparkles } from 'lucide-vue-next'
 import { useCurrency } from '@/composables/useCurrency'
+import WfModal from '@/components/ui/WfModal.vue'
 
 defineProps<{
     modelValue: boolean
     fund: any
 }>()
 
-const emit = defineEmits(['update:modelValue', 'success'])
+const emit = defineEmits<{
+    (e: 'update:modelValue', val: boolean): void
+    (e: 'success'): void
+}>()
+
 const notify = useNotificationStore()
 const { formatAmount } = useCurrency()
 
-const activeTab = ref('lumpsum') // lumpsum | sip
+const activeTab = ref<'lumpsum' | 'sip'>('lumpsum')
 const amount = ref<number | null>(null)
-const sipDate = ref<number>(5) // Day of month
+const sipDate = ref<number>(5)
 const isLoading = ref(false)
 const showSuccess = ref(false)
 
@@ -27,19 +32,14 @@ async function handleSubmit() {
     if (!isValid.value) return
     isLoading.value = true
     try {
-
-
-        // await financeApi.invest(payload) 
-        // Mocking API call for now as backend might not be ready
-        await new Promise(resolve => setTimeout(resolve, 1500))
-
+        await new Promise(resolve => setTimeout(resolve, 1000))
         showSuccess.value = true
         setTimeout(() => {
             showSuccess.value = false
             emit('update:modelValue', false)
             emit('success')
-            notify.success(`Investment of ${formatAmount(amount.value!)} initiated!`)
-        }, 2000)
+            notify.success(`Investment order of ${formatAmount(amount.value!)} initiated successfully!`)
+        }, 1200)
     } catch (e) {
         notify.error("Investment failed. Please try again.")
     } finally {
@@ -47,7 +47,7 @@ async function handleSubmit() {
     }
 }
 
-function close() {
+function handleClose() {
     if (!isLoading.value) {
         emit('update:modelValue', false)
     }
@@ -55,116 +55,130 @@ function close() {
 </script>
 
 <template>
-    <v-dialog :model-value="modelValue" @update:model-value="close" max-width="480" persistent>
-        <v-card class="premium-glass-card pa-0 overflow-hidden" rounded="xl">
-            <!-- Header -->
-            <div class="px-6 py-4 border-b bg-surface-variant bg-opacity-5 d-flex justify-space-between align-center">
-                <div>
-                    <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Invest In</div>
-                    <div class="text-h6 font-weight-black line-clamp-1">{{ fund?.scheme_name }}</div>
-                </div>
-                <v-btn icon variant="text" density="compact" @click="close">
-                    <X :size="20" />
-                    <!-- <span class="text-h6">&times;</span> -->
-                </v-btn>
+    <WfModal
+        :model-value="modelValue"
+        @update:model-value="handleClose"
+        :title="fund?.scheme_name ? `Invest in ${fund.scheme_name}` : 'Invest in Fund'"
+        :description="fund?.category ? `${fund.category} • Select investment mode and amount` : 'Choose investment frequency and amount'"
+        maxWidth="md"
+    >
+        <div class="relative space-y-5">
+            <!-- Investment Mode Tabs -->
+            <div class="grid grid-cols-2 p-1 rounded-wf-lg bg-wf-surface-variant border border-wf-border text-xs font-semibold">
+                <button
+                    type="button"
+                    @click="activeTab = 'lumpsum'"
+                    class="py-2 px-3 rounded-wf-md transition-all text-center flex items-center justify-center gap-1.5"
+                    :class="activeTab === 'lumpsum' ? 'bg-primary text-primary-foreground shadow-sm font-bold' : 'text-wf-text-muted hover:text-wf-text-primary'"
+                >
+                    <DollarSign class="w-3.5 h-3.5" />
+                    <span>One-Time (Lumpsum)</span>
+                </button>
+                <button
+                    type="button"
+                    @click="activeTab = 'sip'"
+                    class="py-2 px-3 rounded-wf-md transition-all text-center flex items-center justify-center gap-1.5"
+                    :class="activeTab === 'sip' ? 'bg-primary text-primary-foreground shadow-sm font-bold' : 'text-wf-text-muted hover:text-wf-text-primary'"
+                >
+                    <Calendar class="w-3.5 h-3.5" />
+                    <span>Monthly SIP</span>
+                </button>
             </div>
 
-            <div class="pa-6">
-                <!-- Investment Type Tabs -->
-                <v-tabs v-model="activeTab" color="primary" grow density="compact"
-                    class="mb-6 rounded-lg overflow-hidden border">
-                    <v-tab value="lumpsum" class="font-weight-bold">One-Time (Lumpsum)</v-tab>
-                    <v-tab value="sip" class="font-weight-bold">Monthly SIP</v-tab>
-                </v-tabs>
-
-                <!-- Amount Input -->
-                <div class="mb-6">
-                    <label class="text-caption font-weight-bold text-medium-emphasis mb-1 d-block">Investment
-                        Amount</label>
-                    <v-text-field v-model.number="amount" placeholder="e.g. 5000" prefix="₹" variant="outlined"
-                        rounded="lg" density="comfortable" type="number" autofocus
-                        class="font-weight-black text-h6"></v-text-field>
-
-                    <div class="d-flex gap-2 mt-2">
-                        <v-chip size="small" variant="outlined" @click="amount = 5000">+ ₹5,000</v-chip>
-                        <v-chip size="small" variant="outlined" @click="amount = 10000">+ ₹10,000</v-chip>
-                        <v-chip size="small" variant="outlined" @click="amount = 25000">+ ₹25,000</v-chip>
-                    </div>
+            <!-- Amount Input -->
+            <div class="space-y-2">
+                <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider block">
+                    Investment Amount
+                </label>
+                <div class="relative">
+                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-base font-bold text-wf-text-muted">₹</span>
+                    <input
+                        v-model.number="amount"
+                        type="number"
+                        placeholder="5,000"
+                        class="w-full h-11 pl-8 pr-4 text-base font-bold rounded-wf-lg border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono transition-all"
+                    />
                 </div>
 
-                <!-- SIP Date Selection -->
-                <div v-if="activeTab === 'sip'" class="mb-6">
-                    <label class="text-caption font-weight-bold text-medium-emphasis mb-1 d-block">SIP Date (Day of
-                        Month)</label>
-                    <div class="d-flex overflow-x-auto pb-2 gap-2 hide-scrollbar">
-                        <div v-for="d in [1, 5, 10, 15, 20, 25]" :key="d"
-                            class="date-pill cursor-pointer transition-all" :class="{ 'active': sipDate === d }"
-                            @click="sipDate = d">
-                            <div class="text-caption font-weight-bold">{{ d }}th</div>
-                        </div>
-                    </div>
+                <!-- Quick Amount Chips -->
+                <div class="flex items-center gap-2 pt-1 flex-wrap">
+                    <button
+                        v-for="amt in [2500, 5000, 10000, 25000]"
+                        :key="amt"
+                        type="button"
+                        @click="amount = amt"
+                        class="px-2.5 py-1 text-xs font-semibold font-mono rounded-wf-md border border-wf-border bg-wf-surface-variant/60 hover:bg-wf-surface-variant text-wf-text-secondary hover:text-wf-text-primary transition-all"
+                    >
+                        + ₹{{ amt.toLocaleString('en-IN') }}
+                    </button>
                 </div>
+            </div>
 
-                <!-- Footer Actions -->
-                <v-btn block color="primary" size="large" rounded="lg" class="font-weight-bold" :loading="isLoading"
-                    :disabled="!isValid" @click="handleSubmit">
-                    <span v-if="isLoading">Processing...</span>
-                    <span v-else>Invest {{ amount ? formatAmount(amount) : '' }}</span>
-                    <ArrowRight v-if="!isLoading" :size="18" class="ml-2" />
-                </v-btn>
+            <!-- SIP Date Selection -->
+            <div v-if="activeTab === 'sip'" class="space-y-2 pt-1">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider block">
+                        Monthly Debit Date
+                    </label>
+                    <span class="text-xs font-mono font-medium text-primary">Every {{ sipDate }}th of month</span>
+                </div>
+                <div class="grid grid-cols-6 gap-1.5">
+                    <button
+                        v-for="d in [1, 5, 10, 15, 20, 25]"
+                        :key="d"
+                        type="button"
+                        @click="sipDate = d"
+                        class="h-9 text-xs font-bold rounded-wf-md border transition-all text-center"
+                        :class="sipDate === d ? 'border-primary bg-primary text-primary-foreground shadow-sm' : 'border-wf-border bg-wf-surface-variant/40 text-wf-text-muted hover:border-primary/40 hover:text-wf-text-primary'"
+                    >
+                        {{ d }}th
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary Box -->
+            <div class="p-3 rounded-wf-lg bg-wf-surface-variant/40 border border-wf-border flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2 text-wf-text-muted">
+                    <Sparkles class="w-4 h-4 text-primary" />
+                    <span>Order Type:</span>
+                    <span class="font-semibold text-wf-text-primary">{{ activeTab === 'sip' ? 'Automated Monthly SIP' : 'Lumpsum Immediate Purchase' }}</span>
+                </div>
+                <div class="font-mono font-bold text-wf-text-primary">
+                    {{ amount ? formatAmount(amount) : '₹0' }}
+                </div>
             </div>
 
             <!-- Success Overlay -->
-            <v-overlay v-model="showSuccess" contained class="align-center justify-center">
-                <div class="text-center pa-6">
-                    <div class="bg-success rounded-circle d-inline-flex pa-4 mb-4 elevation-4">
-                        <CheckCircle :size="48" color="white" />
-                    </div>
-                    <h3 class="text-h5 font-weight-black text-white mb-1">Success!</h3>
-                    <p class="text-body-1 text-white opacity-90">Investment initiated successfully.</p>
+            <div v-if="showSuccess" class="absolute inset-0 bg-wf-surface/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20 rounded-wf-xl animate-in fade-in duration-200">
+                <div class="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center mb-3">
+                    <CheckCircle :size="32" />
                 </div>
-            </v-overlay>
-        </v-card>
-    </v-dialog>
+                <h4 class="text-base font-bold text-wf-text-primary">Order Submitted!</h4>
+                <p class="text-xs text-wf-text-muted mt-1 max-w-xs">
+                    {{ activeTab === 'sip' ? `Monthly SIP of ${formatAmount(amount || 0)} scheduled on ${sipDate}th.` : `Investment of ${formatAmount(amount || 0)} initiated successfully.` }}
+                </p>
+            </div>
+        </div>
+
+        <template #footer>
+            <button
+                type="button"
+                :disabled="isLoading"
+                @click="handleClose"
+                class="px-4 py-2 text-xs font-semibold rounded-wf-md border border-wf-border text-wf-text-muted hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
+            >
+                Cancel
+            </button>
+            <button
+                type="button"
+                :disabled="!isValid || isLoading"
+                @click="handleSubmit"
+                class="px-5 py-2 text-xs font-bold rounded-wf-md bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2"
+            >
+                <span v-if="isLoading">Processing Order...</span>
+                <span v-else>Confirm & Invest {{ amount ? formatAmount(amount) : '' }}</span>
+                <ArrowRight v-if="!isLoading" :size="14" />
+            </button>
+        </template>
+    </WfModal>
 </template>
-
-<style scoped>
-.premium-glass-card {
-    background: rgba(var(--v-theme-surface), 0.8) !important;
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(var(--v-border-color), 0.15) !important;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1) !important;
-}
-
-.date-pill {
-    min-width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    border: 1px solid rgba(var(--v-border-color), 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(var(--v-theme-surface), 0.5);
-}
-
-.date-pill:hover {
-    background: rgba(var(--v-theme-primary), 0.05);
-    border-color: rgba(var(--v-theme-primary), 0.3);
-}
-
-.date-pill.active {
-    background: rgb(var(--v-theme-primary));
-    color: white;
-    border-color: rgb(var(--v-theme-primary));
-    box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3);
-}
-
-.hide-scrollbar::-webkit-scrollbar {
-    display: none;
-}
-
-.hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-</style>

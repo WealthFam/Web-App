@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { Check, Info } from 'lucide-vue-next'
+import WfModal from '@/components/ui/WfModal.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -7,9 +9,11 @@ const props = defineProps<{
   loading?: boolean
 }>()
 
-const emit = defineEmits(['update:modelValue', 'save'])
+const emit = defineEmits<{
+  (e: 'update:modelValue', val: boolean): void
+  (e: 'save', payload: { id: string; data: any }): void
+}>()
 
-const isOpen = ref(props.modelValue)
 const formData = ref({
   date: '',
   type: 'BUY',
@@ -19,9 +23,7 @@ const formData = ref({
 })
 
 watch(() => props.modelValue, (val) => {
-  isOpen.value = val
   if (val && props.transaction) {
-    // Initialize form with transaction data
     formData.value = {
       date: props.transaction.date,
       type: props.transaction.type,
@@ -32,12 +34,8 @@ watch(() => props.modelValue, (val) => {
   }
 })
 
-watch(isOpen, (val) => {
-  emit('update:modelValue', val)
-})
-
 const close = () => {
-  isOpen.value = false
+  emit('update:modelValue', false)
 }
 
 const save = () => {
@@ -56,109 +54,106 @@ const isValid = computed(() => {
 </script>
 
 <template>
-  <v-dialog v-model="isOpen" max-width="500" persistent>
-    <v-card class="rounded-xl overflow-hidden glass-card border">
-      <v-card-title class="pa-6 pb-0 d-flex align-center">
-        <v-btn icon="mdi-close" variant="text" size="small" @click="close" class="mr-2"></v-btn>
-        <span class="text-h6 font-weight-bold">Edit Transaction</span>
-      </v-card-title>
+  <WfModal
+    :model-value="modelValue"
+    @update:model-value="close"
+    title="Edit Transaction Record"
+    description="Update historical purchase or sale data"
+    maxWidth="md"
+  >
+    <div class="space-y-4">
+      <form @submit.prevent="save" class="space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Date -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider block">Date</label>
+            <input
+              v-model="formData.date"
+              type="date"
+              class="w-full h-10 px-3 text-xs font-mono font-medium rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+          </div>
 
-      <v-card-text class="pa-6">
-        <v-form @submit.prevent="save">
-          <v-row dense>
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="formData.date"
-                label="Date"
-                type="date"
-                variant="outlined"
-                density="comfortable"
-                hide-details="auto"
-                class="mb-4"
-              ></v-text-field>
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-select
-                v-model="formData.type"
-                :items="['BUY', 'SELL']"
-                label="Type"
-                variant="outlined"
-                density="comfortable"
-                hide-details="auto"
-                class="mb-4"
-              ></v-select>
-            </v-col>
-            <v-col cols="12">
-              <v-text-field
-                v-model.number="formData.amount"
-                label="Total Amount (₹)"
-                type="number"
-                variant="outlined"
-                density="comfortable"
-                prefix="₹"
-                hide-details="auto"
-                class="mb-4"
-              ></v-text-field>
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model.number="formData.units"
-                label="Units"
-                type="number"
-                step="0.0001"
-                variant="outlined"
-                density="comfortable"
-                hide-details="auto"
-                class="mb-4"
-              ></v-text-field>
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model.number="formData.nav"
-                label="NAV"
-                type="number"
-                step="0.0001"
-                variant="outlined"
-                density="comfortable"
-                hide-details="auto"
-                class="mb-4"
-              ></v-text-field>
-            </v-col>
-          </v-row>
-        </v-form>
+          <!-- Type -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider block">Type</label>
+            <select
+              v-model="formData.type"
+              class="w-full h-10 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            >
+              <option value="BUY">BUY (Purchase)</option>
+              <option value="SELL">SELL (Redemption)</option>
+            </select>
+          </div>
+        </div>
 
-        <v-alert
-          type="info"
-          variant="tonal"
-          class="mt-4 rounded-lg text-caption"
-          density="compact"
-        >
-          Updating this transaction will trigger a recalculation of your entire holding balance and P/L history for this fund.
-        </v-alert>
-      </v-card-text>
+        <!-- Total Amount -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider block">Total Amount (₹)</label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-wf-text-muted">₹</span>
+            <input
+              v-model.number="formData.amount"
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              class="w-full h-10 pl-7 pr-3 text-sm font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+          </div>
+        </div>
 
-      <v-divider></v-divider>
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Units -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider block">Units</label>
+            <input
+              v-model.number="formData.units"
+              type="number"
+              step="0.0001"
+              placeholder="0.0000"
+              class="w-full h-10 px-3 text-xs font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+          </div>
 
-      <v-card-actions class="pa-6 pt-4">
-        <v-spacer></v-spacer>
-        <v-btn
-          color="primary"
-          variant="flat"
-          class="text-none font-weight-bold px-10 rounded-lg elevation-2"
-          :loading="loading"
-          :disabled="!isValid"
-          @click="save"
-        >
-          Save Changes
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+          <!-- NAV -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider block">Executed NAV (₹)</label>
+            <input
+              v-model.number="formData.nav"
+              type="number"
+              step="0.0001"
+              placeholder="0.0000"
+              class="w-full h-10 px-3 text-xs font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+          </div>
+        </div>
+      </form>
+
+      <!-- Recalculation Note -->
+      <div class="p-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border flex items-start gap-2 text-xs text-wf-text-muted">
+        <Info class="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+        <span>Updating this transaction recalculates holding balance, unit totals, and historic portfolio timeline.</span>
+      </div>
+    </div>
+
+    <template #footer>
+      <button
+        type="button"
+        :disabled="loading"
+        @click="close"
+        class="px-4 py-2 text-xs font-semibold rounded-wf-md border border-wf-border text-wf-text-muted hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        :disabled="!isValid || loading"
+        @click="save"
+        class="px-5 py-2 text-xs font-bold rounded-wf-md bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-1.5"
+      >
+        <Check :size="14" />
+        <span>{{ loading ? 'Saving...' : 'Save Changes' }}</span>
+      </button>
+    </template>
+  </WfModal>
 </template>
-
-<style scoped>
-.glass-card {
-  background: rgba(var(--v-theme-surface), 0.95) !important;
-  backdrop-filter: blur(20px);
-}
-</style>

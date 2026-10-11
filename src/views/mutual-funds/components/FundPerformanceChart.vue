@@ -4,7 +4,7 @@
       <!-- Grid lines -->
       <g class="grid">
         <line v-for="i in 5" :key="`h-${i}`" :x1="padding.left" :y1="padding.top + (chartHeight / 4) * (i - 1)"
-          :x2="width - padding.right" :y2="padding.top + (chartHeight / 4) * (i - 1)" stroke="currentColor"
+          :x2="padding.left + chartWidth" :y2="padding.top + (chartHeight / 4) * (i - 1)" stroke="currentColor"
           stroke-width="1" class="chart-grid-line" />
       </g>
 
@@ -25,28 +25,28 @@
       <path v-if="paths.area" :d="paths.area" fill="url(#valueGradient)" stroke="none" class="animate-fade-in" />
 
       <!-- Value line (smooth) -->
-      <path v-if="paths.value" :d="paths.value" fill="none" stroke="#3b82f6" stroke-width="3"
+      <path v-if="paths.value" :d="paths.value" fill="none" stroke="#3b82f6" stroke-width="2.5"
         stroke-linecap="round" stroke-linejoin="round" class="chart-line-value" filter="url(#glow)" />
 
       <!-- Invested line (smooth dashed) -->
       <path v-if="paths.invested" :d="paths.invested" fill="none" stroke="#94a3b8" stroke-width="1"
-        stroke-dasharray="6,4" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;" />
+        stroke-dasharray="5,4" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.55;" />
 
-            <!-- Benchmark lines (dynamic) -->
+      <!-- Benchmark lines (dynamic) -->
       <path v-for="(bm, idx) in benchmarkPaths" :key="`bm-${idx}`"
         :d="bm.path" fill="none" :stroke="bm.styling?.color || '#94a3b8'" :stroke-width="1.5"
         :stroke-dasharray="bm.styling?.dashArray" stroke-linecap="round" stroke-linejoin="round"
-        style="opacity: 0.6;" />
+        style="opacity: 0.65;" />
 
       <!-- Vertical Tracking Line -->
       <line v-if="hoveredIndex !== null" :x1="padding.left + xScale(hoveredIndex)" :y1="padding.top"
-        :x2="padding.left + xScale(hoveredIndex)" :y2="height - padding.bottom" 
+        :x2="padding.left + xScale(hoveredIndex)" :y2="padding.top + chartHeight" 
         stroke="rgba(var(--v-theme-primary), 0.3)" stroke-width="1" stroke-dasharray="4,4" />
 
       <!-- Data points (visible circles on hover) -->
-      <g v-if="hoveredIndex !== null" class="data-points">
+      <g v-if="hoveredIndex !== null && data[hoveredIndex]" class="data-points">
         <circle :cx="padding.left + xScale(hoveredIndex)" :cy="padding.top + yScale(data[hoveredIndex].value)"
-          r="6" fill="#3b82f6" stroke="white" stroke-width="2" pointer-events="none" />
+          r="5" fill="#3b82f6" stroke="white" stroke-width="2" pointer-events="none" />
       </g>
 
       <!-- Premium Transaction Markers -->
@@ -55,10 +55,10 @@
            class="marker-group" :class="{ 'marker-buy': marker.type !== 'SELL', 'marker-sell': marker.type === 'SELL' }">
           
           <!-- Outer Pulse Effect -->
-          <circle :cx="marker.x" :cy="marker.y" :r="12" class="marker-pulse" />
+          <circle :cx="marker.x" :cy="marker.y" :r="10" class="marker-pulse" />
           
           <!-- Main Dot -->
-          <circle :cx="marker.x" :cy="marker.y" :r="9" class="marker-base" />
+          <circle :cx="marker.x" :cy="marker.y" :r="7.5" class="marker-base" />
           
           <!-- Arrow Icon (Up for Buy, Down for Sell) -->
           <g transform="translate(-4, -4)" pointer-events="none">
@@ -76,23 +76,25 @@
 
       <!-- Y-axis labels -->
       <g class="y-axis-labels">
-        <text v-for="(label, i) in yAxisLabels" :key="`y-${i}`" :x="padding.left - 12"
-          :y="padding.top + (chartHeight / 4) * i + 4" text-anchor="end" class="axis-label">
+        <text v-for="(label, i) in yAxisLabels" :key="`y-${i}`" :x="padding.left - 8"
+          :y="padding.top + (chartHeight / 4) * i + 3" text-anchor="end" class="axis-label">
           {{ label }}
         </text>
       </g>
 
-      <!-- X-axis labels -->
+      <!-- X-axis labels (Clamped to avoid horizontal overflow) -->
       <g class="x-axis-labels">
-        <text v-for="(label, i) in xAxisLabels" :key="`x-${i}`"
-          :x="xAxisLabels.length > 1 ? padding.left + (chartWidth / (xAxisLabels.length - 1)) * i : padding.left + chartWidth / 2"
-          :y="height - padding.bottom + 24" text-anchor="middle" class="axis-label">
-          {{ label }}
+        <text v-for="(item, i) in xAxisPoints" :key="`x-${i}`"
+          :x="item.x"
+          :y="padding.top + chartHeight + 20"
+          :text-anchor="item.anchor"
+          class="axis-label">
+          {{ item.label }}
         </text>
       </g>
     </svg>
 
-    <!-- Legend -->
+    <!-- Legend with wrapping and bounded height -->
     <div v-if="!hideLegend" class="chart-legend">
       <div class="legend-item" @click="$emit('toggle-invested')">
         <div class="legend-dot" style="background: #3b82f6;"></div>
@@ -102,7 +104,7 @@
         <div class="legend-dot dashed" style="background: #94a3b8;"></div>
         <span>{{ props.investedLabel || 'Invested' }}</span>
       </div>
-      <div v-if="benchmarkDataList.length > 0" v-for="(bm, idx) in benchmarkDataList" :key="`leg-bm-${idx}`" 
+      <div v-for="(bm, idx) in benchmarkDataList" :key="`leg-bm-${idx}`" 
         class="legend-item pointer" @click="$emit('toggle-benchmark', bm.symbol)">
         <div class="legend-dot" :style="{ 
           background: bm.styling?.color || '#f59e0b',
@@ -114,7 +116,7 @@
       </div>
     </div>
 
-    <!-- Enhanced Tooltip -->
+    <!-- Tooltip -->
     <div v-if="tooltip.visible" class="chart-tooltip" 
       :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px', transform: tooltip.flipped ? 'translateX(-100%)' : 'none' }">
       <div class="tooltip-header">
@@ -133,7 +135,7 @@
           <span class="stat-label">Invested</span>
           <span class="stat-value">{{ formatAmount(tooltip.invested) }}</span>
         </div>
-                <div class="tooltip-divider"></div>
+        <div class="tooltip-divider"></div>
         <div class="tooltip-stat pnl" :class="tooltip.gain >= 0 ? 'positive' : 'negative'">
           <span class="stat-label">P&L</span>
           <span class="stat-value font-weight-black">
@@ -175,15 +177,15 @@ const props = defineProps<{
   investedLabel?: string
 }>()
 
-const emit = defineEmits(['toggle-benchmark', 'toggle-invested'])
+defineEmits(['toggle-benchmark', 'toggle-invested'])
 
 const container = ref<HTMLElement | null>(null)
 const width = ref(800)
-const height = props.height || 300
-const padding = { top: 20, right: 30, bottom: 40, left: 65 }
+const height = props.height || 260
+const padding = { top: 16, right: 24, bottom: 28, left: 68 }
 
-const chartWidth = computed(() => width.value - padding.left - padding.right)
-const chartHeight = height - padding.top - padding.bottom
+const chartWidth = computed(() => Math.max(10, width.value - padding.left - padding.right))
+const chartHeight = Math.max(10, height - padding.top - padding.bottom)
 
 const hoveredIndex = ref<number | null>(null)
 const tooltip = ref({
@@ -203,9 +205,11 @@ const tooltip = ref({
 let resizeObserver: ResizeObserver | null = null
 onMounted(() => {
   if (container.value) {
-    width.value = container.value.clientWidth
+    width.value = container.value.clientWidth || 800
     resizeObserver = new ResizeObserver(entries => {
-      if (entries[0]) width.value = entries[0].contentRect.width
+      if (entries[0] && entries[0].contentRect.width > 0) {
+        width.value = Math.floor(entries[0].contentRect.width)
+      }
     })
     resizeObserver.observe(container.value)
   }
@@ -215,22 +219,57 @@ onUnmounted(() => {
   resizeObserver?.disconnect()
 })
 
-// Scales
-const maxValue = computed(() => {
-  if (!props.data || props.data.length === 0) return 100
-  let max = Math.max(...props.data.map(d => Math.max(d.value, d.invested)))
-  if (props.benchmark?.length) {
-    max = Math.max(max, ...props.benchmark.map(b => b.value))
+const benchmarkDataList = computed(() => {
+  const list = []
+  if (props.benchmarks?.length) {
+    list.push(...props.benchmarks)
+  } else if (props.benchmark?.length) {
+    list.push({
+      label: 'Nifty 50',
+      symbol: 'LEGACY',
+      data: props.benchmark,
+      styling: { color: '#f59e0b', style: 'dotted', dashArray: '2,3' }
+    })
   }
-  return max * 1.05 // 5% padding top
+  return list
+})
+
+// Comprehensive collection of all rendered series values to ensure proper scaling
+const allValues = computed(() => {
+  const vals: number[] = []
+  if (props.data?.length) {
+    props.data.forEach(d => {
+      if (typeof d.value === 'number' && !isNaN(d.value)) vals.push(d.value)
+      if (typeof d.invested === 'number' && !isNaN(d.invested)) vals.push(d.invested)
+    })
+  }
+  if (props.benchmark?.length) {
+    props.benchmark.forEach(b => {
+      if (typeof b.value === 'number' && !isNaN(b.value)) vals.push(b.value)
+    })
+  }
+  if (benchmarkDataList.value.length) {
+    benchmarkDataList.value.forEach(bm => {
+      if (bm.data?.length) {
+        bm.data.forEach((b: any) => {
+          if (typeof b.value === 'number' && !isNaN(b.value)) vals.push(b.value)
+        })
+      }
+    })
+  }
+  return vals
+})
+
+const maxValue = computed(() => {
+  if (!allValues.value.length) return 100
+  const max = Math.max(...allValues.value)
+  return max > 0 ? max * 1.05 : 100
 })
 
 const minValue = computed(() => {
-  if (props.yMin === 'auto' && props.data?.length) {
-    let min = Math.min(...props.data.map(d => Math.min(d.value, d.invested)))
-    if (props.benchmark?.length) {
-      min = Math.min(min, ...props.benchmark.map(b => b.value))
-    }
+  if (!allValues.value.length) return 0
+  if (props.yMin === 'auto') {
+    const min = Math.min(...allValues.value)
     return Math.max(0, min * 0.95)
   }
   return 0
@@ -238,18 +277,32 @@ const minValue = computed(() => {
 
 const yScale = (value: number) => {
   const range = maxValue.value - minValue.value
-  return chartHeight - ((value - minValue.value) / (range || 1)) * chartHeight
+  const normalized = Math.max(minValue.value, Math.min(maxValue.value, value))
+  const y = chartHeight - ((normalized - minValue.value) / (range || 1)) * chartHeight
+  return Math.max(0, Math.min(chartHeight, y))
 }
 
 const xScale = (index: number) => {
   if (props.data.length <= 1) return chartWidth.value / 2
-  return (index / (props.data.length - 1)) * chartWidth.value
+  const ratio = Math.max(0, Math.min(1, index / (props.data.length - 1)))
+  return ratio * chartWidth.value
 }
+
+// Map dates for robust benchmark alignment
+const dateIndexMap = computed(() => {
+  const map = new Map<string, number>()
+  props.data.forEach((d, i) => {
+    if (d.date) {
+      map.set(d.date.substring(0, 10), i)
+    }
+  })
+  return map
+})
 
 // Path Generation with Bezier Smoothing
 const getPathData = (points: { x: number; y: number }[]) => {
   if (points.length < 2) return ''
-  let path = `M ${points[0].x},${points[0].y}`
+  let path = `M ${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`
   const smoothing = 0.15
   
   for (let i = 0; i < points.length - 1; i++) {
@@ -263,7 +316,7 @@ const getPathData = (points: { x: number; y: number }[]) => {
     const cp2x = next.x - (later.x - curr.x) * smoothing
     const cp2y = next.y - (later.y - curr.y) * smoothing
     
-    path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${next.x},${next.y}`
+    path += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${next.x.toFixed(1)},${next.y.toFixed(1)}`
   }
   return path
 }
@@ -286,34 +339,31 @@ const paths = computed(() => {
 
   let aPath = ''
   if (vPoints.length) {
-    aPath = `${vPath} L ${vPoints[vPoints.length - 1].x},${height - padding.bottom} L ${padding.left},${height - padding.bottom} Z`
+    const bottomY = padding.top + chartHeight
+    aPath = `${vPath} L ${vPoints[vPoints.length - 1].x.toFixed(1)},${bottomY} L ${padding.left},${bottomY} Z`
   }
 
-    return { value: vPath, invested: iPath, area: aPath }
-})
-
-const benchmarkDataList = computed(() => {
-  const list = []
-  if (props.benchmarks?.length) {
-    list.push(...props.benchmarks)
-  } else if (props.benchmark?.length) {
-    list.push({
-      label: 'Nifty 50',
-      symbol: 'LEGACY',
-      data: props.benchmark,
-      styling: { color: '#f59e0b', style: 'dotted', dashArray: '2,3' }
-    })
-  }
-  return list
+  return { value: vPath, invested: iPath, area: aPath }
 })
 
 const benchmarkPaths = computed(() => {
+  if (!props.data.length) return []
   return benchmarkDataList.value.map(bm => {
-    if (!bm.data.length) return { path: "", styling: bm.styling }
-    const bPoints = bm.data.map((b, i) => ({
-      x: padding.left + xScale(i),
-      y: padding.top + yScale(b.value)
-    }))
+    if (!bm.data || !bm.data.length) return { path: '', styling: bm.styling }
+    
+    const bPoints = bm.data.map((b, i) => {
+      let xPos = padding.left + xScale(i)
+      const bDate = b.date?.substring(0, 10)
+      if (bDate && dateIndexMap.value.has(bDate)) {
+        xPos = padding.left + xScale(dateIndexMap.value.get(bDate)!)
+      } else if (bm.data.length !== props.data.length && bm.data.length > 1) {
+        xPos = padding.left + (i / (bm.data.length - 1)) * chartWidth.value
+      }
+      xPos = Math.max(padding.left, Math.min(padding.left + chartWidth.value, xPos))
+      const yPos = padding.top + yScale(b.value)
+      return { x: xPos, y: yPos }
+    })
+
     return {
       label: bm.label,
       path: getPathData(bPoints),
@@ -343,6 +393,7 @@ const handleMouseLeave = () => {
 
 const updateTooltip = (index: number, e: MouseEvent, rect: DOMRect) => {
   const d = props.data[index]
+  if (!d) return
   const tx = props.markers?.find(m => m.date.substring(0, 10) === d.date.substring(0, 10))
   
   let txX = e.clientX - rect.left + 20
@@ -355,7 +406,7 @@ const updateTooltip = (index: number, e: MouseEvent, rect: DOMRect) => {
   tooltip.value = {
     visible: true,
     x: txX,
-    y: e.clientY - rect.top - 80,
+    y: Math.max(10, e.clientY - rect.top - 80),
     flipped,
     date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     value: d.value,
@@ -379,22 +430,34 @@ const yAxisLabels = computed(() => {
   return Array.from({ length: 5 }, (_, i) => formatAmount(maxValue.value - (range / 4) * i))
 })
 
-const xAxisLabels = computed(() => {
-  if (props.data.length < 2) return []
-  const step = Math.ceil(props.data.length / 5)
-  return props.data.map((d, i) => {
-    if (i === 0 || i === props.data.length - 1 || i % step === 0) {
-      const date = new Date(d.date)
-      return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+const xAxisPoints = computed(() => {
+  if (!props.data || props.data.length < 2) return []
+  const count = Math.min(5, props.data.length)
+  const indices: number[] = [0]
+  const step = (props.data.length - 1) / (count - 1)
+  for (let i = 1; i < count - 1; i++) {
+    indices.push(Math.round(i * step))
+  }
+  indices.push(props.data.length - 1)
+
+  return indices.map((idx, pos) => {
+    const d = props.data[idx]
+    const date = new Date(d.date)
+    let anchor: 'start' | 'middle' | 'end' = 'middle'
+    if (pos === 0) anchor = 'start'
+    else if (pos === indices.length - 1) anchor = 'end'
+
+    return {
+      label: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+      x: padding.left + xScale(idx),
+      anchor
     }
-    return ''
   })
 })
 
 const markerPoints = computed(() => {
   if (!props.markers || !props.data.length) return []
   return props.markers.map(m => {
-    // Robust date matching (normalize to YYYY-MM-DD)
     const mDate = m.date.substring(0, 10)
     const idx = props.data.findIndex(d => d.date.substring(0, 10) === mDate)
     if (idx === -1) return null
@@ -406,45 +469,42 @@ const markerPoints = computed(() => {
     }
   }).filter(Boolean) as any[]
 })
+
 const isBenchmarkVisible = (symbol: string) => {
-  // If we are getting the filtered list, and current bm is in it, it's visible.
-  // This helper is mainly for the legend styling.
   return benchmarkDataList.value.some(b => b.symbol === symbol)
 }
-
-
-
 </script>
 
 <style scoped>
 .line-chart-container {
   position: relative;
   width: 100%;
-  height: 100%;
-  padding-bottom: 20px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 svg {
   display: block;
-  overflow: visible;
+  width: 100%;
+  overflow: hidden;
 }
 
 .chart-grid-line {
-  color: rgba(var(--v-theme-on-surface), 0.05);
+  color: rgba(var(--v-theme-on-surface), 0.06);
 }
 
 .axis-label {
   font-size: 10px;
   fill: currentColor;
-  opacity: 0.4;
+  opacity: 0.45;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .chart-line-value {
   stroke-dasharray: 2000;
   stroke-dashoffset: 2000;
-  animation: draw 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: draw 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes draw {
@@ -452,7 +512,7 @@ svg {
 }
 
 .animate-fade-in {
-  animation: fadeIn 1.5s ease-out;
+  animation: fadeIn 1.2s ease-out;
 }
 
 @keyframes fadeIn {
@@ -462,20 +522,28 @@ svg {
 
 .chart-legend {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 1.5rem;
-  margin-top: 1rem;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  padding: 0 0.5rem;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 11px;
+  gap: 0.375rem;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  opacity: 0.6;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.legend-item:hover {
+  opacity: 1;
 }
 
 .legend-dot {
@@ -489,15 +557,15 @@ svg {
 
 .chart-tooltip {
   position: absolute;
-  background: rgba(var(--v-theme-surface), 0.9);
+  background: rgba(var(--v-theme-surface), 0.95);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(var(--v-border-color), 0.15);
-  border-radius: 16px;
-  padding: 1rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 0.75rem;
+  box-shadow: 0 16px 24px -4px rgba(0, 0, 0, 0.2);
   pointer-events: none;
   z-index: 100;
-  min-width: 200px;
+  min-width: 190px;
   transition: opacity 0.15s ease, transform 0.1s ease;
 }
 
@@ -505,11 +573,11 @@ svg {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .tooltip-date {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 800;
   opacity: 0.5;
   text-transform: uppercase;
@@ -518,8 +586,8 @@ svg {
 .transaction-badge {
   font-size: 9px;
   font-weight: 900;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
   background: rgba(var(--v-theme-primary), 0.1);
   color: rgb(var(--v-theme-primary));
 }
@@ -530,24 +598,24 @@ svg {
 .tooltip-stat {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   opacity: 0.6;
 }
 
 .stat-value {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 
 .tooltip-divider {
   height: 1px;
   background: rgba(var(--v-border-color), 0.1);
-  margin: 0.5rem 0;
+  margin: 0.35rem 0;
 }
 
 .pnl.positive .stat-value { color: #10b981; }

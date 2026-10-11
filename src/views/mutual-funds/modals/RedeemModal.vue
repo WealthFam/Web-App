@@ -1,39 +1,46 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useNotificationStore } from '@/stores/notification'
-import { CheckCircle } from 'lucide-vue-next'
+import { CheckCircle, ArrowRight, Wallet, ArrowDownRight } from 'lucide-vue-next'
 import { useCurrency } from '@/composables/useCurrency'
+import WfModal from '@/components/ui/WfModal.vue'
 
 const props = defineProps<{
     modelValue: boolean
-    holding: any // Contains units, current_value, last_nav
+    holding: any
 }>()
 
-const emit = defineEmits(['update:modelValue', 'success'])
+const emit = defineEmits<{
+    (e: 'update:modelValue', val: boolean): void
+    (e: 'success'): void
+}>()
+
 const notify = useNotificationStore()
 const { formatAmount } = useCurrency()
 
-const activeTab = ref('amount') // amount | units
+const activeTab = ref<'amount' | 'units'>('amount')
 const inputValue = ref<number | null>(null)
 const isLoading = ref(false)
 const showSuccess = ref(false)
 
-// Formatting
-const estimatedValue = computed(() => {
-    if (!inputValue.value || !props.holding) return 0
-    if (activeTab.value === 'units') {
-        return inputValue.value * (Number(props.holding.last_nav) || 0)
-    } else {
-        return inputValue.value / (Number(props.holding.last_nav) || 1)
-    }
+const estimatedUnits = computed(() => {
+    if (!inputValue.value || !props.holding?.last_nav) return 0
+    if (activeTab.value === 'units') return inputValue.value
+    return inputValue.value / Number(props.holding.last_nav)
+})
+
+const estimatedAmount = computed(() => {
+    if (!inputValue.value || !props.holding?.last_nav) return 0
+    if (activeTab.value === 'amount') return inputValue.value
+    return inputValue.value * Number(props.holding.last_nav)
 })
 
 const isValid = computed(() => {
     if (!inputValue.value || inputValue.value <= 0) return false
     if (activeTab.value === 'units') {
-        return inputValue.value <= props.holding.units
+        return inputValue.value <= (props.holding?.units || 0)
     } else {
-        return inputValue.value <= props.holding.current_value
+        return inputValue.value <= (props.holding?.current_value || 0)
     }
 })
 
@@ -41,18 +48,14 @@ async function handleSubmit() {
     if (!isValid.value) return
     isLoading.value = true
     try {
-
-
-        // await financeApi.redeem(payload)
-        await new Promise(resolve => setTimeout(resolve, 1500))
-
+        await new Promise(resolve => setTimeout(resolve, 1000))
         showSuccess.value = true
         setTimeout(() => {
             showSuccess.value = false
             emit('update:modelValue', false)
             emit('success')
             notify.success("Redemption request placed successfully!")
-        }, 2000)
+        }, 1200)
     } catch (e) {
         notify.error("Redemption failed. Please try again.")
     } finally {
@@ -60,113 +63,139 @@ async function handleSubmit() {
     }
 }
 
-function close() {
+function handleClose() {
     if (!isLoading.value) emit('update:modelValue', false)
 }
 
 function setMax() {
     if (activeTab.value === 'units') {
-        inputValue.value = props.holding.units
+        inputValue.value = props.holding?.units || 0
     } else {
-        inputValue.value = props.holding.current_value
+        inputValue.value = props.holding?.current_value || 0
     }
 }
 </script>
 
 <template>
-    <v-dialog :model-value="modelValue" @update:model-value="close" max-width="480" persistent>
-        <v-card class="premium-glass-card pa-0 overflow-hidden" rounded="xl">
-            <!-- Header -->
-            <div class="px-6 py-4 border-b bg-surface-variant bg-opacity-5 d-flex justify-space-between align-center">
+    <WfModal
+        :model-value="modelValue"
+        @update:model-value="handleClose"
+        :title="holding?.scheme_name ? `Redeem from ${holding.scheme_name}` : 'Redeem Holding'"
+        description="Withdraw invested capital to your designated payout account"
+        maxWidth="md"
+    >
+        <div class="relative space-y-4">
+            <!-- Available Holdings Summary Tile -->
+            <div class="p-3.5 rounded-wf-lg bg-wf-surface-variant/40 border border-wf-border grid grid-cols-2 gap-3">
                 <div>
-                    <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Redeem From</div>
-                    <div class="text-h6 font-weight-black line-clamp-1">{{ holding?.scheme_name }}</div>
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted flex items-center gap-1.5 mb-1">
+                        <Wallet class="w-3.5 h-3.5 text-primary" />
+                        <span>Available Units</span>
+                    </div>
+                    <div class="font-mono font-bold text-sm text-wf-text-primary">
+                        {{ Number(holding?.units || 0).toFixed(3) }}
+                    </div>
                 </div>
-                <v-btn icon variant="text" density="compact" @click="close">
-                    <span class="text-h6">&times;</span>
-                </v-btn>
+                <div class="text-right">
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted mb-1">
+                        Current Value
+                    </div>
+                    <div class="font-mono font-bold text-sm text-primary">
+                        {{ formatAmount(holding?.current_value) }}
+                    </div>
+                </div>
             </div>
 
-            <div class="pa-6">
-                <!-- Available Balance -->
-                <div
-                    class="mb-6 p-4 rounded-lg bg-surface-variant bg-opacity-10 d-flex justify-space-between align-center">
-                    <div>
-                        <div class="text-caption font-weight-bold text-medium-emphasis">Available Units</div>
-                        <div class="text-body-1 font-weight-black">{{ holding?.units?.toFixed(3) }}</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-caption font-weight-bold text-medium-emphasis">Current Value</div>
-                        <div class="text-body-1 font-weight-black">{{ formatAmount(holding?.current_value) }}</div>
-                    </div>
-                </div>
+            <!-- Mode Switcher -->
+            <div class="grid grid-cols-2 p-1 rounded-wf-lg bg-wf-surface-variant border border-wf-border text-xs font-semibold">
+                <button
+                    type="button"
+                    @click="activeTab = 'amount'"
+                    class="py-2 px-3 rounded-wf-md transition-all text-center"
+                    :class="activeTab === 'amount' ? 'bg-primary text-primary-foreground shadow-sm font-bold' : 'text-wf-text-muted hover:text-wf-text-primary'"
+                >
+                    Redeem by Amount (₹)
+                </button>
+                <button
+                    type="button"
+                    @click="activeTab = 'units'"
+                    class="py-2 px-3 rounded-wf-md transition-all text-center"
+                    :class="activeTab === 'units' ? 'bg-primary text-primary-foreground shadow-sm font-bold' : 'text-wf-text-muted hover:text-wf-text-primary'"
+                >
+                    Redeem by Units
+                </button>
+            </div>
 
-                <!-- Type Toggle -->
-                <v-btn-toggle v-model="activeTab" mandatory rounded="lg" color="primary" class="w-100 mb-6 border"
-                    density="compact">
-                    <v-btn value="amount" class="flex-1 font-weight-bold">By Amount</v-btn>
-                    <v-btn value="units" class="flex-1 font-weight-bold">By Units</v-btn>
-                </v-btn-toggle>
-
-                <!-- Input -->
-                <div class="mb-2">
-                    <label class="text-caption font-weight-bold text-medium-emphasis mb-1 d-block">
-                        {{ activeTab === 'amount' ? 'Amount to Redeem' : 'Units to Redeem' }}
+            <!-- Input Container with MAX Button -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider block">
+                        {{ activeTab === 'amount' ? 'Redemption Amount' : 'Redemption Units' }}
                     </label>
-                    <v-text-field v-model.number="inputValue" :prefix="activeTab === 'amount' ? '₹' : ''"
-                        :suffix="activeTab === 'units' ? 'Units' : ''" variant="outlined" rounded="lg"
-                        density="comfortable" type="number" autofocus class="font-weight-black text-h6"
-                        :error-messages="!isValid && inputValue ? 'Insufficient balance' : ''">
-                        <template v-slot:append-inner>
-                            <v-btn size="small" variant="text" color="primary" class="font-weight-bold px-0"
-                                @click="setMax">Max</v-btn>
-                        </template>
-                    </v-text-field>
+                    <button
+                        type="button"
+                        @click="setMax"
+                        class="text-[11px] font-bold text-primary hover:underline transition-all"
+                    >
+                        Redeem All (MAX)
+                    </button>
                 </div>
 
-                <!-- Estimation -->
-                <div class="mb-6 text-center text-caption font-weight-medium text-medium-emphasis" v-if="inputValue">
-                    <span v-if="activeTab === 'amount'">Unknown Units (approx {{ estimatedValue.toFixed(3) }}
-                        units)</span>
-                    <span v-else>Approx Value: {{ formatAmount(estimatedValue) }}</span>
-                    <div class="mt-1 opacity-70">Based on latest NAV: {{ holding?.last_nav }}</div>
+                <div class="relative">
+                    <span v-if="activeTab === 'amount'" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-base font-bold text-wf-text-muted">₹</span>
+                    <input
+                        v-model.number="inputValue"
+                        type="number"
+                        :step="activeTab === 'units' ? '0.001' : '100'"
+                        :placeholder="activeTab === 'amount' ? 'Enter amount' : 'Enter units'"
+                        class="w-full h-11 text-base font-bold rounded-wf-lg border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono transition-all"
+                        :class="activeTab === 'amount' ? 'pl-8 pr-4' : 'px-4'"
+                    />
                 </div>
+            </div>
 
-                <v-alert v-if="holding?.lock_in_period" type="warning" variant="tonal" density="compact"
-                    class="mb-6 text-caption">
-                    Some units might be in lock-in period. Oldest units will be redeemed first.
-                </v-alert>
-
-                <!-- Footer Actions -->
-                <v-btn block color="error" size="large" rounded="lg" class="font-weight-bold" :loading="isLoading"
-                    :disabled="!isValid" @click="handleSubmit">
-                    Redeem {{ activeTab === 'amount' && inputValue ? formatAmount(inputValue) : '' }}
-                </v-btn>
+            <!-- Conversion Projection Card -->
+            <div class="p-3 rounded-wf-lg bg-wf-surface-variant/30 border border-wf-border flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2 text-wf-text-muted">
+                    <ArrowDownRight class="w-4 h-4 text-primary" />
+                    <span>Estimated {{ activeTab === 'amount' ? 'Units Deducted:' : 'Cash Value:' }}</span>
+                </div>
+                <div class="font-mono font-bold text-wf-text-primary">
+                    {{ activeTab === 'amount' ? `${estimatedUnits.toFixed(3)} units` : formatAmount(estimatedAmount) }}
+                </div>
             </div>
 
             <!-- Success Overlay -->
-            <v-overlay v-model="showSuccess" contained class="align-center justify-center">
-                <div class="text-center pa-6">
-                    <div class="bg-success rounded-circle d-inline-flex pa-4 mb-4 elevation-4">
-                        <CheckCircle :size="48" color="white" />
-                    </div>
-                    <h3 class="text-h5 font-weight-black text-white mb-1">Redemption Placed!</h3>
-                    <p class="text-body-1 text-white opacity-90">Amount will credit in 3-4 working days.</p>
+            <div v-if="showSuccess" class="absolute inset-0 bg-wf-surface/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20 rounded-wf-xl animate-in fade-in duration-200">
+                <div class="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center mb-3">
+                    <CheckCircle :size="32" />
                 </div>
-            </v-overlay>
-        </v-card>
-    </v-dialog>
+                <h4 class="text-base font-bold text-wf-text-primary">Redemption Submitted!</h4>
+                <p class="text-xs text-wf-text-muted mt-1 max-w-xs">
+                    Redemption request initiated. Proceeds will be credited per fund AMC turnaround time.
+                </p>
+            </div>
+        </div>
+
+        <template #footer>
+            <button
+                type="button"
+                :disabled="isLoading"
+                @click="handleClose"
+                class="px-4 py-2 text-xs font-semibold rounded-wf-md border border-wf-border text-wf-text-muted hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
+            >
+                Cancel
+            </button>
+            <button
+                type="button"
+                :disabled="!isValid || isLoading"
+                @click="handleSubmit"
+                class="px-5 py-2 text-xs font-bold rounded-wf-md bg-rose-600 text-white shadow-sm hover:bg-rose-700 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2"
+            >
+                <span v-if="isLoading">Processing...</span>
+                <span v-else>Confirm Redemption</span>
+                <ArrowRight v-if="!isLoading" :size="14" />
+            </button>
+        </template>
+    </WfModal>
 </template>
-
-<style scoped>
-.premium-glass-card {
-    background: rgba(var(--v-theme-surface), 0.8) !important;
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(var(--v-border-color), 0.15) !important;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1) !important;
-}
-
-.flex-1 {
-    flex: 1;
-}
-</style>

@@ -8,6 +8,7 @@ import { useMutualFundStore } from '@/stores/finance/mutualFunds'
 import { useNotificationStore } from '@/stores/notification'
 import FundPerformanceChart from './mutual-funds/components/FundPerformanceChart.vue'
 import InvestModal from './mutual-funds/modals/InvestModal.vue'
+import WfCard from '@/components/ui/WfCard.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -41,9 +42,7 @@ async function recalculateTrends() {
     isRecalculating.value = true
     try {
         notify.info("Synchronizing NAV history from architecture...")
-        // Trigger NAV fetch for this fund via store
         await mfStore.recalculateFundTrends(schemeCode)
-        // Refresh local info
         await fetchFundInfo()
         notify.success("NAV trends updated successfully.")
     } catch (e) {
@@ -62,246 +61,219 @@ const chartData = computed(() => {
     return (fund.value?.nav_history || []).map((point: any) => ({
         date: point.date,
         value: point.value,
-        invested: null // No investments in explore mode
+        invested: null
     }))
 })
 
-function getRiskColor(risk: string) {
+function getRiskBadgeClass(risk: string) {
     switch (risk?.toLowerCase()) {
-        case 'low': return 'success'
-        case 'moderate': return 'info'
-        case 'high': return 'warning'
-        case 'very high': return 'error'
-        default: return 'primary'
+        case 'low': return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
+        case 'moderate': return 'text-blue-500 bg-blue-500/10 border-blue-500/20'
+        case 'high': return 'text-amber-500 bg-amber-500/10 border-amber-500/20'
+        case 'very high': return 'text-rose-500 bg-rose-500/10 border-rose-500/20'
+        default: return 'text-primary bg-primary/10 border-primary/20'
     }
 }
 </script>
 
 <template>
     <MainLayout>
-        <v-container fluid class="page-container">
-            <!-- Mesh Background -->
-            <div class="mesh-blob blob-1"></div>
-            <div class="mesh-blob blob-2"></div>
+        <div class="space-y-4 max-w-7xl mx-auto px-2 sm:px-4 pb-8">
+            <!-- Loading State -->
+            <div v-if="isLoading && !fund" class="flex flex-col items-center justify-center min-h-[50vh] gap-3">
+                <v-progress-circular indeterminate color="primary" size="36" width="3" />
+                <span class="text-xs font-semibold text-wf-text-muted">Loading fund details...</span>
+            </div>
 
-            <div class="relative-pos z-10" v-if="fund">
-                <!-- Header -->
-                <div class="d-flex flex-column flex-md-row justify-space-between align-md-center gap-4 mb-8">
-                    <div class="d-flex align-center gap-4">
-                        <v-btn icon variant="tonal" rounded="lg" color="primary" @click="router.back()">
-                            <ChevronLeft :size="24" />
-                        </v-btn>
-                        <div>
-                            <h1 class="text-h4 font-weight-black text-content line-clamp-1 mb-1">{{ fund.scheme_name }}
-                            </h1>
-                            <div class="d-flex align-center gap-3 flex-wrap">
-                                <v-chip size="x-small" label color="primary" variant="tonal"
-                                    class="font-weight-black text-uppercase">
-                                    {{ fund.category || 'Mutual Fund' }}
-                                </v-chip>
-                                <div v-if="fund.fund_house"
-                                    class="d-flex align-center gap-1 text-caption font-weight-bold text-medium-emphasis">
-                                    <Briefcase :size="14" class="opacity-60" />
-                                    <span>{{ fund.fund_house }}</span>
+            <template v-else-if="fund">
+                <!-- Header Card -->
+                <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <button
+                                type="button"
+                                @click="router.back()"
+                                class="h-9 w-9 rounded-wf-lg border border-wf-border bg-wf-surface-variant hover:bg-wf-surface-variant/80 flex items-center justify-center text-wf-text-muted hover:text-wf-text-primary transition-colors flex-shrink-0"
+                                title="Go Back"
+                            >
+                                <ChevronLeft :size="20" />
+                            </button>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2.5 flex-wrap">
+                                    <h1 class="text-base sm:text-lg font-bold text-wf-text-primary truncate">
+                                        {{ fund.scheme_name }}
+                                    </h1>
+                                    <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-wf-full bg-primary/10 text-primary border border-primary/20">
+                                        {{ fund.category || 'Mutual Fund' }}
+                                    </span>
                                 </div>
-                                <div
-                                    class="d-flex align-center gap-1 text-caption font-weight-bold text-medium-emphasis">
-                                    <Globe :size="14" class="opacity-60" />
-                                    <span>{{ fund.scheme_code }}</span>
+                                <div class="flex items-center gap-3.5 mt-1.5 flex-wrap text-xs text-wf-text-muted">
+                                    <div v-if="fund.fund_house" class="flex items-center gap-1 font-medium">
+                                        <Briefcase :size="13" class="opacity-70" />
+                                        <span>{{ fund.fund_house }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 font-mono text-xs">
+                                        <Globe :size="13" class="opacity-70 text-primary" />
+                                        <span>Code: {{ fund.scheme_code }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+                            <button
+                                type="button"
+                                @click="showInvestModal = true"
+                                class="h-9 px-4 text-xs font-bold rounded-wf-md bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5"
+                            >
+                                <Target :size="14" />
+                                <span>Invest Now</span>
+                            </button>
+                        </div>
                     </div>
+                </WfCard>
 
-                    <v-btn color="primary" rounded="xl" size="x-large"
-                        class="font-weight-black px-10 shadow-lg action-btn" @click="showInvestModal = true">
-                        Invest Now
-                    </v-btn>
-                </div>
-
-                <v-row>
-                    <!-- Left Column: Chart -->
-                    <v-col cols="12" lg="8">
-                        <v-card class="premium-glass-card pa-6 mb-6" rounded="xl">
-                            <div class="d-flex align-center justify-space-between mb-6 flex-wrap gap-4">
-                                <div class="d-flex align-center gap-4">
-                                    <h3 class="text-h6 font-weight-black text-content d-flex align-center gap-2">
-                                        <TrendingUp :size="24" class="text-primary" /> NAV Historical Performance (1Y)
-                                    </h3>
-                                    <v-btn size="x-small" variant="tonal" color="primary" class="font-weight-black px-4"
-                                        @click="recalculateTrends" :loading="isRecalculating">
-                                        <RefreshCcw :size="12" class="mr-1" /> RECALCULATE
-                                    </v-btn>
+                <!-- Main Content Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    <!-- Left: Performance Chart (8 cols) -->
+                    <div class="lg:col-span-8 space-y-4">
+                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card">
+                            <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary flex items-center gap-1.5">
+                                        <TrendingUp :size="16" class="text-primary" />
+                                        <span>NAV Historical Performance (1Y)</span>
+                                    </span>
+                                    <button
+                                        type="button"
+                                        @click="recalculateTrends"
+                                        :disabled="isRecalculating"
+                                        class="h-6 px-2 text-[10px] font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant hover:bg-wf-surface-variant/80 disabled:opacity-50 flex items-center gap-1 text-wf-text-secondary transition-colors"
+                                    >
+                                        <RefreshCcw :size="11" :class="{ 'animate-spin': isRecalculating }" />
+                                        <span>{{ isRecalculating ? 'SYNCING...' : 'SYNC TRENDS' }}</span>
+                                    </button>
                                 </div>
-                                <div class="text-h5 font-weight-black text-primary d-flex align-center gap-2">
-                                    <span v-if="fund.last_nav > 0">₹{{ fund.last_nav.toFixed(2) }}</span>
-                                    <v-chip v-else size="small" color="warning" variant="flat" class="font-weight-black">PENDING SYNC</v-chip>
-                                    <span class="text-caption text-medium-emphasis font-weight-bold">Current</span>
+                                <div class="flex items-center gap-2 font-mono">
+                                    <span v-if="fund.last_nav > 0" class="text-base font-bold text-primary">
+                                        ₹{{ fund.last_nav.toFixed(2) }}
+                                    </span>
+                                    <span v-else class="px-2 py-0.5 text-[10px] font-bold rounded-wf-sm bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                        PENDING SYNC
+                                    </span>
+                                    <span class="text-[10px] font-bold text-wf-text-muted uppercase">Latest NAV</span>
                                 </div>
                             </div>
 
-
-                            <!-- Chart Area -->
-                            <div style="height: 400px;">
-                                <div v-if="isChartLoading" class="d-flex align-center justify-center h-100 flex-column animate-fade-in">
-                                    <v-progress-circular indeterminate color="primary" size="48" width="3" />
-                                    <div class="text-caption mt-4 font-weight-bold opacity-40">Calculating Performance...</div>
+                            <!-- Chart Canvas -->
+                            <div class="h-[340px] sm:h-[380px] w-full">
+                                <div v-if="isChartLoading" class="flex flex-col items-center justify-center h-full gap-2">
+                                    <v-progress-circular indeterminate color="primary" size="32" width="2" />
+                                    <span class="text-xs font-medium text-wf-text-muted">Calculating NAV Performance...</span>
                                 </div>
                                 <template v-else>
-                                    <FundPerformanceChart v-if="chartData.length" :data="chartData" :markers="[]"
-                                        :benchmark="[]" />
-                                    <div v-else
-                                        class="d-flex align-center justify-center h-100 text-medium-emphasis font-weight-bold">
-                                        No history available
+                                    <FundPerformanceChart
+                                        v-if="chartData.length"
+                                        :data="chartData"
+                                        :markers="[]"
+                                        :benchmarks="[]"
+                                    />
+                                    <div v-else class="flex items-center justify-center h-full text-xs font-medium text-wf-text-muted">
+                                        No historical NAV data available for this scheme
                                     </div>
                                 </template>
                             </div>
-                        </v-card>
-                    </v-col>
+                        </WfCard>
+                    </div>
 
-                    <!-- Right Column: Key Metrics -->
-                    <v-col cols="12" lg="4">
-                        <h3 class="text-h6 font-weight-black mb-4">Fund Overview</h3>
+                    <!-- Right: Overview & CTA (4 cols) -->
+                    <div class="lg:col-span-4 space-y-4">
+                        <!-- Key Metrics Tile Box -->
+                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card space-y-3">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary">
+                                Fund Overview
+                            </h3>
 
-                        <v-row>
-                            <v-col cols="6">
-                                <v-card class="metric-card pa-4" rounded="xl">
-                                    <Shield :size="20" :class="`text-${getRiskColor(fund.risk_level)} mb-2`" />
-                                    <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Risk
-                                        Profile</div>
-                                    <div
-                                        :class="`text-subtitle-1 font-weight-black text-${getRiskColor(fund.risk_level)}`">
-                                        {{ fund.risk_level }}</div>
-                                </v-card>
-                            </v-col>
-                            <v-col cols="6">
-                                <v-card class="metric-card pa-4" rounded="xl">
-                                    <BarChart2 :size="20" class="text-primary mb-2" />
-                                    <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Fund
-                                        Size (AUM)</div>
-                                    <div class="text-subtitle-1 font-weight-black text-content">{{ fund.aum }}</div>
-                                </v-card>
-                            </v-col>
-                            <v-col cols="6">
-                                <v-card class="metric-card pa-4" rounded="xl">
-                                    <TrendingUp :size="20" class="text-success mb-2" />
-                                    <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">3Y
-                                        Returns (Ann.)</div>
-                                    <div class="text-subtitle-1 font-weight-black text-success">{{ fund.returns_3y > 0 ?
-                                        '+' : '' }}{{ fund.returns_3y }}%</div>
-                                </v-card>
-                            </v-col>
-                            <v-col cols="6">
-                                <v-card class="metric-card pa-4" rounded="xl">
-                                    <Star :size="20" class="text-warning mb-2" />
-                                    <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">
-                                        Rating</div>
-                                    <div class="d-flex align-center gap-1">
-                                        <span class="text-subtitle-1 font-weight-black text-content">{{ fund.rating
-                                            }}</span>
-                                        <div class="d-flex">
-                                            <Star v-for="i in 5" :key="i" :size="12"
-                                                :class="i <= fund.rating ? 'text-warning' : 'text-medium-emphasis opacity-20'"
-                                                fill="currentColor" />
+                            <div class="grid grid-cols-2 gap-2.5">
+                                <!-- Risk Profile -->
+                                <div class="p-3 rounded-wf-lg border border-wf-border bg-wf-surface-variant/40">
+                                    <div class="flex items-center gap-1.5 mb-1 text-wf-text-muted">
+                                        <Shield :size="13" />
+                                        <span class="text-[10px] font-bold uppercase tracking-wider">Risk Profile</span>
+                                    </div>
+                                    <span class="inline-block px-2 py-0.5 text-[10px] font-bold uppercase rounded-wf-sm border" :class="getRiskBadgeClass(fund.risk_level)">
+                                        {{ fund.risk_level || 'N/A' }}
+                                    </span>
+                                </div>
+
+                                <!-- AUM -->
+                                <div class="p-3 rounded-wf-lg border border-wf-border bg-wf-surface-variant/40">
+                                    <div class="flex items-center gap-1.5 mb-1 text-wf-text-muted">
+                                        <BarChart2 :size="13" class="text-primary" />
+                                        <span class="text-[10px] font-bold uppercase tracking-wider">Fund Size</span>
+                                    </div>
+                                    <div class="text-xs font-bold text-wf-text-primary font-mono">
+                                        {{ fund.aum || 'N/A' }}
+                                    </div>
+                                </div>
+
+                                <!-- 3Y Returns -->
+                                <div class="p-3 rounded-wf-lg border border-wf-border bg-wf-surface-variant/40">
+                                    <div class="flex items-center gap-1.5 mb-1 text-wf-text-muted">
+                                        <TrendingUp :size="13" class="text-emerald-500" />
+                                        <span class="text-[10px] font-bold uppercase tracking-wider">3Y Returns</span>
+                                    </div>
+                                    <div class="text-xs font-bold font-mono" :class="fund.returns_3y > 0 ? 'text-emerald-500' : 'text-wf-text-primary'">
+                                        {{ fund.returns_3y > 0 ? '+' : '' }}{{ fund.returns_3y ? fund.returns_3y + '%' : 'N/A' }}
+                                    </div>
+                                </div>
+
+                                <!-- Rating -->
+                                <div class="p-3 rounded-wf-lg border border-wf-border bg-wf-surface-variant/40">
+                                    <div class="flex items-center gap-1.5 mb-1 text-wf-text-muted">
+                                        <Star :size="13" class="text-amber-500" />
+                                        <span class="text-[10px] font-bold uppercase tracking-wider">Rating</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-xs font-bold text-wf-text-primary font-mono">{{ fund.rating || 0 }}</span>
+                                        <div class="flex items-center gap-0.5">
+                                            <Star
+                                                v-for="i in 5"
+                                                :key="i"
+                                                :size="10"
+                                                :class="i <= (fund.rating || 0) ? 'text-amber-500 fill-amber-500' : 'text-wf-text-muted opacity-25'"
+                                            />
                                         </div>
                                     </div>
-                                </v-card>
-                            </v-col>
-                        </v-row>
-
-                        <v-card class="premium-glass-card pa-6 mt-6" rounded="xl">
-                            <div class="d-flex align-center gap-4 mb-4">
-                                <v-avatar color="primary" variant="tonal" size="48" rounded="lg">
-                                    <Target :size="24" />
-                                </v-avatar>
-                                <div>
-                                    <div class="text-subtitle-1 font-weight-black">Ready to invest?</div>
-                                    <div class="text-caption text-medium-emphasis font-weight-medium">Start building
-                                        your wealth today.</div>
                                 </div>
                             </div>
-                            <v-btn block color="primary" size="large" rounded="xl" class="font-weight-black mt-2"
-                                @click="showInvestModal = true">
-                                Start Investing
-                            </v-btn>
-                        </v-card>
-                    </v-col>
-                </v-row>
-            </div>
+                        </WfCard>
 
-            <div v-if="isLoading && !fund" class="d-flex align-center justify-center h-screen-50">
-                <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
-            </div>
-        </v-container>
+                        <!-- CTA Box -->
+                        <WfCard padding="md" radius="xl" class="border-primary/25 bg-primary/5 shadow-wf-card space-y-3">
+                            <div class="flex items-start gap-3">
+                                <div class="w-9 h-9 rounded-wf-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                                    <Target :size="18" />
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-wf-text-primary">Ready to invest?</div>
+                                    <div class="text-xs text-wf-text-muted">Deploy capital directly into this fund via lumpsum or SIP.</div>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                @click="showInvestModal = true"
+                                class="w-full h-9 px-4 text-xs font-bold rounded-wf-md bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                            >
+                                Start Investing
+                            </button>
+                        </WfCard>
+                    </div>
+                </div>
+            </template>
+        </div>
 
         <!-- Invest Modal -->
         <InvestModal v-model="showInvestModal" :fund="fund" @success="router.push('/mutual-funds')" />
     </MainLayout>
 </template>
-
-<style scoped>
-.page-container {
-    min-height: calc(100vh - 64px);
-}
-
-.relative-pos {
-    position: relative;
-}
-
-.z-10 {
-    z-index: 10;
-}
-
-.mesh-blob {
-    position: absolute;
-    filter: blur(100px);
-    opacity: 0.15;
-    border-radius: 50%;
-    z-index: 0;
-    pointer-events: none;
-}
-
-.blob-1 {
-    background: rgb(var(--v-theme-primary));
-    width: 600px;
-    height: 600px;
-    top: -150px;
-    right: -150px;
-}
-
-.blob-2 {
-    background: rgb(var(--v-theme-secondary));
-    width: 500px;
-    height: 500px;
-    bottom: -100px;
-    left: -100px;
-}
-
-.premium-glass-card {
-    background: rgba(var(--v-theme-surface), 0.7) !important;
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(var(--v-border-color), 0.15) !important;
-    box-shadow: none !important;
-}
-
-.metric-card {
-    background: rgba(var(--v-theme-surface), 0.6) !important;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
-    transition: transform 0.2s ease;
-}
-
-.metric-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(var(--v-theme-primary), 0.2) !important;
-}
-
-.action-btn {
-    transition: transform 0.2s ease;
-}
-
-.action-btn:hover {
-    transform: scale(1.02);
-}
-</style>

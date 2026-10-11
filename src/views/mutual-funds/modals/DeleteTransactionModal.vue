@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { Trash2 } from 'lucide-vue-next'
+import WfModal from '@/components/ui/WfModal.vue'
+import { useCurrency } from '@/composables/useCurrency'
 
 const props = defineProps<{
   modelValue: boolean
@@ -7,102 +9,75 @@ const props = defineProps<{
   loading?: boolean
 }>()
 
-const emit = defineEmits(['update:modelValue', 'confirm'])
+const emit = defineEmits<{
+  (e: 'update:modelValue', val: boolean): void
+  (e: 'confirm', id: string): void
+}>()
 
-const isOpen = ref(props.modelValue)
-
-watch(() => props.modelValue, (val) => {
-  isOpen.value = val
-})
-
-watch(isOpen, (val) => {
-  emit('update:modelValue', val)
-})
+const { formatAmount } = useCurrency()
 
 const close = () => {
-  isOpen.value = false
+  emit('update:modelValue', false)
 }
 
 const confirm = () => {
-  emit('confirm', props.transaction.id)
+  emit('confirm', props.transaction?.id)
 }
 </script>
 
 <template>
-  <v-dialog v-model="isOpen" max-width="450" persistent>
-    <v-card class="rounded-xl overflow-hidden glass-card border">
-      <div class="pa-6 text-center">
-        <v-avatar color="error" size="64" class="mb-4 elevation-4">
-          <v-icon size="32" color="white">mdi-trash-can-outline</v-icon>
-        </v-avatar>
-        
-        <v-card-title class="text-h5 font-weight-bold pa-0 mb-2">
-          Remove Transaction?
-        </v-card-title>
-        
-        <v-card-text class="text-body-1 text-medium-emphasis pa-0">
-          This record will be permanently hidden and your portfolio balances will be recalculated.
-        </v-card-text>
-      </div>
-
-      <v-divider></v-divider>
-
-      <div class="pa-6 bg-surface-light">
-        <div class="d-flex flex-column gap-3">
-          <div class="d-flex justify-space-between align-center">
-            <span class="text-caption text-medium-emphasis">Date</span>
-            <span class="text-body-2 font-weight-medium">{{ transaction?.date }}</span>
-          </div>
-          <div class="d-flex justify-space-between align-center">
-            <span class="text-caption text-medium-emphasis">Type</span>
-            <v-chip size="x-small" :color="transaction?.type === 'BUY' ? 'success' : 'error'" variant="flat" class="text-uppercase font-weight-bold">
-              {{ transaction?.type }}
-            </v-chip>
-          </div>
-          <div class="d-flex justify-space-between align-center">
-            <span class="text-caption text-medium-emphasis">Amount</span>
-            <span class="text-body-2 font-weight-bold text-primary">₹{{ transaction?.amount?.toLocaleString() }}</span>
-          </div>
-          <div class="d-flex justify-space-between align-center">
-            <span class="text-caption text-medium-emphasis">Units</span>
-            <span class="text-body-2 font-weight-medium">{{ transaction?.units?.toFixed(4) }}</span>
-          </div>
+  <WfModal
+    :model-value="modelValue"
+    @update:model-value="close"
+    title="Delete Transaction Record?"
+    description="This record will be permanently deleted and your portfolio balances recalculated."
+    maxWidth="sm"
+  >
+    <div class="space-y-4">
+      <!-- Transaction Details Tile -->
+      <div class="p-3.5 rounded-wf-lg border border-wf-border bg-wf-surface-variant/40 space-y-2 text-xs">
+        <div class="flex justify-between items-center text-xs">
+          <span class="text-wf-text-muted">Date</span>
+          <span class="font-medium text-wf-text-primary">{{ transaction?.date }}</span>
+        </div>
+        <div class="flex justify-between items-center text-xs">
+          <span class="text-wf-text-muted">Type</span>
+          <span
+            class="px-2 py-0.5 text-[10px] font-bold rounded-wf-sm"
+            :class="transaction?.type === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'"
+          >
+            {{ transaction?.type }}
+          </span>
+        </div>
+        <div class="flex justify-between items-center text-xs">
+          <span class="text-wf-text-muted">Amount</span>
+          <span class="font-mono font-bold text-wf-text-primary">{{ formatAmount(transaction?.amount) }}</span>
+        </div>
+        <div class="flex justify-between items-center text-xs">
+          <span class="text-wf-text-muted">Units</span>
+          <span class="font-mono font-semibold text-wf-text-muted">{{ Number(transaction?.units || 0).toFixed(4) }}</span>
         </div>
       </div>
+    </div>
 
-      <v-divider></v-divider>
-
-      <v-card-actions class="pa-6 pt-4">
-        <v-btn
-          variant="text"
-          class="text-none font-weight-bold px-4"
-          @click="close"
-          :disabled="loading"
-        >
-          Cancel
-        </v-btn>
-        <v-spacer></v-spacer>
-        <v-btn
-          color="error"
-          variant="flat"
-          class="text-none font-weight-bold px-8 rounded-lg"
-          :loading="loading"
-          @click="confirm"
-        >
-          Remove Record
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+    <template #footer>
+      <button
+        type="button"
+        :disabled="loading"
+        @click="close"
+        class="px-4 py-2 text-xs font-semibold rounded-wf-md border border-wf-border text-wf-text-muted hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        :disabled="loading"
+        @click="confirm"
+        class="px-4 py-2 text-xs font-bold rounded-wf-md bg-rose-600 text-white shadow-sm hover:bg-rose-700 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-1.5"
+      >
+        <Trash2 :size="13" />
+        <span>{{ loading ? 'Removing...' : 'Delete Record' }}</span>
+      </button>
+    </template>
+  </WfModal>
 </template>
-
-<style scoped>
-.glass-card {
-  background: rgba(var(--v-theme-surface), 0.95) !important;
-  backdrop-filter: blur(20px);
-}
-
-.gap-3 {
-  gap: 12px;
-}
-</style>

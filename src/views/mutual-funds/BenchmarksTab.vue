@@ -1,18 +1,17 @@
 <template>
-    <div class="benchmarks-tab">
+    <div class="space-y-3.5">
         <!-- Header Actions -->
-        <div class="d-flex justify-space-between align-center mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2 pb-2 border-b border-wf-border-subtle">
             <div>
-                <h2 class="text-h6 font-weight-bold d-flex align-center gap-2">
-                    <Palette :size="20" class="text-primary" />
+                <h2 class="text-xs sm:text-sm font-bold text-wf-text-primary flex items-center gap-2">
+                    <Palette :size="16" class="text-wf-primary" />
                     Benchmark Resolution Rules
                 </h2>
-                <p class="text-caption text-medium-emphasis mt-1">
-                    Define how funds are mapped to benchmarks based on their category keywords.
-                    Holdings will use these to determine their comparison line.
+                <p class="text-xs text-wf-text-secondary mt-0.5">
+                    Define how funds are mapped to benchmarks based on category keywords.
                 </p>
             </div>
-            <div class="d-flex gap-3">
+            <div class="flex items-center gap-2">
                 <v-tooltip text="Force re-mapping of all funds using current rules" location="bottom">
                     <template v-slot:activator="{ props }">
                         <v-btn
@@ -21,10 +20,11 @@
                             variant="tonal"
                             :loading="syncLoading"
                             @click="triggerSync"
-                            class="rounded-lg text-none"
+                            class="rounded-wf-sm text-xs font-semibold px-2.5"
+                            height="28"
                         >
                             <template v-slot:prepend>
-                                <RotateCw :size="16" />
+                                <RotateCw :size="12" class="mr-1.5" />
                             </template>
                             Sync All Holdings
                         </v-btn>
@@ -34,221 +34,229 @@
                 <v-btn
                     color="primary"
                     @click="openAddDialog"
-                    class="rounded-lg text-none shadow-sm"
+                    class="rounded-wf-sm text-xs font-bold px-3"
+                    height="28"
                 >
                     <template v-slot:prepend>
-                        <Plus :size="18" />
+                        <Plus :size="14" class="mr-1" />
                     </template>
-                    Add New Rule
+                    Add Rule
                 </v-btn>
             </div>
         </div>
 
         <!-- Rules Table -->
-        <v-card class="premium-card rounded-xl border" elevation="0">
+        <div class="rounded-wf-md border border-wf-border bg-wf-surface shadow-2xs overflow-hidden">
             <v-data-table
                 :headers="[
-                    { title: 'Priority', key: 'priority', width: '100px' },
+                    { title: 'Priority', key: 'priority', width: '90px' },
                     { title: 'Keyword Match', key: 'keyword' },
                     { title: 'Benchmark Label', key: 'benchmark_label' },
                     { title: 'API Symbol', key: 'benchmark_symbol' },
                     { title: 'Style', key: 'styling_color', sortable: false },
-                    { title: 'Actions', key: 'actions', sortable: false, align: 'end' }
+                    { title: '', key: 'actions', sortable: false, align: 'end', width: '80px' }
                 ]"
                 :items="rules"
                 :loading="loading"
-                class="bg-transparent"
+                density="compact"
+                class="bg-transparent text-xs"
             >
                 <template v-slot:item.priority="{ item }">
-                    <v-chip size="small" variant="tonal" color="grey" class="font-weight-bold">
+                    <span class="px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-surface-variant text-wf-text-secondary border border-wf-border-subtle">
                         {{ item.priority }}
-                    </v-chip>
+                    </span>
                 </template>
 
                 <template v-slot:item.keyword="{ item }">
-                    <span v-if="item.keyword" class="text-body-2 font-weight-medium">
-                        <code>{{ item.keyword }}</code>
+                    <span v-if="item.keyword" class="px-1.5 py-0.5 rounded-wf-xs text-xs font-mono font-semibold bg-wf-surface-variant text-wf-primary border border-wf-border-subtle">
+                        {{ item.keyword }}
                     </span>
-                    <v-chip v-else size="small" variant="outlined" color="primary" class="opacity-70">
+                    <span v-else class="px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
                         Default Fallback
-                    </v-chip>
+                    </span>
+                </template>
+
+                <template v-slot:item.benchmark_label="{ item }">
+                    <span class="font-bold text-xs text-wf-text-primary">{{ item.benchmark_label }}</span>
+                </template>
+
+                <template v-slot:item.benchmark_symbol="{ item }">
+                    <span class="font-mono text-xs text-wf-text-muted">{{ item.benchmark_symbol }}</span>
                 </template>
 
                 <template v-slot:item.styling_color="{ item }">
-                    <div class="d-flex align-center gap-3">
-                        <div class="style-visualization">
-                            <svg width="40" height="4">
-                                <line x1="0" y1="2" x2="40" y2="2" 
-                                    :stroke="item.styling_color" 
-                                    :stroke-width="2"
-                                    :stroke-dasharray="item.styling_style === 'solid' ? '0' : (item.styling_dash_array || '4,2')"
-                                />
-                            </svg>
-                        </div>
-                        <span class="text-caption font-weight-bold text-mono opacity-60">{{ item.styling_color }}</span>
+                    <div class="flex items-center gap-2">
+                        <svg width="32" height="4">
+                            <line x1="0" y1="2" x2="32" y2="2" 
+                                :stroke="item.styling_color" 
+                                :stroke-width="2"
+                                :stroke-dasharray="item.styling_style === 'solid' ? '0' : (item.styling_dash_array || '4,2')"
+                            />
+                        </svg>
+                        <span class="text-[10px] font-mono text-wf-text-muted">{{ item.styling_color }}</span>
                     </div>
                 </template>
 
                 <template v-slot:item.actions="{ item }">
-                    <div class="d-flex justify-end gap-1">
-                        <v-tooltip text="Edit Rule" location="top">
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" icon variant="text" size="small" color="primary" @click="openEditDialog(item)">
-                                    <Edit2 :size="16" />
-                                </v-btn>
-                            </template>
-                        </v-tooltip>
-
-                        <v-tooltip text="Delete Rule" location="top">
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" icon variant="text" size="small" color="error" @click="deleteRule(item.id)">
-                                    <Trash2 :size="16" />
-                                </v-btn>
-                            </template>
-                        </v-tooltip>
+                    <div class="flex items-center justify-end gap-1">
+                        <button type="button" class="w-6 h-6 rounded-wf-xs flex items-center justify-center text-wf-primary hover:bg-wf-primary/10 transition-colors"
+                            @click="openEditDialog(item)">
+                            <Edit2 :size="13" />
+                        </button>
+                        <button type="button" class="w-6 h-6 rounded-wf-xs flex items-center justify-center text-rose-500 hover:bg-rose-500/10 transition-colors"
+                            @click="deleteRule(item.id)">
+                            <Trash2 :size="13" />
+                        </button>
                     </div>
                 </template>
 
                 <template v-slot:no-data>
-                    <div class="py-12 text-center opacity-60">
-                        <Info :size="48" class="mb-2" />
-                        <p>No benchmark rules found.</p>
-                        <v-btn color="primary" variant="text" @click="fetchRules" class="mt-2">Retry</v-btn>
+                    <div class="py-8 text-center text-wf-text-muted">
+                        <Info :size="32" class="mx-auto mb-1 opacity-50" />
+                        <p class="text-xs">No benchmark rules found.</p>
+                        <button type="button" class="text-xs font-semibold text-wf-primary hover:underline mt-1" @click="fetchRules">Retry</button>
                     </div>
                 </template>
             </v-data-table>
-        </v-card>
+        </div>
 
-        <!-- Upsert Dialog -->
-        <v-dialog v-model="dialog" max-width="600px">
-            <v-card class="rounded-xl pa-4">
-                <v-card-title class="px-2">
-                    <span class="text-h6 font-weight-black">
-                        {{ editMode ? 'Edit Benchmark Rule' : 'New Benchmark Rule' }}
-                    </span>
-                </v-card-title>
-                <v-card-text>
-                    <v-row>
-                        <v-col cols="12" md="4">
-                            <v-text-field
-                                v-model.number="ruleForm.priority"
-                                label="Priority"
-                                type="number"
-                                hint="Lower is higher priority"
-                                persistent-hint
-                                variant="outlined"
-                                density="comfortable"
-                            ></v-text-field>
-                        </v-col>
-                        <v-col cols="12" md="8">
-                            <v-text-field
-                                v-model="ruleForm.keyword"
-                                label="Keyword Matching"
-                                placeholder="e.g. small cap"
-                                hint="Leave empty for default fallback"
-                                persistent-hint
-                                variant="outlined"
-                                density="comfortable"
-                            ></v-text-field>
-                        </v-col>
-                        
-                        <v-divider class="my-2 mx-4"></v-divider>
-                        <v-col cols="12">
-                            <div class="text-subtitle-2 font-weight-bold mb-2 opacity-70">Target Benchmark (Proxy Fund)</div>
-                        </v-col>
+        <!-- Upsert Dialog with WfModal -->
+        <WfModal
+            v-model="dialog"
+            :title="editMode ? 'Edit Benchmark Rule' : 'New Benchmark Rule'"
+            description="Configure category keyword matching and proxy benchmark symbol"
+            maxWidth="lg"
+        >
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                    <div class="sm:col-span-4 space-y-1">
+                        <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-secondary block">Priority</label>
+                        <input
+                            v-model.number="ruleForm.priority"
+                            type="number"
+                            placeholder="0"
+                            class="w-full h-9 px-3 text-xs font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                        />
+                        <span class="text-[10px] text-wf-text-muted">Lower number = higher priority</span>
+                    </div>
+                    <div class="sm:col-span-8 space-y-1">
+                        <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-secondary block">Keyword Matching</label>
+                        <input
+                            v-model="ruleForm.keyword"
+                            type="text"
+                            placeholder="e.g. small cap"
+                            class="w-full h-9 px-3 text-xs font-semibold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                        />
+                        <span class="text-[10px] text-wf-text-muted">Leave empty for default fallback rule</span>
+                    </div>
+                </div>
 
-                        <v-col cols="12">
-                            <v-select
-                                v-model="selectedCommonBenchmark"
-                                :items="commonBenchmarks"
-                                item-title="label"
-                                item-value="symbol"
-                                label="Standard Benchmark"
-                                placeholder="Select a common index..."
-                                variant="outlined"
-                                density="comfortable"
-                                @update:model-value="onBenchmarkSelect"
-                            ></v-select>
-                        </v-col>
+                <div class="pt-2 border-t border-wf-border space-y-3">
+                    <div class="text-xs font-bold text-wf-text-secondary uppercase tracking-wider">Target Benchmark (Proxy Fund)</div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Standard Benchmark</label>
+                        <select
+                            v-model="selectedCommonBenchmark"
+                            @change="onBenchmarkSelect(selectedCommonBenchmark)"
+                            class="w-full h-9 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                        >
+                            <option v-for="b in commonBenchmarks" :key="b.symbol" :value="b.symbol">
+                                {{ b.label }}
+                            </option>
+                        </select>
+                    </div>
 
-                        <v-col cols="12" md="4">
-                            <v-text-field
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                        <div class="sm:col-span-4 space-y-1">
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Scheme Code</label>
+                            <input
                                 v-model="ruleForm.benchmark_symbol"
-                                label="Scheme Code"
+                                type="text"
                                 placeholder="120716"
-                                variant="outlined"
-                                density="comfortable"
-                                required
                                 :readonly="selectedCommonBenchmark !== 'custom'"
-                            ></v-text-field>
-                        </v-col>
-                        <v-col cols="12" md="8">
-                            <v-text-field
+                                class="w-full h-9 px-3 text-xs font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-60"
+                            />
+                        </div>
+                        <div class="sm:col-span-8 space-y-1">
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Display Label</label>
+                            <input
                                 v-model="ruleForm.benchmark_label"
-                                label="Display Label"
+                                type="text"
                                 placeholder="e.g. Nifty 50 Index"
-                                variant="outlined"
-                                density="comfortable"
-                                required
                                 :readonly="selectedCommonBenchmark !== 'custom'"
-                            ></v-text-field>
-                        </v-col>
+                                class="w-full h-9 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-60"
+                            />
+                        </div>
+                    </div>
+                </div>
 
-                        <v-divider class="my-2 mx-4"></v-divider>
-                        <v-col cols="12">
-                            <div class="text-subtitle-2 font-weight-bold mb-2 opacity-70">Visual Styling</div>
-                        </v-col>
-
-                        <v-col cols="12" md="6">
-                            <v-text-field
-                                v-model="ruleForm.styling_color"
-                                label="Hex Color"
-                                type="color"
-                                variant="outlined"
-                                density="comfortable"
-                                prepend-inner-icon="mdi-palette"
-                            ></v-text-field>
-                        </v-col>
-                        <v-col cols="12" md="6">
-                            <v-autocomplete
+                <div class="pt-2 border-t border-wf-border space-y-3">
+                    <div class="text-xs font-bold text-wf-text-secondary uppercase tracking-wider">Visual Chart Styling</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                        <div class="sm:col-span-6 space-y-1">
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Line Color</label>
+                            <div class="flex items-center gap-2">
+                                <input
+                                    v-model="ruleForm.styling_color"
+                                    type="color"
+                                    class="w-9 h-9 p-0.5 rounded-wf-md border border-wf-border bg-wf-surface-variant cursor-pointer"
+                                />
+                                <input
+                                    v-model="ruleForm.styling_color"
+                                    type="text"
+                                    class="flex-1 h-9 px-3 text-xs font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary"
+                                />
+                            </div>
+                        </div>
+                        <div class="sm:col-span-6 space-y-1">
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Line Style</label>
+                            <select
                                 v-model="ruleForm.styling_style"
-                                :items="['solid', 'dashed', 'dotted']"
-                                label="Line Style"
-                                variant="outlined"
-                                density="comfortable"
-                            ></v-autocomplete>
-                        </v-col>
-                        <v-col cols="12">
-                            <v-text-field
+                                class="w-full h-9 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                            >
+                                <option value="solid">Solid</option>
+                                <option value="dashed">Dashed</option>
+                                <option value="dotted">Dotted</option>
+                            </select>
+                        </div>
+                        <div v-if="ruleForm.styling_style !== 'solid'" class="sm:col-span-12 space-y-1">
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">SVG Dash Array</label>
+                            <input
                                 v-model="ruleForm.styling_dash_array"
-                                label="SVG Dash Array"
+                                type="text"
                                 placeholder="e.g. 5,5"
-                                hint="Only for dashed/dotted lines"
-                                persistent-hint
-                                variant="outlined"
-                                density="comfortable"
-                            ></v-text-field>
-                        </v-col>
-                    </v-row>
-                </v-card-text>
-                <v-card-actions class="px-4 pb-4">
-                    <v-spacer></v-spacer>
-                    <v-btn variant="text" @click="dialog = false" class="text-none rounded-lg font-weight-bold">Cancel</v-btn>
-                    <v-btn color="primary" @click="saveRule" class="text-none rounded-lg px-6 font-weight-bold shadow-sm">
-                        <template v-slot:prepend>
-                            <Check :size="18" />
-                        </template>
-                        Save Rule
-                    </v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
+                                class="w-full h-9 px-3 text-xs font-mono rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <template #footer>
+                <button
+                    type="button"
+                    @click="dialog = false"
+                    class="px-4 py-2 text-xs font-semibold rounded-wf-md border border-wf-border text-wf-text-muted hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="button"
+                    @click="saveRule"
+                    class="px-5 py-2 text-xs font-bold rounded-wf-md bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5"
+                >
+                    <Check :size="14" />
+                    <span>Save Benchmark Rule</span>
+                </button>
+            </template>
+        </WfModal>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Plus, Edit2, Trash2, RotateCw, Check, Info, Palette } from 'lucide-vue-next'
+import { Plus, Edit2, Trash2, RotateCw, Check, Palette } from 'lucide-vue-next'
+import WfModal from '@/components/ui/WfModal.vue'
 
 import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'

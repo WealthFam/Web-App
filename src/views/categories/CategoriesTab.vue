@@ -202,54 +202,54 @@ defineExpose({
 <template>
     <div class="space-y-5">
         <!-- 1. STATS OVERVIEW: 5 Metric Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
             <!-- Total Categories -->
             <WfCard
-                variant="elevated"
-                padding="md"
+                variant="flat"
+                padding="none"
                 radius="lg"
-                class="cursor-pointer transition-all flex flex-col justify-between"
+                class="cursor-pointer transition-all flex flex-col justify-between p-2.5 shadow-2xs border border-wf-border"
                 :class="[
                     categoriesStore.searchFilter === 'all' ? 'ring-2 ring-wf-primary border-wf-primary/40' : 'hover:border-wf-border-subtle'
                 ]"
                 @click="categoriesStore.searchFilter = 'all'"
             >
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Total</span>
-                    <div class="w-8 h-8 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-wf-primary">
-                        <BarChart3 class="w-4 h-4" />
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider block">Total</span>
+                    <div class="w-7 h-7 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-wf-primary">
+                        <BarChart3 class="w-3.5 h-3.5" />
                     </div>
                 </div>
                 <div>
-                    <div class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary tabular-nums">
+                    <div class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary tabular-nums leading-none">
                         {{ categoriesStore.categoryStats.total }}
                     </div>
-                    <span class="text-[11px] font-semibold text-wf-text-muted mt-0.5 block">Master Inventory</span>
+                    <span class="text-[10px] font-semibold text-wf-text-muted mt-1 block">Master Inventory</span>
                 </div>
             </WfCard>
 
             <!-- Expenses -->
             <WfCard
-                variant="elevated"
-                padding="md"
+                variant="flat"
+                padding="none"
                 radius="lg"
-                class="cursor-pointer transition-all flex flex-col justify-between"
+                class="cursor-pointer transition-all flex flex-col justify-between p-2.5 shadow-2xs border border-wf-border"
                 :class="[
                     categoriesStore.searchFilter === 'expense' ? 'ring-2 ring-wf-error border-wf-error/40' : 'hover:border-wf-border-subtle'
                 ]"
                 @click="categoriesStore.searchFilter = 'expense'"
             >
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Expenses</span>
-                    <div class="w-8 h-8 rounded-wf-md bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center text-wf-error">
-                        <TrendingDown class="w-4 h-4" />
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider block">Expenses</span>
+                    <div class="w-7 h-7 rounded-wf-md bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center text-wf-error">
+                        <TrendingDown class="w-3.5 h-3.5" />
                     </div>
                 </div>
                 <div>
-                    <div class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary tabular-nums" :class="{ 'text-wf-error': categoriesStore.searchFilter === 'expense' }">
+                    <div class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary tabular-nums leading-none" :class="{ 'text-wf-error': categoriesStore.searchFilter === 'expense' }">
                         {{ categoriesStore.categoryStats.expenses }}
                     </div>
-                    <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-wf-pill overflow-hidden mt-2">
+                    <div class="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-wf-pill overflow-hidden mt-1.5">
                         <div
                             class="bg-wf-error h-full rounded-wf-pill transition-all duration-300"
                             :style="{ width: `${(categoriesStore.categoryStats.expenses / (categoriesStore.categoryStats.total || 1)) * 100}%` }"
@@ -260,26 +260,26 @@ defineExpose({
 
             <!-- Income -->
             <WfCard
-                variant="elevated"
-                padding="md"
+                variant="flat"
+                padding="none"
                 radius="lg"
-                class="cursor-pointer transition-all flex flex-col justify-between"
+                class="cursor-pointer transition-all flex flex-col justify-between p-2.5 shadow-2xs border border-wf-border"
                 :class="[
                     categoriesStore.searchFilter === 'income' ? 'ring-2 ring-wf-success border-wf-success/40' : 'hover:border-wf-border-subtle'
                 ]"
                 @click="categoriesStore.searchFilter = 'income'"
             >
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Income</span>
-                    <div class="w-8 h-8 rounded-wf-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/50 flex items-center justify-center text-wf-success">
-                        <TrendingUp class="w-4 h-4" />
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider block">Income</span>
+                    <div class="w-7 h-7 rounded-wf-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/50 flex items-center justify-center text-wf-success">
+                        <TrendingUp class="w-3.5 h-3.5" />
                     </div>
                 </div>
                 <div>
-                    <div class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary tabular-nums" :class="{ 'text-wf-success': categoriesStore.searchFilter === 'income' }">
+                    <div class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary tabular-nums leading-none" :class="{ 'text-wf-success': categoriesStore.searchFilter === 'income' }">
                         {{ categoriesStore.categoryStats.income }}
                     </div>
-                    <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-wf-pill overflow-hidden mt-2">
+                    <div class="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-wf-pill overflow-hidden mt-1.5">
                         <div
                             class="bg-wf-success h-full rounded-wf-pill transition-all duration-300"
                             :style="{ width: `${(categoriesStore.categoryStats.income / (categoriesStore.categoryStats.total || 1)) * 100}%` }"
@@ -290,26 +290,26 @@ defineExpose({
 
             <!-- Investment -->
             <WfCard
-                variant="elevated"
-                padding="md"
+                variant="flat"
+                padding="none"
                 radius="lg"
-                class="cursor-pointer transition-all flex flex-col justify-between"
+                class="cursor-pointer transition-all flex flex-col justify-between p-2.5 shadow-2xs border border-wf-border"
                 :class="[
                     categoriesStore.searchFilter === 'investment' ? 'ring-2 ring-amber-500 border-amber-500/40' : 'hover:border-wf-border-subtle'
                 ]"
                 @click="categoriesStore.searchFilter = 'investment'"
             >
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Investment</span>
-                    <div class="w-8 h-8 rounded-wf-md bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                        <TrendingUp class="w-4 h-4" />
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider block">Investment</span>
+                    <div class="w-7 h-7 rounded-wf-md bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                        <TrendingUp class="w-3.5 h-3.5" />
                     </div>
                 </div>
                 <div>
-                    <div class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary tabular-nums" :class="{ 'text-amber-600 dark:text-amber-400': categoriesStore.searchFilter === 'investment' }">
+                    <div class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary tabular-nums leading-none" :class="{ 'text-amber-600 dark:text-amber-400': categoriesStore.searchFilter === 'investment' }">
                         {{ categoriesStore.categoryStats.investment }}
                     </div>
-                    <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-wf-pill overflow-hidden mt-2">
+                    <div class="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-wf-pill overflow-hidden mt-1.5">
                         <div
                             class="bg-amber-500 h-full rounded-wf-pill transition-all duration-300"
                             :style="{ width: `${(categoriesStore.categoryStats.investment / (categoriesStore.categoryStats.total || 1)) * 100}%` }"
@@ -320,35 +320,35 @@ defineExpose({
 
             <!-- Transfers -->
             <WfCard
-                variant="elevated"
-                padding="md"
+                variant="flat"
+                padding="none"
                 radius="lg"
-                class="cursor-pointer transition-all flex flex-col justify-between"
+                class="cursor-pointer transition-all flex flex-col justify-between p-2.5 shadow-2xs border border-wf-border"
                 :class="[
                     categoriesStore.searchFilter === 'transfer' ? 'ring-2 ring-sky-500 border-sky-500/40' : 'hover:border-wf-border-subtle'
                 ]"
                 @click="categoriesStore.searchFilter = 'transfer'"
             >
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Transfers</span>
-                    <div class="w-8 h-8 rounded-wf-md bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-900/50 flex items-center justify-center text-sky-600 dark:text-sky-400">
-                        <Repeat class="w-4 h-4" />
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider block">Transfers</span>
+                    <div class="w-7 h-7 rounded-wf-md bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-900/50 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                        <Repeat class="w-3.5 h-3.5" />
                     </div>
                 </div>
                 <div>
-                    <div class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary tabular-nums" :class="{ 'text-sky-600 dark:text-sky-400': categoriesStore.searchFilter === 'transfer' }">
+                    <div class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary tabular-nums leading-none" :class="{ 'text-sky-600 dark:text-sky-400': categoriesStore.searchFilter === 'transfer' }">
                         {{ categoriesStore.categoryStats.transfer }}
                     </div>
-                    <span class="text-[11px] font-semibold text-wf-text-muted mt-0.5 block">Linked movements</span>
+                    <span class="text-[10px] font-semibold text-wf-text-muted mt-1 block">Linked movements</span>
                 </div>
             </WfCard>
         </div>
 
         <!-- 2. TOOLBAR & ACTIONS -->
-        <WfCard variant="flat" padding="sm" radius="lg" class="border border-wf-border bg-wf-surface flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5 flex-1 max-w-lg">
+        <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border bg-wf-surface flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2 shadow-2xs">
+            <div class="flex items-center gap-2 flex-1 max-w-lg">
                 <!-- Type Filter Dropdown -->
-                <div class="flex items-center h-8 px-2.5 bg-wf-surface border border-wf-border rounded-wf-sm text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-1.5 w-36 shrink-0">
+                <div class="flex items-center h-8 px-2.5 bg-wf-surface-variant/40 border border-wf-border rounded-wf-md text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-1.5 w-36 shrink-0">
                     <Filter class="w-3.5 h-3.5 text-wf-text-muted shrink-0 pointer-events-none" />
                     <select
                         v-model="categoriesStore.searchFilter"
@@ -363,7 +363,7 @@ defineExpose({
                 </div>
 
                 <!-- Search Input -->
-                <div class="flex-1 flex items-center h-8 px-2.5 bg-wf-surface border border-wf-border rounded-wf-sm text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-2">
+                <div class="flex-1 flex items-center h-8 px-2.5 bg-wf-surface-variant/40 border border-wf-border rounded-wf-md text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-2">
                     <Search class="w-3.5 h-3.5 text-wf-text-muted shrink-0 pointer-events-none" />
                     <input
                         v-model="categoriesStore.searchQuery"
@@ -420,10 +420,10 @@ defineExpose({
         <input type="file" ref="fileInput" accept=".json" class="hidden" @change="handleImportCategories" />
 
         <!-- 3. CATEGORIES TREE TABLE (Paginated) -->
-        <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border bg-wf-surface overflow-hidden flex flex-col">
+        <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border bg-wf-surface overflow-hidden flex flex-col shadow-2xs">
             <!-- Loading State -->
             <div v-if="categoriesStore.loading" class="p-6 space-y-3">
-                <div v-for="i in 5" :key="`cat-skel-${i}`" class="h-12 rounded-wf-md bg-wf-surface-variant animate-pulse" />
+                <div v-for="i in 5" :key="`cat-skel-${i}`" class="h-10 rounded-wf-md bg-wf-surface-variant animate-pulse" />
             </div>
 
             <!-- Table Layout -->
@@ -431,10 +431,10 @@ defineExpose({
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="border-b border-wf-border bg-wf-surface-variant/40 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
-                            <th class="py-3 px-4 w-[280px]">Category</th>
-                            <th class="py-3 px-3 w-[120px]">Type</th>
-                            <th class="py-3 px-3">Sub-Categories / Folders</th>
-                            <th class="py-3 px-4 text-right w-[100px]">Actions</th>
+                            <th class="py-2 px-3 w-[240px]">Category</th>
+                            <th class="py-2 px-3 w-[100px]">Type</th>
+                            <th class="py-2 px-3">Sub-Categories / Folders</th>
+                            <th class="py-2 px-3 text-right w-[80px]">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-wf-border-subtle">
@@ -444,10 +444,10 @@ defineExpose({
                             class="hover:bg-wf-surface-variant/40 transition-colors group"
                         >
                             <!-- Name Column with Icon Avatar -->
-                            <td class="py-3 px-4">
-                                <div class="flex items-center gap-3">
+                            <td class="py-1.5 px-3">
+                                <div class="flex items-center gap-2.5">
                                     <div
-                                        class="w-9 h-9 rounded-wf-md flex items-center justify-center text-base border shrink-0 transition-transform group-hover:scale-105"
+                                        class="w-7 h-7 rounded-wf-md flex items-center justify-center text-sm border shrink-0 transition-transform group-hover:scale-105"
                                         :style="{
                                             backgroundColor: `${item.color || '#6366f1'}15`,
                                             borderColor: `${item.color || '#6366f1'}35`
@@ -459,7 +459,7 @@ defineExpose({
                                         <span class="font-bold text-xs text-wf-text-primary block truncate" :title="item.name">
                                             {{ item.name }}
                                         </span>
-                                        <span v-if="item.parent_id" class="text-[10px] text-wf-text-muted block">
+                                        <span v-if="item.parent_id" class="text-[9px] text-wf-text-muted block">
                                             Sub-category
                                         </span>
                                     </div>
@@ -467,9 +467,9 @@ defineExpose({
                             </td>
 
                             <!-- Type Column -->
-                            <td class="py-3 px-3">
+                            <td class="py-1.5 px-3">
                                 <span
-                                    class="inline-flex items-center px-2 py-0.5 rounded-wf-sm text-[10px] font-bold border"
+                                    class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold border"
                                     :class="getTypeBadge(item.type).bg"
                                 >
                                     {{ getTypeBadge(item.type).label }}
@@ -477,48 +477,48 @@ defineExpose({
                             </td>
 
                             <!-- Subcategories Column -->
-                            <td class="py-3 px-3">
+                            <td class="py-1.5 px-3">
                                 <div class="flex flex-wrap items-center gap-1.5">
                                     <template v-if="categoriesStore.getChildren(item.id).length > 0">
                                         <button
                                             v-for="child in categoriesStore.getChildren(item.id).slice(0, 5)"
                                             :key="child.id"
                                             @click.stop="editCategory(child)"
-                                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-sm text-[11px] font-medium bg-wf-surface-variant/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 border border-wf-border hover:border-wf-primary/40 text-wf-text-primary transition-all cursor-pointer"
+                                            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-wf-xs text-[10px] font-medium bg-wf-surface-variant/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 border border-wf-border hover:border-wf-primary/40 text-wf-text-primary transition-all cursor-pointer"
                                         >
-                                            <span class="text-xs">{{ child.icon }}</span>
+                                            <span class="text-[11px]">{{ child.icon }}</span>
                                             <span>{{ child.name }}</span>
                                         </button>
 
                                         <span
                                             v-if="categoriesStore.getChildren(item.id).length > 5"
-                                            class="text-[10px] font-bold text-wf-primary px-1"
+                                            class="text-[9px] font-bold text-wf-primary px-1"
                                         >
                                             +{{ categoriesStore.getChildren(item.id).length - 5 }}
                                         </span>
                                     </template>
-                                    <span v-else class="text-[11px] text-wf-text-muted italic mr-1">
+                                    <span v-else class="text-[10px] text-wf-text-muted italic mr-1">
                                         0 sub-categories
                                     </span>
 
                                     <!-- Add New Subcategory Button -->
                                     <button
                                         @click.stop="startAddSubCategory(item)"
-                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-sm text-[10px] font-bold text-wf-success bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-900/60 transition-colors"
+                                        class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-wf-xs text-[9px] font-bold text-wf-success bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-900/60 transition-colors"
                                         title="Add sub-category"
                                     >
-                                        <Plus class="w-3 h-3" />
+                                        <Plus class="w-2.5 h-2.5" />
                                         <span>New</span>
                                     </button>
                                 </div>
                             </td>
 
                             <!-- Actions Column -->
-                            <td class="py-3 px-4 text-right">
+                            <td class="py-1.5 px-3 text-right">
                                 <div class="flex items-center justify-end gap-1">
                                     <button
                                         @click.stop="editCategory(item)"
-                                        class="p-1 rounded-wf-sm text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+                                        class="p-1 rounded-wf-xs text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
                                         title="Edit category"
                                     >
                                         <Pencil class="w-3.5 h-3.5" />
@@ -526,7 +526,7 @@ defineExpose({
                                     <button
                                         @click.stop="startDeleteCategory(item)"
                                         :disabled="isCheckingUsage && categoryToDelete?.id === item.id"
-                                        class="p-1 rounded-wf-sm text-wf-text-muted hover:text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors disabled:opacity-50"
+                                        class="p-1 rounded-wf-xs text-wf-text-muted hover:text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors disabled:opacity-50"
                                         title="Delete category"
                                     >
                                         <Trash2 class="w-3.5 h-3.5" />
@@ -539,16 +539,16 @@ defineExpose({
             </div>
 
             <!-- Empty State -->
-            <div v-else class="p-12 text-center flex flex-col items-center justify-center text-wf-text-muted">
-                <Inbox class="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2 stroke-[1.5]" />
+            <div v-else class="p-10 text-center flex flex-col items-center justify-center text-wf-text-muted">
+                <Inbox class="w-8 h-8 text-slate-300 dark:text-slate-600 mb-1.5 stroke-[1.5]" />
                 <h3 class="text-xs font-bold text-wf-text-primary">No categories found</h3>
-                <p class="text-[11px] text-wf-text-muted mt-0.5">Try adjusting your filters or create a new category.</p>
+                <p class="text-[10px] text-wf-text-muted mt-0.5">Try adjusting your filters or create a new category.</p>
             </div>
 
             <!-- Pagination Footer -->
             <div
                 v-if="filteredRootCategories.length > 0"
-                class="p-3 border-t border-wf-border bg-wf-surface-variant/30 flex items-center justify-between text-xs shrink-0"
+                class="p-2.5 px-3 border-t border-wf-border bg-wf-surface-variant/30 flex items-center justify-between text-xs shrink-0"
             >
                 <span class="text-[11px] text-wf-text-secondary font-medium">
                     Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, filteredRootCategories.length) }} of {{ filteredRootCategories.length }} categories
@@ -560,7 +560,7 @@ defineExpose({
                     <button
                         :disabled="currentPage <= 1"
                         @click="currentPage--"
-                        class="p-1.5 rounded-wf-sm border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                        class="p-1 rounded-wf-xs border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
                         title="Previous page"
                     >
                         <ChevronLeft class="w-3.5 h-3.5" />
@@ -568,7 +568,7 @@ defineExpose({
                     <button
                         :disabled="currentPage >= totalPages"
                         @click="currentPage++"
-                        class="p-1.5 rounded-wf-sm border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                        class="p-1 rounded-wf-xs border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
                         title="Next page"
                     >
                         <ChevronRight class="w-3.5 h-3.5" />

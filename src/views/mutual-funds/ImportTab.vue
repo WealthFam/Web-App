@@ -1,84 +1,79 @@
 <template>
-    <div class="import-page-wrapper">
-        <!-- Retrieval Instruction Note (Global Requirement) -->
-        <v-alert type="info" variant="tonal" class="mb-6 rounded-xl border-dashed border-opacity-30" border="start"
-            density="comfortable">
-            <template v-slot:prepend>
-                <Info :size="20" class="mr-2 text-info" />
-            </template>
-            <div class="text-body-2 font-weight-bold">
-                Need your statement? Download your **Consolidated Account Statement (CAS)** from
+    <div class="space-y-3.5">
+        <!-- Retrieval Instruction Note -->
+        <div class="p-2.5 rounded-wf-md border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 text-xs text-wf-text-secondary flex items-center gap-2.5">
+            <Info :size="16" class="text-wf-primary shrink-0" />
+            <div class="leading-relaxed">
+                Need your statement? Download your <strong class="text-wf-text-primary">Consolidated Account Statement (CAS)</strong> from
                 <a href="https://www.camsonline.com/Investors/Statements/Consolidated-Account-Statement" target="_blank"
-                    class="text-primary text-decoration-none border-b border-primary border-opacity-30 pb-0 hover-opacity-70">
+                    class="text-wf-primary font-semibold hover:underline">
                     CAMS Online
                 </a>
                 to either upload directly or scan via your Inbox Intelligence.
             </div>
-        </v-alert>
+        </div>
 
-        <!-- Main Card: Dashboard Standard Width -->
-        <v-card class="premium-glass-card mb-8" rounded="xl" elevation="0" style="overflow: hidden;">
-            <!-- Refined Integrated Tab Bar -->
-            <div class="card-tabs-header border-b border-white-10 rounded-t-xl"
-                :class="importMode === 'pdf' ? 'bg-indigo-lighten-5' : 'bg-purple-lighten-5'">
-                <v-tabs v-model="importMode" :color="importMode === 'pdf' ? 'primary' : 'secondary'" align-tabs="start"
-                    height="64" :slider-color="importMode === 'pdf' ? 'primary' : 'secondary'">
-                    <v-tab value="pdf" class="premium-ribbon-tab">
-                        <div class="d-flex align-center py-2">
-                            <FileText :size="18" class="mr-3 opacity-70" />
-                            <span class="tab-label">PDF Statement</span>
-                        </div>
-                    </v-tab>
-                    <v-tab value="email" class="premium-ribbon-tab">
-                        <div class="d-flex align-center py-2">
-                            <Mail :size="18" class="mr-3 opacity-70" />
-                            <span class="tab-label">Email Inbox</span>
-                        </div>
-                    </v-tab>
-                </v-tabs>
-            </div>
-
-            <v-card-text class="pa-10">
-                <!-- Instruction Header -->
-                <div class="d-flex align-center gap-4 mb-8">
-                    <div class="icon-glow-box" :class="importMode === 'pdf' ? 'primary' : 'secondary'">
-                        <component :is="activeIcon" :size="24"
-                            :class="importMode === 'pdf' ? 'text-primary' : 'text-secondary'" />
+        <!-- Main Card -->
+        <div class="rounded-wf-md border border-wf-border bg-wf-surface shadow-2xs overflow-hidden">
+            <!-- Segmented Mode Switcher -->
+            <div class="px-3.5 py-2 border-b border-wf-border bg-wf-surface flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-wf-sm bg-wf-surface-variant flex items-center justify-center"
+                        :class="importMode === 'pdf' ? 'text-wf-primary' : 'text-purple-600 dark:text-purple-400'">
+                        <component :is="activeIcon" :size="15" />
                     </div>
                     <div>
-                        <h2 class="text-h5 font-weight-black text-content mb-1">
+                        <h2 class="text-xs sm:text-sm font-bold text-wf-text-primary">
                             {{ importMode === 'pdf' ? 'Consolidate via PDF' : 'Email Inbox Intelligence' }}
                         </h2>
-                        <p class="text-body-2 text-medium-emphasis opacity-70 font-weight-medium">
-                            {{ importMode === 'pdf' ? `Upload your comprehensive portfolio statement to sync your entire
-                            history.`
-                                : `Scan your linked inbox to automatically detect and import new transactions.` }}
+                        <p class="text-[11px] text-wf-text-secondary">
+                            {{ importMode === 'pdf' ? 'Upload comprehensive portfolio statement to sync historical transactions.'
+                                : 'Scan linked email inbox to automatically detect and import investments.' }}
                         </p>
                     </div>
                 </div>
 
-                <v-row>
+                <div class="flex items-center p-0.5 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs">
+                    <button
+                        type="button"
+                        @click="importMode = 'pdf'"
+                        class="px-2.5 py-1 rounded-wf-sm text-xs font-semibold transition-all flex items-center gap-1.5"
+                        :class="importMode === 'pdf' ? 'bg-wf-surface text-wf-primary shadow-2xs border border-wf-border/60' : 'text-wf-text-secondary hover:text-wf-text-primary'"
+                    >
+                        <FileText :size="13" />
+                        <span>PDF Statement</span>
+                    </button>
+                    <button
+                        type="button"
+                        @click="importMode = 'email'"
+                        class="px-2.5 py-1 rounded-wf-sm text-xs font-semibold transition-all flex items-center gap-1.5"
+                        :class="importMode === 'email' ? 'bg-wf-surface text-purple-600 dark:text-purple-400 shadow-2xs border border-wf-border/60' : 'text-wf-text-secondary hover:text-wf-text-primary'"
+                    >
+                        <Mail :size="13" />
+                        <span>Email Inbox</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-3.5">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3.5">
                     <!-- Column 1: Configuration -->
-                    <v-col cols="12" md="5" class="d-flex flex-column">
-                        <div
-                            class="config-section pa-6 rounded-2xl border border-white-5 bg-white-2 shadow-inner h-100">
-                            <label class="text-overline font-weight-black mb-3 d-block letter-spacing-2"
-                                :class="importMode === 'pdf' ? 'text-primary' : 'text-secondary'">
+                    <div class="md:col-span-5 flex flex-col justify-between p-3 rounded-wf-md border border-wf-border bg-wf-surface-variant/30 space-y-3">
+                        <div>
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-secondary mb-1.5 block">
                                 TARGET USER
                             </label>
-
                             <!-- Family Member Selection -->
                             <v-autocomplete v-model="selectedMemberId" :items="memberOptions" item-title="title"
-                                item-value="value" variant="outlined" density="comfortable" rounded="lg"
+                                item-value="value" variant="outlined" density="compact" rounded="md"
                                 bg-color="surface" :color="importMode === 'pdf' ? 'primary' : 'secondary'"
-                                class="mb-4 font-weight-bold" placeholder="Select Profile" persistent-placeholder>
+                                class="mb-3 text-xs font-semibold" placeholder="Select Profile" persistent-placeholder hide-details>
                                 <template v-slot:item="{ props, item }">
-                                    <v-list-item v-bind="props" class="rounded-lg ma-1">
+                                    <v-list-item v-bind="props" class="rounded-md ma-0.5" density="compact">
                                         <template v-slot:prepend>
-                                            <v-avatar size="28" :color="importMode === 'pdf' ? 'primary' : 'secondary'"
+                                            <v-avatar size="22" :color="importMode === 'pdf' ? 'primary' : 'secondary'"
                                                 variant="tonal" class="mr-2">
-                                                <span class="text-caption font-weight-black">{{ item.raw.initials
-                                                    }}</span>
+                                                <span class="text-[10px] font-bold">{{ item.raw.initials }}</span>
                                             </v-avatar>
                                         </template>
                                     </v-list-item>
@@ -86,101 +81,96 @@
                             </v-autocomplete>
 
                             <!-- PAN for Password Protection -->
-                            <label class="text-overline font-weight-black mb-1 d-block letter-spacing-2"
-                                :class="importMode === 'pdf' ? 'text-primary' : 'text-secondary'">
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-secondary mb-1.5 block">
                                 SECURITY ACCESS (PAN)
                             </label>
                             <v-text-field v-model="panNumber" :type="showPan ? 'text' : 'password'"
-                                placeholder="ABCDE1234F" variant="outlined" density="comfortable" rounded="lg"
+                                placeholder="ABCDE1234F" variant="outlined" density="compact" rounded="md"
                                 bg-color="surface" :color="importMode === 'pdf' ? 'primary' : 'secondary'"
-                                class="mb-0 font-weight-black text-uppercase shadow-inner"
+                                class="mb-0 text-xs font-mono font-bold uppercase"
                                 :hint="importMode === 'pdf' ? 'Statement password for decryption' : 'Password for attachment decryption'"
                                 persistent-hint>
                                 <template v-slot:append-inner>
-                                    <v-icon :icon="showPan ? 'mdi-eye-off' : 'mdi-eye'" @click="showPan = !showPan"
+                                    <v-icon :icon="showPan ? 'mdi-eye-off' : 'mdi-eye'" size="16" @click="showPan = !showPan"
                                         class="cursor-pointer" />
-                                    <v-tooltip activator="parent" location="top">Toggle visibility</v-tooltip>
                                 </template>
                             </v-text-field>
                         </div>
-                    </v-col>
+                    </div>
 
-                    <!-- Column 2: Action Area (Synchronized) -->
-                    <v-col cols="12" md="7" class="d-flex flex-column">
+                    <!-- Column 2: Action Area -->
+                    <div class="md:col-span-7 flex flex-col justify-center">
                         <div v-if="importMode === 'pdf'"
-                            class="action-section d-flex flex-column justify-center h-100 pa-10 rounded-2xl border-2 border-primary border-opacity-30 border-dashed bg-primary-lighten-5 drop-zone-wrapper hover-lift"
+                            class="p-6 rounded-wf-md border-2 border-dashed border-wf-primary/40 bg-indigo-50/20 dark:bg-indigo-950/10 flex flex-col items-center justify-center text-center cursor-pointer hover:border-wf-primary transition-all h-full"
                             @click="fileInput?.click()">
 
-                            <input type="file" ref="fileInput" class="d-none" accept=".pdf"
+                            <input type="file" ref="fileInput" class="hidden" accept=".pdf"
                                 @change="(e: any) => file = e.target.files[0]">
 
-                            <div class="text-center">
-                                <div class="pdf-icon-container mx-auto mb-4">
-                                    <FileText :size="48" class="text-primary" />
-                                    <div class="pdf-badge">PDF</div>
-                                </div>
-                                <h3 class="text-h6 font-weight-black text-primary mb-1">
-                                    {{ file ? file.name : 'Drop Portfolio Statement Here' }}
-                                </h3>
-                                <p class="text-caption font-weight-bold opacity-60 mb-0">
-                                    {{ file ? `${(file.size / 1024 / 1024).toFixed(2)} MB • Ready for Analysis` :
-                                        'or click to browse your digital vault' }}
-                                </p>
+                            <div class="w-10 h-10 rounded-full bg-wf-primary-light flex items-center justify-center text-wf-primary mb-2">
+                                <FileText :size="20" />
                             </div>
+                            <h3 class="text-xs sm:text-sm font-bold text-wf-text-primary mb-0.5">
+                                {{ file ? file.name : 'Drop Portfolio Statement Here' }}
+                            </h3>
+                            <p class="text-[11px] text-wf-text-secondary">
+                                {{ file ? `${(file.size / 1024 / 1024).toFixed(2)} MB • Ready for Analysis` :
+                                    'or click to browse from your device' }}
+                            </p>
                         </div>
 
                         <div v-else-if="importMode === 'email'"
-                            class="action-section d-flex flex-column justify-center h-100 pa-10 rounded-2xl border-2 border-secondary border-opacity-30 border-dashed bg-secondary-lighten-5 scan-zone-wrapper">
+                            class="p-6 rounded-wf-md border-2 border-dashed border-purple-500/40 bg-purple-50/20 dark:bg-purple-950/10 flex flex-col items-center justify-center text-center h-full">
 
-                            <div class="text-center mb-8">
-                                <div class="email-icon-container mx-auto mb-4">
-                                    <Mail :size="48" class="text-secondary" />
-                                    <div class="email-badge">INBOX</div>
-                                </div>
-                                <h3 class="text-h6 font-weight-black text-secondary mb-1">
-                                    Automated Inbox Intelligence
-                                </h3>
-                                <p class="text-caption font-weight-bold opacity-60 mb-0">
-                                    Scanning inbox for: <span class="text-secondary opacity-100">{{ selectedMemberEmail
-                                        }}</span>
-                                </p>
+                            <div class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-2">
+                                <Mail :size="20" />
                             </div>
+                            <h3 class="text-xs sm:text-sm font-bold text-wf-text-primary mb-0.5">
+                                Automated Inbox Intelligence
+                            </h3>
+                            <p class="text-[11px] text-wf-text-secondary mb-3">
+                                Scanning inbox for: <span class="font-semibold text-wf-text-primary">{{ selectedMemberEmail }}</span>
+                            </p>
 
                             <v-autocomplete v-model="emailSyncPeriod" :items="periodOptions" item-title="title"
-                                item-value="value" variant="outlined" density="comfortable" rounded="lg"
-                                bg-color="surface" color="secondary" class="mb-0 font-weight-black shadow-sm"
-                                label="Scan Window">
+                                item-value="value" variant="outlined" density="compact" rounded="md"
+                                bg-color="surface" color="secondary" class="w-48 text-xs font-semibold"
+                                label="Scan Window" hide-details>
                                 <template v-slot:item="{ props }">
-                                    <v-list-item v-bind="props" class="rounded-lg ma-1">
+                                    <v-list-item v-bind="props" class="rounded-md ma-0.5" density="compact">
                                         <template v-slot:prepend>
-                                            <Clock :size="16" class="mr-3 text-secondary opacity-70" />
+                                            <Clock :size="14" class="mr-2 text-purple-600" />
                                         </template>
                                     </v-list-item>
                                 </template>
                             </v-autocomplete>
                         </div>
-                    </v-col>
-                </v-row>
+                    </div>
+                </div>
 
                 <!-- Footer Action Row -->
-                <v-row class="mt-6">
-                    <v-col cols="12" class="d-flex justify-end">
-                        <v-btn v-if="importMode === 'pdf'" color="primary" height="48" rounded="pill"
-                            class="font-weight-black px-10 shadow-primary" :loading="isProcessing" :disabled="!file"
-                            @click="handlePreview">
-                            ANALYZE STATEMENT
-                            <ArrowRight :size="18" class="ml-2" />
-                        </v-btn>
-                        <v-btn v-else color="secondary" height="48" rounded="pill"
-                            class="font-weight-black px-10 shadow-secondary hover-lift" :loading="isProcessing"
-                            @click="handlePreview">
-                            START SCAN
-                            <Search :size="20" class="ml-2" />
-                        </v-btn>
-                    </v-col>
-                </v-row>
-            </v-card-text>
-        </v-card>
+                <div class="flex justify-end mt-3 pt-3 border-t border-wf-border-subtle">
+                    <button v-if="importMode === 'pdf'"
+                        type="button"
+                        :disabled="!file || isProcessing"
+                        @click="handlePreview"
+                        class="h-8 px-4 text-xs font-bold rounded-wf-sm bg-wf-primary text-white hover:bg-wf-primary-dark transition-colors flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+                    >
+                        <span>{{ isProcessing ? 'ANALYZING...' : 'ANALYZE STATEMENT' }}</span>
+                        <ArrowRight :size="14" />
+                    </button>
+                    <button v-else
+                        type="button"
+                        :disabled="isProcessing"
+                        @click="handlePreview"
+                        class="h-8 px-4 text-xs font-bold rounded-wf-sm bg-purple-600 text-white hover:bg-purple-700 transition-colors flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+                    >
+                        <span>{{ isProcessing ? 'SCANNING...' : 'START SCAN' }}</span>
+                        <Search :size="14" />
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <!-- Preview Results Display (Full Width) -->
         <v-expand-transition>
