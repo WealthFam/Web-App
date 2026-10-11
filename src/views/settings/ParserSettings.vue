@@ -1,875 +1,72 @@
-<template>
-    <div class="animate-in">
-        <!-- Status Cards -->
-        <v-row class="mb-6">
-            <v-col cols="12" md="4">
-                <v-card class="premium-glass-card h-100 pa-4" elevation="0">
-                    <div class="d-flex align-center gap-4">
-                        <v-avatar color="emerald-lighten-5" rounded="xl" size="56">
-                            <CheckCircle :size="32" class="text-emerald-darken-1" />
-                        </v-avatar>
-                        <div>
-                            <div class="text-subtitle-1 font-weight-bold text-medium-emphasis">Parser Status</div>
-                            <div class="text-h6 font-weight-bold"
-                                :class="parserStatus.isOnline ? 'text-emerald-darken-1' : 'text-error'">
-                                {{ parserStatus.isOnline ? 'Active & Online' : 'Service Down' }}
-                            </div>
-                        </div>
-                    </div>
-                </v-card>
-            </v-col>
-            <v-col cols="12" md="4">
-                <v-card class="premium-glass-card h-100 pa-4" elevation="0">
-                    <div class="d-flex align-center gap-4">
-                        <v-avatar color="indigo-lighten-5" rounded="xl" size="56">
-                            <Zap :size="32" class="text-indigo-darken-1" />
-                        </v-avatar>
-                        <div>
-                            <div class="text-subtitle-1 font-weight-bold text-medium-emphasis">24h Throughput</div>
-                            <div class="text-h6 font-weight-bold">
-                                {{ parserStats?.summary?.total_processed || 0 }} <span
-                                    class="text-caption text-medium-emphasis">Requests</span>
-                            </div>
-                        </div>
-                    </div>
-                </v-card>
-            </v-col>
-            <v-col cols="12" md="4">
-                <v-card class="premium-glass-card h-100 pa-4" elevation="0">
-                    <div class="d-flex align-center gap-4">
-                        <v-avatar color="amber-lighten-5" rounded="xl" size="56">
-                            <ShieldCheck :size="32" class="text-amber-darken-3" />
-                        </v-avatar>
-                        <div>
-                            <div class="text-subtitle-1 font-weight-bold text-medium-emphasis">Success Rate</div>
-                            <div class="text-h6 font-weight-bold">
-                                {{ calculateSuccessRate }}% <span
-                                    class="text-caption text-medium-emphasis">accuracy</span>
-                            </div>
-                        </div>
-                    </div>
-                </v-card>
-            </v-col>
-        </v-row>
-        
-        <!-- Parser Sandbox / Tester -->
-        <v-card class="premium-glass-card mb-6" elevation="0">
-            <v-card-title class="d-flex align-center justify-space-between py-4 px-6 border-b">
-                <div class="d-flex align-center gap-3">
-                    <v-avatar color="primary" variant="tonal" size="40" rounded>
-                        <Search :size="24" class="text-primary" />
-                    </v-avatar>
-                    <div>
-                        <div class="text-h6 font-weight-bold">Parser Sandbox</div>
-                        <div class="text-caption text-medium-emphasis">Test your extraction rules against raw text</div>
-                    </div>
-                </div>
-                <v-btn variant="tonal" :color="showSandbox ? 'primary' : 'grey-darken-1'" size="small" @click="showSandbox = !showSandbox">
-                    {{ showSandbox ? 'Close Tester' : 'Open Tester' }}
-                </v-btn>
-            </v-card-title>
-            
-            <v-expand-transition>
-                <div v-if="showSandbox">
-                    <v-card-text class="pa-6">
-                        <v-row>
-                            <v-col cols="12" md="7">
-                                <div class="text-subtitle-2 font-weight-bold mb-2">Input Content</div>
-                                <v-textarea v-model="sandboxForm.content" placeholder="Paste raw SMS or Email text here..."
-                                    variant="outlined" rows="5" class="font-mono text-body-2 mb-4" hide-details></v-textarea>
-                                
-                                <div class="d-flex gap-4 mb-4">
-                                    <v-select v-model="sandboxForm.source" :items="['SMS', 'EMAIL']" label="Source"
-                                        variant="outlined" density="comfortable" hide-details class="flex-grow-1"></v-select>
-                                    
-                                    <v-text-field v-model="sandboxForm.sender" label="Sender / From" variant="outlined"
-                                        density="comfortable" hide-details class="flex-grow-1" placeholder="e.g. HDFCBK"></v-text-field>
-                                </div>
-                                
-                                <v-btn block color="primary" size="large" :loading="sandboxLoading" @click="testParser"
-                                    class="font-weight-bold">
-                                    Run Extraction Test
-                                </v-btn>
-                            </v-col>
-                            
-                            <v-col cols="12" md="5">
-                                <div class="text-subtitle-2 font-weight-bold mb-2">Extraction Result</div>
-                                <div v-if="sandboxResult" class="result-box bg-grey-lighten-4 rounded-lg pa-4 border h-100 overflow-auto" style="max-height: 400px;">
-                                    <div v-if="sandboxResult.status === 'success'" class="d-flex flex-column gap-3">
-                                        <v-chip color="success" size="small" variant="flat" class="w-fit font-weight-bold">SUCCESS</v-chip>
-                                        
-                                        <div v-for="(item, idx) in sandboxResult.results" :key="idx" class="border rounded-lg pa-3 mb-3 bg-white shadow-sm animate-in">
-                                            <div class="d-flex justify-space-between align-center mb-2">
-                                                <div class="d-flex align-center gap-2">
-                                                    <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">
-                                                        {{ item.metadata.parser_used }}
-                                                    </v-chip>
-                                                </div>
-                                                <v-chip size="x-small" variant="tonal" :color="item.metadata.confidence > 0.8 ? 'success' : 'warning'">
-                                                    Conf: {{ (item.metadata.confidence * 100).toFixed(0) }}%
-                                                </v-chip>
-                                            </div>
-                                            
-                                            <div class="d-flex justify-space-between align-start mb-1">
-                                                <div class="text-body-2 font-weight-bold text-truncate" style="max-width: 65%;">
-                                                    {{ item.transaction.recipient || item.transaction.merchant?.cleaned || item.transaction.description }}
-                                                </div>
-                                                <div class="d-flex flex-column align-end">
-                                                    <div class="text-subtitle-1 font-weight-black" :class="item.transaction.type === 'CREDIT' ? 'text-success' : 'text-error'">
-                                                        {{ item.transaction.type === 'CREDIT' ? '+' : '-' }}{{ formatAmount(item.transaction.amount) }}
-                                                    </div>
-                                                    <v-chip size="x-small" :color="item.transaction.type === 'CREDIT' ? 'success' : 'error'" variant="tonal" class="font-weight-bold mt-n1">
-                                                        {{ item.transaction.type }}
-                                                    </v-chip>
-                                                </div>
-                                            </div>
-
-                                            <v-row dense class="mt-1 bg-grey-lighten-5 rounded pa-1">
-                                                <v-col cols="6">
-                                                    <div class="text-caption d-flex align-center gap-1">
-                                                        <v-icon size="10" color="medium-emphasis">mdi-calendar</v-icon> 
-                                                        <span class="font-weight-medium">{{ new Date(item.transaction.date).toLocaleDateString() }}</span>
-                                                    </div>
-                                                </v-col>
-                                                <v-col cols="6">
-                                                    <div class="text-caption d-flex align-center gap-1">
-                                                        <v-icon size="10" color="medium-emphasis">mdi-credit-card-outline</v-icon> 
-                                                        <span class="font-weight-medium">A/c: {{ item.transaction.account?.mask || 'xxxx' }}</span>
-                                                    </div>
-                                                </v-col>
-                                                <v-col cols="12" v-if="item.transaction.ref_id">
-                                                    <div class="text-caption d-flex align-center gap-1 text-truncate">
-                                                        <v-icon size="10" color="medium-emphasis">mdi-identifier</v-icon> 
-                                                        <span class="font-weight-bold">Ref:</span> <span class="font-mono">{{ item.transaction.ref_id }}</span>
-                                                    </div>
-                                                </v-col>
-                                                <v-col cols="6" v-if="item.transaction.category">
-                                                    <div class="text-caption d-flex align-center gap-1">
-                                                        <v-icon size="10" color="medium-emphasis">mdi-tag-outline</v-icon> 
-                                                        <span class="text-primary font-weight-bold">{{ item.transaction.category }}</span>
-                                                    </div>
-                                                </v-col>
-                                                <v-col cols="6" v-if="item.transaction.balance">
-                                                    <div class="text-caption d-flex align-center gap-1">
-                                                        <v-icon size="10" color="medium-emphasis">mdi-wallet-outline</v-icon> 
-                                                        <span class="font-weight-bold">Bal:</span> {{ formatAmount(item.transaction.balance) }}
-                                                    </div>
-                                                </v-col>
-                                            </v-row>
-
-                                            <!-- Raw Technical Data (Collapsible) -->
-                                            <v-expansion-panels variant="accordion" class="mt-2 density-compact custom-panels">
-                                                <v-expansion-panel elevation="0">
-                                                    <v-expansion-panel-title class="pa-0 min-h-0 py-1 text-caption text-primary">
-                                                        Technical Details
-                                                    </v-expansion-panel-title>
-                                                    <v-expansion-panel-text class="pa-0">
-                                                        <pre class="bg-grey-darken-3 text-grey-lighten-2 pa-2 rounded font-mono text-caption" style="font-size: 0.65rem; max-height: 150px; overflow: auto;">{{ JSON.stringify(item.transaction, null, 2) }}</pre>
-                                                    </v-expansion-panel-text>
-                                                </v-expansion-panel>
-                                            </v-expansion-panels>
-                                        </div>
-
-                                        <!-- Strict Parsing Logs -->
-                                        <div v-if="sandboxResult.logs && sandboxResult.logs.length > 0" class="mt-4 pt-3 border-t">
-                                            <div class="text-caption font-weight-bold mb-1 text-medium-emphasis d-flex align-center gap-1">
-                                                <v-icon size="12">mdi-console</v-icon> Parsing Logs
-                                            </div>
-                                            <div class="bg-grey-darken-4 text-grey-lighten-2 pa-2 rounded font-mono text-caption overflow-auto" style="max-height: 100px; font-size: 0.7rem;">
-                                                <div v-for="(log, lidx) in sandboxResult.logs" :key="lidx" class="mb-1 border-b border-grey-darken-3 pb-1 last:border-0">
-                                                    > {{ log }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Non-Financial / Ignored Status -->
-                                    <div v-else-if="sandboxResult.status === 'ignored' || sandboxResult.status === 'non_financial'" 
-                                        class="d-flex flex-column align-center justify-center py-8 text-center animate-in">
-                                        <v-icon color="warning" size="48" class="mb-2">mdi-alert-circle-outline</v-icon>
-                                        <div class="text-subtitle-1 font-weight-bold text-warning">Non-Financial Content</div>
-                                        <div class="text-caption text-medium-emphasis px-4">
-                                            This content was filtered by the classifier as it does not appear to contain a trackable financial transaction.
-                                        </div>
-                                    </div>
-
-                                    <!-- Duplicate Status -->
-                                    <div v-else-if="sandboxResult.status === 'duplicate_submission'" 
-                                        class="d-flex flex-column align-center justify-center py-8 text-center animate-in">
-                                        <v-icon color="info" size="48" class="mb-2">mdi-content-copy</v-icon>
-                                        <div class="text-subtitle-1 font-weight-bold text-info">Duplicate Detected</div>
-                                        <div class="text-caption text-medium-emphasis px-4">
-                                            This exact content was recently processed and skipped to avoid duplication.
-                                        </div>
-                                    </div>
-
-                                    <!-- Extraction Error -->
-                                    <div v-else-if="sandboxResult.status === 'failed' || sandboxError" class="pa-2 text-error font-italic animate-in">
-                                        <div class="d-flex align-center gap-2 mb-2">
-                                            <XCircle :size="16" /> <strong>Extraction Failed</strong>
-                                        </div>
-                                        <div class="text-caption">{{ sandboxError || 'No parsers were able to extract data from this content.' }}</div>
-                                    </div>
-                                    
-                                    <div v-else class="text-caption text-medium-emphasis pa-4 text-center">
-                                        Status: {{ sandboxResult.status }}
-                                    </div>
-                                </div>
-                                <div v-else class="d-flex flex-column align-center justify-center h-100 border rounded-lg border-dashed text-medium-emphasis py-12">
-                                    <Search :size="32" class="opacity-20 mb-2" />
-                                    <div class="text-caption">Results will appear here</div>
-                                </div>
-                            </v-col>
-                        </v-row>
-                    </v-card-text>
-                </div>
-            </v-expand-transition>
-        </v-card>
-
-        <!-- Performance Breakdown -->
-        <v-card class="premium-glass-card mb-12" elevation="0">
-            <v-card-title class="d-flex align-center gap-3 py-4 px-6 border-b">
-                <v-avatar color="amber-lighten-5" variant="flat" size="40" rounded>
-                    <Activity :size="24" class="text-amber-darken-3" />
-                </v-avatar>
-                <span class="text-h6 font-weight-bold">Parser Performance</span>
-            </v-card-title>
-            <v-card-text class="pa-6">
-                <div v-if="parserStats?.parser_performance" class="d-flex flex-column gap-4">
-                    <div v-for="(count, parser) in parserStats.parser_performance" :key="parser">
-                        <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
-                            <span>{{ parser }}</span>
-                            <span class="text-medium-emphasis">{{ count }} hits</span>
-                        </div>
-                        <v-progress-linear :model-value="(count / parserStats.summary.total_processed * 100)"
-                            color="primary" height="6" rounded></v-progress-linear>
-                    </div>
-                </div>
-                <div v-else class="text-center text-medium-emphasis py-4">No performance data available</div>
-            </v-card-text>
-        </v-card>
-
-        <!-- Parser History -->
-        <v-card class="premium-glass-card mb-12" elevation="0">
-            <v-card-title class="d-flex align-center justify-space-between py-4 px-6">
-                <div class="d-flex align-center gap-3">
-                    <v-avatar color="indigo-lighten-5" variant="flat" size="40" rounded>
-                        <ClipboardList :size="24" class="text-indigo" />
-                    </v-avatar>
-                    <div class="text-h6 font-weight-bold">Parser Request History</div>
-                </div>
-                <div class="d-flex align-center gap-2">
-                    <v-chip size="small" variant="flat" color="grey-lighten-3" class="font-mono">
-                        Total: {{ parserLogPagination.total }}
-                    </v-chip>
-                    <v-btn icon variant="text" density="comfortable" @click="fetchParserData(undefined, true)">
-                        <RefreshCw :size="18" />
-                    </v-btn>
-                </div>
-            </v-card-title>
-
-            <v-divider></v-divider>
-
-            <v-table class="bg-transparent">
-                <thead>
-                    <tr>
-                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase"
-                            style="width: 140px;">Time
-                        </th>
-                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase"
-                            style="width: 100px;">
-                            Source</th>
-                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase"
-                            style="width: 100px;">
-                            Status</th>
-                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Input Preview</th>
-                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Extracted Details
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="log in parserLogs" :key="log.id" class="hover-row">
-                        <td class="text-caption font-mono text-medium-emphasis">{{ formatDate(log.created_at).meta }}
-                        </td>
-                        <td>
-                            <v-chip size="x-small" variant="flat"
-                                class="font-weight-bold text-uppercase bg-grey-lighten-4 border">
-                                {{ log.source }}
-                            </v-chip>
-                        </td>
-                        <td>
-                            <v-chip size="x-small" :color="log.status === 'success' ? 'emerald-lighten-5' : 'error'"
-                                :class="log.status === 'success' ? 'text-emerald-darken-2' : ''" variant="flat"
-                                class="font-weight-bold text-uppercase">
-                                {{ log.status }}
-                            </v-chip>
-                            <div v-if="log.error_message" class="text-caption text-error text-truncate mt-1"
-                                style="max-width: 100px;" :title="log.error_message">
-                                {{ log.error_message }}
-                            </div>
-                        </td>
-                        <td class="text-caption text-medium-emphasis">
-                            <div class="text-truncate" style="max-width: 300px;"
-                                :title="JSON.stringify(log.input_payload)">
-                                {{ log.input_payload?.message || log.input_payload?.body || log.input_payload?.content
-                                    || 'Raw Input' }}
-                            </div>
-                        </td>
-                        <td class="text-caption">
-                            <div v-for="details in [getLogDetails(log)]" :key="log.id">
-                                <div v-if="details">
-                                    <div v-if="details.count > 1" class="font-weight-bold text-primary mb-1">
-                                        📦 {{ details.count }} items
-                                    </div>
-                                    <div v-if="details.main">
-                                        <div class="font-weight-medium">
-                                            {{ details.main.merchant?.cleaned || details.main.description }}
-                                        </div>
-                                        <div class="text-medium-emphasis">
-                                            {{ formatAmount(details.main.amount) }}
-                                        </div>
-                                    </div>
-                                    <div v-else-if="details.error" class="text-error font-italic">
-                                        {{ details.error }}
-                                    </div>
-                                    <div v-else class="text-disabled font-italic">No extraction</div>
-                                </div>
-                                <div v-else class="text-disabled font-italic">No output</div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr v-if="parserLogs.length === 0">
-                        <td colspan="5" class="text-center py-8 text-medium-emphasis font-italic">
-                            No parser logs found.
-                        </td>
-                    </tr>
-                </tbody>
-            </v-table>
-
-            <div v-if="parserLogPagination.total > parserLogPagination.limit"
-                class="d-flex align-center justify-space-between pa-4 border-t">
-                <span class="text-caption text-medium-emphasis">
-                    Showing {{ parserLogPagination.skip + 1 }} - {{ Math.min(parserLogPagination.skip +
-                        parserLogPagination.limit, parserLogPagination.total) }}
-                </span>
-                <div class="d-flex gap-2">
-                    <v-btn size="small" variant="outlined" :disabled="parserLogPagination.skip === 0"
-                        @click="parserLogPagination.skip -= parserLogPagination.limit; fetchParserData()">
-                        Previous
-                    </v-btn>
-                    <v-btn size="small" variant="outlined"
-                        :disabled="parserLogPagination.skip + parserLogPagination.limit >= parserLogPagination.total"
-                        @click="parserLogPagination.skip += parserLogPagination.limit; fetchParserData()">
-                        Next
-                    </v-btn>
-                </div>
-            </div>
-        </v-card>
-
-        <!-- Pattern Management -->
-        <div class="mt-8 pt-8 border-t">
-            <div class="d-flex align-center justify-space-between mb-6">
-                <div>
-                    <h2 class="text-h5 font-weight-bold mb-1">Parser Patterns</h2>
-                    <p class="text-body-2 text-medium-emphasis">View and manage transaction parser patterns</p>
-                </div>
-                <v-btn color="primary" @click="openAddModal" prepend-icon="Plus">
-                    Add Pattern
-                </v-btn>
-            </div>
-
-            <v-card class="premium-glass-card" elevation="0">
-                <v-card-text v-if="patternsLoading" class="text-center py-8">
-                    <v-progress-circular indeterminate color="primary"></v-progress-circular>
-                    <div class="mt-2 text-caption">Loading patterns...</div>
-                </v-card-text>
-
-                <v-table v-else>
-                    <thead>
-                        <tr>
-                            <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Bank</th>
-                            <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Pattern</th>
-                            <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Source / ID
-                            </th>
-                            <th class="text-right text-caption font-weight-bold text-medium-emphasis text-uppercase">
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="pattern in patterns" :key="pattern.id" class="hover-row">
-                            <td>
-                                <v-chip color="blue-lighten-4" variant="flat" size="small"
-                                    class="font-weight-bold text-blue-darken-3">
-                                    {{ pattern.bank_name }}
-                                </v-chip>
-                            </td>
-                            <td class="pattern-cell">
-                                <code
-                                    class="bg-grey-lighten-4 pa-2 rounded font-mono text-caption text-medium-emphasis d-block pattern-code"
-                                    :title="pattern.regex_pattern">
-                            {{ pattern.regex_pattern }}
-                        </code>
-                            </td>
-                            <td>
-                                <div class="d-flex flex-column gap-1">
-                                    <v-chip size="x-small" color="grey" variant="tonal"
-                                        class="font-weight-bold w-fit">
-                                        Rule
-                                    </v-chip>
-                                    <span class="text-caption font-mono text-disabled">{{ pattern.id.substring(0, 8)
-                                        }}</span>
-                                </div>
-                            </td>
-                            <td class="text-right">
-                                <v-btn icon density="comfortable" variant="text" color="medium-emphasis"
-                                    @click.stop="openEditModal(pattern)">
-                                    <Edit2 :size="16" />
-                                </v-btn>
-                                <v-btn icon density="comfortable" variant="text" color="error"
-                                    @click.stop="confirmDelete(pattern)">
-                                    <Trash2 :size="16" />
-                                </v-btn>
-                            </td>
-                        </tr>
-                        <tr v-if="patterns.length === 0">
-                            <td colspan="4" class="text-center py-8 text-medium-emphasis font-italic">
-                                <div class="d-flex flex-column align-center gap-2">
-                                    <ClipboardList :size="48" class="opacity-20" />
-                                    No patterns found
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </v-table>
-            </v-card>
-        </div>
-
-        <!-- Add/Edit Pattern Modal -->
-        <v-dialog v-model="showPatternModal" max-width="600">
-            <v-card class="rounded-xl">
-                <v-card-title class="d-flex justify-space-between align-center pa-4 border-b">
-                    <span class="text-h6 font-weight-bold">{{ isEditingPattern ? 'Edit Pattern' : 'New Pattern'
-                        }}</span>
-                    <v-btn icon="X" variant="text" density="comfortable" @click="showPatternModal = false"></v-btn>
-                </v-card-title>
-                <v-card-text class="pa-6">
-                    <v-form @submit.prevent="savePattern">
-                        <v-text-field v-model="patternForm.bank_name" label="Bank / Application Name"
-                            placeholder="e.g. HDFC Bank" variant="outlined" required
-                            :disabled="isEditingPattern && patternForm.is_ai_generated" class="mb-4"></v-text-field>
-
-                        <v-textarea v-model="patternForm.regex_pattern" label="Regex Pattern"
-                            placeholder="Regex to capture transactions..." variant="outlined" rows="3"
-                            class="font-mono text-body-2 mb-4" required></v-textarea>
-
-                        <v-text-field v-model="patternForm.date_format" label="Date Format (Optional)"
-                            placeholder="e.g. %d-%b-%y for 14-Feb-26" variant="outlined" density="comfortable"
-                            class="font-mono text-body-2 mb-4" hint="Python datetime format string"
-                            persistent-hint></v-text-field>
-
-                        <v-textarea v-model="patternForm.field_mapping_str" label="Field Mapping (JSON)"
-                            placeholder='{"amount": 1, "merchant": 2}' variant="outlined" rows="3"
-                            class="font-mono text-body-2 mb-1" hint="Map fields to regex groups (1-based index)"
-                            persistent-hint></v-textarea>
-
-                        <v-text-field v-model.number="patternForm.confidence" label="Confidence Score (0.0 - 1.0)"
-                            type="number" step="0.1" min="0" max="1" variant="outlined"
-                            class="mt-6 mb-4"></v-text-field>
-
-                        <v-alert v-if="patternError" type="error" variant="tonal" class="mb-4">
-                            {{ patternError }}
-                        </v-alert>
-
-                        <div class="d-flex justify-end gap-3 pt-2">
-                            <v-btn variant="text" @click="showPatternModal = false">Cancel</v-btn>
-                            <v-btn type="submit" color="primary" :loading="patternSaving">
-                                {{ isEditingPattern ? 'Update Pattern' : 'Create Pattern' }}
-                            </v-btn>
-                        </div>
-                    </v-form>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
-        <!-- Alias Management -->
-        <div class="mt-8 pt-8 border-t">
-            <div class="d-flex align-center justify-space-between mb-6">
-                <div>
-                    <h2 class="text-h5 font-weight-bold mb-1">Merchant Aliases</h2>
-                    <p class="text-body-2 text-medium-emphasis">Normalize merchant names (e.g. "AMZN Mktp" -> "Amazon")
-                    </p>
-                </div>
-                <v-btn color="secondary" @click="openAliasModal" prepend-icon="Plus">
-                    Add Alias
-                </v-btn>
-            </div>
-
-            <v-card class="premium-glass-card" elevation="0">
-                <v-card-text v-if="aliasesLoading" class="text-center py-8">
-                    <v-progress-circular indeterminate color="primary"></v-progress-circular>
-                </v-card-text>
-
-                <v-table v-else>
-                    <thead>
-                        <tr>
-                            <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Pattern</th>
-                            <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Clean Alias
-                            </th>
-                            <th class="text-right text-caption font-weight-bold text-medium-emphasis text-uppercase">
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="alias in aliases" :key="alias.id" class="hover-row">
-                            <td class="font-mono text-caption">{{ alias.pattern }}</td>
-                            <td class="font-weight-bold text-primary">{{ alias.alias }}</td>
-                            <td class="text-right">
-                                <v-btn icon density="compact" variant="text" color="medium-emphasis"
-                                    @click.stop="openAliasModal(alias)">
-                                    <Edit2 :size="16" />
-                                </v-btn>
-                                <v-btn icon density="compact" variant="text" color="error"
-                                    @click.stop="confirmDeleteAlias(alias)">
-                                    <Trash2 :size="16" />
-                                </v-btn>
-                            </td>
-                        </tr>
-                        <tr v-if="aliases.length === 0">
-                            <td colspan="3" class="text-center py-8 text-medium-emphasis font-italic">
-                                No aliases found
-                            </td>
-                        </tr>
-                    </tbody>
-                </v-table>
-            </v-card>
-        </div>
-
-        <!-- Add Alias Modal -->
-        <v-dialog v-model="showAliasModal" max-width="500">
-            <v-card class="rounded-xl">
-                <v-card-title class="d-flex justify-space-between align-center pa-4 border-b">
-                    <span class="text-h6 font-weight-bold">New Merchant Alias</span>
-                    <v-btn icon variant="text" density="comfortable" @click="showAliasModal = false">
-                        <X :size="20" />
-                    </v-btn>
-                </v-card-title>
-                <v-card-text class="pa-6">
-                    <v-form @submit.prevent="saveAlias">
-                        <v-text-field v-model="aliasForm.pattern" label="Raw Text Pattern" placeholder="e.g. AMZN MKTP"
-                            variant="outlined" class="mb-4" hint="Matches if this text appears in description"
-                            persistent-hint required @update:model-value="checkAliasImpact"></v-text-field>
-
-                        <v-text-field v-model="aliasForm.alias" label="Clean Merchant Name" placeholder="e.g. Amazon"
-                            variant="outlined" class="mb-6" required></v-text-field>
-
-                        <v-checkbox v-model="aliasForm.update_past" color="primary" hide-details class="mb-2">
-                            <template v-slot:label>
-                                <div>
-                                    <div class="font-weight-bold">Update past transactions?</div>
-                                    <div class="text-caption text-medium-emphasis" v-if="aliasImpact !== null">
-                                        Will update approx. <strong>{{ aliasImpact }}</strong> transactions
-                                    </div>
-                                    <div class="text-caption text-medium-emphasis" v-else>
-                                        Select to verify impact on history
-                                    </div>
-                                </div>
-                            </template>
-                        </v-checkbox>
-
-                        <div class="d-flex justify-end gap-3 pt-4">
-                            <v-btn variant="text" @click="showAliasModal = false">Cancel</v-btn>
-                            <v-btn type="submit" color="primary" :loading="aliasSaving">
-                                Create Rule
-                            </v-btn>
-                        </div>
-                    </v-form>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
-
-        <!-- Alias Delete Confirmation -->
-        <v-dialog v-model="showAliasDeleteConfirm" max-width="400">
-            <v-card class="rounded-xl">
-                <v-card-text class="text-center pa-6">
-                    <div class="text-h2 mb-4">🗑️</div>
-                    <div class="text-h6 font-weight-bold mb-2">Delete Alias?</div>
-                    <p class="text-body-2 text-medium-emphasis mb-6">
-                        Are you sure you want to delete the alias for <span class="font-weight-bold text-primary">{{
-                            aliasToDelete?.alias }}</span>? This will not affect past transactions.
-                    </p>
-                    <div class="d-flex justify-center gap-3">
-                        <v-btn variant="text" @click="showAliasDeleteConfirm = false">Cancel</v-btn>
-                        <v-btn color="error" @click="executeDeleteAlias">
-                            <template v-slot:prepend>
-                                <Trash2 :size="18" />
-                            </template>
-                            Delete
-                        </v-btn>
-                    </div>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
-
-    </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue'
 import {
-    CheckCircle, Zap, ShieldCheck, Activity, RefreshCw, ClipboardList, Edit2, Trash2, Search, X, XCircle
+  CheckCircle,
+  Zap,
+  ShieldCheck,
+  RefreshCw,
+  ClipboardList,
+  Edit2,
+  Trash2,
+  Search,
+  XCircle,
+  Plus,
+  Play,
+  Cpu,
+  ChevronDown,
+  ChevronUp,
+  CreditCard,
+  Calendar,
+  AlertTriangle
 } from 'lucide-vue-next'
 import { parserApi, financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
 import { useConfirmStore } from '@/stores/confirm'
 import { useCurrency } from '@/composables/useCurrency'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfModal from '@/components/ui/WfModal.vue'
 
 const { formatAmount } = useCurrency()
 const notify = useNotificationStore()
 const confirmDialog = useConfirmStore()
 
-// --- Internal State ---
+// State
 const parserStatus = ref({ isOnline: false })
 const parserStats = ref<any>(null)
 const parserLogs = ref<any[]>([])
 const parserLogPagination = ref({ limit: 10, skip: 0, total: 0 })
 
-// --- Pattern Management State ---
+// Patterns State
 const patterns = ref<any[]>([])
 const patternsLoading = ref(false)
+const showPatternModal = ref(false)
+const isEditingPattern = ref(false)
+const patternSaving = ref(false)
+const patternError = ref<string | null>(null)
+const patternForm = reactive({
+  id: null as string | null,
+  bank_name: '',
+  regex_pattern: '',
+  field_mapping_str: '{}',
+  date_format: '',
+  confidence: 1.0,
+  is_ai_generated: false
+})
 
 // Sandbox State
 const showSandbox = ref(false)
 const sandboxForm = ref({
-    content: '',
-    source: 'SMS',
-    sender: '',
-    subject: ''
+  content: '',
+  source: 'SMS',
+  sender: '',
+  subject: ''
 })
 const sandboxResult = ref<any>(null)
 const sandboxLoading = ref(false)
 const sandboxError = ref<string | null>(null)
-const patternSaving = ref(false)
-const patternError = ref<string | null>(null)
-const showPatternModal = ref(false)
-const isEditingPattern = ref(false)
-const patternForm = reactive({
-    id: null as string | null,
-    bank_name: '',
-    regex_pattern: '',
-    field_mapping_str: '{}',
-    date_format: '',
-    confidence: 1.0,
-    is_ai_generated: false
-})
 
-// --- Computed ---
-const calculateSuccessRate = computed(() => {
-    if (!parserStats.value?.summary?.total_processed) return 0
-    const success = parserStats.value.summary.status_breakdown?.success || 0
-    return Math.round((success / parserStats.value.summary.total_processed) * 100)
-})
-
-// --- Methods ---
-const fetchParserData = async (sourceFilter?: string, resetSkip = false) => {
-    if (resetSkip) parserLogPagination.value.skip = 0
-
-    try {
-        const [health, stats, logs] = await Promise.all([
-            parserApi.getHealth(),
-            parserApi.getStats(),
-            parserApi.getLogs({
-                limit: parserLogPagination.value.limit,
-                offset: parserLogPagination.value.skip,
-                source: sourceFilter
-            })
-        ])
-        parserStatus.value.isOnline = health.data?.status === 'ok'
-        parserStats.value = stats.data || null
-        parserLogs.value = logs.data?.logs || []
-        parserLogPagination.value.total = logs.data?.total || 0
-    } catch (e) {
-        parserStatus.value.isOnline = false
-        console.error("Failed to fetch parser data", e)
-    }
-}
-
-function formatDate(dateStr: string) {
-    if (!dateStr) return { day: 'N/A', meta: '' }
-    const d = new Date(dateStr)
-    return {
-        day: d.toLocaleDateString(),
-        meta: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        full: d.toLocaleString()
-    }
-}
-
-interface LogDetails {
-    count: number;
-    main: any;
-    error: string | null;
-}
-
-function getLogDetails(log: any): LogDetails | null {
-    const payload = log.output_payload
-    if (!payload) return null
-
-    // Check for IngestionResult format (new)
-    if (payload.results && Array.isArray(payload.results) && payload.results.length > 0) {
-        return {
-            count: payload.results.length,
-            main: payload.results[0].transaction,
-            error: null
-        }
-    }
-
-    // Check for direct ParsedItem format (old)
-    if (payload.transaction) {
-        return {
-            count: 1,
-            main: payload.transaction,
-            error: null
-        }
-    }
-
-    // Check for error
-    if (payload.error) {
-        return {
-            count: 0,
-            main: null,
-            error: payload.error
-        }
-    }
-
-    return null
-}
-
-// --- Pattern Management Methods ---
-async function loadPatterns() {
-    patternsLoading.value = true
-    try {
-        const res = await parserApi.getPatterns({ limit: 100 })
-        patterns.value = res.data.patterns
-    } catch (err) {
-        console.error('Failed to load patterns:', err)
-        notify.error("Failed to load patterns")
-    } finally {
-        patternsLoading.value = false
-    }
-}
-
-function openAddModal() {
-    isEditingPattern.value = false
-    patternForm.id = null
-    patternForm.bank_name = ''
-    patternForm.regex_pattern = ''
-    patternForm.date_format = ''
-    patternForm.field_mapping_str = '{\n  "amount": 1,\n  "merchant": 2,\n  "date": 3\n}'
-    patternForm.confidence = 1.0
-    patternForm.is_ai_generated = false
-    patternError.value = null
-    showPatternModal.value = true
-}
-
-function openEditModal(pattern: any) {
-    try {
-        isEditingPattern.value = true
-        patternForm.id = pattern.id
-        patternForm.bank_name = pattern.bank_name
-        patternForm.regex_pattern = pattern.regex_pattern
-        patternForm.date_format = pattern.date_format || ''
-
-        const mapping = pattern.field_mapping || {}
-        patternForm.field_mapping_str = JSON.stringify(mapping, null, 2)
-
-        patternForm.confidence = pattern.confidence !== undefined ? pattern.confidence : 1.0
-        patternForm.is_ai_generated = !!pattern.is_ai_generated
-        patternError.value = null
-        showPatternModal.value = true
-    } catch (e) {
-        console.error("Error opening edit modal:", e)
-        notify.error("Failed to open edit modal")
-    }
-}
-
-async function savePattern() {
-    patternSaving.value = true
-    patternError.value = null
-
-    try {
-        let mapping = {}
-        try {
-            mapping = JSON.parse(patternForm.field_mapping_str)
-        } catch (e) {
-            patternError.value = "Invalid JSON in Field Mapping"
-            patternSaving.value = false
-            return
-        }
-
-        const payload = {
-            bank_name: patternForm.bank_name,
-            regex_pattern: patternForm.regex_pattern,
-            field_mapping: mapping,
-            date_format: patternForm.date_format || null,
-            confidence: patternForm.confidence
-        }
-
-        if (isEditingPattern.value && patternForm.id) {
-            await parserApi.updatePattern(patternForm.id, payload)
-            notify.success("Pattern updated")
-        } else {
-            await parserApi.createPattern(payload)
-            notify.success("Pattern created")
-        }
-
-        showPatternModal.value = false
-        loadPatterns()
-    } catch (err: any) {
-        console.error("Save failed", err)
-        patternError.value = err.response?.data?.detail || "Failed to save pattern"
-    } finally {
-        patternSaving.value = false
-    }
-}
-
-async function confirmDelete(pattern: any) {
-    const isConfirmed = await confirmDialog.prompt(`Are you sure you want to delete the pattern for ${pattern.bank_name}?`, 'Delete Pattern', 'Delete', 'Cancel')
-    if (!isConfirmed) return
-
-    try {
-        await parserApi.deletePattern(pattern.id)
-        notify.success("Pattern deleted")
-        loadPatterns()
-    } catch (err) {
-        notify.error("Failed to delete pattern")
-    }
-}
-
-async function testParser() {
-    if (!sandboxForm.value.content) return
-    sandboxLoading.value = true
-    sandboxError.value = null
-    sandboxResult.value = null
-    try {
-        const res = await financeApi.testParser(sandboxForm.value)
-        sandboxResult.value = res.data
-        if (res.data.status === 'failed') {
-            sandboxError.value = res.data.logs?.join('; ') || 'Extraction failed'
-        }
-    } catch (e: any) {
-        sandboxError.value = e.response?.data?.detail || 'Test failed'
-    } finally {
-        sandboxLoading.value = false
-    }
-}
-
-onMounted(() => {
-    fetchParserData()
-    loadPatterns()
-    loadAliases()
-})
-
-// --- Alias Management ---
+// Aliases State
 const aliases = ref<any[]>([])
 const aliasesLoading = ref(false)
 const showAliasModal = ref(false)
@@ -878,155 +75,905 @@ const aliasImpact = ref<number | null>(null)
 const isEditingAlias = ref(false)
 const showAliasDeleteConfirm = ref(false)
 const aliasToDelete = ref<any>(null)
-
 const aliasForm = reactive({
-    id: null as string | null,
-    pattern: '',
-    alias: '',
-    update_past: false
+  id: null as string | null,
+  pattern: '',
+  alias: '',
+  update_past: false
 })
 
-async function loadAliases() {
-    aliasesLoading.value = true
-    try {
-        const res2 = await financeApi.getAliases()
-        aliases.value = res2.data
-    } catch (err) {
-        console.error('Failed to load aliases:', err)
-        aliases.value = []
-    } finally {
-        aliasesLoading.value = false
+const calculateSuccessRate = computed(() => {
+  if (!parserStats.value?.summary?.total_processed) return 0
+  const success = parserStats.value.summary.status_breakdown?.success || 0
+  return Math.round((success / parserStats.value.summary.total_processed) * 100)
+})
+
+const fetchParserData = async (sourceFilter?: string, resetSkip = false) => {
+  if (resetSkip) parserLogPagination.value.skip = 0
+
+  try {
+    const [health, stats, logs] = await Promise.all([
+      parserApi.getHealth(),
+      parserApi.getStats(),
+      parserApi.getLogs({
+        limit: parserLogPagination.value.limit,
+        offset: parserLogPagination.value.skip,
+        source: sourceFilter
+      })
+    ])
+    parserStatus.value.isOnline = health.data?.status === 'ok'
+    parserStats.value = stats.data || null
+    parserLogs.value = logs.data?.logs || []
+    parserLogPagination.value.total = logs.data?.total || 0
+  } catch (e) {
+    parserStatus.value.isOnline = false
+    console.error('Failed to fetch parser data', e)
+  }
+}
+
+function formatDate(dateStr: string) {
+  if (!dateStr) return { day: 'N/A', meta: '' }
+  const d = new Date(dateStr)
+  return {
+    day: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+    meta: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    full: d.toLocaleString()
+  }
+}
+
+interface LogDetails {
+  count: number
+  main: any
+  error: string | null
+}
+
+function getLogDetails(log: any): LogDetails | null {
+  const payload = log.output_payload
+  if (!payload) return null
+
+  if (payload.results && Array.isArray(payload.results) && payload.results.length > 0) {
+    return {
+      count: payload.results.length,
+      main: payload.results[0].transaction,
+      error: null
     }
+  }
+
+  if (payload.transaction) {
+    return {
+      count: 1,
+      main: payload.transaction,
+      error: null
+    }
+  }
+
+  if (payload.error) {
+    return {
+      count: 0,
+      main: null,
+      error: payload.error
+    }
+  }
+
+  return null
+}
+
+// Patterns
+async function loadPatterns() {
+  patternsLoading.value = true
+  try {
+    const res = await parserApi.getPatterns({ limit: 100 })
+    patterns.value = res.data.patterns || []
+  } catch (err) {
+    console.error('Failed to load patterns:', err)
+    notify.error('Failed to load patterns')
+  } finally {
+    patternsLoading.value = false
+  }
+}
+
+function openAddModal() {
+  isEditingPattern.value = false
+  patternForm.id = null
+  patternForm.bank_name = ''
+  patternForm.regex_pattern = ''
+  patternForm.date_format = ''
+  patternForm.field_mapping_str = '{\n  "amount": 1,\n  "merchant": 2,\n  "date": 3\n}'
+  patternForm.confidence = 1.0
+  patternForm.is_ai_generated = false
+  patternError.value = null
+  showPatternModal.value = true
+}
+
+function openEditModal(pattern: any) {
+  try {
+    isEditingPattern.value = true
+    patternForm.id = pattern.id
+    patternForm.bank_name = pattern.bank_name
+    patternForm.regex_pattern = pattern.regex_pattern
+    patternForm.date_format = pattern.date_format || ''
+
+    const mapping = pattern.field_mapping || {}
+    patternForm.field_mapping_str = JSON.stringify(mapping, null, 2)
+
+    patternForm.confidence = pattern.confidence !== undefined ? pattern.confidence : 1.0
+    patternForm.is_ai_generated = !!pattern.is_ai_generated
+    patternError.value = null
+    showPatternModal.value = true
+  } catch (e) {
+    console.error('Error opening edit modal:', e)
+    notify.error('Failed to open edit modal')
+  }
+}
+
+async function savePattern() {
+  patternSaving.value = true
+  patternError.value = null
+
+  try {
+    let mapping = {}
+    try {
+      mapping = JSON.parse(patternForm.field_mapping_str)
+    } catch (e) {
+      patternError.value = 'Invalid JSON in Field Mapping'
+      patternSaving.value = false
+      return
+    }
+
+    const payload = {
+      bank_name: patternForm.bank_name,
+      regex_pattern: patternForm.regex_pattern,
+      field_mapping: mapping,
+      date_format: patternForm.date_format || null,
+      confidence: patternForm.confidence
+    }
+
+    if (isEditingPattern.value && patternForm.id) {
+      await parserApi.updatePattern(patternForm.id, payload)
+      notify.success('Pattern updated')
+    } else {
+      await parserApi.createPattern(payload)
+      notify.success('Pattern created')
+    }
+
+    showPatternModal.value = false
+    loadPatterns()
+  } catch (err: any) {
+    console.error('Save failed', err)
+    patternError.value = err.response?.data?.detail || 'Failed to save pattern'
+  } finally {
+    patternSaving.value = false
+  }
+}
+
+async function confirmDelete(pattern: any) {
+  const isConfirmed = await confirmDialog.prompt(`Are you sure you want to delete the pattern for ${pattern.bank_name}?`, 'Delete Pattern', 'Delete', 'Cancel')
+  if (!isConfirmed) return
+
+  try {
+    await parserApi.deletePattern(pattern.id)
+    notify.success('Pattern deleted')
+    loadPatterns()
+  } catch (err) {
+    notify.error('Failed to delete pattern')
+  }
+}
+
+async function testParser() {
+  if (!sandboxForm.value.content) return
+  sandboxLoading.value = true
+  sandboxError.value = null
+  sandboxResult.value = null
+  try {
+    const res = await financeApi.testParser(sandboxForm.value)
+    sandboxResult.value = res.data
+    if (res.data.status === 'failed') {
+      sandboxError.value = res.data.logs?.join('; ') || 'Extraction failed'
+    }
+  } catch (e: any) {
+    sandboxError.value = e.response?.data?.detail || 'Test failed'
+  } finally {
+    sandboxLoading.value = false
+  }
+}
+
+// Aliases
+async function loadAliases() {
+  aliasesLoading.value = true
+  try {
+    const res = await financeApi.getAliases()
+    aliases.value = res.data || []
+  } catch (err) {
+    console.error('Failed to load aliases:', err)
+    aliases.value = []
+  } finally {
+    aliasesLoading.value = false
+  }
 }
 
 let impactDebounce: any = null
 function checkAliasImpact() {
-    if (!aliasForm.pattern) {
-        aliasImpact.value = null
-        return
+  if (!aliasForm.pattern) {
+    aliasImpact.value = null
+    return
+  }
+  if (impactDebounce) clearTimeout(impactDebounce)
+  impactDebounce = setTimeout(async () => {
+    try {
+      const res = await financeApi.previewAliasImpact(aliasForm.pattern)
+      aliasImpact.value = res.data.match_count
+    } catch (e) {
+      console.error(e)
     }
-    if (impactDebounce) clearTimeout(impactDebounce)
-    impactDebounce = setTimeout(async () => {
-        try {
-            const res = await financeApi.previewAliasImpact(aliasForm.pattern)
-            aliasImpact.value = res.data.match_count
-        } catch (e) {
-            console.error(e)
-        }
-    }, 500)
+  }, 500)
 }
 
 function openAliasModal(alias?: any) {
-    if (alias) {
-        isEditingAlias.value = true
-        aliasForm.id = alias.id
-        aliasForm.pattern = alias.pattern
-        aliasForm.alias = alias.alias
-        aliasForm.update_past = false
-    } else {
-        isEditingAlias.value = false
-        aliasForm.id = null
-        aliasForm.pattern = ''
-        aliasForm.alias = ''
-        aliasForm.update_past = false
-    }
-    // Calculate impact immediately for both create and edit
-    aliasImpact.value = null
-    checkAliasImpact()
-    showAliasModal.value = true
+  if (alias) {
+    isEditingAlias.value = true
+    aliasForm.id = alias.id
+    aliasForm.pattern = alias.pattern
+    aliasForm.alias = alias.alias
+    aliasForm.update_past = false
+  } else {
+    isEditingAlias.value = false
+    aliasForm.id = null
+    aliasForm.pattern = ''
+    aliasForm.alias = ''
+    aliasForm.update_past = false
+  }
+  aliasImpact.value = null
+  checkAliasImpact()
+  showAliasModal.value = true
 }
 
 async function saveAlias() {
-    aliasSaving.value = true
-    try {
-        if (isEditingAlias.value && aliasForm.id) {
-            await financeApi.updateAlias(aliasForm.id, {
-                pattern: aliasForm.pattern,
-                alias: aliasForm.alias,
-                update_past_transactions: aliasForm.update_past
-            })
-            notify.success("Alias updated successfully")
-        } else {
-            await financeApi.createAlias({
-                pattern: aliasForm.pattern,
-                alias: aliasForm.alias,
-                update_past_transactions: aliasForm.update_past
-            })
-            notify.success("Alias created successfully")
-        }
-
-        if (aliasForm.update_past) {
-            notify.info("Background update of transactions started")
-        }
-        showAliasModal.value = false
-        loadAliases()
-    } catch (err) {
-        notify.error(isEditingAlias.value ? "Failed to update alias" : "Failed to create alias")
-    } finally {
-        aliasSaving.value = false
+  aliasSaving.value = true
+  try {
+    if (isEditingAlias.value && aliasForm.id) {
+      await financeApi.updateAlias(aliasForm.id, {
+        pattern: aliasForm.pattern,
+        alias: aliasForm.alias,
+        update_past_transactions: aliasForm.update_past
+      })
+      notify.success('Alias updated successfully')
+    } else {
+      await financeApi.createAlias({
+        pattern: aliasForm.pattern,
+        alias: aliasForm.alias,
+        update_past_transactions: aliasForm.update_past
+      })
+      notify.success('Alias created successfully')
     }
+
+    if (aliasForm.update_past) {
+      notify.info('Background update of transactions started')
+    }
+    showAliasModal.value = false
+    loadAliases()
+  } catch (err) {
+    notify.error(isEditingAlias.value ? 'Failed to update alias' : 'Failed to create alias')
+  } finally {
+    aliasSaving.value = false
+  }
 }
 
 function confirmDeleteAlias(alias: any) {
-    aliasToDelete.value = alias
-    showAliasDeleteConfirm.value = true
+  aliasToDelete.value = alias
+  showAliasDeleteConfirm.value = true
 }
 
 async function executeDeleteAlias() {
-    if (!aliasToDelete.value) return
-
-    try {
-        await financeApi.deleteAlias(aliasToDelete.value.id)
-        notify.success("Alias deleted")
-        loadAliases()
-    } catch (err) {
-        notify.error("Failed to delete alias rule")
-    } finally {
-        showAliasDeleteConfirm.value = false
-        aliasToDelete.value = null
-    }
+  if (!aliasToDelete.value) return
+  try {
+    await financeApi.deleteAlias(aliasToDelete.value.id)
+    notify.success('Alias deleted')
+    loadAliases()
+  } catch (err) {
+    notify.error('Failed to delete alias rule')
+  } finally {
+    showAliasDeleteConfirm.value = false
+    aliasToDelete.value = null
+  }
 }
+
+onMounted(() => {
+  fetchParserData()
+  loadPatterns()
+  loadAliases()
+})
 </script>
 
-<style scoped>
-.glass-card {
-    background: rgba(var(--v-theme-surface), 0.8) !important;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--v-border-color), 0.2);
-    border-radius: 16px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+<template>
+  <div class="space-y-4">
+    <!-- 1. ENGINE STATUS & METRICS -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <!-- Card 1: Parser Status -->
+      <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
+        <div class="flex items-center gap-2.5">
+          <div
+            class="w-9 h-9 rounded-wf-md flex items-center justify-center border shrink-0"
+            :class="parserStatus.isOnline ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'"
+          >
+            <CheckCircle v-if="parserStatus.isOnline" class="w-4 h-4" />
+            <XCircle v-else class="w-4 h-4" />
+          </div>
+          <div>
+            <p class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider">Engine Status</p>
+            <p
+              class="text-sm font-bold mt-0.5"
+              :class="parserStatus.isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'"
+            >
+              {{ parserStatus.isOnline ? 'Active & Online' : 'Service Offline' }}
+            </p>
+          </div>
+        </div>
+      </WfCard>
 
-.border-emerald {
-    border: 1px solid rgb(var(--v-theme-success));
-}
+      <!-- Card 2: 24h Throughput -->
+      <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-wf-md bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 flex items-center justify-center shrink-0">
+            <Zap class="w-4 h-4" />
+          </div>
+          <div>
+            <p class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider">24h Throughput</p>
+            <p class="text-sm font-bold text-wf-text-primary mt-0.5">
+              {{ parserStats?.summary?.total_processed || 0 }} <span class="text-[11px] text-wf-text-muted font-normal">Requests</span>
+            </p>
+          </div>
+        </div>
+      </WfCard>
 
-.border-amber {
-    border: 1px solid rgb(var(--v-theme-warning));
-}
+      <!-- Card 3: Success Rate -->
+      <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-wf-md bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center shrink-0">
+            <ShieldCheck class="w-4 h-4" />
+          </div>
+          <div>
+            <p class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider">Extraction Rate</p>
+            <p class="text-sm font-bold text-wf-text-primary mt-0.5">
+              {{ calculateSuccessRate }}% <span class="text-[11px] text-wf-text-muted font-normal">accuracy</span>
+            </p>
+          </div>
+        </div>
+      </WfCard>
+    </div>
 
-.pattern-cell {
-    max-width: 0;
-    width: 100%;
-}
+    <!-- 2. PARSER SANDBOX / TESTER -->
+    <WfCard variant="flat" padding="none" radius="lg" class="shadow-2xs overflow-hidden">
+      <div class="p-3 px-4 border-b border-wf-border-subtle flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-wf-md bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center">
+            <Cpu class="w-4 h-4" />
+          </div>
+          <div>
+            <h3 class="text-xs font-bold text-wf-text-primary">Parser Sandbox</h3>
+            <p class="text-[10px] text-wf-text-muted">Test extraction regex rules against raw SMS or email text</p>
+          </div>
+        </div>
 
-.pattern-code {
-    white-space: pre-wrap;
-    word-break: break-all;
-    font-size: 0.7rem !important;
-}
+        <WfButton
+          variant="secondary"
+          size="sm"
+          @click="showSandbox = !showSandbox"
+        >
+          <component :is="showSandbox ? ChevronUp : ChevronDown" class="w-3.5 h-3.5 mr-1" />
+          <span>{{ showSandbox ? 'Hide Tester' : 'Open Tester' }}</span>
+        </WfButton>
+      </div>
 
-.spin {
-    animation: spin 3s linear infinite;
-}
+      <!-- Expandable Sandbox Console -->
+      <div v-if="showSandbox" class="p-4 border-t border-wf-border-subtle bg-wf-surface-variant/20 space-y-3">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <!-- Input Form Column -->
+          <div class="lg:col-span-7 space-y-2.5">
+            <div>
+              <label class="block text-[11px] font-bold text-wf-text-secondary mb-1">Raw SMS / Email Content</label>
+              <textarea
+                v-model="sandboxForm.content"
+                rows="4"
+                placeholder="Paste raw SMS or bank notification text here..."
+                class="w-full p-2.5 rounded-wf-md bg-wf-surface border border-wf-border-subtle text-xs text-wf-text-primary font-mono focus:outline-none focus:border-wf-primary"
+              />
+            </div>
 
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[9px] font-bold text-wf-text-muted uppercase mb-1">Source Type</label>
+                <select
+                  v-model="sandboxForm.source"
+                  class="w-full h-8 px-2.5 rounded-wf-md bg-wf-surface border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+                >
+                  <option value="SMS">SMS Notification</option>
+                  <option value="EMAIL">Email Body</option>
+                </select>
+              </div>
 
-    to {
-        transform: rotate(360deg);
-    }
-}
-</style>
+              <div>
+                <label class="block text-[9px] font-bold text-wf-text-muted uppercase mb-1">Sender / Header</label>
+                <input
+                  v-model="sandboxForm.sender"
+                  type="text"
+                  placeholder="e.g. HDFCBK or alert@bank.com"
+                  class="w-full h-8 px-2.5 rounded-wf-md bg-wf-surface border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+                />
+              </div>
+            </div>
+
+            <WfButton
+              variant="primary"
+              size="sm"
+              class="w-full"
+              :loading="sandboxLoading"
+              @click="testParser"
+            >
+              <Play class="w-3.5 h-3.5 mr-1" />
+              <span>Run Extraction Test</span>
+            </WfButton>
+          </div>
+
+          <!-- Extraction Output Column -->
+          <div class="lg:col-span-5 flex flex-col">
+            <label class="block text-[11px] font-bold text-wf-text-secondary mb-1">Extraction Result</label>
+            <div class="p-3 bg-wf-surface rounded-wf-md border border-wf-border-subtle flex-1 min-h-[180px] max-h-[320px] overflow-y-auto">
+              <!-- Success State -->
+              <div v-if="sandboxResult?.status === 'success'" class="space-y-2">
+                <div class="flex items-center justify-between pb-1.5 border-b border-wf-border-subtle">
+                  <span class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                    MATCH SUCCESS
+                  </span>
+                  <span class="text-[9px] font-mono text-wf-text-muted">
+                    {{ sandboxResult.results?.length || 1 }} record(s)
+                  </span>
+                </div>
+
+                <div v-for="(item, idx) in sandboxResult.results" :key="idx" class="p-2.5 bg-wf-surface-variant/30 rounded-wf-md border border-wf-border-subtle text-xs space-y-1.5">
+                  <div class="flex items-center justify-between">
+                    <span class="px-1 py-0.2 rounded-wf-xs bg-wf-primary-light text-wf-primary text-[9px] font-bold">
+                      {{ item.metadata.parser_used }}
+                    </span>
+                    <span class="text-[9px] font-bold text-emerald-500">
+                      Conf: {{ ((item.metadata.confidence || 1) * 100).toFixed(0) }}%
+                    </span>
+                  </div>
+
+                  <div class="flex items-start justify-between gap-2">
+                    <p class="font-bold text-wf-text-primary text-xs truncate">
+                      {{ item.transaction.recipient || item.transaction.merchant?.cleaned || item.transaction.description }}
+                    </p>
+                    <span
+                      class="text-xs font-black font-mono"
+                      :class="item.transaction.type === 'CREDIT' ? 'text-emerald-500' : 'text-rose-500'"
+                    >
+                      {{ item.transaction.type === 'CREDIT' ? '+' : '-' }}{{ formatAmount(item.transaction.amount) }}
+                    </span>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-1 text-[10px] text-wf-text-secondary pt-1 border-t border-wf-border-subtle/50">
+                    <div class="flex items-center gap-1">
+                      <Calendar class="w-2.5 h-2.5 text-wf-text-muted" />
+                      <span>{{ new Date(item.transaction.date).toLocaleDateString('en-IN') }}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <CreditCard class="w-2.5 h-2.5 text-wf-text-muted" />
+                      <span>A/c: {{ item.transaction.account?.mask || '••••' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Non-Financial State -->
+              <div v-else-if="sandboxResult?.status === 'ignored' || sandboxResult?.status === 'non_financial'" class="text-center py-6 space-y-1.5">
+                <AlertTriangle class="w-6 h-6 text-amber-500 mx-auto" />
+                <h5 class="text-xs font-bold text-amber-600 dark:text-amber-400">Non-Financial Content</h5>
+                <p class="text-[10px] text-wf-text-muted max-w-xs mx-auto">
+                  Filtered by classifier. Does not contain trackable transaction indicators.
+                </p>
+              </div>
+
+              <!-- Failed State -->
+              <div v-else-if="sandboxResult?.status === 'failed' || sandboxError" class="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-wf-md space-y-1">
+                <div class="flex items-center gap-1.5 text-xs font-bold text-rose-500">
+                  <XCircle class="w-3.5 h-3.5" />
+                  <span>Extraction Failed</span>
+                </div>
+                <p class="text-[10px] text-rose-600 dark:text-rose-400">
+                  {{ sandboxError || 'No matching pattern rule found.' }}
+                </p>
+              </div>
+
+              <!-- Default Placeholder -->
+              <div v-else class="flex flex-col items-center justify-center h-full text-center text-wf-text-muted py-6">
+                <Search class="w-6 h-6 opacity-30 mb-1.5" />
+                <span class="text-xs">Extraction output will appear here</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </WfCard>
+
+    <!-- 3. PATTERNS MANAGEMENT -->
+    <div class="space-y-2.5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="text-xs font-bold text-wf-text-primary">Parser Patterns</h3>
+          <p class="text-[10px] text-wf-text-muted">Regular expression rules for extracting SMS & Email alerts</p>
+        </div>
+        <WfButton variant="primary" size="sm" @click="openAddModal">
+          <Plus class="w-3.5 h-3.5 mr-1" />
+          <span>Add Pattern</span>
+        </WfButton>
+      </div>
+
+      <WfCard variant="flat" padding="none" radius="lg" class="shadow-2xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-wf-border-subtle bg-wf-surface-variant/30 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
+                <th class="py-2 px-3">Bank / Institution</th>
+                <th class="py-2 px-3">Regex Pattern</th>
+                <th class="py-2 px-3">Rule ID</th>
+                <th class="py-2 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-wf-border-subtle">
+              <tr v-for="pattern in patterns" :key="pattern.id" class="hover:bg-wf-surface-variant/40 transition-colors">
+                <td class="py-1.5 px-3 whitespace-nowrap">
+                  <span class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                    {{ pattern.bank_name }}
+                  </span>
+                </td>
+                <td class="py-1.5 px-3 max-w-md">
+                  <code class="block p-1 rounded-wf-xs bg-wf-surface-variant font-mono text-[9px] text-wf-text-primary break-all border border-wf-border-subtle" :title="pattern.regex_pattern">
+                    {{ pattern.regex_pattern }}
+                  </code>
+                </td>
+                <td class="py-1.5 px-3 whitespace-nowrap font-mono text-wf-text-muted text-[10px]">
+                  {{ pattern.id.substring(0, 8) }}
+                </td>
+                <td class="py-1.5 px-3 text-right whitespace-nowrap">
+                  <div class="flex items-center justify-end gap-0.5">
+                    <button
+                      type="button"
+                      @click="openEditModal(pattern)"
+                      title="Edit Pattern"
+                      class="p-1 rounded-wf-xs text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+                    >
+                      <Edit2 class="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      @click="confirmDelete(pattern)"
+                      title="Delete Pattern"
+                      class="p-1 rounded-wf-xs text-wf-text-muted hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                    >
+                      <Trash2 class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="patterns.length === 0">
+                <td colspan="4" class="text-center py-6 text-wf-text-muted">No custom patterns configured.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </WfCard>
+    </div>
+
+    <!-- 4. MERCHANT ALIASES -->
+    <div class="space-y-2.5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="text-xs font-bold text-wf-text-primary">Merchant Aliases</h3>
+          <p class="text-[10px] text-wf-text-muted">Normalize raw descriptions into clean merchant names (e.g. "AMZN Mktp" &rarr; "Amazon")</p>
+        </div>
+        <WfButton variant="secondary" size="sm" @click="openAliasModal()">
+          <Plus class="w-3.5 h-3.5 mr-1" />
+          <span>Add Alias</span>
+        </WfButton>
+      </div>
+
+      <WfCard variant="flat" padding="none" radius="lg" class="shadow-2xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-wf-border-subtle bg-wf-surface-variant/30 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
+                <th class="py-2 px-3">Raw Text Pattern</th>
+                <th class="py-2 px-3">Clean Merchant Name</th>
+                <th class="py-2 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-wf-border-subtle">
+              <tr v-for="alias in aliases" :key="alias.id" class="hover:bg-wf-surface-variant/40 transition-colors">
+                <td class="py-1.5 px-3 font-mono text-wf-text-secondary text-[10px]">
+                  {{ alias.pattern }}
+                </td>
+                <td class="py-1.5 px-3 font-bold text-wf-primary text-xs">
+                  {{ alias.alias }}
+                </td>
+                <td class="py-1.5 px-3 text-right whitespace-nowrap">
+                  <div class="flex items-center justify-end gap-0.5">
+                    <button
+                      type="button"
+                      @click="openAliasModal(alias)"
+                      title="Edit Alias"
+                      class="p-1 rounded-wf-xs text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+                    >
+                      <Edit2 class="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      @click="confirmDeleteAlias(alias)"
+                      title="Delete Alias"
+                      class="p-1 rounded-wf-xs text-wf-text-muted hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                    >
+                      <Trash2 class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="aliases.length === 0">
+                <td colspan="3" class="text-center py-6 text-wf-text-muted">No merchant aliases defined.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </WfCard>
+    </div>
+
+    <!-- 5. PARSER REQUEST HISTORY -->
+    <WfCard variant="flat" padding="none" radius="lg" class="shadow-2xs overflow-hidden">
+      <div class="p-3 px-4 border-b border-wf-border-subtle flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-wf-md bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 flex items-center justify-center">
+            <ClipboardList class="w-4 h-4" />
+          </div>
+          <div>
+            <h3 class="text-xs font-bold text-wf-text-primary">Parser Request History</h3>
+            <p class="text-[10px] text-wf-text-muted">Live parse events and output records</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded-wf-xs bg-wf-surface-variant text-[10px] font-mono text-wf-text-secondary border border-wf-border-subtle">
+            Total: {{ parserLogPagination.total }}
+          </span>
+          <button
+            type="button"
+            @click="fetchParserData(undefined, true)"
+            title="Refresh Logs"
+            class="p-1 rounded-wf-xs text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+          >
+            <RefreshCw class="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="border-b border-wf-border-subtle bg-wf-surface-variant/30 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
+              <th class="py-2 px-3 w-36">Time</th>
+              <th class="py-2 px-3 w-20">Source</th>
+              <th class="py-2 px-3 w-24">Status</th>
+              <th class="py-2 px-3">Input Preview</th>
+              <th class="py-2 px-3">Extracted Details</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-wf-border-subtle">
+            <tr v-for="log in parserLogs" :key="log.id" class="hover:bg-wf-surface-variant/40 transition-colors">
+              <td class="py-1.5 px-3 whitespace-nowrap text-wf-text-secondary font-mono text-[10px]">
+                {{ formatDate(log.created_at).full }}
+              </td>
+              <td class="py-1.5 px-3 whitespace-nowrap">
+                <span class="px-1.5 py-0.2 rounded-wf-xs bg-wf-surface-variant text-[9px] font-mono font-bold text-wf-text-secondary border border-wf-border-subtle uppercase">
+                  {{ log.source }}
+                </span>
+              </td>
+              <td class="py-1.5 px-3 whitespace-nowrap">
+                <span
+                  class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold uppercase tracking-wider border"
+                  :class="log.status === 'success' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'"
+                >
+                  {{ log.status }}
+                </span>
+              </td>
+              <td class="py-1.5 px-3 text-wf-text-secondary max-w-xs truncate text-[11px]" :title="JSON.stringify(log.input_payload)">
+                {{ log.input_payload?.message || log.input_payload?.body || log.input_payload?.content || 'Raw Input' }}
+              </td>
+              <td class="py-1.5 px-3 text-xs">
+                <div v-for="details in [getLogDetails(log)]" :key="log.id">
+                  <div v-if="details?.main" class="flex items-center gap-2">
+                    <span class="font-bold text-wf-text-primary text-[11px]">{{ details.main.merchant?.cleaned || details.main.description }}</span>
+                    <span class="text-wf-text-muted font-mono font-bold text-[11px]">{{ formatAmount(details.main.amount) }}</span>
+                  </div>
+                  <span v-else-if="details?.error" class="text-rose-500 italic text-[10px]">{{ details.error }}</span>
+                  <span v-else class="text-wf-text-muted italic text-[10px]">No extraction</span>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="parserLogs.length === 0">
+              <td colspan="5" class="text-center py-8 text-wf-text-muted">No parser logs found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div
+        v-if="parserLogPagination.total > parserLogPagination.limit"
+        class="p-3 border-t border-wf-border-subtle flex items-center justify-between text-xs text-wf-text-secondary"
+      >
+        <span>
+          Showing {{ parserLogPagination.skip + 1 }} - {{ Math.min(parserLogPagination.skip + parserLogPagination.limit, parserLogPagination.total) }} of {{ parserLogPagination.total }}
+        </span>
+        <div class="flex items-center gap-2">
+          <WfButton
+            variant="secondary"
+            size="sm"
+            :disabled="parserLogPagination.skip === 0"
+            @click="parserLogPagination.skip -= parserLogPagination.limit; fetchParserData()"
+          >
+            Previous
+          </WfButton>
+          <WfButton
+            variant="secondary"
+            size="sm"
+            :disabled="parserLogPagination.skip + parserLogPagination.limit >= parserLogPagination.total"
+            @click="parserLogPagination.skip += parserLogPagination.limit; fetchParserData()"
+          >
+            Next
+          </WfButton>
+        </div>
+      </div>
+    </WfCard>
+
+    <!-- MODAL 1: ADD / EDIT PATTERN -->
+    <WfModal
+      v-model="showPatternModal"
+      :title="isEditingPattern ? 'Edit Parser Pattern' : 'New Parser Pattern'"
+      max-width="lg"
+    >
+      <form @submit.prevent="savePattern" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-wf-text-secondary mb-1">Bank / Application Name *</label>
+          <input
+            v-model="patternForm.bank_name"
+            type="text"
+            required
+            placeholder="e.g. HDFC Bank"
+            class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-wf-text-secondary mb-1">Regex Pattern *</label>
+          <textarea
+            v-model="patternForm.regex_pattern"
+            required
+            rows="3"
+            placeholder="Regex to capture transactions..."
+            class="w-full p-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary font-mono focus:outline-none focus:border-wf-primary"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-wf-text-secondary mb-1">Date Format (Optional)</label>
+          <input
+            v-model="patternForm.date_format"
+            type="text"
+            placeholder="e.g. %d-%b-%y for 14-Feb-26"
+            class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary font-mono focus:outline-none focus:border-wf-primary"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-wf-text-secondary mb-1">Field Mapping (JSON Group Indices)</label>
+          <textarea
+            v-model="patternForm.field_mapping_str"
+            rows="3"
+            placeholder='{"amount": 1, "merchant": 2}'
+            class="w-full p-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary font-mono focus:outline-none focus:border-wf-primary"
+          />
+        </div>
+
+        <div v-if="patternError" class="p-3 rounded-wf-md bg-rose-500/10 border border-rose-500/20 text-xs text-rose-500">
+          {{ patternError }}
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-4 border-t border-wf-border-subtle">
+          <WfButton variant="secondary" size="md" type="button" @click="showPatternModal = false">
+            Cancel
+          </WfButton>
+          <WfButton variant="primary" size="md" type="submit" :loading="patternSaving">
+            {{ isEditingPattern ? 'Update Pattern' : 'Create Pattern' }}
+          </WfButton>
+        </div>
+      </form>
+    </WfModal>
+
+    <!-- MODAL 2: ADD / EDIT ALIAS -->
+    <WfModal
+      v-model="showAliasModal"
+      :title="isEditingAlias ? 'Edit Merchant Alias' : 'New Merchant Alias'"
+      max-width="md"
+    >
+      <form @submit.prevent="saveAlias" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-wf-text-secondary mb-1">Raw Text Pattern *</label>
+          <input
+            v-model="aliasForm.pattern"
+            type="text"
+            required
+            placeholder="e.g. AMZN MKTP"
+            @input="checkAliasImpact"
+            class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary uppercase focus:outline-none focus:border-wf-primary"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-wf-text-secondary mb-1">Clean Merchant Name *</label>
+          <input
+            v-model="aliasForm.alias"
+            type="text"
+            required
+            placeholder="e.g. Amazon"
+            class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+          />
+        </div>
+
+        <div class="p-3 bg-wf-surface-variant/30 rounded-wf-md border border-wf-border-subtle space-y-1">
+          <div class="flex items-center gap-2">
+            <input
+              v-model="aliasForm.update_past"
+              type="checkbox"
+              id="update_past"
+              class="w-4 h-4 rounded text-wf-primary focus:ring-wf-primary"
+            />
+            <label for="update_past" class="text-xs font-bold text-wf-text-primary cursor-pointer">
+              Update historical transactions?
+            </label>
+          </div>
+          <p v-if="aliasImpact !== null" class="text-[11px] text-wf-text-secondary pl-6">
+            Will re-categorize approximately <strong class="text-wf-primary">{{ aliasImpact }}</strong> transactions.
+          </p>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-4 border-t border-wf-border-subtle">
+          <WfButton variant="secondary" size="md" type="button" @click="showAliasModal = false">
+            Cancel
+          </WfButton>
+          <WfButton variant="primary" size="md" type="submit" :loading="aliasSaving">
+            {{ isEditingAlias ? 'Update Alias' : 'Create Rule' }}
+          </WfButton>
+        </div>
+      </form>
+    </WfModal>
+
+    <!-- MODAL 3: DELETE ALIAS CONFIRM -->
+    <WfModal
+      v-model="showAliasDeleteConfirm"
+      title="Delete Merchant Alias"
+      max-width="sm"
+    >
+      <div class="space-y-4">
+        <p class="text-xs text-wf-text-secondary">
+          Are you sure you want to delete the alias for <strong class="text-wf-primary font-bold">{{ aliasToDelete?.alias }}</strong>?
+        </p>
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-wf-border-subtle">
+          <WfButton variant="secondary" size="md" @click="showAliasDeleteConfirm = false">
+            Cancel
+          </WfButton>
+          <WfButton variant="primary" size="md" class="bg-rose-500 hover:bg-rose-600" @click="executeDeleteAlias">
+            Delete
+          </WfButton>
+        </div>
+      </div>
+    </WfModal>
+  </div>
+</template>

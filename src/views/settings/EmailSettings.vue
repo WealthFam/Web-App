@@ -1,507 +1,28 @@
-<template>
-    <div class="animate-in">
-        <!-- Search Bar -->
-        <div class="d-flex flex-column flex-sm-row align-center justify-space-between gap-4 mb-6">
-            <v-text-field v-model="searchQuery" placeholder="Search email accounts..." variant="outlined"
-                density="comfortable" hide-details class="flex-grow-1" style="max-width: 400px; width: 100%;"
-                bg-color="surface">
-                <template v-slot:prepend-inner>
-                    <Search :size="18" class="text-medium-emphasis mr-2" />
-                </template>
-            </v-text-field>
-
-            <div class="d-flex align-center gap-3">
-                <h3 class="text-subtitle-1 font-weight-bold">Email Accounts</h3>
-                <v-chip color="success" size="small" variant="flat" class="font-weight-bold">
-                    {{ emailConfigs.length }} Total
-                </v-chip>
-            </div>
-        </div>
-
-        <v-alert v-if="syncStatus && !['running', 'started'].includes(syncStatus.status)"
-            :color="syncStatus.status === 'completed' ? 'success' : 'error'" variant="tonal" border="start" closable
-            class="mb-6" @click:close="syncStatus = null">
-            <template v-slot:prepend>
-                <div class="mr-2">
-                    <CheckCircle2 v-if="syncStatus.status === 'completed'" :size="24" />
-                    <XCircle v-else :size="24" />
-                </div>
-            </template>
-            <div class="text-subtitle-2 font-weight-bold">
-                {{ syncStatus.status === 'completed' ? 'Sync Complete' : 'Sync Failed' }}
-            </div>
-            <div class="text-body-2">
-                {{ syncStatus.message || `${syncStatus.stats?.processed} transactions processed.` }}
-            </div>
-        </v-alert>
-
-        <v-alert v-if="syncStatus && syncStatus.status === 'started'" color="info" variant="tonal" border="start"
-            closable class="mb-6" @click:close="syncStatus = null">
-            <template v-slot:prepend>
-                <RefreshCw :size="24" class="mr-2 animate-spin" />
-            </template>
-            <div class="text-subtitle-2 font-weight-bold">Sync Started</div>
-            <div class="text-body-2">
-                {{ syncStatus.message || "Email synchronization is running in the background." }}
-            </div>
-        </v-alert>
-
-        <v-row>
-            <v-col v-for="config in emailConfigs" :key="config.id" cols="12" md="6" lg="4">
-                <v-card class="premium-glass-card h-100 d-flex flex-column" elevation="0">
-                    <div class="status-stripe-compact" :class="{
-                        'active': config.is_active,
-                        'inactive': !config.is_active,
-                        'auto-sync': config.auto_sync_enabled
-                    }"></div>
-
-                    <v-card-text class="d-flex flex-column h-100 pl-6">
-                        <!-- Header -->
-                        <div class="d-flex justify-space-between align-start mb-3">
-                            <div class="d-flex align-center gap-2 overflow-hidden">
-                                <v-avatar color="primary" variant="tonal" size="32" class="border">
-                                    <span class="text-caption">
-                                        {{familyMembers.find(u => u.id === config.user_id)?.avatar || '👤'}}
-                                    </span>
-                                </v-avatar>
-                                <div class="d-flex flex-column" style="min-width: 0;">
-                                    <div class="text-subtitle-2 font-weight-bold text-truncate" :title="config.email">
-                                        {{ config.email }}
-                                    </div>
-                                    <div class="d-flex align-center gap-2">
-                                        <v-chip size="x-small" color="grey-lighten-3" variant="flat"
-                                            class="font-weight-bold text-caption text-medium-emphasis">
-                                            {{ config.imap_server }}
-                                        </v-chip>
-                                        <div v-if="config.auto_sync_enabled"
-                                            class="text-success font-weight-bold text-caption d-flex align-center gap-1">
-                                            <RefreshCw :size="10" />
-                                            Auto
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="d-flex align-center gap-1">
-                                <v-btn icon density="comfortable" variant="text" color="medium-emphasis"
-                                    @click="openHistoryModal(config)" title="History">
-                                    <Clock :size="18" />
-                                </v-btn>
-                                <v-btn icon density="comfortable" variant="text" color="medium-emphasis"
-                                    @click="openEditEmailModal(config)" title="Settings">
-                                    <Settings :size="18" />
-                                </v-btn>
-                            </div>
-                        </div>
-
-                        <!-- Footer -->
-                        <div class="mt-auto pt-3 border-t d-flex align-center justify-space-between">
-                            <div>
-                                <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase opacity-70"
-                                    style="font-size: 0.65rem;">Last Sync</div>
-                                <div v-if="config.last_sync_at" class="text-caption font-weight-medium">
-                                    {{ formatDate(config.last_sync_at).meta }}
-                                    <span class="text-medium-emphasis">({{ formatDate(config.last_sync_at).day
-                                    }})</span>
-                                </div>
-                                <div v-else class="text-caption text-warning font-weight-bold">Never</div>
-                            </div>
-
-                            <v-btn size="small" variant="outlined"
-                                :color="syncStatus && syncStatus.status === 'running' && syncStatus.configId === config.id ? 'indigo' : undefined"
-                                :loading="syncStatus && syncStatus.status === 'running' && syncStatus.configId === config.id"
-                                @click="handleSync(config.id)" class="font-weight-bold">
-                                {{ syncStatus && syncStatus.status === 'running' && syncStatus.configId === config.id ?
-                                    'Scanning...' : 'Sync' }}
-                                <template v-slot:append
-                                    v-if="!(syncStatus && syncStatus.status === 'running' && syncStatus.configId === config.id)">
-                                    <RefreshCw :size="12" class="ml-1" />
-                                </template>
-                            </v-btn>
-                        </div>
-                    </v-card-text>
-                </v-card>
-            </v-col>
-
-            <!-- Add New Email Card -->
-            <v-col v-if="!searchQuery" cols="12" md="6" lg="4">
-                <v-card class="add-account-card h-100 d-flex flex-column align-center justify-center" elevation="0"
-                    @click="showEmailModal = true; editingEmailConfig = null">
-                    <div class="add-icon-circle mb-3">
-                        <Plus :size="32" />
-                    </div>
-                    <div class="font-weight-bold">Add Email Account</div>
-                </v-card>
-            </v-col>
-        </v-row>
-
-        <div v-if="emailConfigs.length === 0 && searchQuery" class="text-center py-12 text-medium-emphasis">
-            <p>No emails match "{{ searchQuery }}"</p>
-        </div>
-
-        <!-- RECENT EMAIL SCAN LOGS -->
-        <v-card class="mt-12 premium-glass-card" elevation="0">
-            <v-card-title class="d-flex align-center justify-space-between py-4 px-6">
-                <div class="d-flex align-center gap-3">
-                    <v-avatar color="primary" variant="tonal" size="40" rounded>
-                        <Mail :size="24" />
-                    </v-avatar>
-                    <div>
-                        <div class="text-subtitle-1 font-weight-bold">Recent Scan Activity</div>
-                        <div class="text-caption text-medium-emphasis">Logs of background sync processes</div>
-                    </div>
-                </div>
-                <div class="d-flex align-center gap-2">
-                    <v-chip size="small" variant="flat" color="grey-lighten-3" class="font-mono">
-                        Total: {{ emailLogPagination.total }}
-                    </v-chip>
-                    <v-btn icon variant="text" density="comfortable" @click="fetchEmailLogs(undefined, true)">
-                        <RefreshCw :size="16" />
-                    </v-btn>
-                </div>
-            </v-card-title>
-
-            <v-divider></v-divider>
-
-            <v-table class="bg-transparent">
-                <thead>
-                    <tr>
-                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Timestamp</th>
-                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Account</th>
-                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Status</th>
-                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Items</th>
-                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Message</th>
-                        <th class="text-caption font-weight-bold text-medium-emphasis text-uppercase text-right">Actions
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="log in emailLogs" :key="log.id" class="hover-row">
-                        <td class="text-caption font-weight-medium">{{ formatDate(log.started_at).meta }}</td>
-                        <td class="text-caption font-mono text-medium-emphasis">
-                            {{(emailConfigs.find(c => c.id === log.config_id)?.email || 'Unknown').split('@')[0]}}
-                        </td>
-                        <td>
-                            <v-chip size="x-small"
-                                :color="log.status === 'completed' ? 'success' : log.status === 'running' ? 'info' : 'error'"
-                                variant="flat" class="font-weight-bold text-uppercase">
-                                {{ log.status }}
-                            </v-chip>
-                        </td>
-                        <td class="text-caption font-mono">{{ log.items_processed || 0 }}</td>
-                        <td class="text-caption text-truncate" style="max-width: 200px;" :title="log.message">
-                            {{ log.message }}
-                        </td>
-                        <td class="text-right">
-                            <v-btn size="x-small" variant="tonal" color="primary" class="font-weight-bold"
-                                @click="openItemDetailsModal(log.id)">
-                                Details
-                            </v-btn>
-                        </td>
-                    </tr>
-                    <tr v-if="emailLogs.length === 0">
-                        <td colspan="5" class="text-center py-8 text-medium-emphasis font-italic">
-                            <div class="d-flex flex-column align-center gap-2">
-                                <MailOpen :size="48" class="text-medium-emphasis opacity-50 mb-2" />
-                                No scan history found.
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </v-table>
-
-            <v-divider v-if="emailLogPagination.total > emailLogPagination.limit"></v-divider>
-
-            <div v-if="emailLogPagination.total > emailLogPagination.limit"
-                class="d-flex align-center justify-space-between pa-4">
-                <span class="text-caption text-medium-emphasis">
-                    Showing {{ emailLogPagination.skip + 1 }} - {{ Math.min(emailLogPagination.skip +
-                        emailLogPagination.limit,
-                        emailLogPagination.total) }}
-                </span>
-                <div class="d-flex gap-2">
-                    <v-btn size="small" variant="outlined" :disabled="emailLogPagination.skip === 0"
-                        @click="emailLogPagination.skip -= emailLogPagination.limit; fetchEmailLogs()">
-                        Previous
-                    </v-btn>
-                    <v-btn size="small" variant="outlined"
-                        :disabled="emailLogPagination.skip + emailLogPagination.limit >= emailLogPagination.total"
-                        @click="emailLogPagination.skip += emailLogPagination.limit; fetchEmailLogs()">
-                        Next
-                    </v-btn>
-                </div>
-            </div>
-        </v-card>
-
-        <!-- Email Config Modal -->
-        <v-dialog v-model="showEmailModal" max-width="600">
-            <v-card class="rounded-xl">
-                <v-card-title class="d-flex justify-space-between align-center pa-4 border-b">
-                    <div class="d-flex align-center gap-3">
-                        <v-avatar color="primary" variant="tonal" rounded>
-                            <Mail :size="24" />
-                        </v-avatar>
-                        <div>
-                            <div class="text-h6 font-weight-bold">{{ emailModalTitle }}</div>
-                            <div class="text-caption text-medium-emphasis">{{ emailModalSubtitle }}</div>
-                        </div>
-                    </div>
-                    <v-btn icon variant="text" density="comfortable" @click="showEmailModal = false">
-                        <X :size="24" />
-                    </v-btn>
-                </v-card-title>
-
-                <v-card-text class="pa-4">
-                    <v-form @submit.prevent="saveEmailConfig">
-                        <div class="mb-6">
-                            <div class="d-flex align-center gap-2 mb-4 text-primary font-weight-bold text-subtitle-2">
-                                <Server :size="16" /> Connection Details
-                            </div>
-
-                            <v-row>
-                                <v-col cols="12" sm="6">
-                                    <v-text-field v-model="emailForm.email" label="Email Address"
-                                        placeholder="name@gmail.com" variant="outlined" required>
-                                        <template v-slot:prepend-inner>
-                                            <Mail :size="18" class="text-medium-emphasis mr-2" />
-                                        </template>
-                                    </v-text-field>
-                                </v-col>
-                                <v-col cols="12" sm="6">
-                                    <v-text-field v-model="emailForm.password" label="App Password" type="password"
-                                        placeholder="•••• •••• •••• ••••" variant="outlined" required>
-                                        <template v-slot:prepend-inner>
-                                            <Lock :size="18" class="text-medium-emphasis mr-2" />
-                                        </template>
-                                    </v-text-field>
-                                </v-col>
-                                <v-col cols="12" sm="6">
-                                    <v-text-field v-model="emailForm.host" label="IMAP Server"
-                                        placeholder="imap.gmail.com" variant="outlined" required></v-text-field>
-                                </v-col>
-                                <v-col cols="12" sm="6">
-                                    <v-text-field v-model="emailForm.folder" label="Folder" placeholder="INBOX"
-                                        variant="outlined"></v-text-field>
-                                </v-col>
-                            </v-row>
-                            <v-alert type="info" variant="tonal" density="comfortable" class="mt-2 text-caption">
-                                Use a generated <strong>App Password</strong>, not your main password.
-                            </v-alert>
-                        </div>
-
-                        <v-divider class="mb-6"></v-divider>
-
-                        <div class="mb-6">
-                            <div class="d-flex align-center gap-2 mb-4 text-primary font-weight-bold text-subtitle-2">
-                                <UserCheck :size="16" /> Ownership & Automation
-                            </div>
-
-                            <v-row>
-                                <v-col cols="12" sm="6">
-                                    <v-select v-model="emailForm.user_id" label="Assign to Family Member"
-                                        :items="[{ title: '👤 Unassigned (Self)', value: null }, ...familyMembers.map(m => ({ title: `${m.avatar || '👤'} ${m.full_name || m.email}`, value: m.id }))]"
-                                        variant="outlined"></v-select>
-                                </v-col>
-                                <v-col cols="12" sm="6" class="d-flex align-center">
-                                    <v-switch v-model="emailForm.auto_sync" label="Auto Sync" color="success"
-                                        hide-details inset>
-                                        <template v-slot:label>
-                                            <div class="d-flex flex-column">
-                                                <span class="font-weight-bold">Auto Sync</span>
-                                                <span class="text-caption text-medium-emphasis">Runs every 15
-                                                    mins</span>
-                                            </div>
-                                        </template>
-                                    </v-switch>
-                                </v-col>
-                            </v-row>
-                        </div>
-
-                        <div v-if="editingEmailConfig" class="mb-6 pa-4 bg-grey-lighten-4 rounded-lg">
-                            <div
-                                class="d-flex align-center gap-2 mb-4 text-medium-emphasis font-weight-bold text-subtitle-2">
-                                <Settings :size="16" /> Advanced Controls
-                            </div>
-                            <v-row align="end">
-                                <v-col cols="12" sm="6">
-                                    <v-text-field v-model="emailForm.last_sync_at" label="Custom Sync Point"
-                                        type="datetime-local" variant="outlined" density="comfortable"
-                                        hide-details></v-text-field>
-                                </v-col>
-                                <v-col cols="12" sm="6" class="d-flex gap-2">
-                                    <v-btn variant="tonal" size="small" class="flex-grow-1" @click="rewindSync(3)">
-                                        Rewind 3h
-                                    </v-btn>
-                                    <v-btn variant="tonal" size="small" class="flex-grow-1" @click="resetSyncHistory">
-                                        Reset
-                                    </v-btn>
-                                </v-col>
-                            </v-row>
-                        </div>
-
-                        <div class="d-flex gap-3 justify-space-between mt-6">
-                            <v-btn v-if="editingEmailConfig" color="error" variant="text"
-                                @click="deleteEmailConfig(editingEmailConfig)">
-                                Remove
-                            </v-btn>
-                            <div class="d-flex gap-3 flex-grow-1 justify-end">
-                                <v-btn variant="text" @click="showEmailModal = false">Cancel</v-btn>
-                                <v-btn type="submit" color="primary">
-                                    {{ editingEmailConfig ? 'Update Configuration' : 'Connect Account' }}
-                                </v-btn>
-                            </div>
-                        </div>
-                    </v-form>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
-
-        <!-- Sync History Modal -->
-        <v-dialog v-model="showHistoryModal" max-width="700">
-            <v-card class="rounded-xl">
-                <v-card-title class="d-flex justify-space-between align-center pa-4 border-b">
-                    <span class="text-h6 font-weight-bold">Sync History</span>
-                    <v-btn icon variant="text" density="comfortable" @click="showHistoryModal = false">
-                        <X :size="24" />
-                    </v-btn>
-                </v-card-title>
-
-                <div class="pa-0">
-                    <v-table>
-                        <thead>
-                            <tr>
-                                <th class="text-left">Status</th>
-                                <th class="text-left">Time</th>
-                                <th class="text-left">Items</th>
-                                <th class="text-left">Message</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="log in syncLogs" :key="log.id">
-                                <td>
-                                    <CheckCircle2 v-if="log.status === 'completed'" :size="16" class="text-success" />
-                                    <XCircle v-else-if="log.status === 'error'" :size="16" class="text-error" />
-                                    <Loader2 v-else :size="16" class="text-info animate-spin" />
-                                </td>
-                                <td class="text-caption">{{ formatDateFull(log.started_at) }}</td>
-                                <td class="text-caption font-mono">{{ log.items_processed || 0 }}</td>
-                                <td class="text-caption text-truncate" style="max-width: 250px;" :title="log.message">{{
-                                    log.message }}</td>
-                            </tr>
-                            <tr v-if="syncLogs.length === 0">
-                                <td colspan="4" class="text-center py-4 text-medium-emphasis">No logs found.</td>
-                            </tr>
-                        </tbody>
-                    </v-table>
-                </div>
-            </v-card>
-        </v-dialog>
-
-        <!-- Itemized Details Modal -->
-        <v-dialog v-model="showItemDetailsModal" max-width="850">
-            <v-card class="rounded-xl overflow-hidden">
-                <v-card-title
-                    class="d-flex justify-space-between align-center pa-4 border-b bg-surface-variant text-white">
-                    <div class="d-flex align-center gap-3">
-                        <v-avatar color="white" variant="flat" size="32" rounded>
-                            <Info :size="20" class="text-primary" />
-                        </v-avatar>
-                        <div>
-                            <div class="text-subtitle-1 font-weight-bold">Scan Session Details</div>
-                            <div class="text-caption opacity-80">Itemized results for individual emails</div>
-                        </div>
-                    </div>
-                    <v-btn icon variant="text" density="comfortable" color="white"
-                        @click="showItemDetailsModal = false">
-                        <X :size="24" />
-                    </v-btn>
-                </v-card-title>
-
-                <v-card-text class="pa-0" style="max-height: 70vh; overflow-y: auto;">
-                    <div v-if="isLoadingItems" class="d-flex flex-column align-center justify-center py-12">
-                        <v-progress-circular indeterminate color="primary" class="mb-4"></v-progress-circular>
-                        <div class="text-caption text-medium-emphasis">Fetching email results...</div>
-                    </div>
-
-                    <v-table v-else class="bg-transparent sticky-header-table">
-                        <thead>
-                            <tr class="bg-grey-lighten-4">
-                                <th class="text-caption font-weight-bold">Status</th>
-                                <th class="text-caption font-weight-bold">Sender & Subject</th>
-                                <th class="text-caption font-weight-bold">Parser</th>
-                                <th class="text-caption font-weight-bold">Result / Reason</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="item in selectedLogItems" :key="item.id" class="hover-row">
-                                <td style="width: 100px;">
-                                    <v-chip size="x-small"
-                                        :color="item.status === 'processed' ? 'success' : item.status === 'duplicate' ? 'warning' : item.status === 'skipped' ? 'grey' : 'error'"
-                                        variant="flat" class="font-weight-bold text-uppercase">
-                                        {{ item.status }}
-                                    </v-chip>
-                                </td>
-                                <td>
-                                    <div class="d-flex flex-column py-2">
-                                        <div class="text-caption font-weight-bold text-truncate"
-                                            style="max-width: 300px;">
-                                            {{ item.subject }}
-                                        </div>
-                                        <div class="text-caption text-medium-emphasis text-truncate"
-                                            style="max-width: 300px;">
-                                            {{ item.sender }}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <v-chip v-if="item.parser_used" size="x-small" variant="outlined" color="primary"
-                                        class="font-mono">
-                                        {{ item.parser_used }}
-                                    </v-chip>
-                                    <span v-else class="text-caption text-medium-emphasis">-</span>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-center gap-2">
-                                        <div class="text-caption text-truncate" style="max-width: 250px;"
-                                            :title="item.reason">
-                                            {{ item.reason || (item.status === 'processed' ? 'Transaction Created' :
-                                            '-') }}
-                                        </div>
-                                        <v-btn v-if="item.transaction_id" icon size="x-small" variant="text"
-                                            color="primary"
-                                            :to="{ name: 'transactions', query: { id: item.transaction_id } }"
-                                            title="View Transaction">
-                                            <ExternalLink :size="14" />
-                                        </v-btn>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-if="selectedLogItems.length === 0">
-                                <td colspan="4" class="text-center py-8 text-medium-emphasis">
-                                    No itemized logs found for this session.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </v-table>
-                </v-card-text>
-
-                <v-divider></v-divider>
-                <v-card-actions class="pa-4 bg-grey-lighten-4">
-                    <v-spacer></v-spacer>
-                    <v-btn variant="text" @click="showItemDetailsModal = false">Close</v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
-    </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
 import { useConfirmStore } from '@/stores/confirm'
 import { localISOString } from '@/utils/time'
-import { Settings, RefreshCw, Clock, Plus, Mail, Server, UserCheck, Search, Lock, X, CheckCircle2, XCircle, MailOpen, Loader2, ExternalLink, Info } from 'lucide-vue-next'
+import {
+  Settings,
+  RefreshCw,
+  Clock,
+  Plus,
+  Mail,
+  Server,
+  UserCheck,
+  Search,
+  X,
+  CheckCircle2,
+  XCircle,
+  MailOpen,
+  Loader2,
+  ExternalLink
+} from 'lucide-vue-next'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfModal from '@/components/ui/WfModal.vue'
 
 const emailConfigs = ref<any[]>([])
 const familyMembers = ref<any[]>([])
@@ -515,7 +36,6 @@ const showEmailModal = ref(false)
 const editingEmailConfig = ref<string | null>(null)
 const showHistoryModal = ref(false)
 const syncLogs = ref<any[]>([])
-const selectedHistoryConfigId = ref<string | null>(null)
 const isSyncing = ref(false)
 const syncStatus = ref<any>(null)
 
@@ -523,16 +43,15 @@ const syncStatus = ref<any>(null)
 const showItemDetailsModal = ref(false)
 const selectedLogItems = ref<any[]>([])
 const isLoadingItems = ref(false)
-const selectedLogId = ref<string | null>(null)
 
 const emailForm = ref({
-    email: '',
-    password: '',
-    host: 'imap.gmail.com',
-    folder: 'INBOX',
-    auto_sync: false,
-    user_id: null as string | null,
-    last_sync_at: '' as string
+  email: '',
+  password: '',
+  host: 'imap.gmail.com',
+  folder: 'INBOX',
+  auto_sync: false,
+  user_id: null as string | null,
+  last_sync_at: '' as string
 })
 
 // Email Logs State
@@ -540,346 +59,796 @@ const emailLogs = ref<any[]>([])
 const emailLogPagination = ref({ total: 0, limit: 10, skip: 0 })
 const pollInterval = ref<any>(null)
 
-// --- Computed ---
 const emailModalTitle = computed(() => editingEmailConfig.value ? 'Edit Email Configuration' : 'Connect Email Account')
-const emailModalSubtitle = computed(() => editingEmailConfig.value ? 'Update your email sync settings' : 'Link your bank email for automatic transaction imports')
 
-// --- Methods ---
+const filteredConfigs = computed(() => {
+  if (!searchQuery.value) return emailConfigs.value
+  const q = searchQuery.value.toLowerCase()
+  return emailConfigs.value.filter(c =>
+    (c.email || '').toLowerCase().includes(q) ||
+    (c.imap_server || '').toLowerCase().includes(q)
+  )
+})
+
 const fetchEmailLogs = async (configId?: string, resetSkip = false) => {
-    try {
-        if (resetSkip) emailLogPagination.value.skip = 0
-        const res = await financeApi.getEmailLogs({
-            limit: emailLogPagination.value.limit,
-            skip: emailLogPagination.value.skip,
-            config_id: configId
-        })
-        emailLogs.value = res.data.items
-        emailLogPagination.value.total = res.data.total
-    } catch (e) {
-        console.error("Failed to fetch email logs", e)
-    }
+  try {
+    if (resetSkip) emailLogPagination.value.skip = 0
+    const res = await financeApi.getEmailLogs({
+      limit: emailLogPagination.value.limit,
+      skip: emailLogPagination.value.skip,
+      config_id: configId
+    })
+    emailLogs.value = res.data.items || []
+    emailLogPagination.value.total = res.data.total || 0
+  } catch (e) {
+    console.error('Failed to fetch email logs', e)
+  }
 }
 
 async function handleSync(configId: string) {
-    if (pollInterval.value) clearInterval(pollInterval.value)
+  if (pollInterval.value) clearInterval(pollInterval.value)
 
-    isSyncing.value = true
-    syncStatus.value = { status: 'running', configId }
-    try {
-        const res = await financeApi.syncEmailConfig(configId)
-        syncStatus.value = { ...res.data, configId }
+  isSyncing.value = true
+  syncStatus.value = { status: 'running', configId }
+  try {
+    const res = await financeApi.syncEmailConfig(configId)
+    syncStatus.value = { ...res.data, configId }
 
-        if (res.data.status === 'started' || res.data.status === 'running') {
-            notify.info("Sync is running in background")
-            // Refresh logs immediately to show the "running" entry
-            setTimeout(() => fetchEmailLogs(undefined, true), 500)
+    if (res.data.status === 'started' || res.data.status === 'running') {
+      notify.info('Sync is running in background')
+      setTimeout(() => fetchEmailLogs(undefined, true), 500)
 
-            // Start Polling if log_id is available
-            if (res.data.log_id) {
-                pollSyncStatus(res.data.log_id, configId)
-            }
-        } else if (res.data.status === 'completed') {
-            notify.success("Sync completed")
-            fetchEmailLogs(undefined, true)
-            fetchData()
-        }
-    } catch (e: any) {
-        // If it's a timeout or started, don't show error
-        if (e.code === 'ECONNABORTED' || e.response?.status === 202 || e.response?.status === 200) {
-            const message = e.response?.data?.message || "Sync is running in background"
-            const logId = e.response?.data?.log_id
-            syncStatus.value = { status: 'started', message, configId, log_id: logId }
-            notify.info(message)
-
-            if (logId) {
-                pollSyncStatus(logId, configId)
-            }
-        } else {
-            syncStatus.value = { status: 'error', message: e.response?.data?.detail || "Sync failed", configId }
-        }
-        setTimeout(() => fetchEmailLogs(undefined, true), 1000)
-    } finally {
-        isSyncing.value = false
+      if (res.data.log_id) {
+        pollSyncStatus(res.data.log_id, configId)
+      }
+    } else if (res.data.status === 'completed') {
+      notify.success('Sync completed')
+      fetchEmailLogs(undefined, true)
+      fetchData()
     }
+  } catch (e: any) {
+    if (e.code === 'ECONNABORTED' || e.response?.status === 202 || e.response?.status === 200) {
+      const message = e.response?.data?.message || 'Sync is running in background'
+      const logId = e.response?.data?.log_id
+      syncStatus.value = { status: 'started', message, configId, log_id: logId }
+      notify.info(message)
+
+      if (logId) {
+        pollSyncStatus(logId, configId)
+      }
+    } else {
+      syncStatus.value = { status: 'error', message: e.response?.data?.detail || 'Sync failed', configId }
+    }
+    setTimeout(() => fetchEmailLogs(undefined, true), 1000)
+  } finally {
+    isSyncing.value = false
+  }
 }
 
 async function pollSyncStatus(logId: string, configId: string) {
-    if (pollInterval.value) clearInterval(pollInterval.value)
+  if (pollInterval.value) clearInterval(pollInterval.value)
 
-    let attempts = 0
-    pollInterval.value = setInterval(async () => {
-        attempts++
-        try {
-            // We use the existing getEmailLogs but filter for this specific log if possible, 
-            // or just fetch all and look for this ID.
-            // For now, let's just fetch all logs to keep it simple and update the UI.
-            await fetchEmailLogs(undefined, false)
+  let attempts = 0
+  pollInterval.value = setInterval(async () => {
+    attempts++
+    try {
+      await fetchEmailLogs(undefined, false)
 
-            const currentLog = emailLogs.value.find(l => l.id === logId)
-            if (currentLog) {
-                if (currentLog.status === 'completed' || currentLog.status === 'failed' || currentLog.status === 'error') {
-                    clearInterval(pollInterval.value)
-                    pollInterval.value = null
+      const currentLog = emailLogs.value.find(l => l.id === logId)
+      if (currentLog) {
+        if (currentLog.status === 'completed' || currentLog.status === 'failed' || currentLog.status === 'error') {
+          clearInterval(pollInterval.value)
+          pollInterval.value = null
 
-                    if (currentLog.status === 'completed') {
-                        syncStatus.value = { status: 'completed', message: currentLog.message, configId }
-                        fetchData() // Refresh transactions
-                        // Hide banner after 5 seconds
-                        setTimeout(() => { if (syncStatus.value?.status === 'completed') syncStatus.value = null }, 5000)
-                    } else {
-                        syncStatus.value = { status: 'error', message: currentLog.message || "Sync failed", configId }
-                    }
-                }
-            }
-
-            // Safety: Stop polling after 5 minutes
-            if (attempts > 60) {
-                clearInterval(pollInterval.value)
-                pollInterval.value = null
-            }
-        } catch (e) {
-            console.error("Polling error", e)
+          if (currentLog.status === 'completed') {
+            syncStatus.value = { status: 'completed', message: currentLog.message, configId }
+            fetchData()
+            setTimeout(() => { if (syncStatus.value?.status === 'completed') syncStatus.value = null }, 5000)
+          } else {
+            syncStatus.value = { status: 'error', message: currentLog.message || 'Sync failed', configId }
+          }
         }
-    }, 5000) // Poll every 5 seconds
+      }
+
+      if (attempts > 60) {
+        clearInterval(pollInterval.value)
+        pollInterval.value = null
+      }
+    } catch (e) {
+      console.error('Polling error', e)
+    }
+  }, 5000)
 }
 
 async function saveEmailConfig() {
-    try {
-        const payload: any = {
-            email: emailForm.value.email,
-            password: emailForm.value.password,
-            imap_server: emailForm.value.host,
-            folder: emailForm.value.folder,
-            auto_sync_enabled: emailForm.value.auto_sync,
-            user_id: emailForm.value.user_id
-        }
-
-        if (emailForm.value.last_sync_at) {
-            payload.last_sync_at = new Date(emailForm.value.last_sync_at).toISOString()
-        }
-
-        if (editingEmailConfig.value) {
-            await financeApi.updateEmailConfig(editingEmailConfig.value, payload)
-            notify.success("Email configuration updated")
-        } else {
-            await financeApi.createEmailConfig(payload)
-            notify.success("Email configuration added")
-        }
-
-        showEmailModal.value = false
-        emailForm.value = { email: '', password: '', host: 'imap.gmail.com', folder: 'INBOX', auto_sync: false, user_id: null, last_sync_at: '' }
-        fetchData()
-    } catch (e) {
-        notify.error("Failed to save email config")
+  try {
+    const payload: any = {
+      email: emailForm.value.email,
+      password: emailForm.value.password,
+      imap_server: emailForm.value.host,
+      folder: emailForm.value.folder,
+      auto_sync_enabled: emailForm.value.auto_sync,
+      user_id: emailForm.value.user_id
     }
+
+    if (emailForm.value.last_sync_at) {
+      payload.last_sync_at = new Date(emailForm.value.last_sync_at).toISOString()
+    }
+
+    if (editingEmailConfig.value) {
+      await financeApi.updateEmailConfig(editingEmailConfig.value, payload)
+      notify.success('Email configuration updated')
+    } else {
+      await financeApi.createEmailConfig(payload)
+      notify.success('Email configuration added')
+    }
+
+    showEmailModal.value = false
+    emailForm.value = { email: '', password: '', host: 'imap.gmail.com', folder: 'INBOX', auto_sync: false, user_id: null, last_sync_at: '' }
+    fetchData()
+  } catch (e) {
+    notify.error('Failed to save email config')
+  }
+}
+
+function openAddEmailModal() {
+  editingEmailConfig.value = null
+  emailForm.value = {
+    email: '',
+    password: '',
+    host: 'imap.gmail.com',
+    folder: 'INBOX',
+    auto_sync: false,
+    user_id: null,
+    last_sync_at: ''
+  }
+  showEmailModal.value = true
 }
 
 function openEditEmailModal(config: any) {
-    emailForm.value = {
-        email: config.email,
-        password: config.password,
-        host: config.imap_server,
-        folder: config.folder,
-        auto_sync: config.auto_sync_enabled || false,
-        user_id: config.user_id || null,
-        last_sync_at: config.last_sync_at ? localISOString(new Date(config.last_sync_at)) : ''
-    }
-    editingEmailConfig.value = config.id
-    showEmailModal.value = true
+  emailForm.value = {
+    email: config.email,
+    password: config.password,
+    host: config.imap_server,
+    folder: config.folder,
+    auto_sync: config.auto_sync_enabled || false,
+    user_id: config.user_id || null,
+    last_sync_at: config.last_sync_at ? localISOString(new Date(config.last_sync_at)) : ''
+  }
+  editingEmailConfig.value = config.id
+  showEmailModal.value = true
 }
 
 async function rewindSync(hours: number) {
-    if (!editingEmailConfig.value) return
-    const configId = editingEmailConfig.value
+  if (!editingEmailConfig.value) return
+  const configId = editingEmailConfig.value
 
-    const now = new Date()
-    now.setHours(now.getHours() - hours)
+  const now = new Date()
+  now.setHours(now.getHours() - hours)
 
-    try {
-        await financeApi.updateEmailConfig(configId, { last_sync_at: now.toISOString() })
-        notify.info(`Rewound config. Triggering sync...`)
-        showEmailModal.value = false
-        await handleSync(configId)
-        fetchData()
-    } catch (e) {
-        notify.error("Failed to rewind sync")
-    }
+  try {
+    await financeApi.updateEmailConfig(configId, { last_sync_at: now.toISOString() })
+    notify.info('Rewound config. Triggering sync...')
+    showEmailModal.value = false
+    await handleSync(configId)
+    fetchData()
+  } catch (e) {
+    notify.error('Failed to rewind sync')
+  }
 }
 
 async function resetSyncHistory() {
-    if (!editingEmailConfig.value) return
-    const configId = editingEmailConfig.value
-    const isConfirmed = await confirmDialog.prompt("This will force a DEEP SCAN of ALL emails. This takes time. Continue?", "Deep Scan", "Scan Now", "Cancel")
-    if (!isConfirmed) return
-    try {
-        await financeApi.updateEmailConfig(configId, { reset_sync_history: true })
-        notify.info("Deep scan requested. Starting...")
-        showEmailModal.value = false
-        await handleSync(configId)
-        fetchData()
-    } catch (e) {
-        notify.error("Failed to reset sync history")
-    }
+  if (!editingEmailConfig.value) return
+  const configId = editingEmailConfig.value
+  const isConfirmed = await confirmDialog.prompt('This will force a DEEP SCAN of ALL emails. This takes time. Continue?', 'Deep Scan', 'Scan Now', 'Cancel')
+  if (!isConfirmed) return
+  try {
+    await financeApi.updateEmailConfig(configId, { reset_sync_history: true })
+    notify.info('Deep scan requested. Starting...')
+    showEmailModal.value = false
+    await handleSync(configId)
+    fetchData()
+  } catch (e) {
+    notify.error('Failed to reset sync history')
+  }
 }
 
 async function deleteEmailConfig(id: string) {
-    const isConfirmed = await confirmDialog.prompt("Are you sure you want to remove this email account? This will stop future syncs.", "Remove Account", "Remove", "Cancel")
-    if (!isConfirmed) return
-    try {
-        await financeApi.deleteEmailConfig(id)
-        notify.success("Email account removed")
-        showEmailModal.value = false
-        fetchData()
-    } catch (e) {
-        notify.error("Failed to remove email config")
-    }
+  const isConfirmed = await confirmDialog.prompt('Are you sure you want to remove this email account? This will stop future syncs.', 'Remove Account', 'Remove', 'Cancel')
+  if (!isConfirmed) return
+  try {
+    await financeApi.deleteEmailConfig(id)
+    notify.success('Email account removed')
+    showEmailModal.value = false
+    fetchData()
+  } catch (e) {
+    notify.error('Failed to remove email config')
+  }
 }
 
 async function openHistoryModal(config: any) {
-    selectedHistoryConfigId.value = config.id
-    showHistoryModal.value = true
-    syncLogs.value = []
-    try {
-        const res = await financeApi.getEmailSyncLogs(config.id)
-        syncLogs.value = res.data
-    } catch (e) {
-        notify.error("Failed to fetch logs")
-    }
+  showHistoryModal.value = true
+  syncLogs.value = []
+  try {
+    const res = await financeApi.getEmailSyncLogs(config.id)
+    syncLogs.value = res.data || []
+  } catch (e) {
+    notify.error('Failed to fetch logs')
+  }
 }
 
 async function openItemDetailsModal(logId: string) {
-    selectedLogId.value = logId
-    showItemDetailsModal.value = true
-    selectedLogItems.value = []
-    isLoadingItems.value = true
-    try {
-        const res = await financeApi.getEmailSyncItemLogs(logId)
-        selectedLogItems.value = res.data
-    } catch (e) {
-        notify.error("Failed to fetch item details")
-    } finally {
-        isLoadingItems.value = false
-    }
+  showItemDetailsModal.value = true
+  selectedLogItems.value = []
+  isLoadingItems.value = true
+  try {
+    const res = await financeApi.getEmailSyncItemLogs(logId)
+    selectedLogItems.value = res.data || []
+  } catch (e) {
+    notify.error('Failed to fetch item details')
+  } finally {
+    isLoadingItems.value = false
+  }
 }
 
 function formatDate(dateStr: string) {
-    if (!dateStr) return { day: 'N/A', meta: '' }
-    const d = new Date(dateStr)
-    return {
-        day: d.toLocaleDateString(),
-        meta: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        full: d.toLocaleString()
-    }
+  if (!dateStr) return { day: 'Never', meta: '' }
+  const d = new Date(dateStr)
+  return {
+    day: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+    meta: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    full: d.toLocaleString()
+  }
 }
 
 function formatDateFull(dateStr: string) {
-    if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleString()
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleString()
 }
-
-// function getLogIcon removed as it is replaced by inline icons
-
-onMounted(() => {
-    fetchEmailLogs()
-    fetchData()
-})
 
 const fetchData = async () => {
-    loading.value = true
-    try {
-        const [emailRes, usersRes] = await Promise.all([
-            financeApi.getEmailConfigs(),
-            financeApi.getUsers()
-        ])
-        emailConfigs.value = emailRes.data
-        familyMembers.value = usersRes.data
-    } catch (e) {
-        console.error("Failed to fetch email settings", e)
-        notify.error("Failed to load email settings")
-    } finally {
-        loading.value = false
-    }
+  loading.value = true
+  try {
+    const [emailRes, usersRes] = await Promise.all([
+      financeApi.getEmailConfigs(),
+      financeApi.getUsers()
+    ])
+    emailConfigs.value = emailRes.data || []
+    familyMembers.value = usersRes.data || []
+  } catch (e) {
+    console.error('Failed to fetch email settings', e)
+    notify.error('Failed to load email settings')
+  } finally {
+    loading.value = false
+  }
 }
+
+onMounted(() => {
+  fetchEmailLogs()
+  fetchData()
+})
 </script>
 
-<style scoped>
-/* glass-card and email-card-premium removed - using global premium-glass-card */
+<template>
+  <div class="space-y-4">
+    <!-- 1. TOOLBAR -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 bg-wf-surface rounded-wf-lg border border-wf-border shadow-2xs">
+      <div class="relative flex items-center h-8.5 px-2.5 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle focus-within:border-wf-primary w-full sm:w-72 shrink-0">
+        <Search class="w-3.5 h-3.5 text-wf-text-muted mr-2 shrink-0" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search email accounts..."
+          class="w-full bg-transparent text-xs text-wf-text-primary focus:outline-none"
+        />
+        <button v-if="searchQuery" @click="searchQuery = ''" type="button" class="text-wf-text-muted hover:text-wf-text-primary ml-1">
+          <X class="w-3.5 h-3.5" />
+        </button>
+      </div>
 
-.status-stripe-compact {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 4px;
-    background: rgb(var(--v-theme-success));
-    opacity: 0.8;
-}
+      <div class="flex items-center gap-2.5 self-end sm:self-auto">
+        <span class="inline-flex items-center px-2 py-0.5 rounded-wf-pill text-[11px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
+          {{ emailConfigs.length }} {{ emailConfigs.length === 1 ? 'Account' : 'Accounts' }}
+        </span>
 
-.status-stripe-compact.inactive {
-    background: rgb(var(--v-theme-grey));
-    opacity: 0.5;
-}
+        <WfButton variant="primary" size="sm" @click="openAddEmailModal">
+          <Plus class="w-3.5 h-3.5 mr-1" />
+          <span>Add Account</span>
+        </WfButton>
+      </div>
+    </div>
 
-.status-stripe-compact.auto-sync {
-    background: linear-gradient(180deg, rgb(var(--v-theme-primary)), rgb(var(--v-theme-secondary)));
-    background-size: 100% 200%;
-    animation: gradient-slide-v 3s ease infinite;
-}
+    <!-- 2. SYNC STATUS BANNER -->
+    <div
+      v-if="syncStatus"
+      class="p-3 rounded-wf-lg border shadow-2xs flex items-start justify-between gap-3 transition-all"
+      :class="[
+        syncStatus.status === 'completed' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' :
+        ['running', 'started'].includes(syncStatus.status) ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400' :
+        'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
+      ]"
+    >
+      <div class="flex items-start gap-2.5">
+        <div class="pt-0.5">
+          <CheckCircle2 v-if="syncStatus.status === 'completed'" class="w-4 h-4 text-emerald-500" />
+          <RefreshCw v-else-if="['running', 'started'].includes(syncStatus.status)" class="w-4 h-4 text-indigo-500 animate-spin" />
+          <XCircle v-else class="w-4 h-4 text-rose-500" />
+        </div>
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider">
+            {{ syncStatus.status === 'completed' ? 'Sync Completed' : ['running', 'started'].includes(syncStatus.status) ? 'Sync In Progress' : 'Sync Failed' }}
+          </h4>
+          <p class="text-[11px] mt-0.5 opacity-90">
+            {{ syncStatus.message || (syncStatus.stats?.processed !== undefined ? `${syncStatus.stats.processed} transactions processed.` : 'Synchronization task running in background.') }}
+          </p>
+        </div>
+      </div>
 
-@keyframes gradient-slide-v {
+      <button type="button" @click="syncStatus = null" class="text-wf-text-muted hover:text-wf-text-primary p-1">
+        <X class="w-3.5 h-3.5" />
+      </button>
+    </div>
 
-    0%,
-    100% {
-        background-position: 50% 0%;
-    }
+    <!-- 3. EMAIL ACCOUNTS GRID -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <WfCard
+        v-for="config in filteredConfigs"
+        :key="config.id"
+        variant="flat"
+        padding="md"
+        radius="lg"
+        class="flex flex-col justify-between shadow-2xs hover:border-wf-border transition-all relative overflow-hidden"
+      >
+        <!-- Active Status Indicator Stripe -->
+        <div
+          class="absolute top-0 left-0 right-0 h-0.5"
+          :class="config.auto_sync_enabled ? 'bg-emerald-500' : config.is_active ? 'bg-indigo-500' : 'bg-wf-border'"
+        />
 
-    50% {
-        background-position: 50% 100%;
-    }
-}
+        <div>
+          <!-- Header: User Avatar, Email, Server, Actions -->
+          <div class="flex items-start justify-between gap-2.5 mb-2.5">
+            <div class="flex items-center gap-2 min-w-0">
+              <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant border border-wf-border-subtle flex items-center justify-center text-lg shrink-0 shadow-2xs">
+                <span>{{ familyMembers.find(u => u.id === config.user_id)?.avatar || '👤' }}</span>
+              </div>
+              <div class="min-w-0">
+                <h4 class="text-xs font-bold text-wf-text-primary truncate" :title="config.email">
+                  {{ config.email }}
+                </h4>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span class="px-1 py-0.2 rounded-wf-xs bg-wf-surface-variant font-mono text-[9px] text-wf-text-secondary border border-wf-border-subtle">
+                    {{ config.imap_server }}
+                  </span>
+                  <span
+                    v-if="config.auto_sync_enabled"
+                    class="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-500"
+                  >
+                    <RefreshCw class="w-2.5 h-2.5" />
+                    Auto
+                  </span>
+                </div>
+              </div>
+            </div>
 
-.add-account-card {
-    border: 2px dashed rgba(var(--v-border-color), 0.3);
-    background: transparent !important;
-    transition: all 0.2s;
-    cursor: pointer;
-    min-height: 200px;
-}
+            <!-- Quick Action Icons -->
+            <div class="flex items-center gap-0.5 shrink-0">
+              <button
+                type="button"
+                @click="openHistoryModal(config)"
+                title="Sync History"
+                class="p-1.5 rounded-wf-xs text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+              >
+                <Clock class="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                @click="openEditEmailModal(config)"
+                title="Account Settings"
+                class="p-1.5 rounded-wf-xs text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+              >
+                <Settings class="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
 
-.add-account-card:hover {
-    border-color: rgb(var(--v-theme-primary));
-    background: rgba(var(--v-theme-primary), 0.05) !important;
-    color: rgb(var(--v-theme-primary));
-}
+          <!-- Metadata info -->
+          <div class="p-2 bg-wf-surface-variant/40 rounded-wf-md border border-wf-border-subtle text-xs mb-2.5">
+            <div class="flex items-center justify-between text-wf-text-secondary">
+              <span class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider">Assigned Owner</span>
+              <span class="font-semibold text-wf-text-primary text-[11px]">
+                {{ familyMembers.find(u => u.id === config.user_id)?.full_name || 'Unassigned' }}
+              </span>
+            </div>
+          </div>
+        </div>
 
-.add-icon-circle {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
+        <!-- Footer: Last Sync & Sync Button -->
+        <div class="pt-2 border-t border-wf-border-subtle flex items-center justify-between text-xs">
+          <div>
+            <p class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider">Last Synced</p>
+            <p class="font-medium text-wf-text-primary text-[11px] mt-0.5">
+              {{ config.last_sync_at ? `${formatDate(config.last_sync_at).day} (${formatDate(config.last_sync_at).meta})` : 'Never' }}
+            </p>
+          </div>
 
-.hover-row:hover {
-    background-color: rgba(var(--v-theme-on-surface), 0.03);
-}
+          <WfButton
+            variant="secondary"
+            size="sm"
+            :loading="syncStatus && syncStatus.status === 'running' && syncStatus.configId === config.id"
+            @click="handleSync(config.id)"
+          >
+            <RefreshCw class="w-3 h-3 mr-1" />
+            <span>{{ syncStatus && syncStatus.status === 'running' && syncStatus.configId === config.id ? 'Scanning...' : 'Sync' }}</span>
+          </WfButton>
+        </div>
+      </WfCard>
 
-.gap-1 {
-    gap: 4px;
-}
+      <!-- Add New Account Card Surface -->
+      <WfCard
+        v-if="!searchQuery"
+        variant="flat"
+        padding="md"
+        radius="lg"
+        class="border-dashed border-2 flex flex-col items-center justify-center p-4 text-center cursor-pointer hover:border-wf-primary hover:bg-wf-primary-light/20 transition-all group min-h-[140px]"
+        @click="openAddEmailModal"
+      >
+        <div class="w-9 h-9 rounded-full bg-wf-primary-light border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-wf-primary group-hover:scale-110 transition-transform mb-1.5 shadow-2xs">
+          <Plus class="w-4 h-4" />
+        </div>
+        <h4 class="text-xs font-bold text-wf-text-primary">Connect Email Account</h4>
+        <p class="text-[11px] text-wf-text-muted mt-0.5 max-w-[200px]">
+          Automatically import and categorize bank transaction emails.
+        </p>
+      </WfCard>
+    </div>
 
-.gap-2 {
-    gap: 8px;
-}
+    <!-- 4. RECENT SCAN ACTIVITY LOGS -->
+    <WfCard variant="flat" padding="none" radius="lg" class="shadow-2xs overflow-hidden mt-4">
+      <div class="p-3 px-4 border-b border-wf-border-subtle flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-wf-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500">
+            <Mail class="w-4 h-4" />
+          </div>
+          <div>
+            <h3 class="text-xs font-bold text-wf-text-primary">Recent Scan Activity</h3>
+            <p class="text-[10px] text-wf-text-muted">Background IMAP fetch & extraction history</p>
+          </div>
+        </div>
 
-.gap-3 {
-    gap: 12px;
-}
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded-wf-xs bg-wf-surface-variant text-[10px] font-mono text-wf-text-secondary border border-wf-border-subtle">
+            Total: {{ emailLogPagination.total }}
+          </span>
+          <button
+            type="button"
+            @click="fetchEmailLogs(undefined, true)"
+            title="Refresh Logs"
+            class="p-1 rounded-wf-xs text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+          >
+            <RefreshCw class="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
 
-.gap-4 {
-    gap: 16px;
-}
-</style>
+      <!-- Logs Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="border-b border-wf-border-subtle bg-wf-surface-variant/30 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
+              <th class="py-2 px-3">Timestamp</th>
+              <th class="py-2 px-3">Account</th>
+              <th class="py-2 px-3">Status</th>
+              <th class="py-2 px-3">Items</th>
+              <th class="py-2 px-3">Message</th>
+              <th class="py-2 px-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-wf-border-subtle">
+            <tr v-for="log in emailLogs" :key="log.id" class="hover:bg-wf-surface-variant/40 transition-colors">
+              <td class="py-1.5 px-3 whitespace-nowrap text-wf-text-secondary font-medium text-[11px]">
+                {{ formatDate(log.started_at).full }}
+              </td>
+              <td class="py-1.5 px-3 whitespace-nowrap font-mono text-wf-text-primary text-[11px]">
+                {{ (emailConfigs.find(c => c.id === log.config_id)?.email || 'Unknown').split('@')[0] }}
+              </td>
+              <td class="py-1.5 px-3 whitespace-nowrap">
+                <span
+                  class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold uppercase tracking-wider border"
+                  :class="log.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : log.status === 'running' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'"
+                >
+                  {{ log.status }}
+                </span>
+              </td>
+              <td class="py-1.5 px-3 font-mono font-semibold text-wf-text-primary text-[11px]">
+                {{ log.items_processed || 0 }}
+              </td>
+              <td class="py-1.5 px-3 text-wf-text-secondary truncate max-w-md text-[11px]" :title="log.message">
+                {{ log.message }}
+              </td>
+              <td class="py-1.5 px-3 text-right whitespace-nowrap">
+                <WfButton variant="secondary" size="sm" class="h-6.5 text-[11px] px-2 py-0" @click="openItemDetailsModal(log.id)">
+                  Details
+                </WfButton>
+              </td>
+            </tr>
+            <tr v-if="emailLogs.length === 0">
+              <td colspan="6" class="text-center py-8 text-wf-text-muted">
+                <div class="flex flex-col items-center gap-1">
+                  <MailOpen class="w-8 h-8 text-wf-text-muted opacity-50 mb-1" />
+                  <span>No scan history found.</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Logs Pagination -->
+      <div
+        v-if="emailLogPagination.total > emailLogPagination.limit"
+        class="p-3 border-t border-wf-border-subtle flex items-center justify-between text-xs text-wf-text-secondary"
+      >
+        <span>
+          Showing {{ emailLogPagination.skip + 1 }} - {{ Math.min(emailLogPagination.skip + emailLogPagination.limit, emailLogPagination.total) }} of {{ emailLogPagination.total }}
+        </span>
+        <div class="flex items-center gap-2">
+          <WfButton
+            variant="secondary"
+            size="sm"
+            :disabled="emailLogPagination.skip === 0"
+            @click="emailLogPagination.skip -= emailLogPagination.limit; fetchEmailLogs()"
+          >
+            Previous
+          </WfButton>
+          <WfButton
+            variant="secondary"
+            size="sm"
+            :disabled="emailLogPagination.skip + emailLogPagination.limit >= emailLogPagination.total"
+            @click="emailLogPagination.skip += emailLogPagination.limit; fetchEmailLogs()"
+          >
+            Next
+          </WfButton>
+        </div>
+      </div>
+    </WfCard>
+
+    <!-- MODAL 1: ADD / EDIT EMAIL CONFIG -->
+    <WfModal
+      v-model="showEmailModal"
+      :title="emailModalTitle"
+      max-width="lg"
+    >
+      <form @submit.prevent="saveEmailConfig" class="space-y-5">
+        <!-- Connection Details -->
+        <div>
+          <div class="flex items-center gap-1.5 text-xs font-bold text-wf-primary uppercase tracking-wider mb-3">
+            <Server class="w-3.5 h-3.5" />
+            <span>Connection Details</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-wf-text-secondary mb-1">Email Address *</label>
+              <input
+                v-model="emailForm.email"
+                type="email"
+                required
+                placeholder="name@gmail.com"
+                class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-wf-text-secondary mb-1">App Password *</label>
+              <input
+                v-model="emailForm.password"
+                type="password"
+                required
+                placeholder="•••• •••• •••• ••••"
+                class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-wf-text-secondary mb-1">IMAP Server *</label>
+              <input
+                v-model="emailForm.host"
+                type="text"
+                required
+                placeholder="imap.gmail.com"
+                class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-wf-text-secondary mb-1">Folder</label>
+              <input
+                v-model="emailForm.folder"
+                type="text"
+                placeholder="INBOX"
+                class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+              />
+            </div>
+          </div>
+          <p class="text-[11px] text-wf-text-muted mt-2">
+            Tip: Generate an <strong>App Password</strong> in your email provider security settings instead of your login password.
+          </p>
+        </div>
+
+        <!-- Ownership & Automation -->
+        <div class="pt-4 border-t border-wf-border-subtle space-y-4">
+          <div class="flex items-center gap-1.5 text-xs font-bold text-wf-primary uppercase tracking-wider mb-2">
+            <UserCheck class="w-3.5 h-3.5" />
+            <span>Ownership & Automation</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-wf-text-secondary mb-1">Assign to Family Member</label>
+              <select
+                v-model="emailForm.user_id"
+                class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary font-medium"
+              >
+                <option :value="null">👤 Unassigned (Self)</option>
+                <option v-for="m in familyMembers" :key="m.id" :value="m.id">
+                  {{ m.avatar || '👤' }} {{ m.full_name || m.email }}
+                </option>
+              </select>
+            </div>
+
+            <div class="flex items-center justify-between p-2.5 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle self-end">
+              <div>
+                <p class="text-xs font-bold text-wf-text-primary">Auto Sync</p>
+                <p class="text-[10px] text-wf-text-muted">Runs every 15 minutes</p>
+              </div>
+              <input
+                v-model="emailForm.auto_sync"
+                type="checkbox"
+                class="w-4 h-4 rounded text-wf-primary focus:ring-wf-primary"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Advanced Controls (when editing) -->
+        <div v-if="editingEmailConfig" class="p-3 bg-wf-surface-variant/40 rounded-wf-md border border-wf-border-subtle space-y-3">
+          <p class="text-xs font-bold text-wf-text-secondary uppercase tracking-wider">Advanced Sync Controls</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+            <div>
+              <label class="block text-[10px] font-bold text-wf-text-muted uppercase mb-1">Custom Sync Point</label>
+              <input
+                v-model="emailForm.last_sync_at"
+                type="datetime-local"
+                class="w-full h-9 px-2 rounded-wf-xs bg-wf-surface border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+              />
+            </div>
+            <div class="flex items-center gap-2">
+              <WfButton variant="secondary" size="sm" type="button" class="flex-1" @click="rewindSync(3)">
+                Rewind 3h
+              </WfButton>
+              <WfButton variant="secondary" size="sm" type="button" class="flex-1" @click="resetSyncHistory">
+                Deep Scan
+              </WfButton>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between pt-4 border-t border-wf-border-subtle">
+          <button
+            v-if="editingEmailConfig"
+            type="button"
+            @click="deleteEmailConfig(editingEmailConfig)"
+            class="text-xs font-bold text-rose-500 hover:underline"
+          >
+            Remove Account
+          </button>
+          <div v-else />
+
+          <div class="flex items-center gap-2">
+            <WfButton variant="secondary" size="md" type="button" @click="showEmailModal = false">
+              Cancel
+            </WfButton>
+            <WfButton variant="primary" size="md" type="submit">
+              <span>{{ editingEmailConfig ? 'Update Configuration' : 'Connect Account' }}</span>
+            </WfButton>
+          </div>
+        </div>
+      </form>
+    </WfModal>
+
+    <!-- MODAL 2: SYNC HISTORY -->
+    <WfModal
+      v-model="showHistoryModal"
+      title="Sync History"
+      max-width="lg"
+    >
+      <div class="overflow-x-auto max-h-[60vh]">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="border-b border-wf-border-subtle bg-wf-surface-variant/30 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
+              <th class="py-2.5 px-3">Status</th>
+              <th class="py-2.5 px-3">Timestamp</th>
+              <th class="py-2.5 px-3">Items</th>
+              <th class="py-2.5 px-3">Message</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-wf-border-subtle">
+            <tr v-for="log in syncLogs" :key="log.id">
+              <td class="py-2.5 px-3 whitespace-nowrap">
+                <CheckCircle2 v-if="log.status === 'completed'" class="w-4 h-4 text-emerald-500" />
+                <XCircle v-else-if="log.status === 'error'" class="w-4 h-4 text-rose-500" />
+                <Loader2 v-else class="w-4 h-4 text-indigo-500 animate-spin" />
+              </td>
+              <td class="py-2.5 px-3 text-wf-text-secondary whitespace-nowrap">{{ formatDateFull(log.started_at) }}</td>
+              <td class="py-2.5 px-3 font-mono font-semibold text-wf-text-primary">{{ log.items_processed || 0 }}</td>
+              <td class="py-2.5 px-3 text-wf-text-secondary truncate max-w-xs" :title="log.message">{{ log.message }}</td>
+            </tr>
+            <tr v-if="syncLogs.length === 0">
+              <td colspan="4" class="text-center py-6 text-wf-text-muted">No logs recorded yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </WfModal>
+
+    <!-- MODAL 3: ITEM DETAILS -->
+    <WfModal
+      v-model="showItemDetailsModal"
+      title="Scan Session Itemized Details"
+      max-width="xl"
+    >
+      <div v-if="isLoadingItems" class="py-12 text-center space-y-2">
+        <Loader2 class="w-6 h-6 text-wf-primary animate-spin mx-auto" />
+        <p class="text-xs text-wf-text-muted">Fetching itemized details...</p>
+      </div>
+      <div v-else class="overflow-x-auto max-h-[60vh]">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="border-b border-wf-border-subtle bg-wf-surface-variant/30 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
+              <th class="py-2.5 px-3">Status</th>
+              <th class="py-2.5 px-3">Sender & Subject</th>
+              <th class="py-2.5 px-3">Parser</th>
+              <th class="py-2.5 px-3">Result / Reason</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-wf-border-subtle">
+            <tr v-for="item in selectedLogItems" :key="item.id">
+              <td class="py-2.5 px-3 whitespace-nowrap">
+                <span
+                  class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold uppercase tracking-wider border"
+                  :class="item.status === 'processed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : item.status === 'duplicate' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-wf-surface-variant text-wf-text-muted border-wf-border-subtle'"
+                >
+                  {{ item.status }}
+                </span>
+              </td>
+              <td class="py-2.5 px-3">
+                <p class="font-bold text-wf-text-primary truncate max-w-xs" :title="item.subject">{{ item.subject }}</p>
+                <p class="text-[10px] text-wf-text-muted truncate max-w-xs">{{ item.sender }}</p>
+              </td>
+              <td class="py-2.5 px-3 whitespace-nowrap font-mono text-[10px] text-wf-primary">
+                {{ item.parser_used || '—' }}
+              </td>
+              <td class="py-2.5 px-3">
+                <div class="flex items-center gap-1.5">
+                  <span class="truncate max-w-xs text-wf-text-secondary" :title="item.reason">
+                    {{ item.reason || (item.status === 'processed' ? 'Transaction Created' : '—') }}
+                  </span>
+                  <router-link
+                    v-if="item.transaction_id"
+                    :to="{ name: 'transactions', query: { id: item.transaction_id } }"
+                    class="text-wf-primary hover:underline shrink-0"
+                    title="View Transaction"
+                  >
+                    <ExternalLink class="w-3.5 h-3.5" />
+                  </router-link>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="selectedLogItems.length === 0">
+              <td colspan="4" class="text-center py-6 text-wf-text-muted">No itemized logs found for this session.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </WfModal>
+  </div>
+</template>

@@ -24,18 +24,16 @@ const parserClient = axios.create({
 // -----------------------
 
 // Request interceptor for API calls
-apiClient.interceptors.request.use(
-    async (config) => {
-        const token = localStorage.getItem('access_token')
-        if (token && config.headers) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    },
-    (error) => {
-        return Promise.reject(error)
+const authInterceptor = async (config: any) => {
+    const token = localStorage.getItem('access_token')
+    if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`
     }
-)
+    return config
+}
+
+apiClient.interceptors.request.use(authInterceptor, (error) => Promise.reject(error))
+parserClient.interceptors.request.use(authInterceptor, (error) => Promise.reject(error))
 
 // Response interceptor for API calls
 apiClient.interceptors.response.use(

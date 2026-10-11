@@ -1,385 +1,148 @@
-<template>
-    <div class="animate-in">
-        <!-- Workspace Identity Header -->
-        <v-card v-if="tenants.length > 0" rounded="xl" border flat class="premium-glass-card mb-8 overflow-hidden">
-            <div class="d-flex align-center pa-6 relative z-10">
-                <div class="d-flex mr-6">
-                    <div v-for="(m, i) in familyMembers.slice(0, 5)" :key="m.id" 
-                        class="nebula-avatar"
-                        :style="{ zIndex: 10 - i, transform: `translateX(-${i * 12}px)` }">
-                        <span class="text-h6">{{ m.avatar || '👤' }}</span>
-                    </div>
-                </div>
-                <div class="flex-grow-1">
-                    <div class="d-flex align-center mb-1">
-                        <h1 class="text-h4 font-weight-black gradient-text">{{ tenants[0].name }}</h1>
-                        <v-btn icon density="comfortable" variant="text" color="primary" class="ml-2 hover-scale"
-                            @click="openRenameTenantModal(tenants[0])">
-                            <Edit2 :size="18" />
-                            <v-tooltip activator="parent" location="top">Rename Family Circle</v-tooltip>
-                        </v-btn>
-                    </div>
-                    <div class="d-flex align-center gap-4 text-tiny font-weight-bold text-slate-500 uppercase ls-1">
-                        <span class="d-flex align-center"><Users :size="14" class="mr-1 text-primary" /> {{ familyMembers.length }} Members</span>
-                        <v-divider vertical class="mx-1" length="12"></v-divider>
-                        <span class="d-flex align-center"><Landmark :size="14" class="mr-1 text-primary" /> {{ accounts.length }} Accounts Connected</span>
-                    </div>
-                </div>
-                
-                <v-btn color="primary" rounded="pill" elevation="0" height="48" class="px-8 font-weight-black glow-button" @click="openAddMemberModal">
-                    <template v-slot:prepend><Plus :size="20" /></template>
-                    Add Member
-                </v-btn>
-            </div>
-            <!-- Subtle background mesh -->
-            <div class="nebula-bg"></div>
-        </v-card>
-
-        <v-row>
-            <v-col v-for="member in familyMembers" :key="member.id" cols="12" md="6" lg="4">
-                <v-card class="premium-glass-card member-node h-100 pa-6" border flat>
-                    <div class="d-flex justify-space-between align-start mb-6">
-                        <div class="profile-node-avatar" :class="getRoleColorClass(member.role)">
-                            <span class="text-h4">{{ member.avatar || '👤' }}</span>
-                            <div v-if="currentUser && currentUser.id === member.id" class="identity-badge" title="You">
-                                <span class="text-tiny">YOU</span>
-                            </div>
-                        </div>
-                        <v-btn icon density="comfortable" variant="tonal" color="primary" class="hover-scale"
-                            @click="openEditMemberModal(member)">
-                            <Edit2 :size="16" />
-                            <v-tooltip activator="parent" location="top">Edit Profile</v-tooltip>
-                        </v-btn>
-                    </div>
-
-                    <div class="mb-4">
-                        <h3 class="text-h6 font-weight-black mb-1 text-slate-800">{{ member.full_name || 'Anonymous' }}</h3>
-                        <div class="text-caption font-weight-bold text-slate-400 d-flex align-center">
-                            <Mail :size="12" class="mr-1 text-primary" /> {{ member.email }}
-                        </div>
-                    </div>
-
-                    <!-- Identity Metadata Grid -->
-                    <div class="metadata-grid mb-6 pa-3 bg-slate-50/50 rounded-lg border border-dashed">
-                        <v-row dense>
-                            <v-col cols="6" class="d-flex align-center">
-                                <Calendar :size="12" class="mr-2 text-slate-400" />
-                                <span class="text-tiny font-weight-black text-slate-600">{{ member.dob ? formatDate(member.dob) : 'N/A' }}</span>
-                            </v-col>
-                            <v-col cols="6" class="d-flex align-center">
-                                <Smartphone :size="12" class="mr-2 text-slate-400" />
-                                <span class="text-tiny font-weight-black text-slate-600">{{ member.phone_number || 'N/A' }}</span>
-                            </v-col>
-                            <v-col cols="12" class="d-flex align-center mt-1">
-                                <CreditCard :size="12" class="mr-2 text-slate-400" />
-                                <span class="text-tiny font-weight-black text-slate-500 uppercase ls-1">PAN:</span>
-                                <span class="text-tiny font-weight-black text-slate-700 ml-1 tabular-nums">{{ member.pan_number || 'NOT SET' }}</span>
-                            </v-col>
-                        </v-row>
-                    </div>
-
-                    <div class="d-flex align-center gap-2 mb-6">
-                        <v-chip size="small" :color="getRoleChipColor(member.role)" variant="flat"
-                            class="font-weight-black text-uppercase ls-1 px-4 role-pill-vibrant">
-                            <template v-slot:prepend>
-                                <component :is="getRoleIconComponent(member.role)" :size="12" class="mr-2" />
-                            </template>
-                            {{ member.role }}
-                        </v-chip>
-                    </div>
-
-                    <v-divider class="mb-4 opacity-10"></v-divider>
-
-                    <div class="d-flex align-center justify-space-between">
-                        <div class="d-flex flex-column">
-                            <span class="text-caption font-weight-bold text-slate-400 uppercase ls-1">Connected Accounts</span>
-                            <span class="text-h5 font-weight-black tabular-nums">{{ getMemberAccountCount(member.id) }}</span>
-                        </div>
-                        <div class="d-flex gap-1">
-                            <div v-for="n in Math.min(getMemberAccountCount(member.id), 4)" :key="n" 
-                                class="w-2 h-8 rounded-pill bg-primary opacity-20"></div>
-                        </div>
-                    </div>
-                </v-card>
-            </v-col>
-
-            <!-- Add Node Surface -->
-            <v-col cols="12" md="6" lg="4">
-                <v-card class="add-node-surface h-100 d-flex flex-column align-center justify-center pa-8" border flat
-                    @click="openAddMemberModal">
-                    <div class="glow-icon-circle mb-4">
-                        <Plus :size="32" class="text-primary" />
-                    </div>
-                    <div class="text-subtitle-1 font-weight-black text-slate-800">New Family Node</div>
-                    <div class="text-caption font-weight-bold text-slate-400 uppercase ls-1 mt-1">Scale your circle</div>
-                </v-card>
-            </v-col>
-        </v-row>
-
-        <!-- Add/Edit Family Member Modal -->
-        <v-dialog v-model="showMemberModal" max-width="600" persistent>
-            <v-card rounded="xl" class="premium-popup overflow-visible">
-                <!-- Header with Avatar Preview -->
-                <div class="d-flex align-center pa-6 bg-slate-50/50 border-b">
-                    <div class="icon-box-huge mr-4 bg-white border">
-                        <span class="text-h3">{{ memberForm.avatar }}</span>
-                    </div>
-                    <div class="flex-grow-1">
-                        <h2 class="text-h6 font-weight-black mb-0">{{ isEditingMember ? 'Edit Profile' : 'Add Family Member' }}</h2>
-                        <p class="text-tiny text-slate-500 font-weight-bold uppercase letter-spacing-1">Member Configuration</p>
-                    </div>
-                    <v-btn icon variant="text" size="small" @click="showMemberModal = false">
-                        <X :size="20" />
-                    </v-btn>
-                </div>
-
-                <v-card-text class="pa-6 pt-8">
-                    <v-form @submit.prevent="handleMemberSubmit">
-                        <!-- Section: Personal Identity -->
-                        <div class="d-flex align-center flex-nowrap mb-8">
-                            <div class="icon-box-small mr-3 bg-primary-lighten-5 border flex-shrink-0">
-                                <User :size="14" class="text-primary" />
-                            </div>
-                            <span class="text-subtitle-2 font-weight-black text-slate-800 uppercase ls-2 text-no-wrap">Personal Identity</span>
-                            <v-divider class="ml-4 flex-grow-1 border-opacity-25" thickness="2" color="primary"></v-divider>
-                        </div>
-
-                        <!-- Avatar Picker -->
-                        <div class="avatar-picker-grid mb-6">
-                            <div v-for="a in ['👨‍💼', '👩‍💼', '👶', '👴', '👵', '👨‍🎓', '👩‍🎓', '🐶']" :key="a"
-                                class="avatar-option" :class="{ active: memberForm.avatar === a }"
-                                @click="memberForm.avatar = a">
-                                {{ a }}
-                            </div>
-                            <div class="avatar-option p-0 overflow-hidden">
-                                <input v-model="memberForm.avatar" class="emoji-input-sm w-full h-full border-0 text-center" maxlength="2" placeholder="🔍" />
-                            </div>
-                        </div>
-
-                        <v-row>
-                            <v-col cols="12" sm="7">
-                                <v-text-field 
-                                    v-model="memberForm.full_name" 
-                                    label="Full Name" 
-                                    placeholder="e.g. Sarah Smith"
-                                    variant="solo-filled" 
-                                    flat 
-                                    rounded="lg" 
-                                    required
-                                    class="premium-input"
-                                >
-                                    <template v-slot:prepend-inner><User :size="18" class="text-primary" /></template>
-                                </v-text-field>
-                            </v-col>
-                            <v-col cols="12" sm="5">
-                                <v-text-field 
-                                    v-model="memberForm.dob" 
-                                    label="Date of Birth" 
-                                    type="date"
-                                    variant="solo-filled" 
-                                    flat 
-                                    rounded="lg"
-                                    class="premium-input"
-                                >
-                                    <template v-slot:prepend-inner><Calendar :size="18" class="text-primary" /></template>
-                                </v-text-field>
-                            </v-col>
-                        </v-row>
-
-                        <v-row class="mt-2">
-                            <v-col cols="12" sm="6">
-                                <v-text-field 
-                                    v-model="memberForm.pan_number" 
-                                    label="PAN Number"
-                                    :type="showPan ? 'text' : 'password'"
-                                    placeholder="ABCDE1234F" 
-                                    maxlength="10"
-                                    variant="solo-filled" 
-                                    flat 
-                                    rounded="lg"
-                                    class="premium-input"
-                                >
-                                    <template v-slot:prepend-inner><CreditCard :size="18" class="text-primary" /></template>
-                                    <template v-slot:append-inner>
-                                        <v-btn icon variant="text" size="small" density="compact" @click="showPan = !showPan">
-                                            <component :is="showPan ? EyeOff : Eye" :size="16" class="text-primary" />
-                                        </v-btn>
-                                    </template>
-                                </v-text-field>
-                            </v-col>
-                            <v-col cols="12" sm="6">
-                                <v-text-field 
-                                    v-model="memberForm.phone_number" 
-                                    label="Phone Number"
-                                    placeholder="9876543210" 
-                                    maxlength="10"
-                                    variant="solo-filled" 
-                                    flat 
-                                    rounded="lg"
-                                    class="premium-input"
-                                >
-                                    <template v-slot:prepend-inner><Smartphone :size="18" class="text-primary" /></template>
-                                </v-text-field>
-                            </v-col>
-                        </v-row>
-
-                        <!-- Section: Access & Security -->
-                        <div class="d-flex align-center flex-nowrap mt-8 mb-8">
-                            <div class="icon-box-small mr-3 bg-primary-lighten-5 border flex-shrink-0">
-                                <Shield :size="14" class="text-primary" />
-                            </div>
-                            <span class="text-subtitle-2 font-weight-black text-slate-800 uppercase ls-2 text-no-wrap">Access & Security</span>
-                            <v-divider class="ml-4 flex-grow-1 border-opacity-25" thickness="2" color="primary"></v-divider>
-                        </div>
-
-                        <v-text-field 
-                            v-model="memberForm.email" 
-                            label="Email Address" 
-                            type="email"
-                            :disabled="isEditingMember" 
-                            placeholder="sarah@example.com" 
-                            variant="solo-filled" 
-                            flat 
-                            rounded="lg"
-                            required
-                            class="premium-input"
-                        >
-                            <template v-slot:prepend-inner><Mail :size="18" class="text-primary" /></template>
-                        </v-text-field>
-
-                        <v-text-field 
-                            v-model="memberForm.password"
-                            :label="`Password ${isEditingMember ? '(Leave empty to keep current)' : ''}`"
-                            type="password" 
-                            :required="!isEditingMember" 
-                            variant="solo-filled" 
-                            flat 
-                            rounded="lg"
-                            class="premium-input"
-                        >
-                            <template v-slot:prepend-inner><Key :size="18" class="text-primary" /></template>
-                        </v-text-field>
-
-                        <v-select 
-                            v-model="memberForm.role" 
-                            label="Role / Permissions" 
-                            :items="[
-                                { title: 'Admin (Full access)', value: 'OWNER' },
-                                { title: 'Adult (Edit access)', value: 'ADULT' },
-                                { title: 'Child (Watch only)', value: 'CHILD' },
-                                { title: 'Guest (Limited)', value: 'GUEST' }
-                            ]" 
-                            variant="solo-filled" 
-                            flat 
-                            rounded="lg"
-                            class="premium-input"
-                        >
-                            <template v-slot:prepend-inner><ShieldCheck :size="18" class="text-primary" /></template>
-                        </v-select>
-
-                        <div class="d-flex justify-end gap-3 mt-8">
-                            <v-btn variant="tonal" rounded="pill" height="48" class="px-8 font-weight-black text-uppercase ls-1" @click="showMemberModal = false">
-                                <template v-slot:prepend><X :size="18" /></template>
-                                Cancel
-                            </v-btn>
-                            <v-btn type="submit" color="primary" rounded="pill" elevation="0" height="48" class="px-10 font-weight-black text-uppercase ls-1 glow-button">
-                                <template v-slot:prepend>
-                                    <CheckCircle2 v-if="isEditingMember" :size="20" />
-                                    <Plus v-else :size="20" />
-                                </template>
-                                {{ isEditingMember ? 'Save Profile' : 'Create Member' }}
-                            </v-btn>
-                        </div>
-                    </v-form>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
-
-        <!-- Tenant Rename Modal -->
-        <v-dialog v-model="showTenantModal" max-width="450" persistent>
-            <v-card rounded="xl" class="premium-popup">
-                <div class="d-flex align-center pa-6 bg-slate-50/50 border-b">
-                    <div class="icon-box-large mr-4 bg-white border">
-                        <Users :size="20" class="text-primary" />
-                    </div>
-                    <div class="flex-grow-1">
-                        <h2 class="text-h6 font-weight-black mb-0">Rename Family Circle</h2>
-                        <p class="text-tiny text-slate-500 font-weight-bold uppercase letter-spacing-1">Workspace Identity</p>
-                    </div>
-                    <v-btn icon variant="text" size="small" @click="showTenantModal = false">
-                        <X :size="20" />
-                    </v-btn>
-                </div>
-
-                <v-card-text class="pa-6">
-                    <v-form @submit.prevent="handleRenameTenant">
-                        <v-text-field 
-                            v-model="tenantForm.name" 
-                            label="New Family Name" 
-                            placeholder="e.g. The Smiths"
-                            variant="solo-filled" 
-                            flat 
-                            rounded="lg" 
-                            required 
-                            autofocus
-                        >
-                            <template v-slot:prepend-inner><Users :size="18" class="text-slate-400" /></template>
-                        </v-text-field>
-
-                        <div class="d-flex justify-end gap-3 mt-8">
-                            <v-btn variant="tonal" rounded="pill" height="48" class="px-8 font-weight-black text-uppercase ls-1" @click="showTenantModal = false">
-                                <template v-slot:prepend><X :size="18" /></template>
-                                Cancel
-                            </v-btn>
-                            <v-btn type="submit" color="primary" rounded="pill" elevation="0" height="48" class="px-10 font-weight-black text-uppercase ls-1 glow-button">
-                                <template v-slot:prepend><CheckCircle2 :size="20" /></template>
-                                Update Name
-                            </v-btn>
-                        </div>
-                    </v-form>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
-    </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
-import { 
-    Edit2, 
-    Plus, 
-    Shield, 
-    ShieldCheck, 
-    Baby, 
-    User, 
-    X, 
-    Calendar, 
-    CreditCard, 
-    Smartphone, 
-    Mail, 
-    Key, 
-    Eye, 
-    EyeOff,
-    CheckCircle2,
-    Users,
-    Landmark
+import {
+  Edit2,
+  Plus,
+  Shield,
+  ShieldCheck,
+  Baby,
+  User,
+  Calendar,
+  CreditCard,
+  Smartphone,
+  Mail,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  Users,
+  Landmark
 } from 'lucide-vue-next'
 import { format } from 'date-fns'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfModal from '@/components/ui/WfModal.vue'
 
 const notify = useNotificationStore()
 
-// --- Internal State ---
+// State
 const tenants = ref<any[]>([])
 const familyMembers = ref<any[]>([])
 const accounts = ref<any[]>([])
 const currentUser = ref<any>(null)
 const loading = ref(false)
+const submitting = ref(false)
 
 const showMemberModal = ref(false)
 const isEditingMember = ref(false)
 const memberForm = ref({
+  id: '',
+  email: '',
+  full_name: '',
+  password: '',
+  role: 'ADULT',
+  avatar: '👨‍💼',
+  dob: '',
+  pan_number: '',
+  phone_number: ''
+})
+const showPan = ref(false)
+
+const showTenantModal = ref(false)
+const tenantForm = ref({ id: '', name: '' })
+
+const defaultAvatars = ['👨‍💼', '👩‍💼', '👶', '👴', '👵', '👨‍🎓', '👩‍🎓', '🐶', '🐱', '🚀']
+
+// Pagination
+const currentPage = ref(1)
+const pageSize = ref(8)
+const totalPages = computed(() => Math.ceil(familyMembers.value.length / pageSize.value) || 1)
+const paginatedMembers = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return familyMembers.value.slice(start, start + pageSize.value)
+})
+
+const getMemberAccountCount = (memberId: string) => {
+  return accounts.value.filter(a => a.owner_id === memberId).length
+}
+
+const getRoleIconComponent = (role: string) => {
+  switch (role) {
+    case 'OWNER': return ShieldCheck
+    case 'ADULT': return Shield
+    case 'CHILD': return Baby
+    default: return User
+  }
+}
+
+const getRoleBadgeClasses = (role: string) => {
+  switch (role) {
+    case 'OWNER':
+      return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+    case 'ADULT':
+      return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20'
+    case 'CHILD':
+      return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+    default:
+      return 'bg-wf-surface-variant text-wf-text-secondary border-wf-border-subtle'
+  }
+}
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return 'N/A'
+  try {
+    return format(new Date(dateStr), 'dd MMM yyyy')
+  } catch (e) {
+    return dateStr
+  }
+}
+
+// Fetch Data
+async function fetchData() {
+  loading.value = true
+  try {
+    const [tenantsRes, usersRes, accountsRes, meRes] = await Promise.all([
+      financeApi.getTenants(),
+      financeApi.getUsers(),
+      financeApi.getAccounts(),
+      financeApi.getMe()
+    ])
+    tenants.value = tenantsRes.data || []
+    familyMembers.value = usersRes.data || []
+    accounts.value = accountsRes.data || []
+    currentUser.value = meRes.data || null
+  } catch (e) {
+    console.error('Failed to fetch family settings', e)
+    notify.error('Failed to load family settings')
+  } finally {
+    loading.value = false
+  }
+}
+
+function openRenameTenantModal(tenant: any) {
+  tenantForm.value = { id: tenant.id, name: tenant.name }
+  showTenantModal.value = true
+}
+
+async function handleRenameTenant() {
+  if (!tenantForm.value.name.trim()) return
+  submitting.value = true
+  try {
+    await financeApi.updateTenant(tenantForm.value.id, { name: tenantForm.value.name.trim() })
+    notify.success('Family circle name updated')
+    showTenantModal.value = false
+    fetchData()
+  } catch (err) {
+    notify.error('Failed to rename family circle')
+  } finally {
+    submitting.value = false
+  }
+}
+
+function openAddMemberModal() {
+  isEditingMember.value = false
+  memberForm.value = {
     id: '',
     email: '',
     full_name: '',
@@ -389,360 +152,439 @@ const memberForm = ref({
     dob: '',
     pan_number: '',
     phone_number: ''
-})
-const showPan = ref(false)
-
-const showTenantModal = ref(false)
-const tenantForm = ref({ id: '', name: '' })
-
-// --- Computed ---
-const getMemberAccountCount = (memberId: string) => {
-    return accounts.value.filter(a => a.owner_id === memberId).length
-}
-
-const getRoleIconComponent = (role: string) => {
-    switch (role) {
-        case 'OWNER': return ShieldCheck
-        case 'ADULT': return Shield
-        case 'CHILD': return Baby
-        default: return User
-    }
-}
-
-const getRoleChipColor = (role: string) => {
-    switch (role) {
-        case 'OWNER': return 'deep-orange'
-        case 'ADULT': return 'indigo'
-        case 'CHILD': return 'emerald'
-        default: return 'slate-500'
-    }
-}
-
-const formatDate = (dateStr: string) => {
-    if (!dateStr) return 'N/A'
-    try {
-        return format(new Date(dateStr), 'dd MMM yyyy')
-    } catch (e) {
-        return dateStr
-    }
-}
-
-const getRoleColorClass = (role: string) => {
-    switch (role) {
-        case 'OWNER': return 'ring-gold'
-        case 'ADULT': return 'ring-blue'
-        case 'CHILD': return 'ring-green'
-        default: return 'ring-gray'
-    }
-}
-
-// --- Fetch Data ---
-async function fetchData() {
-    loading.value = true
-    try {
-        const [tenantsRes, usersRes, accountsRes, meRes] = await Promise.all([
-            financeApi.getTenants(),
-            financeApi.getUsers(),
-            financeApi.getAccounts(),
-            financeApi.getMe()
-        ])
-        tenants.value = tenantsRes.data
-        familyMembers.value = usersRes.data
-        accounts.value = accountsRes.data
-        currentUser.value = meRes.data
-    } catch (e) {
-        console.error("Failed to fetch family settings", e)
-        notify.error("Failed to load family settings")
-    } finally {
-        loading.value = false
-    }
-}
-
-// Logic
-function openRenameTenantModal(tenant: any) {
-    tenantForm.value = { id: tenant.id, name: tenant.name }
-    showTenantModal.value = true
-}
-
-async function handleRenameTenant() {
-    if (!tenantForm.value.name) return
-    try {
-        await financeApi.updateTenant(tenantForm.value.id, { name: tenantForm.value.name })
-        notify.success("Family name updated")
-        showTenantModal.value = false
-        fetchData()
-    } catch (err) {
-        notify.error("Rename failed")
-    }
-}
-
-function openAddMemberModal() {
-    isEditingMember.value = false
-    memberForm.value = {
-        id: '',
-        email: '',
-        full_name: '',
-        password: '',
-        role: 'ADULT' as any,
-        avatar: '👨‍💼',
-        dob: '',
-        pan_number: '',
-        phone_number: ''
-    }
-    showPan.value = false
-    showMemberModal.value = true
+  }
+  showPan.value = false
+  showMemberModal.value = true
 }
 
 function openEditMemberModal(member: any) {
-    isEditingMember.value = true
-    memberForm.value = {
-        id: member.id,
-        email: member.email,
-        full_name: member.full_name || '',
-        password: '',
-        role: member.role,
-        avatar: member.avatar || '👤',
-        dob: member.dob ? member.dob.split('T')[0] : '',
-        pan_number: member.pan_number || '',
-        phone_number: member.phone_number || ''
-    }
-    showPan.value = false
-    showMemberModal.value = true
+  isEditingMember.value = true
+  memberForm.value = {
+    id: member.id,
+    email: member.email,
+    full_name: member.full_name || '',
+    password: '',
+    role: member.role || 'ADULT',
+    avatar: member.avatar || '👤',
+    dob: member.dob ? member.dob.split('T')[0] : '',
+    pan_number: member.pan_number || '',
+    phone_number: member.phone_number || ''
+  }
+  showPan.value = false
+  showMemberModal.value = true
 }
 
 async function handleMemberSubmit() {
-    try {
-        if (isEditingMember.value) {
-            await financeApi.updateUser(memberForm.value.id, {
-                full_name: memberForm.value.full_name,
-                avatar: memberForm.value.avatar,
-                role: memberForm.value.role,
-                dob: memberForm.value.dob || undefined,
-                pan_number: memberForm.value.pan_number || undefined,
-                phone_number: memberForm.value.phone_number || undefined,
-                password: memberForm.value.password || undefined
-            })
-            notify.success("Member updated")
-        } else {
-            await financeApi.createUser(memberForm.value)
-            notify.success("Member added successfully")
-        }
-        showMemberModal.value = false
-        fetchData()
-    } catch (err: any) {
-        notify.error(err.response?.data?.detail || "Action failed")
+  if (!memberForm.value.full_name.trim()) {
+    notify.error('Please enter a full name')
+    return
+  }
+  if (!isEditingMember.value && !memberForm.value.email.trim()) {
+    notify.error('Please enter an email address')
+    return
+  }
+  if (!isEditingMember.value && !memberForm.value.password) {
+    notify.error('Please provide a temporary password')
+    return
+  }
+
+  submitting.value = true
+  try {
+    if (isEditingMember.value) {
+      await financeApi.updateUser(memberForm.value.id, {
+        full_name: memberForm.value.full_name,
+        avatar: memberForm.value.avatar,
+        role: memberForm.value.role,
+        dob: memberForm.value.dob || undefined,
+        pan_number: memberForm.value.pan_number || undefined,
+        phone_number: memberForm.value.phone_number || undefined,
+        password: memberForm.value.password || undefined
+      })
+      notify.success('Member profile updated')
+    } else {
+      await financeApi.createUser(memberForm.value)
+      notify.success('Member added successfully')
     }
+    showMemberModal.value = false
+    fetchData()
+  } catch (err: any) {
+    notify.error(err.response?.data?.detail || 'Action failed')
+  } finally {
+    submitting.value = false
+  }
 }
 
 onMounted(() => {
-    fetchData()
+  fetchData()
 })
 </script>
 
-<style scoped>
-.nebula-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: white;
-    border: 2px solid rgba(var(--v-theme-primary), 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+<template>
+  <div class="space-y-4">
+    <!-- 1. WORKSPACE IDENTITY BANNER -->
+    <WfCard v-if="tenants.length > 0" variant="flat" padding="md" radius="lg" class="relative overflow-hidden shadow-2xs">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+        <div class="flex items-center gap-3">
+          <!-- Stacked Avatar Preview -->
+          <div class="flex -space-x-2.5 overflow-hidden py-0.5">
+            <div
+              v-for="m in familyMembers.slice(0, 5)"
+              :key="m.id"
+              class="w-9 h-9 rounded-wf-md bg-wf-surface border-2 border-wf-border shadow-2xs flex items-center justify-center text-base shrink-0"
+            >
+              <span>{{ m.avatar || '👤' }}</span>
+            </div>
+          </div>
 
-.nebula-avatar:hover {
-    transform: scale(1.2) translateY(-5px) !important;
-    z-index: 20 !important;
-    border-color: rgb(var(--v-theme-primary));
-}
+          <!-- Circle Name & Stats -->
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h2 class="text-base sm:text-lg font-bold tracking-tight text-wf-text-primary leading-tight">
+                {{ tenants[0].name }}
+              </h2>
+              <button
+                type="button"
+                @click="openRenameTenantModal(tenants[0])"
+                title="Rename Circle"
+                class="p-1 rounded-wf-xs text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+              >
+                <Edit2 class="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div class="flex items-center gap-2.5 text-xs font-semibold text-wf-text-muted mt-0.5">
+              <span class="inline-flex items-center gap-1">
+                <Users class="w-3.5 h-3.5 text-wf-primary" />
+                {{ familyMembers.length }} {{ familyMembers.length === 1 ? 'Member' : 'Members' }}
+              </span>
+              <span class="text-wf-border-subtle">•</span>
+              <span class="inline-flex items-center gap-1">
+                <Landmark class="w-3.5 h-3.5 text-wf-primary" />
+                {{ accounts.length }} Connected {{ accounts.length === 1 ? 'Account' : 'Accounts' }}
+              </span>
+            </div>
+          </div>
+        </div>
 
-.nebula-bg {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at 80% 20%, rgba(var(--v-theme-primary), 0.05) 0%, transparent 50%);
-    pointer-events: none;
-}
+        <!-- Add Member Action -->
+        <WfButton
+          variant="primary"
+          size="sm"
+          @click="openAddMemberModal"
+        >
+          <Plus class="w-3.5 h-3.5 mr-1" />
+          <span>Add Member</span>
+        </WfButton>
+      </div>
+    </WfCard>
 
-.member-node {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-}
+    <!-- 2. MEMBER NODES GRID -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <WfCard
+        v-for="member in paginatedMembers"
+        :key="member.id"
+        variant="flat"
+        padding="md"
+        radius="lg"
+        class="flex flex-col justify-between shadow-2xs hover:border-wf-border transition-all"
+      >
+        <div>
+          <!-- Card Header: Avatar, Name & Role, Edit Button -->
+          <div class="flex items-start justify-between gap-2.5 mb-2.5">
+            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+              <div class="relative shrink-0">
+                <div class="w-10 h-10 rounded-wf-md bg-wf-surface-variant border border-wf-border-subtle flex items-center justify-center text-xl shadow-2xs">
+                  <span>{{ member.avatar || '👤' }}</span>
+                </div>
+                <span
+                  v-if="currentUser && currentUser.id === member.id"
+                  class="absolute -bottom-1 -right-1 px-1 py-0.2 rounded-wf-pill text-[8px] font-black bg-wf-primary text-white shadow-2xs"
+                >
+                  YOU
+                </span>
+              </div>
 
-.member-node:hover {
-    transform: translateY(-6px);
-    border-color: rgba(var(--v-theme-primary), 0.3) !important;
-    box-shadow: 0 20px 40px -15px rgba(var(--v-theme-primary), 0.15) !important;
-}
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <h3 class="text-xs font-bold text-wf-text-primary truncate" :title="member.full_name">
+                    {{ member.full_name || 'Family Member' }}
+                  </h3>
+                  <span
+                    class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold border tracking-wider uppercase shrink-0"
+                    :class="getRoleBadgeClasses(member.role)"
+                  >
+                    <component :is="getRoleIconComponent(member.role)" class="w-2.5 h-2.5" />
+                    <span>{{ member.role }}</span>
+                  </span>
+                </div>
+                <p class="text-[11px] text-wf-text-muted truncate flex items-center gap-1 mt-0.5" :title="member.email">
+                  <Mail class="w-2.5 h-2.5 text-wf-primary shrink-0" />
+                  <span class="truncate">{{ member.email }}</span>
+                </p>
+              </div>
+            </div>
 
-.profile-node-avatar {
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(var(--v-theme-on-surface), 0.03);
-    position: relative;
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
+            <button
+              type="button"
+              @click="openEditMemberModal(member)"
+              title="Edit Profile"
+              class="p-1.5 rounded-wf-xs text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors shrink-0"
+            >
+              <Edit2 class="w-3.5 h-3.5" />
+            </button>
+          </div>
 
-.identity-badge {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: rgb(var(--v-theme-primary));
-    color: white;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-weight: 900;
-    border: 2px solid white;
-    box-shadow: 0 4px 10px rgba(var(--v-theme-primary), 0.3);
-}
+          <!-- Identity Metadata Box -->
+          <div class="p-2 bg-wf-surface-variant/40 rounded-wf-md border border-wf-border-subtle text-[11px] space-y-1 mb-2.5">
+            <div class="grid grid-cols-2 gap-2">
+              <div class="flex items-center gap-1 text-wf-text-secondary truncate">
+                <Calendar class="w-3 h-3 text-wf-text-muted shrink-0" />
+                <span class="truncate font-medium">{{ member.dob ? formatDate(member.dob) : 'DOB: N/A' }}</span>
+              </div>
+              <div class="flex items-center gap-1 text-wf-text-secondary truncate">
+                <Smartphone class="w-3 h-3 text-wf-text-muted shrink-0" />
+                <span class="truncate font-medium">{{ member.phone_number || 'No Phone' }}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 text-wf-text-secondary pt-1 border-t border-wf-border-subtle/50 font-mono text-[10px]">
+              <CreditCard class="w-3 h-3 text-wf-text-muted shrink-0" />
+              <span class="font-bold text-wf-text-muted uppercase text-[9px]">PAN:</span>
+              <span class="font-semibold text-wf-text-primary">{{ member.pan_number ? '•••• •••• ' + member.pan_number.slice(-4) : 'NOT CONFIGURED' }}</span>
+            </div>
+          </div>
+        </div>
 
-.metadata-grid {
-    border-color: rgba(var(--v-border-color), 0.1) !important;
-}
+        <!-- Card Footer: Connected Accounts -->
+        <div class="pt-2 border-t border-wf-border-subtle flex items-center justify-between text-xs">
+          <div class="flex items-baseline gap-1.5">
+            <span class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider">Connected Accounts:</span>
+            <span class="text-xs font-bold text-wf-text-primary font-mono">{{ getMemberAccountCount(member.id) }}</span>
+          </div>
+          <div class="flex items-center gap-0.5">
+            <div
+              v-for="n in Math.min(getMemberAccountCount(member.id), 4)"
+              :key="n"
+              class="w-1.5 h-4 rounded-wf-pill bg-wf-primary/40"
+            />
+          </div>
+        </div>
+      </WfCard>
 
-.role-pill-vibrant {
-    color: white !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
+      <!-- 3. ADD NEW MEMBER CARD SURFACE (only on last page or if under capacity) -->
+      <WfCard
+        v-if="currentPage === totalPages"
+        variant="flat"
+        padding="md"
+        radius="lg"
+        class="border-dashed border-2 flex flex-col items-center justify-center p-4 text-center cursor-pointer hover:border-wf-primary hover:bg-wf-primary-light/20 transition-all group min-h-[140px]"
+        @click="openAddMemberModal"
+      >
+        <div class="w-9 h-9 rounded-full bg-wf-primary-light border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-wf-primary group-hover:scale-110 transition-transform mb-1.5 shadow-2xs">
+          <Plus class="w-4 h-4" />
+        </div>
+        <h4 class="text-xs font-bold text-wf-text-primary">Add Family Member</h4>
+        <p class="text-[11px] text-wf-text-muted mt-0.5 max-w-[200px]">
+          Create a profile with custom role permissions.
+        </p>
+      </WfCard>
+    </div>
 
-.add-node-surface {
-    background: transparent !important;
-    border: 2px dashed rgba(var(--v-border-color), 0.2) !important;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
+    <!-- Pagination Controls -->
+    <div
+      v-if="familyMembers.length > pageSize"
+      class="flex items-center justify-between text-xs text-wf-text-secondary pt-2 px-1"
+    >
+      <span>
+        Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, familyMembers.length) }} of {{ familyMembers.length }} members
+      </span>
+      <div class="flex items-center gap-2">
+        <WfButton
+          variant="secondary"
+          size="sm"
+          :disabled="currentPage === 1"
+          @click="currentPage--"
+        >
+          Previous
+        </WfButton>
+        <span class="font-semibold text-wf-text-primary px-1">
+          Page {{ currentPage }} of {{ totalPages }}
+        </span>
+        <WfButton
+          variant="secondary"
+          size="sm"
+          :disabled="currentPage >= totalPages"
+          @click="currentPage++"
+        >
+          Next
+        </WfButton>
+      </div>
+    </div>
 
-.add-node-surface:hover {
-    background: rgba(var(--v-theme-primary), 0.02) !important;
-    border-color: rgb(var(--v-theme-primary)) !important;
-    transform: translateY(-4px);
-}
+    <!-- MODAL 1: ADD / EDIT FAMILY MEMBER -->
+    <WfModal
+      v-model="showMemberModal"
+      :title="isEditingMember ? 'Edit Member Profile' : 'Add Family Member'"
+      max-width="lg"
+    >
+      <form @submit.prevent="handleMemberSubmit" class="space-y-5">
+        <!-- Avatar Selector -->
+        <div>
+          <label class="block text-xs font-bold text-wf-text-secondary uppercase tracking-wider mb-2">Avatar Emoji</label>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button
+              v-for="em in defaultAvatars"
+              :key="em"
+              type="button"
+              @click="memberForm.avatar = em"
+              class="w-10 h-10 rounded-wf-md flex items-center justify-center text-xl transition-all border"
+              :class="memberForm.avatar === em ? 'bg-wf-primary-light border-wf-primary ring-2 ring-wf-primary/20 scale-105' : 'bg-wf-surface-variant border-wf-border-subtle hover:bg-wf-surface'"
+            >
+              {{ em }}
+            </button>
+            <input
+              v-model="memberForm.avatar"
+              type="text"
+              maxlength="2"
+              placeholder="Custom"
+              class="w-16 h-10 px-2 rounded-wf-md bg-wf-surface-variant border border-wf-border-subtle text-center text-lg focus:outline-none focus:border-wf-primary"
+            />
+          </div>
+        </div>
 
-.glow-icon-circle {
-    width: 64px;
-    height: 64px;
-    border-radius: 20px;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
+        <!-- Personal Details -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-wf-text-secondary mb-1">Full Name *</label>
+            <input
+              v-model="memberForm.full_name"
+              type="text"
+              required
+              placeholder="e.g. Sarah Smith"
+              class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-wf-text-secondary mb-1">Date of Birth</label>
+            <input
+              v-model="memberForm.dob"
+              type="date"
+              class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+            />
+          </div>
+        </div>
 
-.hover-scale {
-    transition: all 0.2s ease;
-}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-wf-text-secondary mb-1">Phone Number</label>
+            <input
+              v-model="memberForm.phone_number"
+              type="tel"
+              maxlength="12"
+              placeholder="e.g. 9876543210"
+              class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-wf-text-secondary mb-1">PAN Number</label>
+            <div class="relative flex items-center">
+              <input
+                v-model="memberForm.pan_number"
+                :type="showPan ? 'text' : 'password'"
+                maxlength="10"
+                placeholder="ABCDE1234F"
+                class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary uppercase font-mono focus:outline-none focus:border-wf-primary"
+              />
+              <button
+                type="button"
+                @click="showPan = !showPan"
+                class="absolute right-2.5 text-wf-text-muted hover:text-wf-text-primary"
+              >
+                <component :is="showPan ? EyeOff : Eye" class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
 
-.hover-scale:hover {
-    transform: scale(1.1);
-    color: rgb(var(--v-theme-primary)) !important;
-}
+        <!-- Account Credentials & Role -->
+        <div class="space-y-4 pt-2 border-t border-wf-border-subtle">
+          <div>
+            <label class="block text-xs font-bold text-wf-text-secondary mb-1">Email Address *</label>
+            <input
+              v-model="memberForm.email"
+              type="email"
+              :disabled="isEditingMember"
+              required
+              placeholder="e.g. sarah@example.com"
+              class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+          </div>
 
-/* Role Rings */
-.ring-gold { border-left: 4px solid #FFD700; }
-.ring-blue { border-left: 4px solid #6366F1; }
-.ring-green { border-left: 4px solid #10B981; }
-.ring-gray { border-left: 4px solid #94A3B8; }
+          <div>
+            <label class="block text-xs font-bold text-wf-text-secondary mb-1">
+              {{ isEditingMember ? 'New Password (Leave empty to keep existing)' : 'Password *' }}
+            </label>
+            <input
+              v-model="memberForm.password"
+              type="password"
+              :required="!isEditingMember"
+              placeholder="••••••••••••"
+              class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+            />
+          </div>
 
-/* Modal & Form Styles (Restored) */
-.premium-popup {
-    background: rgba(var(--v-theme-surface), 0.75) !important;
-    backdrop-filter: blur(24px) saturate(185%) !important;
-    border: 1px solid rgba(var(--v-border-color), 0.12) !important;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(var(--v-theme-primary), 0.05) !important;
-}
+          <div>
+            <label class="block text-xs font-bold text-wf-text-secondary mb-1">Role & Permissions</label>
+            <select
+              v-model="memberForm.role"
+              class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary font-medium"
+            >
+              <option value="OWNER">Owner (Full Administrator)</option>
+              <option value="ADULT">Adult (Edit & View Access)</option>
+              <option value="CHILD">Child (View Only)</option>
+              <option value="GUEST">Guest (Restricted)</option>
+            </select>
+          </div>
+        </div>
 
-.premium-input :deep(.v-field) {
-    height: 52px !important;
-    border-radius: 12px !important;
-}
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-wf-border-subtle">
+          <WfButton variant="secondary" size="md" type="button" @click="showMemberModal = false">
+            Cancel
+          </WfButton>
+          <WfButton variant="primary" size="md" type="submit" :loading="submitting">
+            <CheckCircle2 class="w-4 h-4 mr-1.5" />
+            <span>{{ isEditingMember ? 'Save Changes' : 'Create Member' }}</span>
+          </WfButton>
+        </div>
+      </form>
+    </WfModal>
 
-.glow-button {
-    box-shadow: 0 4px 15px rgba(var(--v-theme-primary), 0.3) !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
+    <!-- MODAL 2: RENAME FAMILY CIRCLE -->
+    <WfModal
+      v-model="showTenantModal"
+      title="Rename Family Circle"
+      max-width="md"
+    >
+      <form @submit.prevent="handleRenameTenant" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-wf-text-secondary mb-1">Circle Name *</label>
+          <input
+            v-model="tenantForm.name"
+            type="text"
+            required
+            placeholder="e.g. The Smiths"
+            class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
+          />
+        </div>
 
-.glow-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(var(--v-theme-primary), 0.5) !important;
-}
-
-.avatar-picker-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-    gap: 12px;
-    padding: 16px;
-    background: rgba(var(--v-theme-on-surface), 0.02);
-    border-radius: 16px;
-    border: 1px solid rgba(var(--v-border-color), 0.05);
-}
-
-.avatar-option {
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    cursor: pointer;
-    border-radius: 12px;
-    border: 2px solid transparent;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    background: white;
-}
-
-.avatar-option.active {
-    border-color: rgb(var(--v-theme-primary));
-    box-shadow: 0 5px 15px rgba(var(--v-theme-primary), 0.2);
-    transform: scale(1.1);
-}
-
-.avatar-option:hover {
-    transform: scale(1.15) translateY(-2px);
-    border-color: rgba(var(--v-theme-primary), 0.3);
-}
-
-.ls-1 { letter-spacing: 1px !important; }
-.ls-2 { letter-spacing: 2px !important; }
-
-.icon-box-small {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: white;
-}
-
-.icon-box-huge {
-    width: 80px;
-    height: 80px;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: white;
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
-}
-
-.emoji-input-sm {
-    text-align: center;
-    font-size: 1.25rem;
-    width: 100%;
-    outline: none;
-    background: transparent;
-}
-</style>
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-wf-border-subtle">
+          <WfButton variant="secondary" size="md" type="button" @click="showTenantModal = false">
+            Cancel
+          </WfButton>
+          <WfButton variant="primary" size="md" type="submit" :loading="submitting">
+            <span>Save Name</span>
+          </WfButton>
+        </div>
+      </form>
+    </WfModal>
+  </div>
+</template>
