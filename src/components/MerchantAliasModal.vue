@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue'
 import { financeApi } from '@/api/client'
+import WfModal from '@/components/ui/WfModal.vue'
+import WfInput from '@/components/ui/WfInput.vue'
+import WfButton from '@/components/ui/WfButton.vue'
 
 const props = defineProps<{
     modelValue: boolean
@@ -73,43 +76,29 @@ async function save() {
 </script>
 
 <template>
-    <v-dialog v-model="isOpen" max-width="500">
-        <v-card class="rounded-xl">
-            <v-card-title class="d-flex justify-space-between align-center pa-4 border-b">
-                <span class="text-h6 font-weight-bold">New Merchant Alias</span>
-                <v-btn icon="X" variant="text" density="comfortable" @click="isOpen = false"></v-btn>
-            </v-card-title>
-            <v-card-text class="pa-6">
-                <v-form @submit.prevent="save">
-                    <v-text-field v-model="form.pattern" label="Raw Text Pattern" placeholder="e.g. AMZN MKTP"
-                        variant="outlined" class="mb-4" hint="Matches if this text appears in description"
-                        persistent-hint required readonly></v-text-field>
+    <WfModal v-model="isOpen" title="New Merchant Alias">
+        <form id="merchant-alias-form" class="space-y-4" @submit.prevent="save">
+            <WfInput v-model="form.pattern" label="Raw Text Pattern" placeholder="e.g. AMZN MKTP"
+                hint="Matches if this text appears in description" required disabled />
 
-                    <v-text-field v-model="form.alias" label="Clean Merchant Name" placeholder="e.g. Amazon"
-                        variant="outlined" class="mb-6" required></v-text-field>
+            <WfInput v-model="form.alias" label="Clean Merchant Name" placeholder="e.g. Amazon" required />
 
-                    <v-checkbox v-model="form.update_past" color="primary" hide-details class="mb-2">
-                        <template v-slot:label>
-                            <div>
-                                <div class="font-weight-bold">Update past transactions?</div>
-                                <div class="text-caption text-medium-emphasis" v-if="impact !== null">
-                                    Will update approx. <strong>{{ impact }}</strong> transactions
-                                </div>
-                                <div class="text-caption text-medium-emphasis" v-else>
-                                    Select to verify impact on history
-                                </div>
-                            </div>
-                        </template>
-                    </v-checkbox>
-
-                    <div class="d-flex justify-end gap-3 pt-4">
-                        <v-btn variant="text" @click="isOpen = false">Cancel</v-btn>
-                        <v-btn type="submit" color="primary" :loading="loading">
-                            Create Rule
-                        </v-btn>
-                    </div>
-                </v-form>
-            </v-card-text>
-        </v-card>
-    </v-dialog>
+            <label class="flex items-start gap-2 cursor-pointer">
+                <input v-model="form.update_past" type="checkbox" class="mt-0.5 accent-[var(--wf-color-primary)]" />
+                <span>
+                    <span class="block text-sm font-semibold text-wf-text-primary">Update past transactions?</span>
+                    <span class="block text-xs text-wf-text-muted" v-if="impact !== null">
+                        Will update approx. <strong class="font-mono">{{ impact }}</strong> transactions
+                    </span>
+                    <span class="block text-xs text-wf-text-muted" v-else>
+                        Select to verify impact on history
+                    </span>
+                </span>
+            </label>
+        </form>
+        <template #footer>
+            <WfButton variant="ghost" size="sm" @click="isOpen = false">Cancel</WfButton>
+            <WfButton type="submit" size="sm" :loading="loading" :disabled="!form.alias" @click="save">Create Rule</WfButton>
+        </template>
+    </WfModal>
 </template>

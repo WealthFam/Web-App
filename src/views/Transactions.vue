@@ -1,83 +1,90 @@
 <template>
     <MainLayout>
-        <v-container fluid class="page-container dashboard-page">
-            <!-- Animated Mesh Background -->
-            <div class="mesh-blob blob-1"
-                style="background: rgba(var(--v-theme-primary), 0.1); width: 600px; height: 600px; top: -200px; right: -100px;">
+        <div class="space-y-4">
+            <!-- Header -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Transactions</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        Track and manage your family's spending
+                    </p>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <div class="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-wf-xl border border-slate-200/80 dark:border-slate-700/60 w-fit self-start md:self-auto">
+                    <button
+                        type="button"
+                        class="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-wf-lg transition-all"
+                        :class="activeTab === 'list'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                        @click="activeTab = 'list'; fetchData()"
+                    >
+                        <LayoutList :size="15" />
+                        <span>List</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-wf-lg transition-all"
+                        :class="activeTab === 'pending'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                        @click="activeTab = 'pending'; fetchTriage()"
+                    >
+                        <Inbox :size="15" />
+                        <span>Inbox</span>
+                        <span
+                            v-if="triagePagination.total > 0"
+                            class="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400"
+                        >
+                            {{ triagePagination.total }}
+                        </span>
+                    </button>
+                    <button
+                        type="button"
+                        class="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-wf-lg transition-all"
+                        :class="activeTab === 'heatmap'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                        @click="activeTab = 'heatmap'"
+                    >
+                        <MapIcon :size="15" />
+                        <span>Heatmap</span>
+                    </button>
+                </div>
             </div>
-            <div class="mesh-blob blob-2"
-                style="background: rgba(var(--v-theme-secondary), 0.05); width: 400px; height: 400px; bottom: -100px; left: -100px;">
-            </div>
 
-            <div class="relative-pos z-10">
-                <!-- Premium Header -->
-                <v-row class="mb-6 align-center">
-                    <v-col cols="12" md="4">
-                        <div class="d-flex align-center">
-                            <h1 class="text-h6 font-weight-black text-content">Transactions</h1>
+            <!-- CONTENT AREA -->
+            <div v-show="activeTab === 'list'" class="space-y-2.5">
+                <!-- QUICK CHART ROW (Compact & Collapsible) -->
+                <WfCard
+                    v-if="forecastData && forecastData.trend.length > 0"
+                    variant="flat"
+                    padding="none"
+                    radius="lg"
+                    class="overflow-hidden border border-slate-200/70 dark:border-slate-800"
+                >
+                    <div class="px-4 py-2 flex items-center justify-between cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors" @click="showVelocityChart = !showVelocityChart">
+                        <div class="flex items-center gap-2">
+                            <Activity :size="15" class="text-primary-500" />
+                            <span class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Spending Velocity & Forecast</span>
+                            <span class="text-[10px] font-bold font-mono bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full">
+                                AVG ₹{{ Math.round(metrics.avg_daily_spending || 0) }}/DAY
+                            </span>
                         </div>
-                        <p class="text-subtitle-2 text-medium-emphasis font-weight-bold mt-1 opacity-70">
-                            Track and manage your family's spending
-                        </p>
-                    </v-col>
-
-                    <v-col cols="12" md="8" class="d-flex flex-column flex-md-row align-md-center justify-end gap-3">
-                        <!-- Navigation Tabs -->
-                        <div class="premium-pill-tabs flex-grow-1 flex-md-grow-0 d-flex overflow-x-auto">
-                            <v-tabs v-model="activeTab" color="primary" density="comfortable" hide-slider show-arrows
-                                class="rounded-xl">
-                                <v-tab value="list" class="premium-tab" rounded="xl" @click="fetchData">
-                                    <div class="d-flex align-center gap-2">
-                                        <LayoutList :size="16" />
-                                        <span>List</span>
-                                    </div>
-                                </v-tab>
-                                <v-tab value="pending" class="premium-tab" rounded="xl" @click="fetchTriage">
-                                    <div class="d-flex align-center gap-2">
-                                        <Inbox :size="16" />
-                                        <span>Inbox</span>
-                                        <v-chip v-if="triagePagination.total > 0" size="x-small" color="primary"
-                                            class="ml-1 font-weight-black">
-                                            {{ triagePagination.total }}
-                                        </v-chip>
-                                    </div>
-                                </v-tab>
-                                <v-tab value="heatmap" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center gap-2">
-                                        <MapIcon :size="16" />
-                                        <span>Heatmap</span>
-                                    </div>
-                                </v-tab>
-                            </v-tabs>
+                        <div class="flex items-center gap-1 text-xs text-slate-400 font-semibold">
+                            <span>{{ showVelocityChart ? 'Hide' : 'Show' }}</span>
+                            <ChevronDown :size="14" class="transition-transform duration-200" :class="{ 'rotate-180': showVelocityChart }" />
                         </div>
-                    </v-col>
-                </v-row>
+                    </div>
 
-                <!-- CONTENT AREA -->
-                <v-window v-model="activeTab" class="overflow-visible">
-                    <v-window-item value="list">
-                        <!-- QUICK CHART ROW -->
-                        <v-card v-if="forecastData && forecastData.trend.length > 0"
-                            class="glass-card mb-6 overflow-hidden" rounded="xl">
-                            <div class="pa-5 pb-0">
-                                <div class="d-flex align-center justify-space-between">
-                                    <h3 class="text-subtitle-1 font-weight-black d-flex align-center gap-2">
-                                        <Activity :size="20" class="text-primary" />
-                                        Spending Velocity & Forecast
-                                    </h3>
-                                    <div
-                                        class="text-tiny font-weight-black bg-primary-lighten-5 px-3 py-1 rounded-pill text-primary">
-                                        AVG ₹{{ Math.round(metrics.avg_daily_spending || 0) }}/DAY
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div v-if="forecastData" ref="chartContainer" class="py-8"
-                                style="height: 180px; width: 100%;">
-                                <SpendingForecastChart :trend="forecastData.trend" :user-names="forecastData.user_names"
-                                    :height="120" :width="chartWidth" />
-                            </div>
-                        </v-card>
+                    <Transition enter-active-class="transition-opacity duration-200" enter-from-class="opacity-0" leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
+                        <div v-if="showVelocityChart && forecastData" ref="chartContainer" class="px-4 pb-2.5 pt-0" style="height: 110px; width: 100%;">
+                            <SpendingForecastChart :trend="forecastData.trend" :user-names="forecastData.user_names"
+                                :height="90" :width="chartWidth" />
+                        </div>
+                    </Transition>
+                </WfCard>
 
                         <TransactionList v-bind="{
                             transactions, accounts, categories, expenseGroups,
@@ -98,39 +105,35 @@
                             @deleteSelected="showDeleteConfirm = true" @importCsv="showImportModal = true"
                             @fetchData="fetchData" @showVendorInsights="openVendorInsights"
                             @resetFilters="selectedTimeRange = 'all'; startDate = ''; endDate = ''; searchQuery = ''; categoryFilter = ''; fetchData()" />
-                    </v-window-item>
-
-                    <v-window-item value="pending">
-                        <TransactionTriage v-bind="{
-                            activeSubTab: 'pending', accounts, categories,
-                            triageTransactions, triagePagination, triageSearchQuery,
-                            triageSourceFilter, triageSortKey, triageSortOrder,
-                            // Confirmation States
-                            showDiscardConfirm, createIgnoreRule,
-                            triageIdToDiscard
-                        }" v-model:selectedTriageIds="selectedTriageIds"
-                            @update:activeSubTab="activeTriageSubTab = $event"
-                            @update:triageSearchQuery="triageSearchQuery = $event"
-                            @update:triageSourceFilter="triageSourceFilter = $event as any"
-                            @update:triageSortKey="triageSortKey = $event"
-                            @update:triageSortOrder="triageSortOrder = $event"
-                            @update:triagePagination="triagePagination = $event; fetchTriage()"
-                            @update:showDiscardConfirm="showDiscardConfirm = $event"
-                            @update:createIgnoreRule="createIgnoreRule = $event" @approveTriage="approveTriage"
-                            @rejectTriage="rejectTriage" @bulkRejectTriage="handleBulkRejectTriage"
-                            @confirmDiscard="confirmDiscard"
-                            @confirmBulkDiscard="handleBulkRejectTriage"
-                            @refreshTriage="() => { fetchTriage(); fetchData(); }" />
-                    </v-window-item>
-
-                    <v-window-item value="heatmap">
-                        <div class="content-card pa-6 glass-card">
-                            <SpendingHeatmap :start-date="startDate" :end-date="endDate" />
-                        </div>
-                    </v-window-item>
-                </v-window>
             </div>
-        </v-container>
+
+            <div v-show="activeTab === 'pending'">
+                <TransactionTriage v-bind="{
+                    activeSubTab: 'pending', accounts, categories,
+                    triageTransactions, triagePagination, triageSearchQuery,
+                    triageSourceFilter, triageSortKey, triageSortOrder,
+                    // Confirmation States
+                    showDiscardConfirm, createIgnoreRule,
+                    triageIdToDiscard
+                }" v-model:selectedTriageIds="selectedTriageIds"
+                    @update:activeSubTab="activeTriageSubTab = $event"
+                    @update:triageSearchQuery="triageSearchQuery = $event"
+                    @update:triageSourceFilter="triageSourceFilter = $event as any"
+                    @update:triageSortKey="triageSortKey = $event"
+                    @update:triageSortOrder="triageSortOrder = $event"
+                    @update:triagePagination="triagePagination = $event; fetchTriage()"
+                    @update:showDiscardConfirm="showDiscardConfirm = $event"
+                    @update:createIgnoreRule="createIgnoreRule = $event" @approveTriage="approveTriage"
+                    @rejectTriage="rejectTriage" @bulkRejectTriage="handleBulkRejectTriage"
+                    @confirmDiscard="confirmDiscard"
+                    @confirmBulkDiscard="handleBulkRejectTriage"
+                    @refreshTriage="() => { fetchTriage(); fetchData(); }" />
+            </div>
+
+            <div v-show="activeTab === 'heatmap'">
+                <SpendingHeatmap :start-date="startDate" :end-date="endDate" />
+            </div>
+        </div>
 
         <!-- Modals -->
         <ImportModal :isOpen="showImportModal" @close="showImportModal = false" @import-success="fetchData" />
@@ -144,33 +147,43 @@
 
         <VendorInsightsModal v-model="showVendorModal" :vendor-name="selectedVendorForInsights" />
 
-
-
-
         <!-- Delete Confirmation Dialog -->
-        <v-dialog v-model="showDeleteConfirm" max-width="450">
-            <v-card class="glass-card" rounded="xl">
-                <v-card-text class="text-center pa-6">
-                    <div class="text-h2 mb-4">🗑️</div>
-                    <div class="text-h5 font-weight-bold mb-2">Delete Transactions?</div>
-                    <p class="text-body-2 text-medium-emphasis mb-6">
-                        Are you sure you want to delete <span class="font-weight-bold text-primary">{{
-                            selectedIds.size }}</span> selected
-                        transactions? This action cannot be undone.
-                    </p>
-
-                    <div class="d-flex gap-3 justify-center">
-                        <v-btn variant="text" @click="showDeleteConfirm = false" :disabled="loading" rounded="lg">
-                            Cancel
-                        </v-btn>
-                        <v-btn color="error" @click="async () => { await confirmDelete(); fetchData() }"
-                            :loading="loading" rounded="lg" prepend-icon="Trash2">
-                            Delete Forever
-                        </v-btn>
-                    </div>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
+        <WfModal
+            v-model="showDeleteConfirm"
+            title="Delete Transactions"
+            description="Permanent action. This cannot be undone."
+            max-width="sm"
+        >
+            <div class="py-2 text-center">
+                <div class="w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto mb-3">
+                    <Trash2 :size="24" />
+                </div>
+                <p class="text-sm text-slate-600 dark:text-slate-300">
+                    Are you sure you want to delete <span class="font-bold text-slate-900 dark:text-white">{{ selectedIds.size }}</span> selected transactions?
+                </p>
+            </div>
+            <template #footer>
+                <div class="flex items-center justify-end gap-2 w-full">
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-wf-lg transition-colors"
+                        :disabled="loading"
+                        @click="showDeleteConfirm = false"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-wf-lg shadow-sm transition-colors flex items-center gap-1.5"
+                        :disabled="loading"
+                        @click="async () => { await confirmDelete(); fetchData(); showDeleteConfirm = false }"
+                    >
+                        <Trash2 :size="15" />
+                        <span>Delete Forever</span>
+                    </button>
+                </div>
+            </template>
+        </WfModal>
     </MainLayout>
 </template>
 
@@ -180,6 +193,8 @@ import MainLayout from '@/layouts/MainLayout.vue'
 import { useRoute } from 'vue-router'
 import { financeApi } from '@/api/client'
 
+import WfCard from '@/components/ui/WfCard.vue'
+import WfModal from '@/components/ui/WfModal.vue'
 import ImportModal from '@/components/ImportModal.vue'
 import SmartPromptModal from '@/components/SmartPromptModal.vue'
 
@@ -192,9 +207,13 @@ import {
     LayoutList,
     Inbox,
     Map as MapIcon,
-    Activity
+    Activity,
+    Trash2,
+    ChevronDown
 } from 'lucide-vue-next'
 import SpendingForecastChart from '@/components/SpendingForecastChart.vue'
+
+const showVelocityChart = ref(false)
 
 
 // Composables
@@ -374,97 +393,3 @@ onMounted(() => {
     checkDeepLink()
 })
 </script>
-
-<style scoped>
-.dashboard-page {
-    min-height: calc(100vh - 64px);
-    background: rgb(var(--v-theme-background));
-    position: relative;
-    overflow: hidden;
-}
-
-.relative-pos {
-    position: relative;
-}
-
-.z-10 {
-    z-index: 10;
-}
-
-/* Mesh Background */
-.mesh-blob {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.15;
-    z-index: 1;
-    border-radius: 50%;
-    animation: blob-float 20s infinite alternate;
-}
-
-.blob-1 {
-    background: rgb(var(--v-theme-primary));
-    width: 600px;
-    height: 600px;
-    top: -200px;
-    right: -100px;
-}
-
-.blob-2 {
-    background: rgb(var(--v-theme-secondary));
-    width: 400px;
-    height: 400px;
-    bottom: -100px;
-    left: -100px;
-    animation-delay: -5s;
-}
-
-@keyframes blob-float {
-    0% {
-        transform: translate(0, 0) scale(1);
-    }
-
-    100% {
-        transform: translate(20px, -20px) scale(1.1);
-    }
-}
-
-/* Premium Tabs */
-.premium-pill-tabs {
-    background: rgba(var(--v-theme-surface), 0.6);
-    backdrop-filter: blur(10px);
-    padding: 6px;
-    border-radius: 24px;
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
-
-.premium-tab {
-    text-transform: none !important;
-    letter-spacing: 0;
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: rgb(var(--v-theme-on-surface), 0.6);
-    transition: all 0.3s ease;
-    min-width: 120px;
-}
-
-.premium-tab.v-tab--selected {
-    background: rgb(var(--v-theme-primary));
-    color: white !important;
-    box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3);
-}
-
-.gap-2 {
-    gap: 8px;
-}
-
-.gap-3 {
-    gap: 12px;
-}
-
-.glass-card {
-    background: rgba(var(--v-theme-surface), 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-    border-radius: 24px;
-}
-</style>

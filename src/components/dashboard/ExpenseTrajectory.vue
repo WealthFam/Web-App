@@ -174,6 +174,13 @@ const chartType = computed(() => {
   return 'line'
 })
 
+// Aether V4 Chart Token Constants
+const COLOR_EXPENSE = '#EF4444' // --wf-color-error
+const COLOR_EXPENSE_BG = 'rgba(239, 68, 68, 0.12)'
+const COLOR_EXPENSE_BG_MTD = 'rgba(239, 68, 68, 0.15)'
+const COLOR_INVEST = '#10B981' // --wf-color-success
+const COLOR_INVEST_BG = 'rgba(16, 185, 129, 0.08)'
+
 const chartData = computed(() => {
   if (viewMode.value === 'mtd') {
     const labels = dashboardStore.spendingLabels.length > 0 ? dashboardStore.spendingLabels : ['Day 1', 'Today']
@@ -185,8 +192,8 @@ const chartData = computed(() => {
         {
           label: 'Daily Spending',
           data,
-          borderColor: '#f43f5e',
-          backgroundColor: 'rgba(244, 63, 94, 0.15)',
+          borderColor: COLOR_EXPENSE,
+          backgroundColor: COLOR_EXPENSE_BG_MTD,
           fill: true,
           tension: 0.35,
           borderWidth: 2,
@@ -204,13 +211,13 @@ const chartData = computed(() => {
         {
           label: 'Expenses',
           data: sixMonthSpending.value,
-          backgroundColor: '#f43f5e',
+          backgroundColor: COLOR_EXPENSE,
           borderRadius: 4
         },
         {
           label: 'Investments',
           data: sixMonthInvestment.value,
-          backgroundColor: '#10b981',
+          backgroundColor: COLOR_INVEST,
           borderRadius: 4
         }
       ]
@@ -224,8 +231,8 @@ const chartData = computed(() => {
       {
         label: 'Expenses',
         data: sixMonthSpending.value,
-        borderColor: '#f43f5e',
-        backgroundColor: 'rgba(244, 63, 94, 0.12)',
+        borderColor: COLOR_EXPENSE,
+        backgroundColor: COLOR_EXPENSE_BG,
         fill: true,
         tension: 0.35,
         borderWidth: 2.5,
@@ -235,8 +242,8 @@ const chartData = computed(() => {
       {
         label: 'Investments',
         data: sixMonthInvestment.value,
-        borderColor: '#10b981',
-        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+        borderColor: COLOR_INVEST,
+        backgroundColor: COLOR_INVEST_BG,
         fill: true,
         tension: 0.35,
         borderWidth: 2,

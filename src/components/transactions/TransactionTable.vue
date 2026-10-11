@@ -1,204 +1,139 @@
 <template>
-    <v-data-table-server 
-        v-model="tableSelection" 
-        :headers="computedHeaders" 
-        :items="transactions" 
-        :items-length="total"
-        :loading="loading" 
-        :items-per-page="pageSize" 
-        :page="page" 
-        hover 
-        @update:options="emit('optionsUpdate', $event)"
-        class="premium-table" 
-        density="comfortable" 
-        :show-select="showSelect"
-        :row-props="(data: any) => ({ class: { 'hidden-txn-row': data.item.exclude_from_reports } })">
-        
-        <!-- Selection Column Slot -->
-        <template #[`item.data-table-select`]="{ item }">
-            <v-checkbox-btn 
-                :model-value="selectedIds.has(item.id)"
-                @update:model-value="emit('toggleSelection', item.id)" 
-                color="primary" 
-            />
-        </template>
-
-        <!-- Date Column -->
-        <template #[`item.date`]="{ item }">
-            <div class="date-cell">
-                <div class="text-subtitle-2 font-weight-bold">{{ formatDate(item.date).day }}</div>
-                <div class="text-caption opacity-50 font-weight-medium">{{ formatDate(item.date).meta }}</div>
-            </div>
-        </template>
-
-        <!-- Recipient Column -->
-        <template #[`item.recipient`]="{ item }">
-            <div class="d-flex align-center gap-3 py-2">
-                <v-tooltip :text="getCategoryDisplay(item.category || '').text" location="top">
-                    <template v-slot:activator="{ props }">
-                        <v-avatar v-bind="props" size="36"
-                            :color="getCategoryDisplay(item.category || '').color + '20'" rounded="lg">
-                            <span class="text-h6 pb-1">{{ getCategoryDisplay(item.category || '').icon }}</span>
-                        </v-avatar>
+    <div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm border-collapse">
+                <thead>
+                    <tr class="bg-wf-surface-variant/60 text-[11px] font-semibold uppercase tracking-wider text-wf-text-muted">
+                        <th v-if="showSelect" scope="col" class="w-10 px-3 h-9 text-left">
+                            <input type="checkbox" aria-label="Select all on page" :checked="allSelected"
+                                class="accent-[var(--wf-color-primary)]" @change="toggleAll" />
+                        </th>
+                        <th scope="col" class="px-3 h-9 text-left w-[110px]">Date</th>
+                        <th scope="col" class="px-3 h-9 text-left w-[250px]">Recipient / Source</th>
+                        <th scope="col" class="px-3 h-9 text-left">Description</th>
+                        <th scope="col" class="px-3 h-9 text-right w-[130px]">Amount</th>
+                        <th v-if="!hideActions" scope="col" class="px-3 h-9 w-[60px]"><span class="sr-only">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template v-if="loading">
+                        <tr v-for="i in 8" :key="'sk' + i" class="border-t border-wf-divider animate-pulse">
+                            <td :colspan="colCount" class="px-3 py-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-wf-md bg-wf-surface-variant"></div>
+                                    <div class="flex-1 space-y-1.5">
+                                        <div class="h-3 w-3/5 rounded-wf-sm bg-wf-surface-variant"></div>
+                                        <div class="h-2.5 w-2/5 rounded-wf-sm bg-wf-surface-variant"></div>
+                                    </div>
+                                    <div class="h-3 w-20 rounded-wf-sm bg-wf-surface-variant"></div>
+                                </div>
+                            </td>
+                        </tr>
                     </template>
-                </v-tooltip>
-                <div>
-                    <div class="text-subtitle-2 font-weight-bold text-truncate" style="max-width: 200px;">
-                        <router-link v-if="item.recipient"
-                            :to="`/merchants/${encodeURIComponent(item.recipient || '')}`"
-                            class="text-decoration-none text-content hover-underline">
-                            {{ item.recipient }}
-                        </router-link>
-                        <span v-else>{{ item.description }}</span>
-                    </div>
-                    <div class="text-caption d-flex align-center gap-1 font-weight-bold" v-if="item.source">
-                        <div class="d-flex align-center opacity-50">
-                            <span class="source-icon-mini">{{ item.source === 'SMS' ? '📱' : (item.source ===
-                                'EMAIL' ? '📧' : '⌨️') }}</span>
-                            {{ item.source }}
-                        </div>
-                        <v-tooltip text="Quick Insights" location="top">
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-if="item.recipient" v-bind="props" icon variant="text" size="x-small" density="compact" class="ml-1" color="primary" @click.stop="emit('showVendorInsights', item.recipient || '')">
-                                    <v-icon size="small" icon="$info"></v-icon>
-                                </v-btn>
-                            </template>
-                        </v-tooltip>
-                    </div>
-                </div>
-            </div>
-        </template>
 
-        <!-- Description Column -->
-        <template #[`item.description`]="{ item }">
-            <div class="py-2">
-                <div class="text-body-2 text-medium-emphasis mb-1 d-flex align-center">
-                    {{ item.description }}
-                    <v-tooltip v-if="item.latitude || item.location_name"
-                        :text="item.location_name || 'Location available'">
-                        <template #activator="{ props }">
-                            <MapPin v-bind="props" :size="14" class="ml-1 text-primary" />
-                        </template>
-                    </v-tooltip>
-                </div>
-                <div class="d-flex align-center flex-wrap gap-1">
-                    <v-chip size="x-small" variant="flat" color="surface-variant"
-                        class="text-uppercase font-weight-black opacity-70">
-                        {{ getAccountName(item.account_id) }}
-                    </v-chip>
+                    <tr v-else-if="transactions.length === 0">
+                        <td :colspan="colCount" class="py-10 text-center">
+                            <FileText :size="32" class="mx-auto mb-2 text-wf-text-muted" aria-hidden="true" />
+                            <h3 class="text-sm font-semibold text-wf-text-primary">No Transactions Found</h3>
+                            <p class="text-xs text-wf-text-muted mt-0.5">Adjust your filters or try a different search term.</p>
+                            <WfButton variant="ghost" size="sm" class="mt-3" @click="emit('resetFilters')">Clear All Filters</WfButton>
+                        </td>
+                    </tr>
 
-                    <v-chip v-if="item.is_transfer" size="x-small" color="success" variant="tonal"
-                        class="font-weight-bold">
-                        🔄 Transfer
-                    </v-chip>
-                    <v-chip v-if="item.exclude_from_reports" size="x-small" color="error" variant="tonal"
-                        class="font-weight-bold">
-                        🚫 Hidden
-                    </v-chip>
-                    <v-chip v-if="item.is_emi" size="x-small" color="info" variant="tonal"
-                        class="font-weight-bold">
-                        🏦 EMI
-                    </v-chip>
-                    <v-chip v-if="item.expense_group_id" size="x-small" color="secondary" variant="tonal"
-                        class="font-weight-bold">
-                        📁 {{ getExpenseGroupName(item.expense_group_id) }}
-                    </v-chip>
-                </div>
-            </div>
-        </template>
+                    <tr v-else v-for="item in transactions" :key="item.id"
+                        class="border-t border-wf-divider hover:bg-wf-surface-variant/50 transition-colors"
+                        :class="{ 'opacity-50': item.exclude_from_reports }">
+                        <td v-if="showSelect" class="px-3 py-2">
+                            <input type="checkbox" :aria-label="'Select ' + (item.recipient || item.description)"
+                                :checked="selectedIds.has(item.id)" class="accent-[var(--wf-color-primary)]"
+                                @change="emit('toggleSelection', item.id)" />
+                        </td>
 
-        <!-- Amount Column -->
-        <template #[`item.amount`]="{ item }">
-            <div class="text-right">
-                <div :class="[
-                    'text-subtitle-1 font-weight-black d-flex align-center justify-end ga-1',
-                    Number(item.amount) > 0 ? 'text-success' : 'text-error',
-                    item.is_transfer ? 'opacity-70 text-medium-emphasis grayscale' : ''
-                ]">
-                    <template v-if="item.is_transfer">
-                        <span>🔄</span>
-                    </template>
-                    <template v-else-if="Number(item.amount) > 0">
-                        <ArrowDownLeft :size="16" class="mt-1" />
-                    </template>
-                    <template v-else>
-                        <ArrowUpRight :size="16" class="mt-1" />
-                    </template>
-                    {{ formatAmount(Math.abs(Number(item.amount))) }}
-                </div>
+                        <td class="px-3 py-2 align-middle leading-tight">
+                            <div class="text-xs font-semibold text-wf-text-primary">{{ formatDate(item.date).day }}</div>
+                            <div class="text-[10px] text-wf-text-muted">{{ formatDate(item.date).meta }}</div>
+                        </td>
 
-            </div>
-        </template>
+                        <td class="px-3 py-2 align-middle">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <span class="w-8 h-8 shrink-0 rounded-wf-md flex items-center justify-center text-sm"
+                                    :style="{ backgroundColor: getCategoryDisplay(item.category || '').color + '20' }"
+                                    :title="getCategoryDisplay(item.category || '').text">
+                                    {{ getCategoryDisplay(item.category || '').icon }}
+                                </span>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-semibold truncate max-w-[200px] text-wf-text-primary">
+                                        <router-link v-if="item.recipient"
+                                            :to="`/merchants/${encodeURIComponent(item.recipient || '')}`"
+                                            class="hover:underline">{{ item.recipient }}</router-link>
+                                        <span v-else>{{ item.description }}</span>
+                                    </div>
+                                    <div v-if="item.source" class="flex items-center gap-1 text-[10px] text-wf-text-muted">
+                                        <span>{{ item.source === 'SMS' ? '📱' : (item.source === 'EMAIL' ? '📧' : '⌨️') }}</span>
+                                        <span>{{ item.source }}</span>
+                                        <button v-if="item.recipient" type="button" aria-label="Quick insights"
+                                            class="ml-1 text-wf-primary hover:opacity-80"
+                                            @click.stop="emit('showVendorInsights', item.recipient || '')">
+                                            <Info :size="12" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
 
-        <!-- Actions Column -->
-        <template #[`item.actions`]="{ item }">
-            <div class="text-center">
-                <v-menu location="start">
-                    <template v-slot:activator="{ props }">
-                        <v-btn size="x-small" variant="text" color="medium-emphasis" v-bind="props">
-                            <MoreVertical :size="18" />
-                        </v-btn>
-                    </template>
-                    <v-list density="compact" class="rounded-lg border" elevation="2">
-                        <v-list-item @click="emit('editTxn', item)" title="Edit" value="edit">
-                            <template v-slot:prepend>
-                                <Pencil :size="16" class="mr-2" />
-                            </template>
-                        </v-list-item>
-                        <v-list-item @click="emit('openAliasModal', item)" title="Map Merchant" value="map">
-                            <template v-slot:prepend>
-                                <MapPin :size="16" class="mr-2" />
-                            </template>
-                        </v-list-item>
-                        <v-divider class="my-1"></v-divider>
-                        <v-list-item @click="emit('deleteTxn', item.id)"
-                            title="Delete" value="delete" color="error">
-                            <template v-slot:prepend>
-                                <Trash2 :size="16" class="mr-2" />
-                            </template>
-                        </v-list-item>
-                    </v-list>
-                </v-menu>
-            </div>
-        </template>
+                        <td class="px-3 py-2 align-middle">
+                            <div class="flex items-center gap-1 text-xs text-wf-text-secondary">
+                                <span class="truncate">{{ item.description }}</span>
+                                <span v-if="item.latitude || item.location_name" :title="item.location_name || 'Location available'">
+                                    <MapPin :size="12" class="text-wf-primary" />
+                                </span>
+                            </div>
+                            <div class="flex items-center flex-wrap gap-1 mt-0.5">
+                                <span class="wf-tag bg-wf-surface-variant text-wf-text-secondary uppercase">{{ getAccountName(item.account_id) }}</span>
+                                <span v-if="item.is_transfer" class="wf-tag bg-wf-success/10 text-wf-success">🔄 Transfer</span>
+                                <span v-if="item.exclude_from_reports" class="wf-tag bg-wf-error/10 text-wf-error">🚫 Hidden</span>
+                                <span v-if="item.is_emi" class="wf-tag bg-wf-info/10 text-wf-info">🏦 EMI</span>
+                                <span v-if="item.expense_group_id" class="wf-tag bg-wf-secondary/10 text-wf-secondary">📁 {{ getExpenseGroupName(item.expense_group_id) }}</span>
+                            </div>
+                        </td>
 
-        <!-- Empty State -->
-        <template #no-data>
-            <div class="d-flex flex-column align-center justify-center pa-10 text-center animate-in">
-                <v-avatar size="100" color="surface-variant" variant="tonal" class="mb-6">
-                    <FileText :size="48" class="opacity-50" />
-                </v-avatar>
-                <h3 class="text-h5 font-weight-black mb-1">No Transactions Found</h3>
-                <p class="text-body-1 text-medium-emphasis">Adjust your filters or try a different search term.</p>
-                <v-btn color="primary" variant="text" class="mt-4 font-weight-bold" @click="emit('resetFilters')">Clear All Filters</v-btn>
-            </div>
-        </template>
+                        <td class="px-3 py-2 align-middle text-right">
+                            <div class="inline-flex items-center justify-end gap-1 font-mono tabular-nums text-sm font-bold"
+                                :class="item.is_transfer ? 'text-wf-text-muted' : (Number(item.amount) > 0 ? 'text-wf-success' : 'text-wf-error')">
+                                <span v-if="item.is_transfer" aria-label="Transfer">🔄</span>
+                                <ArrowDownLeft v-else-if="Number(item.amount) > 0" :size="14" aria-label="Credit" />
+                                <ArrowUpRight v-else :size="14" aria-label="Debit" />
+                                {{ formatAmount(Math.abs(Number(item.amount))) }}
+                            </div>
+                        </td>
 
-        <!-- Loading State -->
-        <template #loading>
-            <div class="py-2">
-                <div v-for="i in 10" :key="i"
-                    class="d-flex align-center px-4 py-3 border-b border-opacity-25 glass-loader-row">
-                    <v-skeleton-loader type="avatar" size="40" class="mr-4 skeleton-glass"></v-skeleton-loader>
-                    <div class="flex-grow-1 mr-4">
-                        <v-skeleton-loader type="text" width="60%" class="mb-1 skeleton-glass"></v-skeleton-loader>
-                        <v-skeleton-loader type="text" width="40%" height="12" class="skeleton-glass"></v-skeleton-loader>
-                    </div>
-                    <div class="text-right">
-                        <v-skeleton-loader type="text" width="80px" class="skeleton-glass"></v-skeleton-loader>
-                    </div>
-                </div>
-            </div>
-        </template>
-        <!-- Bottom Slot Override -->
-        <template #bottom v-if="hideFooter"></template>
-    </v-data-table-server>
+                        <td v-if="!hideActions" class="px-3 py-2 align-middle text-center">
+                            <WfMenu label="Transaction actions">
+                                <template #trigger><MoreVertical :size="16" /></template>
+                                <button type="button" role="menuitem" class="wf-menu-item" @click="emit('editTxn', item)"><Pencil :size="14" /> Edit</button>
+                                <button type="button" role="menuitem" class="wf-menu-item" @click="emit('openAliasModal', item)"><MapPin :size="14" /> Map Merchant</button>
+                                <div class="my-1 border-t border-wf-divider"></div>
+                                <button type="button" role="menuitem" class="wf-menu-item text-wf-error" @click="emit('deleteTxn', item.id)"><Trash2 :size="14" /> Delete</button>
+                            </WfMenu>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <WfPagination v-if="!hideFooter" :page="page" :page-size="pageSize" :total="total"
+            @update:page="emitOptions($event, pageSize)"
+            @update:page-size="emitOptions(1, $event)" />
+    </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { MapPin, MoreVertical, Pencil, Trash2, FileText, ArrowDownLeft, ArrowUpRight } from 'lucide-vue-next'
+import { MapPin, MoreVertical, Pencil, Trash2, FileText, ArrowDownLeft, ArrowUpRight, Info } from 'lucide-vue-next'
 import { useCurrency } from '@/composables/useCurrency'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfMenu from '@/components/ui/WfMenu.vue'
+import WfPagination from '@/components/ui/WfPagination.vue'
 
 const { formatAmount } = useCurrency()
 
@@ -234,25 +169,22 @@ const emit = defineEmits<{
     'update:selectedIds': [value: Set<string>]
 }>()
 
-const tableSelection = computed({
-    get: () => Array.from(props.selectedIds),
-    set: (newSelection: any[]) => {
-        emit('update:selectedIds', new Set(newSelection))
-    }
-})
+const colCount = computed(() => 4 + (props.showSelect ? 1 : 0) + (props.hideActions ? 0 : 1))
 
-const computedHeaders = computed(() => {
-    const base = [
-        { title: 'Date', key: 'date', sortable: true, width: '110px' },
-        { title: 'Recipient / Source', key: 'recipient', sortable: true, width: '250px' },
-        { title: 'Description', key: 'description', sortable: false },
-        { title: 'Amount', key: 'amount', sortable: true, align: 'end' as const, width: '130px' },
-    ]
-    if (!props.hideActions) {
-        base.push({ title: '', key: 'actions', sortable: false, align: 'center' as any, width: '60px' })
-    }
-    return base
-})
+const allSelected = computed(() =>
+    props.transactions.length > 0 && props.transactions.every(t => props.selectedIds.has(t.id)))
+
+function toggleAll() {
+    const next = new Set(props.selectedIds)
+    if (allSelected.value) props.transactions.forEach(t => next.delete(t.id))
+    else props.transactions.forEach(t => next.add(t.id))
+    emit('update:selectedIds', next)
+}
+
+// Same payload shape the previous data-table emitted, so consumers keep working.
+function emitOptions(page: number, itemsPerPage: number) {
+    emit('optionsUpdate', { page, itemsPerPage, sortBy: [] })
+}
 
 // Helpers copied from TransactionList.vue
 function formatDate(dateStr: string) {
@@ -278,6 +210,7 @@ function getAccountName(id: string) {
     return acc ? acc.name : 'Unknown Account'
 }
 
+// Category colours come from user data (dynamic), not design tokens.
 function getCategoryDisplay(name: string) {
     if (!name || name === 'Uncategorized') return { icon: '🏷️', text: 'Uncategorized', color: '#9ca3af' }
     const cat = props.categories.find(c => c.name === name)
@@ -295,30 +228,24 @@ function getExpenseGroupName(id: string) {
 </script>
 
 <style scoped>
-.date-cell { line-height: 1.3; }
-.source-icon-mini { font-size: 0.75rem; }
-.hidden-txn-row {
-    opacity: 0.5;
-    filter: grayscale(0.5);
-    background: rgba(var(--v-theme-on-surface), 0.02);
+.wf-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: var(--wf-radius-sm, 4px);
+    font-size: 9px;
+    font-weight: 700;
 }
-.hover-underline:hover { text-decoration: underline !important; }
-.animate-in { animation: fadeIn 0.3s ease-out; }
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+.wf-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 12px;
+    text-align: left;
+    color: var(--wf-color-text-primary);
 }
-.gap-1 { gap: 4px; }
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
-
-/* Skeleton Loader Overrides */
-.skeleton-glass { background: transparent !important; }
-.skeleton-glass :deep(.v-skeleton-loader__bone) {
-    background: rgba(var(--v-theme-on-surface), 0.05) !important;
-    border-radius: 8px;
-}
-.skeleton-glass :deep(.v-skeleton-loader__avatar) { border-radius: 12px; }
-.glass-loader-row { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+.wf-menu-item:hover { background: var(--wf-color-surface-variant); }
 </style>

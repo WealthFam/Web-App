@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { ref, computed, reactive, watch } from 'vue'
-import { useTheme } from 'vuetify'
 import { useCurrency } from '@/composables/useCurrency'
 import {
-    CheckCircle2, X, Pencil, Plus, Minus, Info, Tag,
+    CheckCircle2, X, Pencil, Plus, Info, Tag, Loader2,
     Settings, ArrowLeftRight, Search, Link, SearchX, LineChart, IndianRupee, Calendar,
-    FileText, Paperclip, ExternalLink, Trash2, Link2,
+    FileText, Paperclip, ExternalLink, Trash2, Link2, MapPin,
     FileImage, FileVideo, Music, FileCode, FileArchive, Fingerprint, ShieldCheck, Receipt, Scale, Folder,
-    FileSpreadsheet, Presentation
+    FileSpreadsheet, Presentation, 
 } from 'lucide-vue-next'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
+import WfModal from '@/components/ui/WfModal.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfInput from '@/components/ui/WfInput.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfAlert from '@/components/ui/WfAlert.vue'
 
 const props = defineProps<{
     isOpen: boolean
@@ -28,8 +32,24 @@ const props = defineProps<{
 const emit = defineEmits(['close', 'submit', 'findMatches', 'selectMatch'])
 
 const { formatAmount } = useCurrency()
-const theme = useTheme()
-const isDark = computed(() => theme.global.current.value.dark)
+// Date picker theme follows the app theme (data-theme attr / .dark class), sampled when the modal opens
+const isDark = ref(false)
+watch(() => props.isOpen, (open) => {
+    if (open) {
+        const root = document.documentElement
+        isDark.value = root.dataset.theme === 'dark' || root.classList.contains('dark')
+    }
+}, { immediate: true })
+
+function toggleMatch(match: any) {
+    if (localForm.linked_transaction_id === match.id) {
+        localForm.linked_transaction_id = ''
+    } else {
+        localForm.linked_transaction_id = match.id
+        localForm.is_transfer = true
+        localForm.exclude_from_reports = true
+    }
+}
 
 // Local state to avoid prop mutation
 
@@ -95,6 +115,23 @@ function openVaultPicker() {
     vaultPickerOpen.value = true
     vaultPickerSearch.value = ''
     searchVaultDocs('')
+}
+
+function detectLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            localForm.latitude = pos.coords.latitude
+            localForm.longitude = pos.coords.longitude
+            if (!localForm.location_name) {
+                localForm.location_name = `GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`
+            }
+            notification.success('Current location detected')
+        }, () => {
+            notification.error('Could not access GPS location')
+        })
+    } else {
+        notification.error('Geolocation not supported by browser')
+    }
 }
 
 async function fetchAttachedDocs() {
@@ -263,9 +300,9 @@ watch(() => localForm.category, (newVal) => {
 })
 
 const isFormValid = computed(() => {
-    const basicValid = localForm.amount > 0 && localForm.date && localForm.account_id && localForm.category
+    const basicValid = Number(localForm.amount) > 0 && !!localForm.date && !!localForm.account_id && !!localForm.category
     if (localForm.is_transfer) {
-        return basicValid && localForm.to_account_id
+        return basicValid && !!localForm.to_account_id
     }
     return basicValid
 })
@@ -306,549 +343,289 @@ function getIcon(item: any) {
     return FileText
 }
 
-function getIconColor(item: any) {
-    if (!item) return 'text-grey'
-    if (item.is_folder) return 'text-primary'
-
-    const filename = (item.filename || '').toLowerCase()
-    const mt = (item.mime_type || '').toLowerCase()
-
-    if (item.file_type === 'INVOICE') return 'text-orange-darken-2'
-    if (item.file_type === 'POLICY') return 'text-blue-darken-2'
-    if (item.file_type === 'TAX') return 'text-red-darken-2'
-    if (item.file_type === 'IDENTITY') return 'text-green-darken-2'
-
-    if (filename.endsWith('.pdf') || mt === 'application/pdf') return 'text-red-darken-1'
-    if (filename.endsWith('.xls') || filename.endsWith('.xlsx') || filename.endsWith('.csv') || mt.includes('sheet')) return 'text-green-darken-3'
-    if (mt.includes('presentation') || mt.includes('powerpoint')) return 'text-deep-orange-darken-2'
-
-    if (mt.startsWith('image/')) return 'text-purple-darken-1'
-    if (mt.startsWith('video/')) return 'text-deep-purple'
-    if (mt.startsWith('audio/')) return 'text-pink'
-    if (mt.includes('zip') || mt.includes('rar') || mt.includes('archive')) return 'text-amber-darken-3'
-    return 'text-grey-darken-1'
-}
 </script>
 
 <template>
-    <v-dialog :model-value="isOpen" @update:model-value="handleClose" persistent max-width="650" scrollable>
-        <v-card class="premium-glass-card rounded-xl overflow-hidden no-hover">
-            <v-card-title class="pa-0">
-                <div class="modal-header-premium pa-4 px-6 d-flex align-center justify-space-between">
-                    <div class="d-flex align-center gap-4">
-                        <div class="header-icon-wrapper">
-                            <component :is="isEditing ? Pencil : Plus" :size="28" class="text-primary" />
-                        </div>
-                        <div>
-                            <h2 class="text-h5 font-weight-black mb-0">{{ isEditing ? 'Edit Transaction' :
-                                'New Transaction' }}</h2>
-                            <p class="text-caption opacity-70 font-weight-bold mb-0">
-                                {{ isEditing ? 'Update transaction details and category' :
-                                    'Record a new spending or income' }}
-                            </p>
-                        </div>
-                    </div>
-                    <v-btn :icon="X" variant="tonal" color="medium-emphasis" density="comfortable" @click="handleClose"
-                        class="backdrop-blur-sm"></v-btn>
+    <WfModal :model-value="isOpen" @update:model-value="handleClose" max-width="lg">
+        <template #header>
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-wf-lg bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shrink-0">
+                    <component :is="isEditing ? Pencil : Plus" class="w-4 h-4 text-wf-primary" aria-hidden="true" />
                 </div>
-            </v-card-title>
+                <div>
+                    <h3 class="text-base font-bold text-wf-text-primary">
+                        {{ isEditing ? 'Edit Transaction' : 'New Transaction' }}
+                    </h3>
+                    <p class="text-xs text-wf-text-muted">
+                        {{ isEditing ? 'Update transaction details and category' : 'Record a new spending or income' }}
+                    </p>
+                </div>
+            </div>
+        </template>
 
-            <v-card-text class="pa-0 bg-background">
-                <v-form @submit.prevent="handleSubmit">
-                    <div class="pa-5">
-                        <!-- Primary Info Section -->
-                        <div class="section-group mb-5">
-                            <div class="d-flex align-center gap-2 mb-4">
-                                <Info :size="20" class="text-primary" />
-                                <span class="text-overline font-weight-black text-primary letter-spacing-wide">Basic
-                                    Details</span>
-                            </div>
+        <form @submit.prevent="handleSubmit" class="max-h-[72vh] overflow-y-auto pr-1">
+            <div class="space-y-5">
+                <!-- Primary Info Section -->
+                <section>
+                    <div class="flex items-center gap-2 mb-3">
+                        <Info :size="16" class="text-wf-primary" aria-hidden="true" />
+                        <h4 class="text-xs font-bold uppercase tracking-widest text-wf-primary">Basic Details</h4>
+                    </div>
 
-                            <v-row dense>
-                                <v-col cols="12" class="mb-1">
-                                    <v-text-field v-model="localForm.description" label="Description"
-                                        placeholder="What was this for?" variant="outlined" density="comfortable"
-                                        rounded="lg" class="premium-modal-input font-weight-bold" hide-details
-                                        autocomplete="off" />
-                                </v-col>
-
-                                <v-col cols="12" class="mb-1">
-                                    <v-text-field v-model="localForm.recipient" label="Merchant / Payee"
-                                        placeholder="Who did you pay?" variant="outlined" density="comfortable"
-                                        rounded="lg" class="premium-modal-input font-weight-bold" hide-details
-                                        autocomplete="off" />
-                                </v-col>
-
-                                <v-col cols="4" md="3" class="mb-1">
-                                    <v-autocomplete v-model="localForm.type" :items="['DEBIT', 'CREDIT']" label="Type"
-                                        variant="outlined" density="comfortable" rounded="lg"
-                                        class="premium-modal-input font-weight-bold" hide-details>
-                                        <template v-slot:selection="{ item }">
-                                            <span :class="item.value === 'DEBIT' ? 'text-error' : 'text-success'">{{
-                                                item.value === 'DEBIT' ? 'Debit' : 'Credit' }}</span>
-                                        </template>
-                                        <template v-slot:item="{ props, item }">
-                                            <v-list-item v-bind="props"
-                                                :title="item.value === 'DEBIT' ? 'Debit' : 'Credit'"
-                                                :class="item.value === 'DEBIT' ? 'text-error' : 'text-success'">
-                                                <template v-slot:prepend>
-                                                    <component :is="item.value === 'DEBIT' ? Minus : Plus" :size="16"
-                                                        class="mr-2" />
-                                                </template>
-                                            </v-list-item>
-                                        </template>
-                                    </v-autocomplete>
-                                </v-col>
-
-                                <v-col cols="8" md="5" class="mb-1">
-                                    <v-text-field v-model="localForm.amount" label="Amount" type="number"
-                                        placeholder="0.00" variant="outlined" density="comfortable" rounded="lg"
-                                        class="premium-modal-input font-weight-bold" hide-details
-                                        :prepend-inner-icon="IndianRupee" autocomplete="off" />
-                                </v-col>
-
-                                <v-col cols="12" md="4" class="mb-1">
-                                    <div class="date-picker-wrapper">
-                                        <VueDatePicker v-model="localForm.date" :dark="isDark" auto-apply
-                                            :enable-time-picker="true" model-type="yyyy-MM-dd'T'HH:mm"
-                                            format="dd MMM yyyy HH:mm" placeholder="Date & Time" :teleport="true"
-                                            input-class-name="premium-date-input">
-                                            <template #trigger>
-                                                <v-text-field
-                                                    :model-value="localForm.date ? new Date(localForm.date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''"
-                                                    label="Date & Time" variant="outlined" density="comfortable"
-                                                    rounded="lg" class="premium-modal-input font-weight-bold"
-                                                    hide-details :prepend-inner-icon="Calendar" readonly />
-                                            </template>
-                                        </VueDatePicker>
-                                    </div>
-                                </v-col>
-                            </v-row>
+                    <div class="grid grid-cols-12 gap-3">
+                        <div class="col-span-12">
+                            <WfInput v-model="localForm.description" label="Description" placeholder="What was this for?" />
+                        </div>
+                        <div class="col-span-12">
+                            <WfInput v-model="localForm.recipient" label="Merchant / Payee" placeholder="Who did you pay?" />
+                        </div>
+                        <div class="col-span-12">
+                            <WfInput v-model="localForm.location_name" label="Location / City (Optional)" placeholder="e.g. Indiranagar, Bengaluru">
+                                <template #prepend><MapPin :size="14" class="text-wf-primary" /></template>
+                                <template #append>
+                                    <button type="button" title="Detect current GPS location" @click="detectLocation"
+                                        class="text-[11px] font-semibold text-wf-primary bg-wf-primary/10 hover:opacity-80 px-2 py-0.5 rounded-wf-sm">
+                                        Auto GPS
+                                    </button>
+                                </template>
+                            </WfInput>
                         </div>
 
-                        <!-- Categorization Section -->
-                        <div class="section-group mb-5">
-                            <div class="d-flex align-center gap-2 mb-4">
-                                <Tag :size="20" class="text-secondary" />
-                                <span
-                                    class="text-overline font-weight-black text-secondary letter-spacing-wide">Classification</span>
-                            </div>
-
-                            <v-row dense>
-                                <v-col cols="12" md="6" class="mb-1">
-                                    <v-autocomplete v-model="localForm.account_id" :items="accountOptions" label="Account"
-                                        item-title="title" item-value="value" variant="outlined" density="comfortable"
-                                        rounded="lg" class="premium-modal-input font-weight-bold" hide-details
-                                        prepend-inner-icon="Landmark" />
-                                </v-col>
-
-                                <v-col cols="12" md="6" class="mb-1">
-                                    <v-autocomplete v-model="localForm.category" :items="categoryOptions"
-                                        label="Category" item-title="title" item-value="value"
-                                        placeholder="Select Category" variant="outlined" density="comfortable"
-                                        rounded="lg" class="premium-modal-input font-weight-bold" hide-details
-                                        :prepend-inner-icon="!localForm.category ? 'Tag' : undefined" />
-                                </v-col>
-
-                                <v-col cols="12" class="mb-1">
-                                    <v-autocomplete v-model="localForm.expense_group_id" :items="expenseGroupOptions"
-                                        label="Life Event / Group" item-title="title" item-value="value"
-                                        placeholder="Add to a project or life event (Optional)" variant="outlined"
-                                        density="comfortable" rounded="lg" class="premium-modal-input font-weight-bold"
-                                        hide-details prepend-inner-icon="Folder" />
-                                </v-col>
-                            </v-row>
+                        <div class="col-span-12 sm:col-span-4 md:col-span-3">
+                            <WfSelect v-model="localForm.type" label="Type"
+                                :items="[{ title: 'Debit', value: 'DEBIT' }, { title: 'Credit', value: 'CREDIT' }]" />
                         </div>
-
-                        <!-- Advanced Options Section -->
-                        <div class="section-group">
-                            <div class="d-flex align-center gap-2 mb-4">
-                                <Settings :size="20" class="text-accent" />
-                                <span class="text-overline font-weight-black text-accent letter-spacing-wide">Advanced
-                                    Options</span>
-                            </div>
-
-                            <v-card variant="flat" border class="pa-3 bg-surface border-opacity-10 mb-3"
-                                style="border-radius: 20px !important;">
-                                <v-row align="center">
-                                    <v-col cols="12" sm="6">
-                                        <v-switch v-model="localForm.is_transfer" label="Is this a Transfer?"
-                                            color="primary" hide-details density="compact" class="font-weight-bold"
-                                            persistent-hint hint="Moving money between your own accounts">
-                                            <template #label>
-                                                <div class="d-flex flex-column ml-2">
-                                                    <span class="text-body-2 font-weight-bold">Internal Transfer</span>
-                                                    <span class="text-tiny opacity-60">Between your accounts</span>
-                                                </div>
-                                            </template>
-                                        </v-switch>
-                                    </v-col>
-                                    <v-col cols="12" sm="6">
-                                        <v-switch v-model="localForm.exclude_from_reports" label="Hide from Reports"
-                                            color="error" hide-details density="compact" class="font-weight-bold">
-                                            <template #label>
-                                                <div class="d-flex flex-column ml-2">
-                                                    <span class="text-body-2 font-weight-bold">Hide from
-                                                        Analytics</span>
-                                                    <span class="text-tiny opacity-60">Exclude from
-                                                        budget/spending</span>
-                                                </div>
-                                            </template>
-                                        </v-switch>
-                                    </v-col>
-                                </v-row>
-                            </v-card>
-
-                            <v-expand-transition>
-                                <div v-if="localForm.is_transfer" class="mt-4">
-                                    <v-card variant="flat" class="pa-4 border-opacity-10"
-                                        style="background: rgba(var(--v-theme-primary), 0.05); border-radius: 20px !important;">
-                                        <div class="d-flex align-center gap-2 mb-4">
-                                            <ArrowLeftRight :size="20" class="text-primary" />
-                                            <span class="text-subtitle-2 font-weight-black">Match Transfer Pair</span>
-                                        </div>
-
-                                        <v-row dense>
-                                            <v-col cols="12" md="8">
-                                                <v-autocomplete v-model="localForm.to_account_id" :items="accountOptions"
-                                                    item-title="title" item-value="value" label="Destination Account"
-                                                    placeholder="Select account" variant="outlined"
-                                                    density="comfortable" rounded="lg"
-                                                    class="premium-modal-input font-weight-bold" hide-details />
-                                            </v-col>
-                                            <v-col cols="12" md="4">
-                                                <v-btn color="primary" block height="40" rounded="lg" variant="flat"
-                                                    @click="emit('findMatches', localForm)" :loading="isSearchingMatches">
-                                                    Scan Matches
-                                                </v-btn>
-                                            </v-col>
-                                        </v-row>
-
-                                        <div v-if="matchesSearched" class="mt-6">
-                                            <p
-                                                class="text-caption font-weight-black mb-3 opacity-70 d-flex align-center gap-2">
-                                                <Search :size="14" />
-                                                Found {{ potentialMatches.length }} matches within 3-day window
-                                            </p>
-
-                                            <div class="d-flex flex-column gap-3">
-                                                <v-card v-for="match in potentialMatches" :key="match.id" padding="0"
-                                                    class="match-card rounded-xl border-opacity-5 cursor-pointer overflow-hidden transition-all"
-                                                    :class="{ 'match-selected-active': localForm.linked_transaction_id === match.id }"
-                                                    @click="
-                                                        if (localForm.linked_transaction_id === match.id) {
-                                                            localForm.linked_transaction_id = '';
-                                                        } else {
-                                                            localForm.linked_transaction_id = match.id;
-                                                            localForm.is_transfer = true;
-                                                            localForm.exclude_from_reports = true;
-                                                        }
-                                                    " variant="flat"
-                                                    :color="localForm.linked_transaction_id === match.id ? 'primary' : 'surface'">
-                                                    <div class="pa-4 d-flex justify-space-between align-center">
-                                                        <div class="d-flex align-center gap-3">
-                                                            <v-avatar size="32"
-                                                                :color="localForm.linked_transaction_id === match.id ? 'white' : 'primary'"
-                                                                class="opacity-80">
-                                                                <Link :size="16"
-                                                                    :color="localForm.linked_transaction_id === match.id ? 'primary' : 'white'" />
-                                                            </v-avatar>
-                                                            <div>
-                                                                <div class="text-subtitle-2 font-weight-black">{{
-                                                                    match.description }}</div>
-                                                                <div class="text-tiny opacity-70 font-weight-bold">{{
-                                                                    match.date }}</div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="d-flex align-center gap-4">
-                                                            <div class="text-h6 font-weight-black">
-                                                                {{ formatAmount(match.amount) }}
-                                                            </div>
-                                                            <div class="d-flex align-center justify-center rounded-circle transition-all"
-                                                                :style="{ width: '24px', height: '24px', border: localForm.linked_transaction_id === match.id ? 'none' : '2px solid rgba(var(--v-theme-on-surface), 0.2)' }">
-                                                                <CheckCircle2 v-if="localForm.linked_transaction_id === match.id" :size="24" class="text-white bg-primary rounded-circle" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </v-card>
-                                                <div v-if="potentialMatches.length === 0"
-                                                    class="text-center py-6 opacity-40">
-                                                    <SearchX :size="32" class="mb-2" />
-                                                    <div class="text-caption font-weight-black">No matching txns found
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </v-card>
-                                </div>
-                            </v-expand-transition>
+                        <div class="col-span-12 sm:col-span-8 md:col-span-5">
+                            <WfInput v-model="localForm.amount" label="Amount" required type="number" placeholder="0.00">
+                                <template #prepend><IndianRupee :size="14" class="text-wf-primary" /></template>
+                            </WfInput>
                         </div>
-
-                        <v-expand-transition>
-                            <div v-if="currentCategoryBudget" class="mt-4">
-                                <v-alert color="primary" variant="tonal" border="start"
-                                    class="rounded-xl border-opacity-20 py-3 px-4 shadow-sm"
-                                    style="border-radius: 20px !important;">
-                                    <template v-slot:prepend>
-                                        <div class="bg-primary rounded-lg pa-1 mr-2 opacity-80">
-                                            <LineChart :size="16" class="text-white" />
-                                        </div>
+                        <div class="col-span-12 md:col-span-4">
+                            <label class="block text-xs font-semibold text-wf-text-secondary uppercase tracking-wider mb-1.5">
+                                Date &amp; Time<span class="text-wf-error ml-0.5">*</span>
+                            </label>
+                            <div class="date-picker-wrapper">
+                                <VueDatePicker v-model="localForm.date" :dark="isDark" auto-apply
+                                    :enable-time-picker="true" model-type="yyyy-MM-dd'T'HH:mm"
+                                    format="dd MMM yyyy HH:mm" placeholder="Date & Time *" :teleport="true"
+                                    input-class-name="premium-date-input">
+                                    <template #trigger>
+                                        <button type="button"
+                                            class="w-full h-10 flex items-center gap-2 px-3 text-sm text-left rounded-wf-md border border-wf-border bg-wf-surface text-wf-text-primary hover:border-wf-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wf-primary/30">
+                                            <Calendar :size="14" class="text-wf-primary shrink-0" aria-hidden="true" />
+                                            <span class="truncate">{{ localForm.date ? new Date(localForm.date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Select date' }}</span>
+                                        </button>
                                     </template>
-                                    <div class="d-flex align-center justify-space-between w-100">
-                                        <div class="text-caption font-weight-black">
-                                            {{ currentCategoryBudget.name }} Budget Info
-                                        </div>
-                                        <div class="text-caption font-weight-black opacity-80">
-                                            Remaining: {{ formatAmount(currentCategoryBudget.remaining) }}
-                                        </div>
-                                    </div>
-                                </v-alert>
+                                </VueDatePicker>
                             </div>
-                        </v-expand-transition>
-
-                        <!-- Document Vault Integration -->
-                        <div class="section-group mt-6">
-                            <div class="d-flex align-center justify-space-between mb-4">
-                                <div class="d-flex align-center gap-2">
-                                    <Paperclip :size="20" class="text-primary" />
-                                    <span
-                                        class="text-overline font-weight-black text-primary letter-spacing-wide">Documents</span>
-                                </div>
-                                <div v-if="isEditing" class="d-flex align-center gap-1">
-                                    <v-btn variant="text" color="primary" density="compact"
-                                        class="text-none font-weight-bold"
-                                        @click="($refs.txFileInput as HTMLInputElement).click()">
-                                        <Plus :size="14" class="mr-1" /> Upload New
-                                    </v-btn>
-                                    <v-btn variant="text" color="secondary" density="compact"
-                                        class="text-none font-weight-bold" @click="openVaultPicker">
-                                        <Link2 :size="14" class="mr-1" /> Link from Vault
-                                    </v-btn>
-                                </div>
-                                <input type="file" ref="txFileInput" class="d-none" @change="handleFileUpload" />
-                            </div>
-
-                            <!-- Vault Picker panel -->
-                            <v-expand-transition>
-                                <div v-if="vaultPickerOpen && isEditing" class="mb-4 pa-3 rounded-xl border"
-                                    style="border-color: rgba(var(--v-theme-secondary), 0.3); background: rgba(var(--v-theme-secondary), 0.03);">
-                                    <div class="d-flex align-center justify-space-between mb-3">
-                                        <span class="text-caption font-weight-black opacity-70">PICK FROM VAULT</span>
-                                        <v-btn icon variant="text" size="x-small" @click="vaultPickerOpen = false">
-                                            <X :size="14" />
-                                        </v-btn>
-                                    </div>
-                                    <v-text-field v-model="vaultPickerSearch" @input="onVaultPickerInput"
-                                        label="Search vault documents…" variant="outlined" rounded="lg"
-                                        density="compact" prepend-inner-icon="mdi-magnify" :loading="vaultPickerLoading"
-                                        hide-details class="mb-2" clearable
-                                        @click:clear="searchVaultDocs('')"></v-text-field>
-                                    <div class="rounded-lg border overflow-hidden"
-                                        style="max-height: 200px; overflow-y: auto;" v-if="vaultPickerResults.length">
-                                        <div v-for="doc in vaultPickerResults" :key="doc.id"
-                                            class="vault-pick-item pa-3 cursor-pointer d-flex align-center ga-3"
-                                            @click="linkVaultDoc(doc)">
-                                            <div class="header-icon-box bg-surface-variant rounded pa-0 overflow-hidden d-flex align-center justify-center"
-                                                style="width: 32px; height: 32px; flex-shrink: 0;">
-                                                <v-img v-if="doc.thumbnail_path"
-                                                    :src="financeApi.getDocumentThumbnailUrl(doc.id)" cover
-                                                    class="absolute-full">
-                                                    <template v-slot:placeholder>
-                                                        <v-progress-circular indeterminate size="12"
-                                                            color="primary"></v-progress-circular>
-                                                    </template>
-                                                </v-img>
-                                                <component v-else :is="getIcon(doc)" :size="16"
-                                                    :class="getIconColor(doc)" />
-                                            </div>
-                                            <div class="flex-grow-1 min-w-0">
-                                                <div class="text-caption font-weight-bold text-truncate">{{ doc.filename
-                                                }}</div>
-                                                <div class="text-tiny opacity-50">{{ doc.file_type }} - {{
-                                                    doc.transaction_id ? '(linked)' :
-                                                        'Free' }}</div>
-
-                                            </div>
-                                            <v-chip size="x-small" color="primary" variant="tonal">LINK</v-chip>
-                                        </div>
-                                    </div>
-                                    <div v-else-if="!vaultPickerLoading"
-                                        class="text-caption opacity-40 text-center py-3">
-                                        No documents found
-                                    </div>
-                                </div>
-                            </v-expand-transition>
-
-                            <v-card variant="flat" border class="pa-1 bg-surface border-opacity-10"
-                                style="border-radius: 20px !important;">
-                                <v-list v-if="attachedDocs.length > 0" density="compact" class="bg-transparent">
-                                    <v-list-item v-for="doc in attachedDocs" :key="doc.id" rounded="lg" class="mb-1">
-                                        <template v-slot:prepend>
-                                            <div class="bg-surface-variant rounded mr-3 pa-0 overflow-hidden d-flex align-center justify-center"
-                                                style="width: 24px; height: 24px;">
-                                                <v-img v-if="doc.thumbnail_path"
-                                                    :src="financeApi.getDocumentThumbnailUrl(doc.id)" cover
-                                                    class="absolute-full" />
-                                                <component v-else :is="getIcon(doc)" :size="14"
-                                                    :class="getIconColor(doc)" />
-                                            </div>
-                                        </template>
-                                        <v-list-item-title class="text-caption font-weight-bold">{{ doc.filename
-                                        }}</v-list-item-title>
-                                        <template v-slot:append>
-                                            <div class="d-flex gap-1">
-                                                <v-btn icon variant="text" density="compact" @click="openDoc(doc.id)">
-                                                    <ExternalLink :size="14" class="text-primary" />
-                                                </v-btn>
-                                                <v-btn icon variant="text" density="compact" @click="detachDoc(doc.id)"
-                                                    color="error">
-                                                    <Trash2 :size="14" />
-                                                </v-btn>
-                                            </div>
-                                        </template>
-                                    </v-list-item>
-                                </v-list>
-                                <div v-else class="pa-6 text-center opacity-40">
-                                    <p class="text-caption font-weight-bold mb-0">No documents attached</p>
-                                    <p v-if="!isEditing" class="text-tiny">Save transaction first to attach docs</p>
-                                </div>
-                            </v-card>
                         </div>
                     </div>
-                </v-form>
-            </v-card-text>
+                </section>
 
-            <v-divider class="opacity-5"></v-divider>
+                <!-- Categorization Section -->
+                <section>
+                    <div class="flex items-center gap-2 mb-3">
+                        <Tag :size="16" class="text-wf-secondary" aria-hidden="true" />
+                        <h4 class="text-xs font-bold uppercase tracking-widest text-wf-secondary">Classification</h4>
+                    </div>
 
-            <v-card-actions class="pa-4 bg-surface px-6">
-                <v-btn variant="text" rounded="pill" class="font-weight-black px-8" @click="handleClose"
-                    color="medium-emphasis">
+                    <div class="grid grid-cols-12 gap-3">
+                        <div class="col-span-12 md:col-span-6">
+                            <WfSelect v-model="localForm.account_id" label="Account" required placeholder="Select account" :items="accountOptions" />
+                        </div>
+                        <div class="col-span-12 md:col-span-6">
+                            <WfSelect v-model="localForm.category" label="Category" required placeholder="Select Category" searchable :items="categoryOptions" />
+                        </div>
+                        <div class="col-span-12">
+                            <WfSelect v-model="localForm.expense_group_id" label="Life Event / Group (Optional)" :items="expenseGroupOptions" />
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Advanced Options Section -->
+                <section>
+                    <div class="flex items-center gap-2 mb-3">
+                        <Settings :size="16" class="text-wf-warning" aria-hidden="true" />
+                        <h4 class="text-xs font-bold uppercase tracking-widest text-wf-warning">Advanced Options</h4>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 rounded-wf-lg border border-wf-border bg-wf-surface">
+                        <label class="flex items-start gap-2.5 cursor-pointer">
+                            <input v-model="localForm.is_transfer" type="checkbox" role="switch" class="mt-0.5 accent-[var(--wf-color-primary)]" />
+                            <span>
+                                <span class="block text-sm font-semibold text-wf-text-primary">Internal Transfer</span>
+                                <span class="block text-[11px] text-wf-text-muted">Moving money between your own accounts</span>
+                            </span>
+                        </label>
+                        <label class="flex items-start gap-2.5 cursor-pointer">
+                            <input v-model="localForm.exclude_from_reports" type="checkbox" role="switch" class="mt-0.5 accent-[var(--wf-color-error)]" />
+                            <span>
+                                <span class="block text-sm font-semibold text-wf-text-primary">Hide from Analytics</span>
+                                <span class="block text-[11px] text-wf-text-muted">Exclude from budget/spending</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div v-if="localForm.is_transfer" class="mt-3 p-3 rounded-wf-lg bg-wf-primary/5 border border-wf-primary/10">
+                        <div class="flex items-center gap-2 mb-3">
+                            <ArrowLeftRight :size="16" class="text-wf-primary" aria-hidden="true" />
+                            <span class="text-sm font-semibold text-wf-text-primary">Match Transfer Pair</span>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-3 items-end">
+                            <div class="col-span-12 md:col-span-8">
+                                <WfSelect v-model="localForm.to_account_id" label="Destination Account" required placeholder="Select account" :items="accountOptions" />
+                            </div>
+                            <div class="col-span-12 md:col-span-4">
+                                <WfButton block :loading="isSearchingMatches" @click="emit('findMatches', localForm)">Scan Matches</WfButton>
+                            </div>
+                        </div>
+
+                        <div v-if="matchesSearched" class="mt-4">
+                            <p class="flex items-center gap-2 mb-2 text-xs font-semibold text-wf-text-muted">
+                                <Search :size="13" aria-hidden="true" />
+                                Found {{ potentialMatches.length }} matches within 3-day window
+                            </p>
+
+                            <div class="flex flex-col gap-2">
+                                <button v-for="match in potentialMatches" :key="match.id" type="button"
+                                    class="flex items-center justify-between gap-3 p-3 text-left rounded-wf-lg border transition-colors"
+                                    :class="localForm.linked_transaction_id === match.id
+                                        ? 'border-wf-primary bg-wf-primary/10'
+                                        : 'border-wf-border bg-wf-surface hover:border-wf-primary/40'"
+                                    :aria-pressed="localForm.linked_transaction_id === match.id"
+                                    @click="toggleMatch(match)">
+                                    <span class="flex items-center gap-3 min-w-0">
+                                        <span class="w-8 h-8 shrink-0 rounded-full bg-wf-primary text-white flex items-center justify-center"><Link :size="14" /></span>
+                                        <span class="min-w-0">
+                                            <span class="block text-sm font-semibold text-wf-text-primary truncate">{{ match.description }}</span>
+                                            <span class="block text-[11px] text-wf-text-muted">{{ match.date }}</span>
+                                        </span>
+                                    </span>
+                                    <span class="flex items-center gap-3 shrink-0">
+                                        <span class="font-mono tabular-nums text-sm font-bold text-wf-text-primary">{{ formatAmount(match.amount) }}</span>
+                                        <CheckCircle2 v-if="localForm.linked_transaction_id === match.id" :size="20" class="text-wf-primary" aria-label="Selected" />
+                                        <span v-else class="w-5 h-5 rounded-full border-2 border-wf-border" aria-hidden="true"></span>
+                                    </span>
+                                </button>
+
+                                <div v-if="potentialMatches.length === 0" class="text-center py-5 text-wf-text-muted">
+                                    <SearchX :size="28" class="mx-auto mb-1.5" aria-hidden="true" />
+                                    <div class="text-xs font-semibold">No matching txns found</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <WfAlert v-if="currentCategoryBudget" variant="info" class="mt-3">
+                        <div class="flex items-center justify-between w-full gap-3 text-xs font-semibold">
+                            <span class="flex items-center gap-1.5"><LineChart :size="14" aria-hidden="true" /> {{ currentCategoryBudget.name }} Budget Info</span>
+                            <span class="font-mono tabular-nums">Remaining: {{ formatAmount(currentCategoryBudget.remaining) }}</span>
+                        </div>
+                    </WfAlert>
+                </section>
+
+                <!-- Document Vault Integration -->
+                <section>
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <Paperclip :size="16" class="text-wf-primary" aria-hidden="true" />
+                            <h4 class="text-xs font-bold uppercase tracking-widest text-wf-primary">Documents</h4>
+                        </div>
+                        <div v-if="isEditing" class="flex items-center gap-1">
+                            <WfButton variant="ghost" size="sm" @click="($refs.txFileInput as HTMLInputElement).click()"><Plus :size="14" /> Upload New</WfButton>
+                            <WfButton variant="ghost" size="sm" @click="openVaultPicker"><Link2 :size="14" /> Link from Vault</WfButton>
+                        </div>
+                        <input type="file" ref="txFileInput" class="hidden" aria-label="Upload document" @change="handleFileUpload" />
+                    </div>
+
+                    <!-- Vault Picker panel -->
+                    <div v-if="vaultPickerOpen && isEditing" class="mb-3 p-3 rounded-wf-lg border border-wf-secondary/30 bg-wf-secondary/5">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-wf-text-muted">Pick from vault</span>
+                            <button type="button" aria-label="Close vault picker" class="p-1 rounded-wf-sm text-wf-text-muted hover:bg-wf-surface-variant" @click="vaultPickerOpen = false"><X :size="14" /></button>
+                        </div>
+                        <WfInput v-model="vaultPickerSearch" placeholder="Search vault documents…" class="mb-2"
+                            @update:model-value="onVaultPickerInput">
+                            <template #prepend><Search :size="14" /></template>
+                            <template #append><Loader2 v-if="vaultPickerLoading" :size="14" class="animate-spin" /></template>
+                        </WfInput>
+                        <div v-if="vaultPickerResults.length" class="max-h-[200px] overflow-y-auto rounded-wf-md border border-wf-border divide-y divide-wf-divider">
+                            <button v-for="doc in vaultPickerResults" :key="doc.id" type="button"
+                                class="w-full flex items-center gap-3 p-2.5 text-left hover:bg-wf-surface-variant" @click="linkVaultDoc(doc)">
+                                <span class="w-8 h-8 shrink-0 rounded-wf-md bg-wf-surface-variant overflow-hidden flex items-center justify-center">
+                                    <img v-if="doc.thumbnail_path" :src="financeApi.getDocumentThumbnailUrl(doc.id)" :alt="doc.filename" class="w-full h-full object-cover" />
+                                    <component v-else :is="getIcon(doc)" :size="16" class="text-wf-text-muted" />
+                                </span>
+                                <span class="flex-1 min-w-0">
+                                    <span class="block text-xs font-semibold text-wf-text-primary truncate">{{ doc.filename }}</span>
+                                    <span class="block text-[10px] text-wf-text-muted">{{ doc.file_type }} - {{ doc.transaction_id ? '(linked)' : 'Free' }}</span>
+                                </span>
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-wf-sm bg-wf-primary/10 text-wf-primary">LINK</span>
+                            </button>
+                        </div>
+                        <div v-else-if="!vaultPickerLoading" class="text-xs text-wf-text-muted text-center py-3">No documents found</div>
+                    </div>
+
+                    <div class="p-1 rounded-wf-lg border border-wf-border bg-wf-surface">
+                        <ul v-if="attachedDocs.length > 0" class="space-y-0.5">
+                            <li v-for="doc in attachedDocs" :key="doc.id" class="flex items-center gap-3 p-2 rounded-wf-md hover:bg-wf-surface-variant">
+                                <span class="w-6 h-6 shrink-0 rounded-wf-sm bg-wf-surface-variant overflow-hidden flex items-center justify-center">
+                                    <img v-if="doc.thumbnail_path" :src="financeApi.getDocumentThumbnailUrl(doc.id)" :alt="doc.filename" class="w-full h-full object-cover" />
+                                    <component v-else :is="getIcon(doc)" :size="14" class="text-wf-text-muted" />
+                                </span>
+                                <span class="flex-1 min-w-0 text-xs font-semibold text-wf-text-primary truncate">{{ doc.filename }}</span>
+                                <button type="button" aria-label="Open document" class="p-1 rounded-wf-sm text-wf-primary hover:bg-wf-primary/10" @click="openDoc(doc.id)"><ExternalLink :size="14" /></button>
+                                <button type="button" aria-label="Detach document" class="p-1 rounded-wf-sm text-wf-error hover:bg-wf-error/10" @click="detachDoc(doc.id)"><Trash2 :size="14" /></button>
+                            </li>
+                        </ul>
+                        <div v-else class="p-5 text-center text-wf-text-muted">
+                            <p class="text-xs font-semibold">No documents attached</p>
+                            <p v-if="!isEditing" class="text-[10px] mt-0.5">Save transaction first to attach docs</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </form>
+
+        <template #footer>
+            <div class="flex items-center justify-between w-full">
+                <WfButton variant="ghost" size="sm" @click="handleClose">
                     Cancel
-                </v-btn>
-                <v-spacer></v-spacer>
-                <v-btn color="primary" variant="flat" rounded="pill" class="font-weight-black px-10 elevation-4"
-                    height="40" @click="handleSubmit" :prepend-icon="CheckCircle2" :disabled="!isFormValid">
-                    {{ isEditing ? 'Update Entry' : 'Create Transaction' }}
-                </v-btn>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
+                </WfButton>
+                <WfButton variant="primary" size="sm" @click="handleSubmit" :disabled="!isFormValid">
+                    <CheckCircle2 class="w-4 h-4 mr-1.5" />
+                    <span>{{ isEditing ? 'Update Entry' : 'Create Transaction' }}</span>
+                </WfButton>
+            </div>
+        </template>
+    </WfModal>
 </template>
 
 <style scoped>
-.premium-glass-card {
-    background: rgba(var(--v-theme-surface), 0.7) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-    border-radius: 20px !important;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07) !important;
-    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-    position: relative;
-    overflow: hidden;
-}
-
-.modal-header-premium {
-    background: transparent;
-    position: relative;
-    overflow: hidden;
-    border-bottom: 1px solid rgba(var(--v-border-color), 0.05);
-}
-
-.header-icon-wrapper {
-    background: rgba(var(--v-theme-primary), 0.1);
-    padding: 10px;
-    border-radius: 16px;
-    border: 1px solid rgba(var(--v-theme-primary), 0.1);
-}
-
-.section-group {
-    position: relative;
-}
-
-.premium-modal-input :deep(.v-field) {
-    /* background: rgba(var(--v-theme-surface), 0.5) !important; */
-    /* border: 1px solid rgba(var(--v-border-color), 0.1) !important; */
-    box-shadow: none !important;
-    /* border-radius: 12px !important; */
-    font-weight: 600;
-}
-
-.premium-modal-input :deep(.v-field--focused) {
-    border-color: rgb(var(--v-theme-primary)) !important;
-}
-
-.match-card {
-    border: 1px solid rgba(var(--v-border-color), 0.05);
-    transition: all 0.2s ease;
-}
-
-.match-card:hover {
-    transform: scale(1.01);
-    border-color: rgba(var(--v-theme-primary), 0.2);
-}
-
-.match-selected-active {
-    border: 2px solid rgb(var(--v-theme-primary)) !important;
-    transform: scale(1.02);
-    box-shadow: 0 8px 20px rgba(var(--v-theme-primary), 0.15) !important;
-}
-
-.letter-spacing-wide {
-    letter-spacing: 0.1em;
-}
-
-.backdrop-blur-sm {
-    backdrop-filter: blur(4px);
-}
-
-.gap-2 {
-    gap: 8px;
-}
-
-.gap-3 {
-    gap: 12px;
-}
-
-.gap-4 {
-    gap: 16px;
-}
-
-.text-tiny {
-    font-size: 10px;
-}
-
-/* DatePicker Customization */
-.dp__theme_dark {
-    --dp-background-color: rgb(var(--v-theme-surface));
-    --dp-text-color: rgba(var(--v-theme-on-surface), 0.87);
-    --dp-hover-color: rgba(var(--v-theme-primary), 0.1);
-    --dp-hover-text-color: rgb(var(--v-theme-on-surface));
-    --dp-hover-icon-color: rgb(var(--v-theme-on-surface));
-    --dp-primary-color: rgb(var(--v-theme-primary));
-    --dp-primary-text-color: #ffffff;
-    --dp-secondary-color: #a0a0a0;
-    --dp-border-color: rgba(var(--v-border-color), 0.15);
-    --dp-menu-border-color: rgba(var(--v-border-color), 0.15);
-    --dp-border-color-hover: rgba(var(--v-border-color), 0.3);
-    --dp-disabled-color: #f6f6f6;
-    --dp-scroll-bar-background: #f3f3f3;
-    --dp-scroll-bar-color: #959595;
-    --dp-success-color: #76d275;
-    --dp-success-color-disabled: #a3d9b1;
-    --dp-icon-color: rgba(var(--v-theme-on-surface), 0.6);
-    --dp-danger-color: #ff6f60;
-    --dp-marker-color: #ff6f60;
-    --dp-tooltip-color: #fafafa;
-    --dp-disabled-color-text: #8e8e8e;
-    --dp-highlight-color: rgb(25 118 210 / 10%);
-    --dp-range-between-dates-background-color: var(--dp-hover-color, #484848);
-    --dp-range-between-dates-text-color: var(--dp-hover-text-color, #fff);
-    --dp-range-between-border-color: var(--dp-hover-color, #fff);
-    font-family: inherit;
-}
-
 .date-picker-wrapper :deep(.dp__input_wrap) {
     display: none;
+}
+</style>
+
+<style>
+/* DatePicker theming via Aether tokens (teleported, so intentionally unscoped) */
+.dp__theme_light,
+.dp__theme_dark {
+    --dp-background-color: var(--wf-color-surface);
+    --dp-text-color: var(--wf-color-text-primary);
+    --dp-hover-color: var(--wf-color-surface-variant);
+    --dp-hover-text-color: var(--wf-color-text-primary);
+    --dp-hover-icon-color: var(--wf-color-text-primary);
+    --dp-primary-color: var(--wf-color-primary);
+    --dp-primary-text-color: #ffffff;
+    --dp-secondary-color: var(--wf-color-text-muted);
+    --dp-border-color: var(--wf-color-border);
+    --dp-menu-border-color: var(--wf-color-border);
+    --dp-border-color-hover: var(--wf-color-text-muted);
+    --dp-icon-color: var(--wf-color-text-muted);
+    --dp-danger-color: var(--wf-color-error);
+    --dp-success-color: var(--wf-color-success);
+    font-family: inherit;
 }
 </style>

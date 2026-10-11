@@ -1,515 +1,490 @@
 <template>
     <div class="triage-view animate-in">
-        <v-window v-model="activeTab">
             <!-- PENDING TAB -->
-            <v-window-item value="pending">
-                <v-alert type="info" variant="tonal" class="mb-4 rounded-xl" border="start" density="compact">
-                    <template v-slot:prepend>
-                        <ShieldAlert :size="20" class="mr-2 text-info" />
-                    </template>
-                    <strong>Review Intake</strong>: These transactions were auto-detected but require
-                    categorization or confirmation before affecting your balance.
-                </v-alert>
+            <div>
+                <!-- Review Intake Banner -->
+                <WfCard variant="flat" padding="md" radius="lg" class="mb-4 bg-wf-info/10 border border-wf-info/20">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-wf-md bg-wf-info/15 text-wf-info flex items-center justify-center shrink-0">
+                                <ShieldAlert :size="20" />
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-wf-text-primary flex items-center gap-2">
+                                    <span>Review Intake</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full font-mono font-bold bg-wf-info/15 text-wf-info border border-wf-info/20">
+                                        {{ triagePagination.total }} Pending
+                                    </span>
+                                </div>
+                                <div class="text-xs text-wf-text-secondary mt-0.5">
+                                    Auto-detected transactions awaiting categorization or confirmation before ledger posting.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 self-end sm:self-auto">
+                            <WfButton
+                                variant="outline"
+                                size="sm"
+                                @click="emit('refreshTriage')"
+                                title="Refresh Triage Data"
+                            >
+                                <RotateCw :size="14" />
+                                <span>Refresh</span>
+                            </WfButton>
+                        </div>
+                    </div>
+                </WfCard>
 
                 <!-- Filters Toolbar -->
-                <v-card class="premium-glass-card mb-4 pa-3 no-hover" style="border-radius: 20px !important;">
-                    <v-row align="center" no-gutters class="gap-3 px-0">
-                        <v-col cols="12" lg="auto" class="flex-grow-1">
-                            <v-text-field :model-value="triageSearchQuery"
-                                @update:model-value="emit('update:triageSearchQuery', $event)"
-                                placeholder="Search description or recipient..." density="comfortable" hide-details
-                                variant="outlined" rounded="lg" class="font-weight-bold" clearable autocomplete="off"
-                                bg-color="surface">
-                                <template v-slot:prepend-inner>
-                                    <Search :size="18" class="text-primary mr-2" />
-                                </template>
-                            </v-text-field>
-                        </v-col>
+                <WfCard variant="flat" padding="none" radius="lg" class="p-3 mb-3 border border-wf-border-subtle bg-wf-surface shadow-xs">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <!-- Left: Search and Segmented Source Toggle -->
+                        <div class="flex flex-wrap items-center gap-2 flex-1">
+                            <!-- Search with clear button -->
+                            <div class="relative min-w-[200px] flex-1 sm:flex-initial sm:w-72">
+                                <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-wf-text-muted pointer-events-none" aria-hidden="true" />
+                                <input
+                                    :value="triageSearchQuery"
+                                    type="search"
+                                    autocomplete="off"
+                                    aria-label="Search review intake"
+                                    placeholder="Search description or recipient..."
+                                    class="w-full h-9 pl-9 pr-8 text-xs rounded-wf-md bg-wf-surface-variant/40 text-wf-text-primary border border-wf-border placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary focus:bg-wf-surface transition-all"
+                                    @input="emit('update:triageSearchQuery', ($event.target as HTMLInputElement).value)"
+                                />
+                                <button
+                                    v-if="triageSearchQuery"
+                                    type="button"
+                                    @click="emit('update:triageSearchQuery', '')"
+                                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-wf-text-muted hover:text-wf-text-primary transition-colors"
+                                    title="Clear search"
+                                >
+                                    <X :size="13" />
+                                </button>
+                            </div>
 
-                        <v-divider vertical class="d-none d-lg-block mx-1" />
+                            <!-- Segmented Source Toggle -->
+                            <div class="inline-flex rounded-wf-md border border-wf-border bg-wf-surface-variant/30 p-0.5" role="group" aria-label="Source filter">
+                                <button
+                                    v-for="s in [{ v: 'ALL', t: 'All Sources' }, { v: 'SMS', t: '📱 SMS' }, { v: 'EMAIL', t: '📧 Email' }]"
+                                    :key="s.v"
+                                    type="button"
+                                    class="h-7.5 px-3 text-xs font-medium rounded-wf-sm transition-all"
+                                    :class="triageSourceFilter === s.v
+                                        ? 'bg-wf-surface text-wf-primary shadow-xs font-bold border border-wf-border-subtle'
+                                        : 'text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant/50'"
+                                    :aria-pressed="triageSourceFilter === s.v"
+                                    @click="emit('update:triageSourceFilter', s.v)"
+                                >
+                                    {{ s.t }}
+                                </button>
+                            </div>
+                        </div>
 
-                        <v-col cols="auto">
-                            <v-btn-toggle :model-value="triageSourceFilter"
-                                @update:model-value="emit('update:triageSourceFilter', $event || 'ALL')"
-                                density="comfortable" color="primary" variant="tonal" divided mandatory
-                                class="rounded-lg border-thin">
-                                <v-btn value="ALL" size="small" class="px-4">All</v-btn>
-                                <v-btn value="SMS" size="small" class="px-4">SMS</v-btn>
-                                <v-btn value="EMAIL" size="small" class="px-4">Email</v-btn>
-                            </v-btn-toggle>
-                        </v-col>
-
-                        <v-divider vertical class="d-none d-lg-block mx-1" />
-
-                        <v-col cols="12" md="auto" class="d-flex align-center gap-2">
-                            <v-autocomplete :model-value="triageSortKey"
-                                @update:model-value="emit('update:triageSortKey', $event)"
+                        <!-- Right: Sort Dropdown & Direction Toggle Group -->
+                        <div class="flex items-center gap-1.5 self-end sm:self-auto">
+                            <WfSelect
+                                size="sm"
+                                class="w-[125px]"
+                                aria-label="Sort by"
+                                :model-value="triageSortKey"
                                 :items="[{ title: 'Date', value: 'date' }, { title: 'Amount', value: 'amount' }, { title: 'Description', value: 'description' }]"
-                                item-title="title" item-value="value" hide-details density="comfortable"
-                                variant="outlined" label="Sort" style="width: 140px" rounded="lg"
-                                class="font-weight-bold" bg-color="surface"></v-autocomplete>
+                                @update:model-value="emit('update:triageSortKey', $event)"
+                            />
 
-                            <v-tooltip :text="`Sort by ${triageSortOrder === 'asc' ? 'Descending' : 'Ascending'}`"
-                                location="top" open-delay="400">
-                                <template v-slot:activator="{ props }">
-                                    <v-btn v-bind="props"
-                                        @click="emit('update:triageSortOrder', triageSortOrder === 'asc' ? 'desc' : 'asc')"
-                                        variant="tonal" size="small" height="40" width="40" color="primary"
-                                        class="rounded-lg">
-                                        <ArrowUpNarrowWide v-if="triageSortOrder === 'asc'" :size="18" />
-                                        <ArrowDownNarrowWide v-else :size="18" />
-                                    </v-btn>
-                                </template>
-                            </v-tooltip>
-                        </v-col>
-                    </v-row>
-                </v-card>
-
-                <!-- Bulk Actions -->
-                <div class="d-flex align-center justify-space-between mb-4 px-2">
-                    <div class="d-flex align-center gap-4">
-                        <v-checkbox-btn
-                            :model-value="selectedTriageIds.length === filteredTriageTransactions.length && filteredTriageTransactions.length > 0"
-                            @update:model-value="toggleSelectAllTriage" color="primary" label="Select All Filtered"
-                            hide-details density="compact" class="ml-1"></v-checkbox-btn>
-
-                        <v-fade-transition>
-                            <v-tooltip v-if="selectedTriageIds.length > 0"
-                                :text="`Discard ${selectedTriageIds.length} selected transactions`" location="top"
-                                open-delay="400">
-                                <template v-slot:activator="{ props }">
-                                    <v-btn v-bind="props" color="error" variant="tonal" size="small"
-                                        @click="emit('update:showDiscardConfirm', true)" rounded="lg">
-                                        <template v-slot:prepend>
-                                            <Trash2 :size="16" />
-                                        </template>
-                                        Discard {{ selectedTriageIds.length }}
-                                    </v-btn>
-                                </template>
-                            </v-tooltip>
-                        </v-fade-transition>
+                            <button
+                                type="button"
+                                class="h-9 w-9 inline-flex items-center justify-center rounded-wf-md border border-wf-border bg-wf-surface text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+                                :aria-label="`Sort ${triageSortOrder === 'asc' ? 'descending' : 'ascending'}`"
+                                :title="`Sort ${triageSortOrder === 'asc' ? 'descending' : 'ascending'}`"
+                                @click="emit('update:triageSortOrder', triageSortOrder === 'asc' ? 'desc' : 'asc')"
+                            >
+                                <ArrowUpNarrowWide v-if="triageSortOrder === 'asc'" :size="15" />
+                                <ArrowDownNarrowWide v-else :size="15" />
+                            </button>
+                        </div>
                     </div>
-                    <v-tooltip text="Refresh triage data" location="top" open-delay="400">
-                        <template v-slot:activator="{ props }">
-                            <v-btn v-bind="props" variant="text" size="small" @click="emit('refreshTriage')">
-                                <RotateCw :size="18" />
-                            </v-btn>
-                        </template>
-                    </v-tooltip>
+                </WfCard>
+
+                <!-- Bulk Selection & Action Bar -->
+                <div class="flex items-center justify-between mb-3 px-1 text-xs">
+                    <label class="flex items-center gap-2 font-semibold text-wf-text-secondary hover:text-wf-text-primary cursor-pointer select-none transition-colors">
+                        <input
+                            type="checkbox"
+                            :checked="selectedTriageIds.length === filteredTriageTransactions.length && filteredTriageTransactions.length > 0"
+                            @change="toggleSelectAllTriage"
+                            class="rounded border-wf-border text-wf-primary focus:ring-wf-primary cursor-pointer"
+                        />
+                        <span>Select All Filtered ({{ filteredTriageTransactions.length }})</span>
+                    </label>
+
+                    <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0">
+                        <div v-if="selectedTriageIds.length > 0" class="flex items-center gap-2">
+                            <WfButton
+                                variant="danger"
+                                size="sm"
+                                @click="emit('update:showDiscardConfirm', true)"
+                            >
+                                <Trash2 :size="13" />
+                                <span>Discard {{ selectedTriageIds.length }} Selected</span>
+                            </WfButton>
+                        </div>
+                    </Transition>
                 </div>
 
                 <!-- Transactions Grid -->
-                <v-row>
-                    <v-col v-for="txn in filteredTriageTransactions" :key="txn.id" cols="12" md="6" lg="4">
-                        <v-card class="premium-glass-card"
-                            :class="{ 'is-selected': selectedTriageIds.includes(txn.id), 'is-debit': Number(txn.amount) < 0, 'is-credit': Number(txn.amount) >= 0 }">
-
-                            <!-- Dynamic Accent Glow -->
-                            <div class="card-glow-accent"></div>
-
-                            <div class="card-modern-header px-4 pt-4 pb-2">
-                                <div class="d-flex align-left gap-3 overflow-hidden">
-                                    <v-checkbox-btn v-model="selectedTriageIds" :value="txn.id" color="primary"
-                                        density="comfortable" hide-details class="mt-n1"></v-checkbox-btn>
-
-                                    <div class="flex-grow-1 min-width-0">
-                                        <div class="text-subtitle-2 font-weight-black text-truncate modern-header-title mb-0"
-                                            :title="txn.recipient || txn.description">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <WfCard
+                        v-for="txn in filteredTriageTransactions"
+                        :key="txn.id"
+                        variant="flat"
+                        padding="md"
+                        radius="lg"
+                        class="flex flex-col justify-between transition-all hover:shadow-md border border-wf-border-subtle hover:border-wf-border"
+                        :class="{ 'ring-2 ring-wf-primary bg-wf-primary/[0.02]': selectedTriageIds.includes(txn.id) }"
+                    >
+                        <div>
+                            <!-- Card Header: Checkbox + Merchant/Title + Amount -->
+                            <div class="flex items-start justify-between gap-3 mb-3">
+                                <div class="flex items-start gap-2.5 min-w-0 flex-1">
+                                    <input
+                                        type="checkbox"
+                                        :value="txn.id"
+                                        v-model="selectedTriageIds"
+                                        class="mt-1 rounded border-wf-border text-wf-primary focus:ring-wf-primary cursor-pointer shrink-0"
+                                    />
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-bold text-wf-text-primary truncate" :title="txn.recipient || txn.description">
                                             {{ txn.recipient || txn.description }}
                                         </div>
-                                        <div class="d-flex align-center flex-wrap gap-2 text-caption opacity-60 font-weight-bold">
+                                        <div class="flex items-center flex-wrap gap-1.5 text-xs text-wf-text-muted font-medium mt-0.5">
                                             <span>{{ formatDate(txn.date).day }}</span>
-                                            <span class="opacity-50">•</span>
-                                            <span>{{ txn.source }}</span>
-                                            <v-chip v-if="txn.latitude" size="x-small" color="primary" variant="tonal" class="rounded-pill font-weight-bold ml-1" density="compact">
-                                                <MapPin :size="10" class="mr-1" /> GPS
-                                            </v-chip>
-                                            <v-chip v-if="txn.external_id" size="x-small" variant="outlined" class="rounded-pill font-weight-medium ml-1" density="compact">
+                                            <span class="opacity-40">•</span>
+                                            <span class="px-1.5 py-0.2 rounded text-[10px] font-bold tracking-wider uppercase"
+                                                :class="txn.source === 'SMS' ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400' : 'bg-purple-500/10 text-purple-600 dark:text-purple-400'">
+                                                {{ txn.source }}
+                                            </span>
+                                            <span v-if="txn.latitude" class="inline-flex items-center gap-0.5 text-[10px] text-wf-primary font-semibold bg-wf-primary/10 px-1.5 py-0.5 rounded">
+                                                <MapPin :size="10" /> GPS
+                                            </span>
+                                            <span v-if="txn.external_id" class="text-[10px] font-mono text-wf-text-muted bg-wf-surface-variant px-1.5 py-0.5 rounded truncate max-w-[100px]" :title="'Ref: ' + txn.external_id">
                                                 {{ txn.external_id }}
-                                            </v-chip>
+                                            </span>
                                         </div>
                                     </div>
-
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="text-base font-bold font-mono tracking-tight"
+                                        :class="Number(txn.amount) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'">
+                                        {{ Number(txn.amount) < 0 ? '-' : '+' }}{{ formatAmount(Math.abs(Number(txn.amount))) }}
+                                    </div>
+                                    <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted">
+                                        {{ Number(txn.amount) < 0 ? 'Debit' : 'Credit' }}
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Amount Hero Section -->
-                            <div class="amount-hero-section px-4 py-4 d-flex align-center justify-center">
-                                <div class="text-center">
-                                    <div class="modern-amount-display amount-hero-text"
-                                        :class="Number(txn.amount) < 0 ? 'text-error' : 'text-success'">
-                                        {{ formatAmount(Math.abs(Number(txn.amount))) }}
-                                    </div>
-                                    <div
-                                        class="text-caption font-weight-black opacity-40 text-uppercase tracking-widest mt-n1">
-                                        {{ Number(txn.amount) < 0 ? 'Debit' : 'Credit' }} </div>
-                                    </div>
+                            <!-- Account & Toggle Pills Row -->
+                            <div class="flex items-center justify-between text-xs font-medium text-wf-text-secondary mb-3 gap-2">
+                                <div class="flex items-center gap-1.5 truncate text-wf-text-muted">
+                                    <Landmark :size="13" class="opacity-70 shrink-0" />
+                                    <span class="truncate">{{ getAccountName(txn.account_id) }}</span>
                                 </div>
-
-                                <!-- Card Body -->
-                                <v-card-text class="flex-grow-1 px-4 py-2 d-flex flex-column gap-3">
-                                    <div class="modern-metadata">
-                                        <div
-                                            class="d-flex align-center gap-2 text-caption font-weight-bold opacity-60 mb-2">
-                                            <Zap :size="14" class="mr-1" />
-                                            {{ getAccountName(txn.account_id) }}
-                                        </div>
-
-                                        <div v-if="txn.raw_message" class="modern-message-container pa-3">
-                                            <div class="text-caption message-content">
-                                                {{ txn.raw_message }}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="d-flex align-center gap-2 mt-auto">
-                                        <v-tooltip text="Mark as a transfer between your own accounts" location="top"
-                                            open-delay="400">
-                                            <template v-slot:activator="{ props }">
-                                                <v-btn-toggle v-bind="props" :model-value="txn.is_transfer"
-                                                    density="comfortable" variant="flat"
-                                                    class="tactile-toggle-group transfer-toggle"
-                                                    @update:model-value="txn.is_transfer = !!$event; if ($event) txn.exclude_from_reports = true">
-                                                    <v-btn :value="true" size="x-small"
-                                                        class="text-none px-3 rounded-pill"
-                                                        :color="txn.is_transfer ? 'blue-darken-1' : ''">
-                                                        <template v-slot:prepend>
-                                                            <ArrowLeftRight :size="14" />
-                                                        </template>
-                                                        Transfer
-                                                    </v-btn>
-                                                </v-btn-toggle>
-                                            </template>
-                                        </v-tooltip>
-
-                                        <v-tooltip text="Exclude this transaction from your budget and reports"
-                                            location="top" open-delay="400">
-                                            <template v-slot:activator="{ props }">
-                                                <v-btn-toggle v-bind="props" :model-value="txn.exclude_from_reports"
-                                                    density="comfortable" variant="flat"
-                                                    class="tactile-toggle-group hide-toggle"
-                                                    @update:model-value="txn.exclude_from_reports = !!$event">
-                                                    <v-btn :value="true" size="x-small"
-                                                        class="text-none px-3 rounded-pill"
-                                                        :color="txn.exclude_from_reports ? 'grey-darken-2' : ''">
-                                                        <template v-slot:prepend>
-                                                            <EyeOff :size="14" />
-                                                        </template>
-                                                        Hide
-                                                    </v-btn>
-                                                </v-btn-toggle>
-                                            </template>
-                                        </v-tooltip>
-                                    </div>
-
-                                    <div class="modern-category-select pt-1">
-                                        <div class="d-flex align-center gap-2">
-                                            <span class="text-caption font-weight-black opacity-60 flex-shrink-0"
-                                                style="width: 70px">Category</span>
-                                            <v-autocomplete v-model="txn.category" :items="categoryOptions"
-                                                item-title="title" item-value="value" placeholder="Select Category"
-                                                variant="outlined" density="comfortable" rounded="lg" hide-details
-                                                class="flex-grow-1" bg-color="surface">
-                                                <template v-slot:prepend-inner>
-                                                    <Tag :size="18" class="text-primary mr-2" />
-                                                </template>
-                                            </v-autocomplete>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="modern-account-select pt-1">
-                                        <div class="d-flex align-center gap-2">
-                                            <span class="text-caption font-weight-black opacity-60 flex-shrink-0"
-                                                style="width: 70px">Account</span>
-                                            <v-autocomplete v-model="txn.account_id" :items="accountOptions"
-                                                item-title="title" item-value="value" placeholder="Select Account"
-                                                variant="outlined" density="comfortable" rounded="lg" hide-details
-                                                class="flex-grow-1" bg-color="surface">
-                                                <template v-slot:prepend-inner>
-                                                    <Landmark :size="18" class="text-primary mr-2" />
-                                                </template>
-                                            </v-autocomplete>
-                                        </div>
-                                    </div>
-
-                                    <!-- Target Account (Conditional) -->
-                                    <v-expand-transition>
-                                        <div v-if="txn.is_transfer" class="modern-transfer-select pt-1">
-                                            <div class="d-flex align-center gap-2">
-                                                <span class="text-caption font-weight-black opacity-60 flex-shrink-0"
-                                                    style="width: 70px">To</span>
-                                                <v-autocomplete v-model="txn.to_account_id"
-                                                    :items="accountOptions.filter(a => a.value !== txn.account_id)"
-                                                    item-title="title" item-value="value" placeholder="Target Account"
-                                                    variant="outlined" density="comfortable" rounded="lg" hide-details
-                                                    class="flex-grow-1"></v-autocomplete>
-                                            </div>
-                                        </div>
-                                    </v-expand-transition>
-                                </v-card-text>
-
-                                <!-- Tooling Footer -->
-                                <div class="modern-card-footer px-3 py-2 d-flex align-center gap-1 border-t">
-                                    <v-tooltip text="Discard this transaction" location="top" open-delay="400">
-                                        <template v-slot:activator="{ props }">
-                                            <v-btn v-bind="props" variant="tonal" size="small" color="error"
-                                                @click="emit('rejectTriage', txn.id)"
-                                                class="rounded-lg footer-action-btn">
-                                                <Trash2 :size="16" />
-                                            </v-btn>
-                                        </template>
-                                    </v-tooltip>
-
-                                    <v-tooltip text="Map this merchant to an alias for better categorization"
-                                        location="top" open-delay="400">
-                                        <template v-slot:activator="{ props }">
-                                            <v-btn v-bind="props" variant="tonal" size="small" color="primary"
-                                                @click="openAliasModal(txn)" class="rounded-lg footer-action-btn">
-                                                <MapPin :size="16" />
-                                            </v-btn>
-                                        </template>
-                                    </v-tooltip>
-
-                                    <v-tooltip text="View full transaction details and raw message" location="top"
-                                        open-delay="400">
-                                        <template v-slot:activator="{ props }">
-                                            <v-btn v-bind="props" variant="tonal" size="small" color="secondary"
-                                                @click="openTriageDetails(txn)" class="rounded-lg footer-action-btn">
-                                                <Info :size="16" />
-                                            </v-btn>
-                                        </template>
-                                    </v-tooltip>
-
-                                    <v-spacer></v-spacer>
-
-                                    <v-tooltip text="Approve and confirm this transaction" location="top"
-                                        open-delay="400">
-                                        <template v-slot:activator="{ props }">
-                                            <v-btn v-bind="props" color="primary" variant="tonal" size="small"
-                                                class="rounded-lg footer-action-btn"
-                                                :disabled="!txn.category || txn.category === 'Uncategorized'"
-                                                @click="emit('approveTriage', txn)">
-                                                <Check :size="16" />
-                                            </v-btn>
-                                        </template>
-                                    </v-tooltip>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <button
+                                        type="button"
+                                        @click="txn.is_transfer = !txn.is_transfer; if (txn.is_transfer) txn.exclude_from_reports = true"
+                                        class="px-2 py-0.5 text-[10px] font-bold rounded-full border transition-all flex items-center gap-1"
+                                        :class="txn.is_transfer
+                                            ? 'bg-wf-info/15 text-wf-info border-wf-info/30'
+                                            : 'text-wf-text-muted hover:text-wf-text-primary border-wf-border'"
+                                    >
+                                        <ArrowLeftRight :size="10" />
+                                        <span>Transfer</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="txn.exclude_from_reports = !txn.exclude_from_reports"
+                                        class="px-2 py-0.5 text-[10px] font-bold rounded-full border transition-all flex items-center gap-1"
+                                        :class="txn.exclude_from_reports
+                                            ? 'bg-wf-surface-variant text-wf-text-secondary border-wf-border'
+                                            : 'text-wf-text-muted hover:text-wf-text-primary border-wf-border'"
+                                    >
+                                        <EyeOff :size="10" />
+                                        <span>Hide</span>
+                                    </button>
                                 </div>
-                        </v-card>
-                    </v-col>
-                </v-row>
+                            </div>
+
+                            <!-- Category Selector -->
+                            <div class="space-y-2">
+                                <WfSelect v-model="txn.category" size="sm" aria-label="Category" placeholder="Select Category *"
+                                    searchable
+                                    :items="categoryOptions" />
+
+                                <!-- Transfer Destination Account (Conditional) -->
+                                <div v-if="txn.is_transfer">
+                                    <WfSelect v-model="txn.to_account_id" size="sm" aria-label="Destination account" placeholder="Destination Account *"
+                                        :items="accountOptions.filter(a => a.value !== txn.account_id)" />
+                                </div>
+                            </div>
+
+                            <!-- Raw Ingestion Message Snippet -->
+                            <div v-if="txn.raw_message" class="text-[11px] text-wf-text-muted italic bg-wf-surface-variant/40 px-2.5 py-1.5 rounded-wf-sm border border-wf-border-subtle line-clamp-2 leading-relaxed mt-2.5">
+                                {{ txn.raw_message }}
+                            </div>
+                        </div>
+
+                        <!-- Card Footer Tooling Actions -->
+                        <div class="flex items-center justify-between pt-2.5 mt-3 border-t border-wf-border-subtle">
+                            <div class="flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    @click="emit('rejectTriage', txn.id)"
+                                    class="w-7 h-7 rounded-wf-md flex items-center justify-center text-wf-text-muted hover:text-wf-error hover:bg-wf-error/10 transition-colors"
+                                    title="Discard Transaction"
+                                >
+                                    <Trash2 :size="14" />
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="openAliasModal(txn)"
+                                    class="w-7 h-7 rounded-wf-md flex items-center justify-center text-wf-text-muted hover:text-wf-primary hover:bg-wf-primary/10 transition-colors"
+                                    title="Map Merchant Alias"
+                                >
+                                    <MapPin :size="14" />
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="openTriageDetails(txn)"
+                                    class="w-7 h-7 rounded-wf-md flex items-center justify-center text-wf-text-muted hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
+                                    title="Full Details"
+                                >
+                                    <Info :size="14" />
+                                </button>
+                            </div>
+
+                            <button
+                                type="button"
+                                :disabled="!txn.category || txn.category === 'Uncategorized'"
+                                @click="emit('approveTriage', txn)"
+                                class="px-3.5 py-1.5 text-xs font-semibold rounded-wf-md transition-all flex items-center gap-1.5"
+                                :class="(!txn.category || txn.category === 'Uncategorized')
+                                    ? 'opacity-40 cursor-not-allowed bg-wf-surface-variant text-wf-text-muted'
+                                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm hover:shadow'"
+                            >
+                                <Check :size="14" />
+                                <span>Approve</span>
+                            </button>
+                        </div>
+                    </WfCard>
+                </div>
 
                 <!-- Empty State -->
                 <div v-if="triagePagination.total === 0" class="text-center py-16 animate-in">
-                    <v-avatar size="100" color="success" variant="tonal" class="mb-6">
-                        <CheckCircle2 :size="48" />
-                    </v-avatar>
-                    <h3 class="text-h4 font-weight-black">Inbox Zero!</h3>
-                    <p class="text-subtitle-1 text-medium-emphasis mt-2">No new transactions waiting for review.</p>
+                    <div class="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle2 :size="36" />
+                    </div>
+                    <h3 class="text-lg font-bold text-wf-text-primary">Inbox Zero!</h3>
+                    <p class="text-sm text-wf-text-muted mt-1">No new transactions waiting for review.</p>
                 </div>
 
-                <v-divider class="border-opacity-10"></v-divider>
-                <div v-if="triagePagination.total > 0" class="d-flex align-center justify-end py-3 px-4 triage-footer">
-                    <div class="d-flex align-center mr-8">
-                        <span class="text-caption text-medium-emphasis mr-2">Rows per page:</span>
-                        <v-menu>
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" variant="text" size="small" density="compact"
-                                    class="text-caption font-weight-black px-1 no-hover-effect">
-                                    {{ triagePagination.limit }}
-                                    <ChevronDown :size="14" class="ml-1 opacity-60" />
-                                </v-btn>
-                            </template>
-                            <v-list density="compact" class="rounded-lg border" elevation="2">
-                                <v-list-item v-for="size in [12, 24, 60]" :key="size"
-                                    @click="handleTriagePaginationLimitChange(size)" :active="triagePagination.limit === size" color="primary">
-                                    <v-list-item-title class="text-caption font-weight-bold">{{ size }}</v-list-item-title>
-                                </v-list-item>
-                            </v-list>
-                        </v-menu>
-                    </div>
-                    
-                    <div class="text-caption font-weight-bold text-medium-emphasis mr-6">
-                        {{ triagePagination.skip + 1 }}-{{ Math.min(triagePagination.skip + triagePagination.limit, triagePagination.total) }} of {{ triagePagination.total }}
+                <!-- Pagination Footer -->
+                <div v-if="triagePagination.total > 0" class="flex items-center justify-between py-4 px-2 mt-4 text-xs font-medium text-wf-text-muted">
+                    <div class="flex items-center gap-2">
+                        <span>Show</span>
+                        <select
+                            :value="triagePagination.limit"
+                            @change="handleTriagePaginationLimitChange(Number(($event.target as HTMLSelectElement).value))"
+                            class="bg-wf-surface border border-wf-border rounded-wf-md px-2 py-1 font-bold text-wf-text-primary text-xs cursor-pointer focus:outline-none focus:ring-1 focus:ring-wf-primary"
+                        >
+                            <option :value="12">12</option>
+                            <option :value="24">24</option>
+                            <option :value="60">60</option>
+                        </select>
+                        <span>per page</span>
                     </div>
 
-                    <div class="d-flex align-center gap-1">
-                        <v-btn icon variant="text" size="small" :disabled="triagePagination.skip === 0" 
-                            @click="triageCurrentPage--">
-                            <ChevronLeft :size="18" />
-                        </v-btn>
-                        <v-btn icon variant="text" size="small" 
-                            :disabled="triagePagination.skip + triagePagination.limit >= triagePagination.total"
-                            @click="triageCurrentPage++">
-                            <ChevronRight :size="18" />
-                        </v-btn>
+                    <div class="flex items-center gap-3">
+                        <span class="font-mono text-wf-text-secondary">
+                            {{ triagePagination.skip + 1 }}-{{ Math.min(triagePagination.skip + triagePagination.limit, triagePagination.total) }} of {{ triagePagination.total }}
+                        </span>
+                        <div class="flex items-center gap-1">
+                            <button
+                                type="button"
+                                :disabled="triagePagination.skip === 0"
+                                @click="triageCurrentPage--"
+                                class="w-7 h-7 rounded-wf-md flex items-center justify-center border border-wf-border text-wf-text-secondary hover:bg-wf-surface-variant disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronLeft :size="16" />
+                            </button>
+                            <button
+                                type="button"
+                                :disabled="triagePagination.skip + triagePagination.limit >= triagePagination.total"
+                                @click="triageCurrentPage++"
+                                class="w-7 h-7 rounded-wf-md flex items-center justify-center border border-wf-border text-wf-text-secondary hover:bg-wf-surface-variant disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronRight :size="16" />
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </v-window-item>
-        </v-window>
+            </div>
 
         <!-- Details Modal -->
-        <v-dialog v-model="triageDetailsDialog" max-width="600" persistent transition="dialog-bottom-transition">
-            <v-card v-if="selectedTriageTxn" class="rounded-xl overflow-hidden">
-                <v-toolbar color="primary" density="comfortable">
-                    <v-toolbar-title class="text-subtitle-1 font-weight-bold">Transaction Details</v-toolbar-title>
-                    <v-spacer></v-spacer>
-                    <v-tooltip text="Close details" location="bottom" open-delay="400">
-                        <template v-slot:activator="{ props }">
-                            <v-btn v-bind="props" variant="text" @click="triageDetailsDialog = false">
-                                <X :size="20" />
-                            </v-btn>
-                        </template>
-                    </v-tooltip>
-                </v-toolbar>
-
-                <v-card-text class="pt-6">
-                    <div class="d-flex align-center justify-space-between mb-6">
-                        <div>
-                            <div class="text-h6 font-weight-black">{{ selectedTriageTxn.recipient ||
-                                selectedTriageTxn.description }}</div>
-                            <div class="text-caption text-medium-emphasis">
-                                {{ formatDate(selectedTriageTxn.date).day }} • {{
-                                    formatDate(selectedTriageTxn.date).meta }}
-                                <template v-if="selectedTriageTxn.external_id">
-                                    • Ref: {{ selectedTriageTxn.external_id }}
-                                </template>
-                            </div>
+        <WfModal
+            v-model="triageDetailsDialog"
+            title="Transaction Details"
+            :description="selectedTriageTxn ? `${selectedTriageTxn.recipient || selectedTriageTxn.description} • ${formatDate(selectedTriageTxn.date).day}` : ''"
+            max-width="md"
+        >
+            <div v-if="selectedTriageTxn" class="space-y-4 py-1">
+                <div class="flex items-center justify-between p-3.5 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle">
+                    <div>
+                        <div class="text-sm font-bold text-wf-text-primary">
+                            {{ selectedTriageTxn.recipient || selectedTriageTxn.description }}
                         </div>
-                        <div class="text-right">
-                            <div class="text-h5 font-weight-black"
-                                :class="Number(selectedTriageTxn?.amount || 0) < 0 ? 'text-error' : 'text-success'">
-                                {{ formatAmount(Math.abs(Number(selectedTriageTxn?.amount || 0))) }}
-                            </div>
-                            <div class="text-caption text-medium-emphasis">{{ Number(selectedTriageTxn?.amount || 0) < 0 ? 'DEBIT'
-                                : 'CREDIT' }}</div>
-                            </div>
+                        <div class="text-xs text-wf-text-muted mt-0.5">
+                            {{ formatDate(selectedTriageTxn.date).day }} • {{ formatDate(selectedTriageTxn.date).meta }}
+                            <span v-if="selectedTriageTxn.external_id">• Ref: {{ selectedTriageTxn.external_id }}</span>
                         </div>
-
-                        <v-divider class="mb-6"></v-divider>
-
-                        <v-row>
-                            <v-col cols="12">
-                                <v-label class="text-caption font-weight-bold mb-2">Account</v-label>
-                                <v-autocomplete v-model="selectedTriageTxn.account_id" :items="accountOptions"
-                                    item-title="title" item-value="value" density="comfortable" variant="outlined"
-                                    hide-details>
-                                    <template v-slot:prepend-inner>
-                                        <Landmark :size="18" class="opacity-60" />
-                                    </template>
-                                </v-autocomplete>
-                            </v-col>
-
-                            <v-col cols="12">
-                                <v-autocomplete v-model="selectedTriageTxn.category" :items="categoryOptions"
-                                    item-title="title" item-value="value" placeholder="Select Category"
-                                    variant="outlined" density="comfortable" rounded="lg" hide-details>
-                                    <template v-slot:prepend-inner>
-                                        <Tag :size="18" class="opacity-60" />
-                                    </template>
-                                </v-autocomplete>
-                            </v-col>
-
-                            <v-col v-if="selectedTriageTxn?.is_transfer" cols="12">
-                                <v-label class="text-caption font-weight-bold mb-2">
-                                    {{ Number(selectedTriageTxn?.amount || 0) < 0 ? 'Transfer To' : 'Transfer From' }} </v-label>
-                                        <v-autocomplete v-model="selectedTriageTxn.to_account_id"
-                                            :items="accountOptions.filter(a => a.value !== (selectedTriageTxn?.account_id || ''))"
-                                            item-title="title" item-value="value" density="comfortable"
-                                            variant="outlined" hide-details></v-autocomplete>
-                            </v-col>
-                        </v-row>
-
-                        <v-divider class="my-6"></v-divider>
-
-                        <div class="d-flex flex-column gap-3">
-                            <v-switch v-model="selectedTriageTxn.is_transfer" color="info" label="Internal Transfer"
-                                density="comfortable" hide-details inset
-                                @update:model-value="selectedTriageTxn.exclude_from_reports = selectedTriageTxn.is_transfer"></v-switch>
-
-                            <v-switch v-model="selectedTriageTxn.exclude_from_reports" color="warning"
-                                label="Hide in Reports" density="comfortable" hide-details inset></v-switch>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-base font-bold font-mono"
+                            :class="Number(selectedTriageTxn?.amount || 0) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'">
+                            {{ Number(selectedTriageTxn?.amount || 0) < 0 ? '-' : '+' }}{{ formatAmount(Math.abs(Number(selectedTriageTxn?.amount || 0))) }}
                         </div>
-
-                        <div v-if="selectedTriageTxn.raw_message" class="mt-6">
-                            <v-label class="text-caption font-weight-bold mb-2">Raw Message</v-label>
-                            <div class="bg-grey-lighten-4 pa-4 rounded-lg text-caption italic border">
-                                {{ selectedTriageTxn.raw_message }}
-                            </div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted">
+                            {{ Number(selectedTriageTxn?.amount || 0) < 0 ? 'DEBIT' : 'CREDIT' }}
                         </div>
-                </v-card-text>
+                    </div>
+                </div>
 
-                <v-divider></v-divider>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-wf-text-secondary mb-1">Account</label>
+                        <WfSelect v-model="selectedTriageTxn.account_id" size="sm" aria-label="Account" :items="accountOptions" />
+                    </div>
 
-                <v-card-actions class="pa-4">
-                    <v-spacer></v-spacer>
-                    <v-tooltip text="Discard changes and close" location="top" open-delay="400">
-                        <template v-slot:activator="{ props }">
-                            <v-btn v-bind="props" variant="text" color="grey-darken-1"
-                                @click="triageDetailsDialog = false" class="text-none">
-                                Close
-                            </v-btn>
-                        </template>
-                    </v-tooltip>
-                    <v-tooltip text="Save changes and return to triage" location="top" open-delay="400">
-                        <template v-slot:activator="{ props }">
-                            <v-btn v-bind="props" color="primary" variant="elevated" class="text-none px-6 rounded-lg"
-                                @click="saveTriageDetails">
-                                Apply Changes
-                            </v-btn>
-                        </template>
-                    </v-tooltip>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
+                    <div>
+                        <label class="block text-xs font-bold text-wf-text-secondary mb-1">Category</label>
+                        <WfSelect v-model="selectedTriageTxn.category" size="sm" aria-label="Category" placeholder="Select Category" searchable :items="categoryOptions" />
+                    </div>
+
+                    <div v-if="selectedTriageTxn?.is_transfer">
+                        <label class="block text-xs font-bold text-wf-text-secondary mb-1">
+                            {{ Number(selectedTriageTxn?.amount || 0) < 0 ? 'Transfer To' : 'Transfer From' }}
+                        </label>
+                        <WfSelect v-model="selectedTriageTxn.to_account_id" size="sm" aria-label="Transfer account"
+                            :items="accountOptions.filter(a => a.value !== (selectedTriageTxn?.account_id || ''))" />
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4 pt-1">
+                    <label class="flex items-center gap-2 text-xs font-semibold text-wf-text-secondary cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            v-model="selectedTriageTxn.is_transfer"
+                            @change="selectedTriageTxn.exclude_from_reports = selectedTriageTxn.is_transfer"
+                            class="rounded border-wf-border text-wf-primary focus:ring-wf-primary"
+                        />
+                        <span>Internal Transfer</span>
+                    </label>
+
+                    <label class="flex items-center gap-2 text-xs font-semibold text-wf-text-secondary cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            v-model="selectedTriageTxn.exclude_from_reports"
+                            class="rounded border-wf-border text-wf-text-secondary focus:ring-wf-primary"
+                        />
+                        <span>Hide in Reports</span>
+                    </label>
+                </div>
+
+                <div v-if="selectedTriageTxn.raw_message" class="pt-1">
+                    <label class="block text-xs font-bold text-wf-text-muted mb-1">Raw Ingestion Message</label>
+                    <div class="bg-wf-surface-variant/40 p-3 rounded-wf-md text-xs text-wf-text-muted italic border border-wf-border-subtle leading-relaxed font-mono">
+                        {{ selectedTriageTxn.raw_message }}
+                    </div>
+                </div>
+            </div>
+            <template #footer>
+                <div class="flex items-center justify-end gap-2 w-full">
+                    <WfButton
+                        variant="ghost"
+                        size="sm"
+                        @click="triageDetailsDialog = false"
+                    >
+                        Close
+                    </WfButton>
+                    <WfButton
+                        size="sm"
+                        @click="saveTriageDetails"
+                    >
+                        Apply Changes
+                    </WfButton>
+                </div>
+            </template>
+        </WfModal>
 
         <!-- Add Alias Modal -->
         <MerchantAliasModal v-model="showAliasModal" :initial-pattern="aliasForm.pattern"
             :initial-alias="aliasForm.alias" @saved="emit('refreshTriage')" />
 
         <!-- Discard Confirmation Dialog (Triage) -->
-        <v-dialog :model-value="showDiscardConfirm" @update:model-value="emit('update:showDiscardConfirm', $event)"
-            max-width="400">
-            <v-card class="rounded-xl border border-error">
-                <v-card-text class="pa-6 text-center">
-                    <v-avatar color="error" variant="tonal" size="56" class="mb-4">
-                        <Trash2 :size="28" />
-                    </v-avatar>
-                    <div class="text-h6 font-weight-black mb-2">
-                        {{ triageIdToDiscard ? 'Discard Transaction?' : `Discard ${selectedTriageIds.length} Transactions?` }}
-                    </div>
-                    <p class="text-body-2 text-medium-emphasis mb-6">
-                        This action will permanently remove the selected transaction(s) from your inbox.
-                    </p>
-
-                    <v-checkbox :model-value="createIgnoreRule"
-                        @update:model-value="emit('update:createIgnoreRule', !!$event)"
-                        label="Ignore this pattern in future" color="error" density="compact" hide-details
-                        class="mb-6 font-weight-bold d-flex justify-center"></v-checkbox>
-
-                    <div class="d-flex gap-3 justify-center">
-                        <v-tooltip text="Keep these transactions" location="bottom" open-delay="400">
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" variant="tonal" @click="emit('update:showDiscardConfirm', false)"
-                                    rounded="lg" class="px-6 font-weight-bold text-none">Cancel</v-btn>
-                            </template>
-                        </v-tooltip>
-                        <v-tooltip text="Permanently remove selected items" location="bottom" open-delay="400">
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" color="error" variant="elevated" rounded="lg" class="px-6 font-weight-bold text-none"
-                                    @click="triageIdToDiscard ? emit('confirmDiscard') : emit('confirmBulkDiscard')">
-                                    Discard
-                                </v-btn>
-                            </template>
-                        </v-tooltip>
-                    </div>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
+        <WfModal
+            :model-value="showDiscardConfirm"
+            @update:model-value="emit('update:showDiscardConfirm', $event)"
+            :title="triageIdToDiscard ? 'Discard Transaction' : `Discard ${selectedTriageIds.length} Transactions`"
+            description="Permanently remove selected transaction(s) from inbox."
+            max-width="sm"
+        >
+            <div class="py-2 text-center">
+                <div class="w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto mb-3">
+                    <Trash2 :size="24" />
+                </div>
+                <p class="text-sm text-wf-text-secondary mb-4">
+                    This action will permanently remove the selected transaction(s) from your inbox.
+                </p>
+                <label class="flex items-center justify-center gap-2 cursor-pointer text-xs font-semibold text-wf-text-secondary select-none">
+                    <input
+                        type="checkbox"
+                        :checked="createIgnoreRule"
+                        @change="emit('update:createIgnoreRule', ($event.target as HTMLInputElement).checked)"
+                        class="rounded border-wf-border text-wf-error focus:ring-wf-error"
+                    />
+                    <span>Ignore this pattern in future</span>
+                </label>
+            </div>
+            <template #footer>
+                <div class="flex items-center justify-end gap-2 w-full">
+                    <WfButton
+                        variant="ghost"
+                        size="sm"
+                        @click="emit('update:showDiscardConfirm', false)"
+                    >
+                        Cancel
+                    </WfButton>
+                    <WfButton
+                        variant="danger"
+                        size="sm"
+                        @click="triageIdToDiscard ? emit('confirmDiscard') : emit('confirmBulkDiscard')"
+                    >
+                        <Trash2 :size="14" />
+                        <span>Discard</span>
+                    </WfButton>
+                </div>
+            </template>
+        </WfModal>
     </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, reactive } from 'vue'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfModal from '@/components/ui/WfModal.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfButton from '@/components/ui/WfButton.vue'
 import MerchantAliasModal from '@/components/MerchantAliasModal.vue'
 import { useCurrency } from '@/composables/useCurrency'
 import {
@@ -524,14 +499,12 @@ import {
     MapPin,
     Info,
     Check,
-    X,
-    Zap,
     CheckCircle2,
     ChevronLeft,
     ChevronRight,
-    ChevronDown,
     EyeOff,
-    Tag
+    X
+
 } from 'lucide-vue-next'
 
 export interface AccountItem {
@@ -545,6 +518,7 @@ export interface CategoryItem {
     name: string
     icon?: string
     color?: string
+    parent_id?: string | null
     subcategories?: CategoryItem[]
     [key: string]: any
 }
@@ -604,10 +578,6 @@ const emit = defineEmits<{
 // Local State
 const selectedTriageIds = defineModel<string[]>('selectedTriageIds', { default: [] })
 // Computed Interface for Tabs
-const activeTab = computed({
-    get: () => props.activeSubTab || 'pending',
-    set: (val) => emit('update:activeSubTab', val)
-})
 
 const accountOptions = computed(() => {
     return props.accounts.map(a => ({ title: a.name, value: a.id }))
@@ -615,8 +585,29 @@ const accountOptions = computed(() => {
 
 const categoryOptions = computed(() => {
     const list: { title: string; value: string }[] = []
-    const flatten = (cats: CategoryItem[], depth = 0) => {
-        cats.forEach(c => {
+
+    const buildTree = (flatList: CategoryItem[]) => {
+        const lookup = new Map<string, any>()
+        const roots: any[] = []
+
+        flatList.forEach(c => {
+            lookup.set(c.id || c.name, { ...c, subcategories: [] })
+        })
+
+        flatList.forEach(c => {
+            const parentKey = c.parent_id
+            if (parentKey && lookup.has(parentKey)) {
+                lookup.get(parentKey).subcategories.push(lookup.get(c.id || c.name))
+            } else {
+                roots.push(lookup.get(c.id || c.name))
+            }
+        })
+        return roots
+    }
+
+    const flatten = (cats: any[], depth = 0) => {
+        const sorted = [...cats].sort((a, b) => a.name.localeCompare(b.name))
+        sorted.forEach(c => {
             const prefix = depth > 0 ? '　'.repeat(depth) + '└ ' : ''
             list.push({
                 title: `${prefix}${c.icon || '🏷️'} ${c.name}`,
@@ -627,7 +618,12 @@ const categoryOptions = computed(() => {
             }
         })
     }
-    flatten(props.categories)
+
+    const hasTreeStructure = props.categories.some(c => c.subcategories && c.subcategories.length > 0)
+    const tree = hasTreeStructure ? props.categories.filter(c => !c.parent_id) : buildTree(props.categories)
+
+    flatten(tree)
+
     if (!list.find(o => o.value === 'Uncategorized')) {
         list.push({ title: '🏷️ Uncategorized', value: 'Uncategorized' })
     }
@@ -748,160 +744,31 @@ const { formatAmount } = useCurrency()
 </script>
 
 <style scoped>
-.premium-glass-card {
-    background: rgba(var(--v-theme-surface), 0.7) !important;
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-    border-radius: 20px !important;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07) !important;
-    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+.cat-needed-warning :deep(.v-field__outline) {
+    --v-field-border-opacity: 0.5;
+    border-color: rgba(var(--v-theme-warning), 0.6) !important;
 }
 
-.premium-glass-card:hover {
-    border-color: rgba(var(--v-theme-primary), 0.3) !important;
-    transform: translateY(-4px);
-}
-
-.premium-glass-card.is-selected {
-    border: 2px solid rgb(var(--v-theme-primary)) !important;
-    background: rgba(var(--v-theme-primary), 0.05) !important;
-}
-
-.card-glow-accent {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: transparent;
-    transition: all 0.3s ease;
-    z-index: 2;
-}
-
-.is-debit .card-glow-accent {
-    background: linear-gradient(90deg, rgba(var(--v-theme-error), 0.8), transparent);
-    box-shadow: 0 0 15px rgba(var(--v-theme-error), 0.4);
-}
-
-.is-credit .card-glow-accent {
-    background: linear-gradient(90deg, rgba(var(--v-theme-success), 0.8), transparent);
-    box-shadow: 0 0 15px rgba(var(--v-theme-success), 0.4);
-}
-
-.amount-hero-section {
-    background: rgba(var(--v-theme-on-surface), 0.02);
-    border-top: 1px solid rgba(var(--v-border-color), 0.05);
-    border-bottom: 1px solid rgba(var(--v-border-color), 0.05);
-}
-
-.amount-hero-text {
-    font-size: 2.2rem !important;
-    font-weight: 900 !important;
-    line-height: 1;
-    font-family: 'Inter', sans-serif;
-    letter-spacing: -1.5px;
-}
-
-.modern-message-container {
-    background: rgba(var(--v-theme-on-surface), 0.03);
-    border-radius: 16px;
-    border: 1px dashed rgba(var(--v-border-color), 0.2);
-    position: relative;
-    overflow: hidden;
-}
-
-.message-content {
-    line-height: 1.5;
-    color: rgba(var(--v-theme-on-surface), 0.7);
-    font-style: italic;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.tactile-toggle-group {
-    background: rgba(var(--v-theme-on-surface), 0.04);
-    padding: 3px;
-    border-radius: 50px;
-    border: 1px solid rgba(var(--v-border-color), 0.05) !important;
-}
-
-.tactile-toggle-group :deep(.v-btn) {
-    height: 28px !important;
-    font-size: 11px !important;
-    font-weight: 800 !important;
-    letter-spacing: 0.5px;
-    border: none !important;
-}
-
-.modern-card-footer {
-    background: rgba(var(--v-theme-on-surface), 0.02);
-    backdrop-filter: blur(5px);
-}
-
-.footer-action-btn {
-    transition: all 0.2s ease;
-}
-
-.footer-action-btn:hover {
-    color: rgb(var(--v-theme-primary)) !important;
-}
-
-.no-hover-effect:hover {
-    background: rgba(var(--v-theme-on-surface), 0.05) !important;
-}
-
-.triage-footer {
-    background: rgba(var(--v-theme-on-surface), 0.01);
-}
-
-.animate-in {
-    animation: fadeIn 0.4s ease-out;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.gap-2 {
-    gap: 8px;
-}
-
-.gap-3 {
-    gap: 12px;
-}
-
-.gap-4 {
-    gap: 16px;
+.triage-cat-input :deep(.v-field) {
+    border-radius: 10px;
 }
 
 .border-thin {
     border: 1px solid rgba(var(--v-border-color), 0.15) !important;
 }
 
-.tracking-wider {
-    letter-spacing: 1px;
+.animate-in {
+    animation: fadeIn 0.3s ease-out;
 }
 
-.tracking-widest {
-    letter-spacing: 2px;
-}
-
-.no-hover:hover {
-    transform: none !important;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>

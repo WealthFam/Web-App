@@ -1,359 +1,305 @@
 <template>
     <div class="transaction-list-container">
-        <!-- Filter Bar -->
-        <v-card class="premium-glass-card mb-6 pa-4 border-thin">
-            <v-row align="center" no-gutters class="gap-4">
-                <v-col cols="12" lg="auto">
-                    <div class="d-flex align-center">
-                        <span class="text-caption font-weight-bold text-uppercase opacity-70 mr-3">Account:</span>
-                        <v-autocomplete :model-value="selectedAccount"
-                            @update:model-value="emit('update:selectedAccount', $event)" :items="accountOptions"
-                            item-title="title" item-value="value" placeholder="All Accounts" density="comfortable"
-                            hide-details variant="outlined" class="account-select-premium font-weight-bold" rounded="lg"
-                            bg-color="surface" />
+        <!-- Integrated compact toolbar -->
+        <WfCard variant="flat" padding="none" radius="lg" class="p-3 mb-3 border border-wf-border-subtle bg-wf-surface shadow-xs">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+                <!-- Left: Search & Filter Controls -->
+                <div class="flex flex-wrap items-center gap-2 flex-1">
+                    <!-- Search with clean icon and clear button -->
+                    <div class="relative min-w-[200px] flex-1 sm:flex-initial sm:w-64">
+                        <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-wf-text-muted pointer-events-none" aria-hidden="true" />
+                        <input
+                            :value="searchQuery"
+                            type="search"
+                            autocomplete="off"
+                            aria-label="Search transactions"
+                            placeholder="Search description or vendor..."
+                            class="w-full h-9 pl-9 pr-8 text-xs rounded-wf-md bg-wf-surface-variant/40 text-wf-text-primary border border-wf-border placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary focus:bg-wf-surface transition-all"
+                            @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
+                        />
+                        <button
+                            v-if="searchQuery"
+                            type="button"
+                            @click="emit('update:searchQuery', '')"
+                            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-wf-text-muted hover:text-wf-text-primary transition-colors"
+                            title="Clear search"
+                        >
+                            <X :size="13" />
+                        </button>
                     </div>
-                </v-col>
 
-                <v-col cols="12" sm="6" md="3" lg="auto">
-                    <div class="d-flex align-center">
-                        <span class="text-caption font-weight-bold text-uppercase opacity-70 mr-3">Time:</span>
-                        <v-autocomplete :model-value="selectedTimeRange" @update:model-value="handleTimeRangeChange"
-                            :items="timeRangeOptions" item-title="title" item-value="value" density="comfortable"
-                            hide-details variant="outlined" class="time-range-select-premium font-weight-bold"
-                            rounded="lg" bg-color="surface" />
-                    </div>
-                </v-col>
+                    <!-- Account Filter -->
+                    <WfSelect
+                        size="sm"
+                        class="w-[155px]"
+                        aria-label="Filter by account"
+                        :model-value="selectedAccount"
+                        :items="accountOptions"
+                        @update:model-value="emit('update:selectedAccount', $event)"
+                    />
 
-                <v-col v-if="selectedTimeRange === 'custom'" cols="12" sm="6" md="3" lg="auto" class="animate-in">
-                    <div class="d-flex align-center gap-2">
-                        <v-text-field :model-value="startDate"
-                            @update:model-value="emit('update:startDate', $event); emit('fetchData')" type="date"
-                            density="comfortable" hide-details variant="outlined" rounded="lg"
-                            class="date-input-premium font-weight-bold" bg-color="surface" />
-                        <span class="text-caption opacity-50">to</span>
-                        <v-text-field :model-value="endDate"
-                            @update:model-value="emit('update:endDate', $event); emit('fetchData')" type="date"
-                            density="comfortable" hide-details variant="outlined" rounded="lg"
-                            class="date-input-premium font-weight-bold" bg-color="surface" />
-                    </div>
-                </v-col>
-
-                <v-divider vertical class="d-none d-lg-block mx-2" />
-
-                <v-col cols="12" md="4" lg="auto" class="flex-grow-1">
-                    <v-text-field :model-value="searchQuery" @update:model-value="emit('update:searchQuery', $event)"
-                        placeholder="Search description or recipient..." density="comfortable" hide-details
-                        variant="outlined" rounded="lg" class="search-input-premium font-weight-bold" clearable
-                        autocomplete="off" bg-color="surface">
-                        <template v-slot:prepend-inner>
-                            <Search :size="18" class="text-primary mr-2" />
-                        </template>
-                    </v-text-field>
-                </v-col>
-
-                <v-col cols="12" sm="6" md="3" lg="auto">
-                    <v-autocomplete :model-value="categoryFilter"
+                    <!-- Category Filter -->
+                    <WfSelect
+                        size="sm"
+                        class="w-[165px]"
+                        searchable
+                        aria-label="Filter by category"
+                        :model-value="categoryFilter"
+                        :items="[{ title: 'All Categories', value: '' }, ...categoryOptions]"
                         @update:model-value="emit('update:categoryFilter', $event); emit('fetchData')"
-                        :items="[{ title: 'All Categories', value: '' }, ...categoryOptions]" item-title="title"
-                        item-value="value" placeholder="Category" density="comfortable" hide-details variant="outlined"
-                        rounded="lg" class="category-select-premium font-weight-bold" bg-color="surface" />
-                </v-col>
+                    />
 
-                <v-col cols="auto" v-if="startDate || endDate || searchQuery || categoryFilter">
-                    <v-btn variant="text" size="small" color="primary" @click="handleReset" class="font-weight-bold">
-                        Reset
-                    </v-btn>
-                </v-col>
-            </v-row>
-        </v-card>
+                    <!-- Time Range Filter -->
+                    <WfSelect
+                        size="sm"
+                        class="w-[130px]"
+                        aria-label="Filter by time range"
+                        :model-value="selectedTimeRange"
+                        :items="timeRangeOptions"
+                        @update:model-value="handleTimeRangeChange"
+                    />
 
-        <!-- Bulk Actions & Info -->
-        <div class="d-flex align-center justify-space-between mb-4 px-2">
-            <div class="d-flex align-center gap-4">
-                <span class="text-h6 font-weight-black">{{ total }} <span
-                        class="text-subtitle-2 opacity-60">Transactions</span></span>
-
-                <v-fade-transition>
-                    <div v-if="selectedIds.size > 0" class="d-flex align-center gap-2">
-                        <v-divider vertical class="mx-2" />
-                        <span class="text-caption font-weight-bold text-primary">{{ selectedIds.size }} Selected</span>
-                        <v-btn color="error" variant="tonal" size="x-small" @click="emit('deleteSelected')"
-                            rounded="lg">
-                            <template v-slot:prepend>
-                                <Trash2 :size="14" />
-                            </template>
-                            Delete
-                        </v-btn>
+                    <!-- Custom Date Range Inputs (if selected) -->
+                    <div v-if="selectedTimeRange === 'custom'" class="flex items-center gap-1.5 bg-wf-surface-variant/40 px-2 py-1 rounded-wf-md border border-wf-border">
+                        <input :value="startDate" type="date" aria-label="Start date" class="wf-date-input text-xs h-7 px-1.5 rounded-wf-sm bg-wf-surface border border-wf-border text-wf-text-primary"
+                            @change="emit('update:startDate', ($event.target as HTMLInputElement).value); emit('fetchData')" />
+                        <span class="text-[11px] text-wf-text-muted">to</span>
+                        <input :value="endDate" type="date" aria-label="End date" class="wf-date-input text-xs h-7 px-1.5 rounded-wf-sm bg-wf-surface border border-wf-border text-wf-text-primary"
+                            @change="emit('update:endDate', ($event.target as HTMLInputElement).value); emit('fetchData')" />
                     </div>
-                </v-fade-transition>
-            </div>
 
-            <div class="d-flex align-center gap-2">
-                <v-btn color="secondary" variant="tonal" size="small" @click="emit('importCsv')" rounded="lg">
-                    <template v-slot:prepend>
-                        <Upload :size="16" />
-                    </template>
-                    Import
-                </v-btn>
-                <v-btn color="primary" size="small" @click="emit('editTxn', null)" rounded="pill"
-                    class="font-weight-black text-none">
-                    <template v-slot:prepend>
-                        <Plus :size="16" />
-                    </template>
-                    Add
-                </v-btn>
+                    <!-- Reset Active Filters Button -->
+                    <button
+                        v-if="startDate || endDate || searchQuery || categoryFilter || selectedAccount"
+                        type="button"
+                        @click="handleReset"
+                        class="h-9 px-2.5 text-xs font-semibold text-wf-primary hover:text-wf-primary-hover hover:bg-wf-primary/10 rounded-wf-md transition-colors flex items-center gap-1.5"
+                        title="Reset all filters"
+                    >
+                        <RotateCcw :size="13" />
+                        <span>Reset</span>
+                    </button>
+                </div>
+
+                <!-- Right: Selection & Action Buttons -->
+                <div class="flex items-center gap-2 shrink-0 self-end lg:self-auto">
+                    <!-- Contextual Selection / Delete -->
+                    <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0">
+                        <div v-if="selectedIds.size > 0" class="flex items-center gap-2 bg-wf-primary/10 px-2.5 py-1 rounded-wf-md border border-wf-primary/20">
+                            <span class="text-xs font-semibold font-mono text-wf-primary">{{ selectedIds.size }} selected</span>
+                            <WfButton variant="danger" size="sm" @click="emit('deleteSelected')">
+                                <Trash2 :size="12" /> Delete
+                            </WfButton>
+                        </div>
+                    </Transition>
+
+                    <!-- Records Count Badge -->
+                    <span class="text-xs font-mono font-medium px-2.5 py-1.5 rounded-wf-md bg-wf-surface-variant text-wf-text-secondary border border-wf-border-subtle whitespace-nowrap">
+                        {{ total }} <span class="text-[11px] text-wf-text-muted">records</span>
+                    </span>
+
+                    <div class="h-5 w-px bg-wf-border-subtle hidden sm:block"></div>
+
+                    <!-- Primary Action Buttons -->
+                    <WfButton variant="outline" size="sm" @click="emit('importCsv')">
+                        <Upload :size="13" />
+                        <span>Import</span>
+                    </WfButton>
+                    <WfButton size="sm" @click="emit('editTxn', null)">
+                        <Plus :size="14" />
+                        <span>Add Transaction</span>
+                    </WfButton>
+                </div>
             </div>
+        </WfCard>
+
+        <!-- Compact KPI Strip -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+            <WfCard variant="flat" padding="none" radius="lg" class="px-2.5 py-1.5 flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-wf-md bg-wf-success/10 text-wf-success flex items-center justify-center shrink-0"><TrendingUp :size="14" aria-hidden="true" /></div>
+                <div class="min-w-0">
+                    <div class="text-[10px] font-semibold text-wf-text-muted uppercase tracking-wider leading-none mb-0.5">Income</div>
+                    <div class="text-sm font-bold font-mono tabular-nums text-wf-success truncate leading-tight">{{ formatAmount(props.metrics.monthly_income) }}</div>
+                </div>
+            </WfCard>
+
+            <WfCard variant="flat" padding="none" radius="lg" class="px-2.5 py-1.5 flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-wf-md bg-wf-error/10 text-wf-error flex items-center justify-center shrink-0"><TrendingDown :size="14" aria-hidden="true" /></div>
+                <div class="min-w-0">
+                    <div class="text-[10px] font-semibold text-wf-text-muted uppercase tracking-wider leading-none mb-0.5">Expenses</div>
+                    <div class="text-sm font-bold font-mono tabular-nums text-wf-error truncate leading-tight">{{ formatAmount(Math.abs(props.metrics.monthly_spending)) }}</div>
+                </div>
+            </WfCard>
+
+            <WfCard variant="flat" padding="none" radius="lg" class="px-2.5 py-1.5 flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-wf-md bg-wf-primary/10 text-wf-primary flex items-center justify-center shrink-0"><ArrowUpRight :size="14" aria-hidden="true" /></div>
+                <div class="min-w-0">
+                    <div class="text-[10px] font-semibold text-wf-text-muted uppercase tracking-wider leading-none mb-0.5">Investments</div>
+                    <div class="text-sm font-bold font-mono tabular-nums text-wf-primary truncate leading-tight">{{ formatAmount(Math.abs(props.metrics.monthly_investment || 0)) }}</div>
+                </div>
+            </WfCard>
+
+            <WfCard variant="flat" padding="none" radius="lg" class="px-2.5 py-1.5 flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-wf-md flex items-center justify-center shrink-0"
+                    :class="netFlow >= 0 ? 'bg-wf-primary/10 text-wf-primary' : 'bg-wf-warning/10 text-wf-warning'"><Wallet :size="14" aria-hidden="true" /></div>
+                <div class="min-w-0">
+                    <div class="text-[10px] font-semibold text-wf-text-muted uppercase tracking-wider leading-none mb-0.5">Net Flow</div>
+                    <div class="text-sm font-bold font-mono tabular-nums truncate leading-tight"
+                        :class="netFlow >= 0 ? 'text-wf-primary' : 'text-wf-warning'">{{ formatAmount(netFlow) }}</div>
+                </div>
+            </WfCard>
         </div>
-        <!-- Transaction KPIs -->
-        <v-row class="mb-6">
-            <v-col cols="12" sm="3">
-                <v-card class="glass-card pa-4 d-flex align-center border-thin" rounded="xl">
-                    <v-avatar color="success" variant="tonal" class="mr-4" rounded="lg">
-                        <TrendingUp :size="20" />
-                    </v-avatar>
-                    <div>
-                        <div class="text-caption font-weight-bold opacity-60 text-uppercase">Income</div>
-                        <div class="text-h6 font-weight-black text-success">{{
-                            formatAmount(props.metrics.monthly_income) }}
-                        </div>
-                    </div>
-                </v-card>
-            </v-col>
-            <v-col cols="12" sm="3">
-                <v-card class="glass-card pa-4 d-flex align-center border-thin" rounded="xl">
-                    <v-avatar color="error" variant="tonal" class="mr-4" rounded="lg">
-                        <TrendingDown :size="20" />
-                    </v-avatar>
-                    <div>
-                        <div class="text-caption font-weight-bold opacity-60 text-uppercase">Expenses</div>
-                        <div class="text-h6 font-weight-black text-error">{{
-                            formatAmount(Math.abs(props.metrics.monthly_spending)) }}
-                        </div>
-                    </div>
-                </v-card>
-            </v-col>
-            <v-col cols="12" sm="3">
-                <v-card class="glass-card pa-4 d-flex align-center border-thin" rounded="xl">
-                    <v-avatar color="info" variant="tonal" class="mr-4" rounded="lg">
-                        <ArrowUpRight :size="20" />
-                    </v-avatar>
-                    <div>
-                        <div class="text-caption font-weight-bold opacity-60 text-uppercase">Investments</div>
-                        <div class="text-h6 font-weight-black text-info">{{
-                            formatAmount(Math.abs(props.metrics.monthly_investment || 0)) }}
-                        </div>
-                    </div>
-                </v-card>
-            </v-col>
-            <v-col cols="12" sm="3">
-                <v-card class="glass-card pa-4 d-flex align-center border-thin" rounded="xl">
-                    <v-avatar
-                        :color="(props.metrics.monthly_income - props.metrics.monthly_spending - (props.metrics.monthly_investment || 0)) >= 0 ? 'primary' : 'warning'"
-                        variant="tonal" class="mr-4" rounded="lg">
-                        <Wallet :size="20" />
-                    </v-avatar>
-                    <div>
-                        <div class="text-caption font-weight-bold opacity-60 text-uppercase">Net Flow</div>
-                        <div class="text-h6 font-weight-black"
-                            :class="(props.metrics.monthly_income - props.metrics.monthly_spending - (props.metrics.monthly_investment || 0)) >= 0 ? 'text-primary' : 'text-warning'">
-                            {{ formatAmount(props.metrics.monthly_income - props.metrics.monthly_spending - (props.metrics.monthly_investment || 0)) }}
-                        </div>
-                    </div>
-                </v-card>
-            </v-col>
-        </v-row>
+
         <!-- Transaction Table -->
-        <v-card class="premium-glass-card overflow-hidden">
-            <v-data-table-server v-model="tableSelection" :headers="headers" :items="transactions" :items-length="total"
-                :loading="loading" :items-per-page="pageSize" :page="page" hover @update:options="handleOptionsUpdate"
-                class="premium-table" density="comfortable" show-select
-                :row-props="(data: any) => ({ class: { 'hidden-txn-row': data.item.exclude_from_reports } })">
-                <!-- Selection Column Slot -->
-                <template #[`item.data-table-select`]="{ item }">
-                    <v-checkbox-btn :model-value="selectedIds.has(item.id)"
-                        @update:model-value="toggleSelection(item.id)" color="primary" />
-                </template>
+        <WfCard variant="flat" padding="none" radius="lg" class="overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-wf-surface-variant/60 text-[11px] font-semibold uppercase tracking-wider text-wf-text-muted">
+                            <th scope="col" class="w-10 px-3 h-9 text-left">
+                                <input type="checkbox" aria-label="Select all on page" :checked="allSelected"
+                                    class="accent-[var(--wf-color-primary)]" @change="toggleAll" />
+                            </th>
+                            <th v-for="h in sortableHeaders" :key="h.key" scope="col"
+                                class="px-3 h-9 whitespace-nowrap" :class="[h.align === 'right' ? 'text-right' : 'text-left', h.width]"
+                                :aria-sort="ariaSort(h.key)">
+                                <button v-if="h.sortable" type="button"
+                                    class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-wf-text-primary"
+                                    @click="emit('sortChange', h.key)">
+                                    {{ h.title }}
+                                    <ArrowUp v-if="txnSortKey === h.key && txnSortOrder === 'asc'" :size="11" />
+                                    <ArrowDown v-else-if="txnSortKey === h.key" :size="11" />
+                                </button>
+                                <span v-else>{{ h.title }}</span>
+                            </th>
+                            <th scope="col" class="px-3 h-9 w-[60px]"><span class="sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template v-if="loading">
+                            <tr v-for="i in 10" :key="'sk' + i" class="border-t border-wf-divider animate-pulse">
+                                <td colspan="6" class="px-3 py-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-7 h-7 rounded-wf-md bg-wf-surface-variant"></div>
+                                        <div class="flex-1 space-y-1.5">
+                                            <div class="h-3 w-3/5 rounded-wf-sm bg-wf-surface-variant"></div>
+                                            <div class="h-2.5 w-2/5 rounded-wf-sm bg-wf-surface-variant"></div>
+                                        </div>
+                                        <div class="h-3 w-20 rounded-wf-sm bg-wf-surface-variant"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
 
-                <!-- Date Column -->
-                <template #[`item.date`]="{ item }">
-                    <div class="date-cell">
-                        <div class="text-subtitle-2 font-weight-bold">{{ formatDate(item.date).day }}</div>
-                        <div class="text-caption opacity-50 font-weight-medium">{{ formatDate(item.date).meta }}</div>
-                    </div>
-                </template>
+                        <tr v-else-if="transactions.length === 0">
+                            <td colspan="6" class="py-10 text-center">
+                                <FileText :size="32" class="mx-auto mb-2 text-wf-text-muted" aria-hidden="true" />
+                                <h3 class="text-sm font-semibold text-wf-text-primary">No Transactions Found</h3>
+                                <p class="text-xs text-wf-text-muted mt-0.5">Adjust your filters or try a different search term.</p>
+                                <WfButton variant="ghost" size="sm" class="mt-3" @click="handleReset">Clear All Filters</WfButton>
+                            </td>
+                        </tr>
 
-                <!-- Recipient Column -->
-                <template #[`item.recipient`]="{ item }">
-                    <div class="d-flex align-center gap-3 py-2">
-                        <v-tooltip :text="getCategoryDisplay(item.category || '').text" location="top">
-                            <template v-slot:activator="{ props }">
-                                <v-avatar v-bind="props" size="36"
-                                    :color="getCategoryDisplay(item.category || '').color + '20'" rounded="lg">
-                                    <span class="text-h6 pb-1">{{ getCategoryDisplay(item.category || '').icon }}</span>
-                                </v-avatar>
-                            </template>
-                        </v-tooltip>
-                        <div>
-                            <div class="text-subtitle-2 font-weight-bold text-truncate" style="max-width: 200px;">
-                                <router-link v-if="item.recipient"
-                                    :to="`/merchants/${encodeURIComponent(item.recipient || '')}`"
-                                    class="text-decoration-none text-content hover-underline">
-                                    {{ item.recipient }}
-                                </router-link>
-                                <span v-else>{{ item.description }}</span>
-                            </div>
-                            <div class="text-caption d-flex align-center gap-1 font-weight-bold" v-if="item.source">
-                                <div class="d-flex align-center opacity-50">
-                                    <span class="source-icon-mini">{{ item.source === 'SMS' ? '📱' : (item.source ===
-                                        'EMAIL' ? '📧' : '⌨️') }}</span>
-                                    {{ item.source }}
+                        <tr v-else v-for="item in transactions" :key="item.id"
+                            class="border-t border-wf-divider cursor-pointer hover:bg-wf-primary/5 transition-colors"
+                            :class="{ 'opacity-50': item.exclude_from_reports }"
+                            @click="handleRowClick(item)">
+                            <td class="px-3 py-1.5" @click.stop>
+                                <input type="checkbox" :aria-label="'Select ' + (item.recipient || item.description)"
+                                    :checked="selectedIds.has(item.id)" class="accent-[var(--wf-color-primary)]"
+                                    @change="toggleSelection(item.id)" />
+                            </td>
+
+                            <td class="px-3 py-1.5 align-middle leading-tight">
+                                <div class="text-xs font-semibold text-wf-text-primary">{{ formatDate(item.date).day }}</div>
+                                <div class="text-[10px] text-wf-text-muted">{{ formatDate(item.date).meta }}</div>
+                            </td>
+
+                            <td class="px-3 py-1.5 align-middle">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="w-[26px] h-[26px] shrink-0 rounded-wf-md flex items-center justify-center text-xs leading-none"
+                                        :style="{ backgroundColor: getCategoryDisplay(item.category || '').color + '20' }"
+                                        :title="getCategoryDisplay(item.category || '').text">
+                                        {{ getCategoryDisplay(item.category || '').icon }}
+                                    </span>
+                                    <div class="min-w-0">
+                                        <router-link
+                                            :to="`/merchants/${encodeURIComponent(item.recipient || item.description || '')}`"
+                                            @click.stop
+                                            class="group inline-flex items-center gap-1 max-w-[180px] text-xs font-semibold truncate text-wf-text-primary hover:underline"
+                                            :title="'Open Merchant Profile for ' + (item.recipient || item.description)">
+                                            <span class="truncate">{{ item.recipient || item.description }}</span>
+                                            <Store :size="11" class="text-wf-text-muted group-hover:text-wf-primary shrink-0" aria-hidden="true" />
+                                        </router-link>
+                                        <div class="flex items-center gap-1.5 text-[10px] font-medium mt-0.5 leading-none">
+                                            <span v-if="item.source" class="text-wf-text-muted flex items-center gap-0.5">
+                                                <span>{{ item.source === 'SMS' ? '📱' : (item.source === 'EMAIL' ? '📧' : '⌨️') }}</span>{{ item.source }}
+                                            </span>
+                                            <button type="button" title="View Vendor Analytics"
+                                                class="inline-flex items-center gap-0.5 text-[10px] font-semibold text-wf-primary bg-wf-primary/10 hover:opacity-80 px-1 rounded-wf-xs"
+                                                @click.stop="emit('showVendorInsights', item.recipient || item.description || '')">
+                                                <BarChart2 :size="10" /> Analytics
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <v-tooltip text="Quick Insights" location="top">
-                                    <template v-slot:activator="{ props }">
-                                        <v-btn v-if="item.recipient" v-bind="props" icon variant="text" size="x-small" density="compact" class="ml-1" color="primary" @click.stop="emit('showVendorInsights', item.recipient || '')">
-                                            <v-icon size="small" icon="$info"></v-icon>
-                                        </v-btn>
-                                    </template>
-                                </v-tooltip>
-                            </div>
-                        </div>
-                    </div>
-                </template>
+                            </td>
 
-                <!-- Description Column -->
-                <template #[`item.description`]="{ item }">
-                    <div class="py-2">
-                        <div class="text-body-2 text-medium-emphasis mb-1 d-flex align-center">
-                            {{ item.description }}
-                            <v-tooltip v-if="item.latitude || item.location_name"
-                                :text="item.location_name || 'Location available'">
-                                <template #activator="{ props }">
-                                    <MapPin v-bind="props" :size="14" class="ml-1 text-primary" />
-                                </template>
-                            </v-tooltip>
-                        </div>
-                        <div class="d-flex align-center flex-wrap gap-1">
-                            <v-chip size="x-small" variant="flat" color="surface-variant"
-                                class="text-uppercase font-weight-black opacity-70">
-                                {{ getAccountName(item.account_id) }}
-                            </v-chip>
+                            <td class="px-3 py-1.5 align-middle min-w-0">
+                                <div class="flex items-center gap-1.5 text-xs text-wf-text-secondary max-w-sm">
+                                    <span class="truncate">{{ item.description }}</span>
+                                    <a v-if="item.latitude || item.location_name"
+                                        :href="item.latitude && item.longitude ? `https://www.google.com/maps?q=${item.latitude},${item.longitude}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location_name || '')}`"
+                                        target="_blank" rel="noopener" @click.stop
+                                        :title="item.location_name ? `${item.location_name} (Click to open map)` : `Coordinates: ${item.latitude}, ${item.longitude}`"
+                                        class="inline-flex items-center gap-0.5 shrink-0 text-[10px] font-semibold text-wf-success bg-wf-success/10 hover:bg-wf-success/20 px-1.5 rounded-wf-xs transition-colors">
+                                        <MapPin :size="10" />
+                                        <span v-if="item.location_name">{{ item.location_name }}</span>
+                                        <span v-else>GPS</span>
+                                    </a>
+                                </div>
+                                <div class="flex items-center flex-wrap gap-1 mt-0.5">
+                                    <span class="wf-tag bg-wf-surface-variant text-wf-text-secondary">{{ getAccountName(item.account_id) }}</span>
+                                    <span v-if="item.external_id" class="wf-tag border border-wf-border font-mono text-wf-text-muted" title="Reference ID">#{{ item.external_id }}</span>
+                                    <span v-if="item.is_transfer" class="wf-tag bg-wf-success/10 text-wf-success">🔄 Transfer</span>
+                                    <span v-if="item.exclude_from_reports" class="wf-tag bg-wf-error/10 text-wf-error">🚫 Hidden</span>
+                                    <span v-if="item.is_emi" class="wf-tag bg-wf-info/10 text-wf-info">🏦 EMI</span>
+                                    <span v-if="item.expense_group_id" class="wf-tag bg-wf-secondary/10 text-wf-secondary">📁 {{ getExpenseGroupName(item.expense_group_id) }}</span>
+                                </div>
+                            </td>
 
-                            <v-chip v-if="item.external_id" size="x-small" variant="outlined" color="medium-emphasis"
-                                class="font-weight-medium" title="Reference ID">
-                                {{ item.external_id }}
-                            </v-chip>
+                            <td class="px-3 py-1.5 align-middle text-right">
+                                <div class="font-mono tabular-nums text-sm font-bold"
+                                    :class="item.is_transfer ? 'text-wf-text-muted' : (Number(item.amount) > 0 ? 'text-wf-success' : 'text-wf-error')">
+                                    <span v-if="item.is_transfer" aria-label="Transfer">🔄</span>
+                                    <span v-else-if="Number(item.amount) > 0" aria-label="Credit">+</span>
+                                    <span v-else aria-label="Debit">-</span>
+                                    {{ formatAmount(Math.abs(Number(item.amount))) }}
+                                </div>
+                            </td>
 
-                            <v-chip v-if="item.is_transfer" size="x-small" color="success" variant="tonal"
-                                class="font-weight-bold">
-                                🔄 Transfer
-                            </v-chip>
-                            <v-chip v-if="item.exclude_from_reports" size="x-small" color="error" variant="tonal"
-                                class="font-weight-bold">
-                                🚫 Hidden
-                            </v-chip>
-                            <v-chip v-if="item.is_emi" size="x-small" color="info" variant="tonal"
-                                class="font-weight-bold">
-                                🏦 EMI
-                            </v-chip>
+                            <td class="px-3 py-1.5 align-middle text-center" @click.stop>
+                                <WfMenu label="Transaction actions">
+                                    <template #trigger><MoreVertical :size="16" /></template>
+                                    <router-link :to="`/merchants/${encodeURIComponent(item.recipient || item.description || '')}`" role="menuitem" class="wf-menu-item"><Store :size="14" class="text-wf-primary" /> Merchant Profile</router-link>
+                                    <button type="button" role="menuitem" class="wf-menu-item" @click="emit('showVendorInsights', item.recipient || item.description || '')"><BarChart2 :size="14" class="text-wf-primary" /> Vendor Analytics</button>
+                                    <a v-if="item.latitude || item.location_name" role="menuitem" class="wf-menu-item" target="_blank" rel="noopener"
+                                        :href="item.latitude && item.longitude ? `https://www.google.com/maps?q=${item.latitude},${item.longitude}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location_name || '')}`"><MapPin :size="14" class="text-wf-success" /> View on Map</a>
+                                    <button type="button" role="menuitem" class="wf-menu-item" @click="emit('editTxn', item)"><Pencil :size="14" /> Edit</button>
+                                    <button type="button" role="menuitem" class="wf-menu-item" @click="openAliasModal(item)"><MapPin :size="14" /> Map Merchant</button>
+                                    <div class="my-1 border-t border-wf-divider"></div>
+                                    <button type="button" role="menuitem" class="wf-menu-item text-wf-error" @click="() => { selectedIds = new Set([item.id]); emit('deleteSelected') }"><Trash2 :size="14" /> Delete</button>
+                                </WfMenu>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-
-
-                            <v-chip v-if="item.expense_group_id" size="x-small" color="secondary" variant="tonal"
-                                class="font-weight-bold">
-                                📁 {{ getExpenseGroupName(item.expense_group_id) }}
-                            </v-chip>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- Amount Column -->
-                <template #[`item.amount`]="{ item }">
-                    <div class="text-right">
-                        <div :class="[
-                            'text-subtitle-1 font-weight-black',
-                            Number(item.amount) > 0 ? 'text-success' : 'text-error',
-                            item.is_transfer ? 'opacity-70 text-medium-emphasis grayscale' : ''
-                        ]">
-                            <span v-if="item.is_transfer">🔄</span>
-                            <span v-else-if="Number(item.amount) > 0">↓</span>
-                            <span v-else>↑</span>
-                            {{ formatAmount(Math.abs(Number(item.amount))) }}
-                        </div>
-                    </div>
-                </template>
-
-                <!-- Actions Column -->
-                <template #[`item.actions`]="{ item }">
-                    <div class="text-center">
-                        <v-menu location="start">
-                            <template v-slot:activator="{ props }">
-                                <v-btn size="x-small" variant="text" color="medium-emphasis" v-bind="props">
-                                    <MoreVertical :size="18" />
-                                </v-btn>
-                            </template>
-                            <v-list density="compact" class="rounded-lg border" elevation="2">
-                                <v-list-item @click="emit('editTxn', item)" title="Edit" value="edit">
-                                    <template v-slot:prepend>
-                                        <Pencil :size="16" class="mr-2" />
-                                    </template>
-                                </v-list-item>
-                                <v-list-item @click="openAliasModal(item)" title="Map Merchant" value="map">
-                                    <template v-slot:prepend>
-                                        <MapPin :size="16" class="mr-2" />
-                                    </template>
-                                </v-list-item>
-                                <v-divider class="my-1"></v-divider>
-                                <v-list-item @click="() => { selectedIds = new Set([item.id]); emit('deleteSelected') }"
-                                    title="Delete" value="delete" color="error">
-                                    <template v-slot:prepend>
-                                        <Trash2 :size="16" class="mr-2" />
-                                    </template>
-                                </v-list-item>
-                            </v-list>
-                        </v-menu>
-                    </div>
-                </template>
-
-                <!-- Empty State -->
-                <template #no-data>
-                    <div class="d-flex flex-column align-center justify-center pa-10 text-center animate-in">
-                        <v-avatar size="100" color="surface-variant" variant="tonal" class="mb-6">
-                            <FileText :size="48" class="opacity-50" />
-                        </v-avatar>
-                        <h3 class="text-h5 font-weight-black mb-1">No Transactions Found</h3>
-                        <p class="text-body-1 text-medium-emphasis">Adjust your filters or try a different search term.
-                        </p>
-                        <v-btn color="primary" variant="text" class="mt-4 font-weight-bold" @click="handleReset">Clear
-                            All
-                            Filters</v-btn>
-                    </div>
-                </template>
-
-                <!-- Loading State -->
-                <template #loading>
-                    <div class="py-2">
-                        <div v-for="i in 10" :key="i"
-                            class="d-flex align-center px-4 py-3 border-b border-opacity-25 glass-loader-row">
-                            <!-- Avatar Skeleton -->
-                            <v-skeleton-loader type="avatar" size="40" class="mr-4 skeleton-glass"></v-skeleton-loader>
-
-                            <!-- Title & Subtitle Skeleton -->
-                            <div class="flex-grow-1 mr-4">
-                                <v-skeleton-loader type="text" width="60%"
-                                    class="mb-1 skeleton-glass"></v-skeleton-loader>
-                                <v-skeleton-loader type="text" width="40%" height="12"
-                                    class="skeleton-glass"></v-skeleton-loader>
-                            </div>
-
-                            <!-- Amount Skeleton -->
-                            <div class="text-right">
-                                <v-skeleton-loader type="text" width="80px" class="skeleton-glass"></v-skeleton-loader>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-            </v-data-table-server>
-        </v-card>
+            <WfPagination :page="page" :page-size="pageSize" :total="total"
+                @update:page="emit('update:page', $event)"
+                @update:page-size="emit('update:pageSize', $event)" />
+        </WfCard>
 
         <MerchantAliasModal v-model="showAliasModal" :initial-pattern="aliasForm.pattern"
             :initial-alias="aliasForm.alias" @saved="() => { emit('fetchData') }" />
@@ -362,6 +308,11 @@
 
 <script setup lang="ts">
 import { computed, ref, reactive } from 'vue'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfMenu from '@/components/ui/WfMenu.vue'
+import WfPagination from '@/components/ui/WfPagination.vue'
 import MerchantAliasModal from '@/components/MerchantAliasModal.vue'
 import { useCurrency } from '@/composables/useCurrency'
 import {
@@ -376,7 +327,13 @@ import {
     TrendingUp,
     TrendingDown,
     Wallet,
-    ArrowUpRight
+    ArrowUpRight,
+    BarChart2,
+    Store,
+    ArrowUp,
+    ArrowDown,
+    RotateCcw,
+    X
 } from 'lucide-vue-next'
 
 const { formatAmount } = useCurrency()
@@ -487,29 +444,22 @@ function openAliasModal(txn: TransactionItem) {
 // Local State
 const selectedIds = defineModel<Set<string>>('selectedIds', { default: () => new Set() })
 
-// Headers for v-data-table
-const headers = [
-    { title: 'Date', key: 'date', sortable: true, width: '110px' },
-    { title: 'Recipient / Source', key: 'recipient', sortable: true, width: '250px' },
-    { title: 'Description', key: 'description', sortable: false },
-    { title: 'Amount', key: 'amount', sortable: true, align: 'end' as const, width: '130px' },
-    { title: '', key: 'actions', sortable: false, align: 'center' as any, width: '60px' },
+const sortableHeaders = [
+    { title: 'Date', key: 'date', sortable: true, width: 'w-[110px]', align: 'left' },
+    { title: 'Recipient / Source', key: 'recipient', sortable: true, width: 'w-[250px]', align: 'left' },
+    { title: 'Description', key: 'description', sortable: false, width: '', align: 'left' },
+    { title: 'Amount', key: 'amount', sortable: true, width: 'w-[130px]', align: 'right' },
 ]
 
-// Adaptation for v-data-table selection (array based) vs parent's Set based
-const tableSelection = computed({
-    get: () => Array.from(selectedIds.value),
-    set: (newSelection: any[]) => {
-        selectedIds.value = new Set(newSelection)
-    }
-})
+const netFlow = computed(() =>
+    props.metrics.monthly_income - props.metrics.monthly_spending - (props.metrics.monthly_investment || 0))
 
 // Computed
 const accountOptions = computed(() => {
     return [{ title: 'All Accounts', value: '' }, ...props.accounts.map(a => ({ title: a.name, value: a.id }))]
 })
 
-const flatCategories = computed(() => {
+const flatCategories = computed<CategoryItem[]>(() => {
     const list: CategoryItem[] = []
     const flatten = (cats: CategoryItem[]) => {
         cats.forEach(c => {
@@ -524,28 +474,50 @@ const flatCategories = computed(() => {
 })
 
 const categoryOptions = computed(() => {
-    const options = flatCategories.value.map(c => {
-        // Find depth for indentation
-        let depth = 0
-        let current = c
-        while (current.parent_id) {
-            depth++
-            const parent = flatCategories.value.find(p => p.id === current.parent_id)
-            if (!parent) break
-            current = parent
-        }
+    const list: { title: string; value: string }[] = []
 
-        const prefix = depth > 0 ? '　'.repeat(depth) + '└ ' : ''
-        return {
-            title: `${prefix}${c.icon || '🏷️'} ${c.name}`,
-            value: c.name
-        }
-    })
+    const buildTree = (flatList: CategoryItem[]) => {
+        const lookup = new Map<string, any>()
+        const roots: any[] = []
 
-    if (!options.find(o => o.value === 'Uncategorized')) {
-        options.push({ title: '🏷️ Uncategorized', value: 'Uncategorized' })
+        flatList.forEach(c => {
+            lookup.set(c.id || c.name, { ...c, subcategories: [] })
+        })
+
+        flatList.forEach(c => {
+            const parentKey = c.parent_id
+            if (parentKey && lookup.has(parentKey)) {
+                lookup.get(parentKey).subcategories.push(lookup.get(c.id || c.name))
+            } else {
+                roots.push(lookup.get(c.id || c.name))
+            }
+        })
+        return roots
     }
-    return options
+
+    const flatten = (cats: any[], depth = 0) => {
+        const sorted = [...cats].sort((a, b) => a.name.localeCompare(b.name))
+        sorted.forEach(c => {
+            const prefix = depth > 0 ? '　'.repeat(depth) + '└ ' : ''
+            list.push({
+                title: `${prefix}${c.icon || '🏷️'} ${c.name}`,
+                value: c.name
+            })
+            if (c.subcategories && c.subcategories.length > 0) {
+                flatten(c.subcategories, depth + 1)
+            }
+        })
+    }
+
+    const hasTreeStructure = props.categories.some(c => c.subcategories && c.subcategories.length > 0)
+    const tree = hasTreeStructure ? props.categories.filter(c => !c.parent_id) : buildTree(props.categories)
+
+    flatten(tree)
+
+    if (!list.find(o => o.value === 'Uncategorized')) {
+        list.push({ title: '🏷️ Uncategorized', value: 'Uncategorized' })
+    }
+    return list
 })
 
 const timeRangeOptions = [
@@ -558,20 +530,29 @@ const timeRangeOptions = [
 ]
 
 // Methods
-function handleOptionsUpdate(options: any) {
-    if (options.sortBy && options.sortBy.length > 0) {
-        const field = options.sortBy[0].key
-        if (field !== props.txnSortKey) {
-            emit('sortChange', field)
-        }
-    }
-    if (options.page !== props.page) {
-        emit('update:page', options.page)
-    }
-    if (options.itemsPerPage !== props.pageSize) {
-        emit('update:pageSize', options.itemsPerPage)
+function handleRowClick(item: TransactionItem) {
+    if (!item) return
+    const vendorName = item.recipient || item.description || ''
+    if (vendorName) {
+        emit('showVendorInsights', vendorName)
     }
 }
+
+function ariaSort(key: string) {
+    if (props.txnSortKey !== key) return 'none'
+    return props.txnSortOrder === 'asc' ? 'ascending' : 'descending'
+}
+
+const allSelected = computed(() =>
+    props.transactions.length > 0 && props.transactions.every(t => selectedIds.value.has(t.id)))
+
+function toggleAll() {
+    const next = new Set(selectedIds.value)
+    if (allSelected.value) props.transactions.forEach(t => next.delete(t.id))
+    else props.transactions.forEach(t => next.add(t.id))
+    selectedIds.value = next
+}
+
 
 function toggleSelection(id: string) {
     const newSet = new Set(selectedIds.value)
@@ -657,102 +638,35 @@ function handleReset() {
 </script>
 
 <style scoped>
-/* Skeleton Loader Overrides */
-.skeleton-glass {
-    background: transparent !important;
+.wf-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: var(--wf-radius-sm, 4px);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
 }
-
-.skeleton-glass :deep(.v-skeleton-loader__bone) {
-    background: rgba(var(--v-theme-on-surface), 0.05) !important;
-    border-radius: 8px;
+.wf-date-input {
+    height: 32px;
+    width: 125px;
+    padding: 0 8px;
+    font-size: 12px;
+    border-radius: var(--wf-radius-md, 8px);
+    border: 1px solid var(--wf-color-border);
+    background: var(--wf-color-surface);
+    color: var(--wf-color-text-primary);
 }
-
-.skeleton-glass :deep(.v-skeleton-loader__avatar) {
-    border-radius: 12px;
-}
-
-.glass-loader-row {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: .5;
-    }
-}
-
-.premium-glass-card {
-    background: rgba(var(--v-theme-surface), 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-    border-radius: 24px;
-}
-
-.glass-card {
-    background: rgba(var(--v-theme-surface), 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
-
-.date-cell {
-    line-height: 1.3;
-}
-
-.source-icon-mini {
-    font-size: 0.75rem;
-}
-
-.hidden-txn-row {
-    opacity: 0.5;
-    filter: grayscale(0.5);
-    background: rgba(var(--v-theme-on-surface), 0.02);
-}
-
-.hover-underline:hover {
-    text-decoration: underline !important;
-}
-
-.animate-in {
-    animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.gap-1 {
-    gap: 4px;
-}
-
-.gap-2 {
+.wf-menu-item {
+    display: flex;
+    align-items: center;
     gap: 8px;
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 12px;
+    text-align: left;
+    color: var(--wf-color-text-primary);
 }
-
-.gap-3 {
-    gap: 12px;
-}
-
-.gap-4 {
-    gap: 16px;
-}
-
-/* Custom Scrollbar for the table if needed */
-.premium-table :deep(.v-table__wrapper) {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(var(--v-theme-on-surface), 0.1) transparent;
-}
+.wf-menu-item:hover { background: var(--wf-color-surface-variant); }
 </style>
