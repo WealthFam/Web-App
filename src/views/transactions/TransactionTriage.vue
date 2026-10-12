@@ -752,17 +752,12 @@ const { formatAmount } = useCurrency()
 </script>
 
 <style scoped>
-.cat-needed-warning :deep(.v-field__outline) {
-    --v-field-border-opacity: 0.5;
-    border-color: rgba(var(--v-theme-warning), 0.6) !important;
-}
-
-.triage-cat-input :deep(.v-field) {
-    border-radius: 10px;
+.cat-needed-warning {
+    border-color: #f59e0b !important;
 }
 
 .border-thin {
-    border: 1px solid rgba(var(--v-border-color), 0.15) !important;
+    border: 1px solid rgba(226, 232, 240, 0.5) !important;
 }
 
 .animate-in {

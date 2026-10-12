@@ -61,7 +61,20 @@
         <!-- SEARCH RESULTS GRID -->
         <div v-if="isSearching" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
             <div v-for="i in 8" :key="`skel-${i}`"
-                class="p-3 rounded-wf-md border border-wf-border bg-wf-surface h-40 animate-pulse"></div>
+                class="p-3 rounded-wf-md border border-wf-border bg-wf-surface h-40 animate-pulse flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-7 h-7 rounded-wf-sm bg-wf-surface-variant"></div>
+                        <div class="w-16 h-4 rounded-wf-pill bg-wf-surface-variant"></div>
+                    </div>
+                    <div class="h-3 w-3/4 bg-wf-surface-variant rounded-wf-xs mb-1.5"></div>
+                    <div class="h-3 w-1/2 bg-wf-surface-variant rounded-wf-xs"></div>
+                </div>
+                <div class="pt-2 border-t border-wf-border-subtle flex justify-between items-end">
+                    <div class="h-5 w-16 bg-wf-surface-variant rounded-wf-xs"></div>
+                    <div class="h-5 w-14 bg-wf-surface-variant rounded-wf-xs"></div>
+                </div>
+            </div>
         </div>
 
         <div v-else-if="searchResults.length > 0"
@@ -137,9 +150,28 @@
         </div>
 
         <!-- PAGINATION -->
-        <div v-if="totalPages > 1 && !isSearching" class="flex justify-center mt-4 mb-2">
-            <v-pagination v-model="currentPage" :length="totalPages" total-visible="7" rounded="lg" color="primary"
-                density="compact" @update:model-value="handleSearch" />
+        <div v-if="totalPages > 1 && !isSearching" class="flex items-center justify-center gap-2 mt-4 mb-2">
+            <button
+                type="button"
+                :disabled="currentPage === 1"
+                @click="handleSearch(currentPage - 1)"
+                class="h-8 w-8 rounded-wf-md border border-wf-border bg-wf-surface hover:bg-wf-surface-variant flex items-center justify-center text-wf-text-secondary disabled:opacity-40 cursor-pointer transition-colors"
+                title="Previous Page"
+            >
+                <ChevronLeft :size="16" />
+            </button>
+            <span class="text-xs font-semibold text-wf-text-secondary px-2">
+                Page <strong class="text-wf-text-primary">{{ currentPage }}</strong> of {{ totalPages }}
+            </span>
+            <button
+                type="button"
+                :disabled="currentPage >= totalPages"
+                @click="handleSearch(currentPage + 1)"
+                class="h-8 w-8 rounded-wf-md border border-wf-border bg-wf-surface hover:bg-wf-surface-variant flex items-center justify-center text-wf-text-secondary disabled:opacity-40 cursor-pointer transition-colors"
+                title="Next Page"
+            >
+                <ChevronRight :size="16" />
+            </button>
         </div>
 
         <!-- Curated Discovery -->
@@ -160,7 +192,7 @@
                     <div class="mb-3">
                         <div class="w-8 h-8 rounded-wf-sm flex items-center justify-center mb-2"
                             :style="{ background: collection.color + '20' }">
-                            <v-icon :icon="collection.icon" :color="collection.color" size="18" />
+                            <component :is="collection.icon" :size="18" :style="{ color: collection.color }" />
                         </div>
                         <div
                             class="text-xs font-bold text-wf-text-primary group-hover:text-wf-primary transition-colors mb-0.5">
@@ -183,7 +215,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
-import { Search, Plus, TrendingUp, Sparkles, ArrowRight } from 'lucide-vue-next'
+import { Search, Plus, TrendingUp, Sparkles, ArrowRight, ChevronLeft, ChevronRight, ShieldCheck, Star, Target } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import WfCard from '@/components/ui/WfCard.vue'
 import InvestModal from './modals/InvestModal.vue'
@@ -214,10 +246,10 @@ const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.valu
 
 // Curated Collections Data
 const curatedCollections = [
-    { title: 'High Growth', subtitle: 'Aggressive equity for long term alpha generation', icon: 'mdi-chart-line-variant', color: '#3b82f6' },
-    { title: 'Tax Savers', subtitle: 'Strategic ELSS funds with 80C compliance', icon: 'mdi-shield-check', color: '#10b981' },
-    { title: 'Top Rated', subtitle: 'Consistently 5-star rated by major analysts', icon: 'mdi-star', color: '#f59e0b' },
-    { title: 'Passive Index', subtitle: 'Cost-efficient Nifty & Sensex trackers', icon: 'mdi-target', color: '#8b5cf6' },
+    { title: 'High Growth', subtitle: 'Aggressive equity for long term alpha generation', icon: TrendingUp, color: '#3b82f6' },
+    { title: 'Tax Savers', subtitle: 'Strategic ELSS funds with 80C compliance', icon: ShieldCheck, color: '#10b981' },
+    { title: 'Top Rated', subtitle: 'Consistently 5-star rated by major analysts', icon: Star, color: '#f59e0b' },
+    { title: 'Passive Index', subtitle: 'Cost-efficient Nifty & Sensex trackers', icon: Target, color: '#8b5cf6' },
 ]
 
 // Modals
@@ -409,8 +441,8 @@ function openInvestModal(fund: any) {
 }
 
 .stat-pill-premium.secondary {
-    background: rgba(var(--v-theme-secondary), 0.1);
-    border-color: rgba(var(--v-theme-secondary), 0.2);
+    background: rgba(168, 85, 247, 0.1);
+    border-color: rgba(168, 85, 247, 0.2);
 }
 
 .stat-pill-premium:hover {
@@ -418,16 +450,8 @@ function openInvestModal(fund: any) {
     transform: translateX(-10px);
 }
 
-/* Premium Search */
-.premium-search-field :deep(.v-field) {
-    background: white !important;
-    box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.2) !important;
-    border: none !important;
-    padding-right: 4px !important;
-}
-
 .premium-discover-btn {
-    background: linear-gradient(135deg, rgba(var(--v-theme-primary), 1) 0%, rgba(var(--v-theme-primary), 0.8) 100%) !important;
+    background: linear-gradient(135deg, rgb(99, 102, 241) 0%, rgba(99, 102, 241, 0.8) 100%) !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     text-transform: uppercase;
     letter-spacing: 1.5px !important;
@@ -435,7 +459,7 @@ function openInvestModal(fund: any) {
 
 .premium-discover-btn:hover {
     transform: scale(1.02) translateY(-1px);
-    box-shadow: 0 10px 25px -5px rgba(var(--v-theme-primary), 0.5) !important;
+    box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5) !important;
 }
 
 /* Results Grid */
@@ -479,16 +503,7 @@ function openInvestModal(fund: any) {
 }
 
 .bg-primary-opacity-5 {
-    background: rgba(var(--v-theme-primary), 0.05);
-}
-
-/* Pagination Styling */
-.premium-pagination :deep(.v-pagination__item--active) {
-    box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3);
-}
-
-.premium-pagination :deep(.v-pagination__list) {
-    gap: 8px;
+    background: rgba(99, 102, 241, 0.05);
 }
 
 /* Utilities */
@@ -501,7 +516,7 @@ function openInvestModal(fund: any) {
 }
 
 .bg-glass {
-    background: rgba(var(--v-theme-surface), 0.6);
+    background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(10px);
 }
 

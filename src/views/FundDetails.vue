@@ -15,6 +15,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import WfCard from '@/components/ui/WfCard.vue'
 import WfModal from '@/components/ui/WfModal.vue'
+import WfButton from '@/components/ui/WfButton.vue'
 import InvestModal from './mutual-funds/modals/InvestModal.vue'
 import RedeemModal from './mutual-funds/modals/RedeemModal.vue'
 import LinkGoalModal from './mutual-funds/modals/LinkGoalModal.vue'
@@ -51,6 +52,7 @@ const insightsError = ref<string | null>(null)
 const benchmarkData = ref<any[]>([])
 const benchmarksData = ref<any[]>([])
 const selectedBenchmarkSymbols = ref<string[]>(['120716']) // Default to Nifty 50
+const showBenchmarkDropdown = ref(false)
 
 const filteredBenchmarksData = computed(() => {
     return benchmarksData.value.filter(bm => selectedBenchmarkSymbols.value.includes(bm.symbol))
@@ -237,11 +239,11 @@ const formattedSummary = computed(() => {
 const getInsightColor = (type: string) => {
     const t = (type || '').toLowerCase()
     switch (t) {
-        case 'success': return 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
-        case 'warning': return 'bg-amber-500/10 border-amber-500/20 text-amber-500'
+        case 'success': return 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+        case 'warning': return 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400'
         case 'danger':
-        case 'error': return 'bg-rose-500/10 border-rose-500/20 text-rose-500'
-        default: return 'bg-primary/10 border-primary/20 text-primary'
+        case 'error': return 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
+        default: return 'bg-wf-primary-light border-indigo-200 dark:border-indigo-900/50 text-wf-primary'
     }
 }
 
@@ -280,35 +282,35 @@ function isImageUrl(url: string) {
         <div class="space-y-4 pb-8">
             <!-- Loading State -->
             <div v-if="isLoading && !holding" class="flex flex-col items-center justify-center min-h-[50vh] gap-3">
-                <v-progress-circular indeterminate color="primary" size="36" width="3" />
+                <div class="w-9 h-9 rounded-full border-2 border-wf-primary border-t-transparent animate-spin"></div>
                 <span class="text-xs font-semibold text-wf-text-muted">Loading holding architecture...</span>
             </div>
 
             <template v-else-if="holding">
                 <!-- Header Card -->
-                <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card">
+                <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border bg-wf-surface shadow-2xs">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div class="flex items-center gap-3 min-w-0">
                             <button
                                 type="button"
                                 @click="router.back()"
-                                class="h-9 w-9 rounded-wf-lg border border-wf-border bg-wf-surface-variant hover:bg-wf-surface-variant/80 flex items-center justify-center text-wf-text-muted hover:text-wf-text-primary transition-colors flex-shrink-0"
+                                class="h-8 w-8 rounded-wf-md border border-wf-border bg-wf-surface-variant hover:bg-wf-surface-variant/80 flex items-center justify-center text-wf-text-muted hover:text-wf-text-primary transition-colors flex-shrink-0"
                                 title="Go Back"
                             >
-                                <ChevronLeft :size="20" />
+                                <ChevronLeft :size="18" />
                             </button>
                             <div class="min-w-0">
                                 <div class="flex items-center gap-2.5 flex-wrap">
                                     <h1 class="text-base sm:text-lg font-bold text-wf-text-primary truncate">
                                         {{ holding.scheme_name }}
                                     </h1>
-                                    <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-wf-full bg-primary/10 text-primary border border-primary/20">
+                                    <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-wf-pill bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
                                         {{ holding.category || 'Mutual Fund' }}
                                     </span>
                                 </div>
-                                <div class="flex items-center gap-3.5 mt-1.5 flex-wrap text-xs text-wf-text-muted">
+                                <div class="flex items-center gap-3.5 mt-1 flex-wrap text-xs text-wf-text-muted">
                                     <div class="flex items-center gap-1 font-mono text-xs">
-                                        <Fingerprint :size="13" class="opacity-70 text-primary" />
+                                        <Fingerprint :size="13" class="opacity-70 text-wf-primary" />
                                         <span>{{ holding.scheme_code }}</span>
                                     </div>
                                     <div v-if="holding.isin_growth" class="flex items-center gap-1 font-mono text-xs">
@@ -328,7 +330,7 @@ function isImageUrl(url: string) {
                             <button
                                 type="button"
                                 @click="showDeepDiveModal = true"
-                                class="h-9 px-3 text-xs font-semibold rounded-wf-md border border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 active:scale-95 transition-all flex items-center gap-1.5"
+                                class="h-8 px-3 text-xs font-semibold rounded-wf-md border border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-all flex items-center gap-1.5"
                             >
                                 <Trash2 :size="13" />
                                 <span>Manage Records</span>
@@ -336,25 +338,26 @@ function isImageUrl(url: string) {
                             <button
                                 type="button"
                                 @click="showRedeemModal = true"
-                                class="h-9 px-3.5 text-xs font-semibold rounded-wf-md border border-wf-border bg-wf-surface-variant hover:bg-wf-surface-variant/80 text-wf-text-primary active:scale-95 transition-all"
+                                class="h-8 px-3.5 text-xs font-semibold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 hover:bg-wf-surface-variant text-wf-text-primary transition-all"
                             >
                                 Redeem
                             </button>
-                            <button
-                                type="button"
+                            <WfButton
+                                variant="primary"
+                                size="sm"
                                 @click="showInvestModal = true"
-                                class="h-9 px-4 text-xs font-bold rounded-wf-md bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5"
+                                class="shadow-2xs font-bold shrink-0"
                             >
                                 <span>Invest More</span>
-                            </button>
+                            </WfButton>
                         </div>
                     </div>
                 </WfCard>
 
                 <!-- KPI Metric Strip (4 Cards) -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
                     <!-- Invested Value -->
-                    <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card">
+                    <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border bg-wf-surface shadow-2xs">
                         <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted mb-1.5">
                             Invested Value
                         </div>
@@ -364,30 +367,30 @@ function isImageUrl(url: string) {
                     </WfCard>
 
                     <!-- Current Value -->
-                    <WfCard padding="md" radius="xl" class="border-primary/25 bg-primary/5 shadow-wf-card">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-primary mb-1.5">
+                    <WfCard variant="flat" padding="md" radius="lg" class="border border-indigo-200 dark:border-indigo-900/50 bg-wf-primary-light/30 shadow-2xs">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-wf-primary mb-1.5">
                             Current Value
                         </div>
-                        <div class="text-base sm:text-xl font-bold font-mono text-primary">
+                        <div class="text-base sm:text-xl font-bold font-mono text-wf-primary">
                             {{ formatAmount(holding.current_value) }}
                         </div>
                     </WfCard>
 
                     <!-- Absolute Returns -->
-                    <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card">
+                    <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border bg-wf-surface shadow-2xs">
                         <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted mb-1.5">
                             Absolute Returns
                         </div>
                         <div class="flex items-baseline gap-2">
                             <span
                                 class="text-base sm:text-xl font-bold font-mono"
-                                :class="holding.profit_loss >= 0 ? 'text-emerald-500' : 'text-rose-500'"
+                                :class="holding.profit_loss >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
                             >
                                 {{ holding.profit_loss >= 0 ? '+' : '' }}{{ formatAmount(holding.profit_loss) }}
                             </span>
                             <span
-                                class="px-1.5 py-0.5 text-[10px] font-bold rounded-wf-sm font-mono"
-                                :class="holding.profit_loss >= 0 ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'"
+                                class="px-1.5 py-0.5 text-[10px] font-bold rounded-wf-xs font-mono"
+                                :class="holding.profit_loss >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'"
                             >
                                 {{ ((holding.profit_loss / (holding.invested_value || 1)) * 100).toFixed(2) }}%
                             </span>
@@ -395,25 +398,25 @@ function isImageUrl(url: string) {
                     </WfCard>
 
                     <!-- Personal XIRR -->
-                    <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card">
+                    <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border bg-wf-surface shadow-2xs">
                         <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted mb-1.5">
                             Personal XIRR
                         </div>
-                        <div class="text-base sm:text-xl font-bold font-mono" :class="holding.xirr >= 0 ? 'text-emerald-500' : 'text-rose-500'">
+                        <div class="text-base sm:text-xl font-bold font-mono" :class="holding.xirr >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
                             {{ holding.xirr ? holding.xirr.toFixed(2) + '%' : 'N/A' }}
                         </div>
                     </WfCard>
                 </div>
 
                 <!-- Main Content Grid -->
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
                     <!-- Left: Performance Chart & Activity History (8 cols) -->
-                    <div class="lg:col-span-8 space-y-4">
+                    <div class="lg:col-span-8 space-y-3.5">
                         <!-- Portfolio Growth Chart -->
-                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card">
+                        <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border bg-wf-surface shadow-2xs">
                             <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
                                 <div class="flex items-center gap-2">
-                                    <TrendingUp :size="16" class="text-primary" />
+                                    <TrendingUp :size="16" class="text-wf-primary" />
                                     <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary">Portfolio Growth Timeline</span>
                                     <span v-if="holding.nav_history?.length" class="text-xs text-wf-text-muted">
                                         (from {{ formatDate(holding.nav_history[0].date) }})
@@ -421,17 +424,18 @@ function isImageUrl(url: string) {
                                 </div>
 
                                 <!-- Benchmarks Dropdown Menu -->
-                                <v-menu :close-on-content-click="false" location="bottom end" offset="6">
-                                    <template v-slot:activator="{ props }">
-                                        <button
-                                            v-bind="props"
-                                            type="button"
-                                            class="h-7 px-2.5 text-xs font-bold rounded-wf-md border border-primary/25 bg-primary/10 text-primary hover:bg-primary/20 flex items-center gap-1.5 transition-colors"
-                                        >
-                                            <span>BENCHMARKS ({{ selectedBenchmarkSymbols.length }})</span>
-                                        </button>
-                                    </template>
-                                    <div class="p-2.5 rounded-wf-xl border border-wf-border bg-wf-surface shadow-wf-modal min-w-[220px] space-y-1">
+                                <div class="relative">
+                                    <button
+                                        type="button"
+                                        @click="showBenchmarkDropdown = !showBenchmarkDropdown"
+                                        class="h-7 px-2.5 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 hover:bg-wf-surface-variant text-wf-text-secondary flex items-center gap-1.5 transition-colors cursor-pointer"
+                                    >
+                                        <span>BENCHMARKS ({{ selectedBenchmarkSymbols.length }})</span>
+                                    </button>
+                                    <div
+                                        v-if="showBenchmarkDropdown"
+                                        class="absolute right-0 top-full mt-1.5 z-50 p-2.5 rounded-wf-lg border border-wf-border bg-wf-surface shadow-wf-modal min-w-[220px] space-y-1"
+                                    >
                                         <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted px-2 py-1">Benchmark Indices</div>
                                         <div
                                             v-for="bm in benchmarksData"
@@ -450,13 +454,13 @@ function isImageUrl(url: string) {
                                             <div class="w-2.5 h-2.5 rounded-full" :style="{ background: bm.styling?.color || '#94a3b8' }"></div>
                                         </div>
                                     </div>
-                                </v-menu>
+                                </div>
                             </div>
 
                             <!-- Chart Canvas -->
                             <div class="h-[340px] sm:h-[380px] w-full">
                                 <div v-if="isTimelineLoading" class="flex flex-col items-center justify-center h-full gap-2">
-                                    <v-progress-circular indeterminate color="primary" size="32" width="2" />
+                                    <div class="w-8 h-8 rounded-full border-2 border-wf-primary border-t-transparent animate-spin"></div>
                                     <span class="text-xs font-medium text-wf-text-muted">Calculating Portfolio History...</span>
                                 </div>
                                 <template v-else>
@@ -481,21 +485,21 @@ function isImageUrl(url: string) {
                         </WfCard>
 
                         <!-- Activity History Table -->
-                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card space-y-3">
+                        <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border bg-wf-surface shadow-2xs space-y-3">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2">
-                                    <History :size="16" class="text-primary" />
+                                    <History :size="16" class="text-wf-primary" />
                                     <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary">Activity History</span>
                                 </div>
-                                <span class="px-2 py-0.5 text-xs font-bold rounded-wf-full bg-wf-surface-variant text-wf-text-secondary border border-wf-border">
+                                <span class="px-2 py-0.5 text-xs font-bold rounded-wf-pill bg-wf-surface-variant text-wf-text-secondary border border-wf-border">
                                     {{ transactions.length }} Records
                                 </span>
                             </div>
 
-                            <div class="overflow-x-auto rounded-wf-lg border border-wf-border">
+                            <div class="overflow-x-auto rounded-wf-md border border-wf-border">
                                 <table class="w-full text-left border-collapse text-xs">
                                     <thead>
-                                        <tr class="bg-wf-surface-variant/50 border-b border-wf-border text-[10px] font-bold uppercase tracking-wider text-wf-text-muted">
+                                        <tr class="bg-wf-surface-variant/40 border-b border-wf-border text-[10px] font-bold uppercase tracking-wider text-wf-text-muted">
                                             <th class="py-2.5 px-3">Date</th>
                                             <th class="py-2.5 px-3">Type</th>
                                             <th class="py-2.5 px-3 text-right">Units</th>
@@ -504,23 +508,23 @@ function isImageUrl(url: string) {
                                             <th class="py-2.5 px-3 text-right">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-wf-border">
+                                    <tbody class="divide-y divide-wf-border-subtle">
                                         <tr v-for="t in transactions" :key="t.id" class="hover:bg-wf-surface-variant/30 transition-colors">
                                             <td class="py-2.5 px-3 font-medium text-wf-text-primary">
                                                 {{ formatDate(t.date) }}
                                             </td>
                                             <td class="py-2.5 px-3">
                                                 <span
-                                                    class="px-2 py-0.5 text-[10px] font-bold rounded-wf-sm"
-                                                    :class="t.type === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'"
+                                                    class="px-2 py-0.5 text-[10px] font-bold rounded-wf-xs font-mono"
+                                                    :class="t.type === 'BUY' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'"
                                                 >
                                                     {{ t.type }}
                                                 </span>
                                             </td>
-                                            <td class="py-2.5 px-3 text-right font-mono text-wf-text-muted">
+                                            <td class="py-2.5 px-3 text-right font-mono text-wf-text-secondary">
                                                 {{ Number(t.units).toFixed(3) }}
                                             </td>
-                                            <td class="py-2.5 px-3 text-right font-mono text-wf-text-muted">
+                                            <td class="py-2.5 px-3 text-right font-mono text-wf-text-secondary">
                                                 {{ formatAmount(t.nav) }}
                                             </td>
                                             <td class="py-2.5 px-3 text-right font-mono font-bold text-wf-text-primary">
@@ -531,7 +535,7 @@ function isImageUrl(url: string) {
                                                     <button
                                                         type="button"
                                                         @click="openEditTxn(t)"
-                                                        class="h-7 w-7 rounded-wf-md hover:bg-wf-surface-variant flex items-center justify-center text-primary transition-colors"
+                                                        class="h-7 w-7 rounded-wf-xs hover:bg-wf-surface-variant flex items-center justify-center text-wf-primary transition-colors cursor-pointer"
                                                         title="Edit Transaction"
                                                     >
                                                         <Edit :size="13" />
@@ -539,7 +543,7 @@ function isImageUrl(url: string) {
                                                     <button
                                                         type="button"
                                                         @click="openDeleteTxn(t)"
-                                                        class="h-7 w-7 rounded-wf-md hover:bg-rose-500/10 flex items-center justify-center text-rose-500 transition-colors"
+                                                        class="h-7 w-7 rounded-wf-xs hover:bg-rose-500/10 flex items-center justify-center text-rose-500 transition-colors cursor-pointer"
                                                         title="Delete Transaction"
                                                     >
                                                         <Trash2 :size="13" />
@@ -559,28 +563,28 @@ function isImageUrl(url: string) {
                     </div>
 
                     <!-- Right: Goal, Ownership, Key Metrics, Insights (4 cols) -->
-                    <div class="lg:col-span-4 space-y-4">
+                    <div class="lg:col-span-4 space-y-3.5">
                         <!-- Linked Goal Card -->
-                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card space-y-3">
+                        <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border bg-wf-surface shadow-2xs space-y-3">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary flex items-center gap-1.5">
-                                    <Target :size="14" class="text-primary" />
+                                    <Target :size="14" class="text-wf-primary" />
                                     <span>Linked Goal</span>
                                 </span>
                                 <button
                                     type="button"
                                     @click="showGoalModal = true"
-                                    class="h-7 w-7 rounded-wf-md hover:bg-wf-surface-variant flex items-center justify-center text-primary transition-colors"
+                                    class="h-7 w-7 rounded-wf-xs hover:bg-wf-surface-variant flex items-center justify-center text-wf-primary transition-colors cursor-pointer"
                                     title="Edit Goal Link"
                                 >
                                     <Edit2 :size="13" />
                                 </button>
                             </div>
 
-                            <div v-if="holding.goal" class="p-3 rounded-wf-lg border border-primary/20 bg-primary/5 space-y-2.5">
+                            <div v-if="holding.goal" class="p-3 rounded-wf-md border border-wf-border-subtle bg-wf-surface-variant/30 space-y-2.5">
                                 <div class="flex items-center gap-2.5">
                                     <div
-                                        class="w-8 h-8 rounded-wf-md flex items-center justify-center text-sm font-bold flex-shrink-0"
+                                        class="w-8 h-8 rounded-wf-sm flex items-center justify-center text-sm font-bold flex-shrink-0"
                                         :style="{ background: (holding.goal.color || '#3b82f6') + '20', color: holding.goal.color || '#3b82f6' }"
                                     >
                                         {{ holding.goal.icon || '🎯' }}
@@ -593,40 +597,41 @@ function isImageUrl(url: string) {
                                 <div class="space-y-1">
                                     <div class="w-full bg-wf-surface-variant rounded-full h-1.5 overflow-hidden">
                                         <div
-                                            class="bg-primary h-full rounded-full transition-all"
+                                            class="bg-wf-primary h-full rounded-full transition-all"
                                             :style="{ width: Math.min(100, Math.max(0, (holding.current_value / (holding.goal.target_amount || 1)) * 100)) + '%' }"
                                         ></div>
                                     </div>
-                                    <div class="flex justify-between text-[11px] font-semibold text-primary">
+                                    <div class="flex justify-between text-[11px] font-semibold text-wf-primary">
                                         <span>Contribution</span>
-                                        <span>{{ ((holding.current_value / (holding.goal.target_amount || 1)) * 100).toFixed(1) }}%</span>
+                                        <span class="font-mono">{{ ((holding.current_value / (holding.goal.target_amount || 1)) * 100).toFixed(1) }}%</span>
                                     </div>
                                 </div>
                             </div>
-                            <div v-else class="p-4 text-center rounded-wf-lg border border-dashed border-wf-border space-y-2">
-                                <AlertCircle :size="22" class="text-wf-text-muted opacity-40 mx-auto" />
+                            <div v-else class="p-4 text-center rounded-wf-md border border-dashed border-wf-border space-y-2">
+                                <AlertCircle :size="20" class="text-wf-text-muted opacity-40 mx-auto" />
                                 <div class="text-xs text-wf-text-muted">Not linked to any goal. Link to monitor target allocation.</div>
-                                <button
-                                    type="button"
+                                <WfButton
+                                    variant="primary"
+                                    size="sm"
                                     @click="showGoalModal = true"
-                                    class="h-7 px-3 text-xs font-semibold rounded-wf-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                                    class="shadow-2xs font-semibold"
                                 >
                                     Connect to Goal
-                                </button>
+                                </WfButton>
                             </div>
                         </WfCard>
 
                         <!-- Ownership Card -->
-                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card space-y-3">
+                        <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border bg-wf-surface shadow-2xs space-y-3">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary flex items-center gap-1.5">
-                                    <Shield :size="14" class="text-primary" />
+                                    <Shield :size="14" class="text-wf-primary" />
                                     <span>Ownership & Account</span>
                                 </span>
                                 <button
                                     type="button"
                                     @click="showUserModal = true"
-                                    class="h-7 w-7 rounded-wf-md hover:bg-wf-surface-variant flex items-center justify-center text-primary transition-colors"
+                                    class="h-7 w-7 rounded-wf-xs hover:bg-wf-surface-variant flex items-center justify-center text-wf-primary transition-colors cursor-pointer"
                                     title="Change Owner"
                                 >
                                     <Edit2 :size="13" />
@@ -634,7 +639,7 @@ function isImageUrl(url: string) {
                             </div>
 
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold overflow-hidden flex-shrink-0">
+                                <div class="w-9 h-9 rounded-wf-pill bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-xs font-bold overflow-hidden flex-shrink-0">
                                     <img v-if="isImageUrl(holding.user_avatar)" :src="holding.user_avatar" class="w-full h-full object-cover" />
                                     <span v-else>{{ holding.user_name?.charAt(0) || 'U' }}</span>
                                 </div>
@@ -646,7 +651,7 @@ function isImageUrl(url: string) {
                                 </div>
                             </div>
 
-                            <div class="pt-2 border-t border-wf-border space-y-2 text-xs">
+                            <div class="pt-2 border-t border-wf-border-subtle space-y-2 text-xs">
                                 <div class="flex justify-between items-center text-xs">
                                     <span class="text-wf-text-muted">Folio Number</span>
                                     <span class="font-mono font-bold text-wf-text-primary">{{ holding.folio_number || 'N/A' }}</span>
@@ -659,9 +664,9 @@ function isImageUrl(url: string) {
                         </WfCard>
 
                         <!-- Key Metrics Card -->
-                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card space-y-3">
+                        <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border bg-wf-surface shadow-2xs space-y-3">
                             <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary flex items-center gap-1.5">
-                                <AlertCircle :size="14" class="text-primary" />
+                                <AlertCircle :size="14" class="text-wf-primary" />
                                 <span>Holding Parameters</span>
                             </span>
                             <div class="space-y-2 text-xs">
@@ -675,23 +680,23 @@ function isImageUrl(url: string) {
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <span class="text-wf-text-muted">Latest NAV</span>
-                                    <span class="font-mono font-bold text-primary">{{ formatAmount(holding.last_nav) }}</span>
+                                    <span class="font-mono font-bold text-wf-primary">{{ formatAmount(holding.last_nav) }}</span>
                                 </div>
                             </div>
                         </WfCard>
 
                         <!-- AI Fund Insights Card -->
-                        <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card space-y-3">
+                        <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border bg-wf-surface shadow-2xs space-y-3">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary flex items-center gap-1.5">
-                                    <TrendingUp :size="14" class="text-primary" />
+                                    <TrendingUp :size="14" class="text-wf-primary" />
                                     <span>Fund Analysis</span>
                                 </span>
                                 <button
                                     type="button"
                                     @click="fetchFundInsights(true)"
                                     :disabled="isInsightsLoading"
-                                    class="h-7 w-7 rounded-wf-md hover:bg-wf-surface-variant flex items-center justify-center text-primary disabled:opacity-50 transition-colors"
+                                    class="h-7 w-7 rounded-wf-xs hover:bg-wf-surface-variant flex items-center justify-center text-wf-primary disabled:opacity-50 transition-colors cursor-pointer"
                                     title="Recalculate Analysis"
                                 >
                                     <RefreshCw :size="13" :class="{ 'animate-spin': isInsightsLoading }" />
@@ -699,21 +704,22 @@ function isImageUrl(url: string) {
                             </div>
 
                             <div v-if="isInsightsLoading" class="py-8 flex flex-col items-center justify-center gap-2">
-                                <v-progress-circular indeterminate color="primary" size="24" width="2" />
+                                <div class="w-6 h-6 rounded-full border-2 border-wf-primary border-t-transparent animate-spin"></div>
                                 <span class="text-xs font-medium text-wf-text-muted">Computing AI Intelligence...</span>
                             </div>
 
                             <div v-else-if="insightsError && !fundInsights" class="py-6 text-center space-y-2">
-                                <ZapOff :size="22" class="text-amber-500 mx-auto" />
+                                <ZapOff :size="20" class="text-amber-500 mx-auto" />
                                 <div class="text-xs font-bold text-wf-text-primary">Analysis Unavailable</div>
                                 <div class="text-[11px] text-wf-text-muted">{{ insightsError }}</div>
-                                <button
-                                    type="button"
+                                <WfButton
+                                    variant="primary"
+                                    size="sm"
                                     @click="fetchFundInsights(true)"
-                                    class="h-7 px-3 text-xs font-semibold rounded-wf-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors mt-1"
+                                    class="shadow-2xs font-semibold mt-1"
                                 >
                                     Retry Analysis
-                                </button>
+                                </WfButton>
                             </div>
 
                             <template v-else-if="fundInsights">
@@ -743,10 +749,10 @@ function isImageUrl(url: string) {
                                 <div class="text-xs leading-relaxed text-wf-text-secondary mf-insights-markdown" v-html="formattedSummary"></div>
 
                                 <!-- Tactical Suggestions -->
-                                <div v-if="fundInsights.suggestions?.length" class="pt-2 border-t border-wf-border space-y-2">
-                                    <div class="text-[10px] font-bold uppercase tracking-wider text-primary">Tactical Suggestions</div>
+                                <div v-if="fundInsights.suggestions?.length" class="pt-2 border-t border-wf-border-subtle space-y-2">
+                                    <div class="text-[10px] font-bold uppercase tracking-wider text-wf-primary">Tactical Suggestions</div>
                                     <div v-for="suggestion in fundInsights.suggestions" :key="suggestion.id" class="flex items-start gap-2 text-xs">
-                                        <Zap :size="13" class="text-primary mt-0.5 flex-shrink-0" />
+                                        <Zap :size="13" class="text-wf-primary mt-0.5 flex-shrink-0" />
                                         <div>
                                             <div class="font-bold text-wf-text-primary text-[11px]">{{ suggestion.title }}</div>
                                             <div class="text-[11px] text-wf-text-muted">{{ suggestion.content }}</div>

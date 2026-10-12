@@ -85,7 +85,7 @@ const polylineLabelsPlugin = {
         ctx.moveTo(startX, startY)
         ctx.lineTo(elbowX, elbowY)
         ctx.lineTo(endX, endY)
-        ctx.strokeStyle = dataset.backgroundColor[index] || 'rgba(var(--v-border-color), 0.5)'
+        ctx.strokeStyle = dataset.backgroundColor[index] || 'rgba(148, 163, 184, 0.5)'
         ctx.lineWidth = 2
         ctx.stroke()
 
@@ -145,7 +145,7 @@ const defaultOptions = computed(() => {
         titleFont: { size: 14, weight: 'bold' },
         bodyColor: isDark.value ? '#ffffff' : '#0f172a',
         titleColor: isDark.value ? '#ffffff' : '#0f172a',
-        borderColor: 'rgba(var(--v-border-color), 0.1)',
+        borderColor: isDark.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
         borderWidth: 1,
         callbacks: {
           label: (context: any) => {
@@ -216,7 +216,7 @@ const computedChartData = computed(() => {
 
   if (d.datasets) {
     d.datasets.forEach((dataset: any) => {
-      const color = dataset.borderColor || 'rgb(var(--v-theme-primary))'
+      const color = dataset.borderColor || '#6366f1'
       const resolvedColor = typeof color === 'string' ? resolveColor(color) : color
 
       dataset.borderColor = resolvedColor

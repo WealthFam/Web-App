@@ -52,6 +52,8 @@ const marketIndices = ref<any[]>([])
 const marketPulsePeriod = ref('1d')
 const isMarketPulseLoading = ref(false)
 const isRebuilding = ref(false)
+const showSettingsMenu = ref(false)
+const showBenchmarkMenu = ref(false)
 
 // Pagination & Sorting State
 const currentPage = ref(1)
@@ -430,12 +432,12 @@ watch(portfolio, (val) => emit('update:count', val.length))
                                 :title="index.name">{{ index.name }}</span>
                             <span class="text-[10px] font-bold font-mono"
                                 :class="index.isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
-                                {{ (index.changePercent != null ? index.changePercent : 0) >= 0 ? '+' : '' }}{{ Number(index.changePercent || 0).toFixed(2) }}%
+                                {{ index.percent || (((index.changePercent != null ? index.changePercent : 0) >= 0 ? '+' : '') + Number(index.changePercent || 0).toFixed(2) + '%') }}
                             </span>
                         </div>
                         <div class="flex items-baseline justify-between mt-1">
                             <span class="text-xs font-bold font-mono text-wf-text-primary">{{
-                                index.currentPrice != null ? index.currentPrice.toLocaleString('en-IN') : '0' }}</span>
+                                index.value || (index.currentPrice != null ? index.currentPrice.toLocaleString('en-IN') : '0') }}</span>
                             <div class="w-14 h-4">
                                 <Sparkline v-if="index.sparkline && index.sparkline.length > 1" :data="index.sparkline"
                                     :labels="index.labels" :color="index.isUp ? '#10b981' : '#ef4444'" :height="16"
@@ -451,7 +453,17 @@ watch(portfolio, (val) => emit('update:count', val.length))
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <template v-if="isLoading">
                 <div v-for="i in 4" :key="`skel-card-${i}`"
-                    class="p-4 sm:p-5 rounded-wf-lg border border-wf-border bg-wf-surface h-28 animate-pulse"></div>
+                    class="p-4 sm:p-5 rounded-wf-lg border border-wf-border bg-wf-surface h-28 animate-pulse flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <div class="h-3 w-24 bg-wf-surface-variant rounded-wf-xs"></div>
+                        <div class="w-6 h-6 rounded-wf-sm bg-wf-surface-variant"></div>
+                    </div>
+                    <div class="h-6 w-32 bg-wf-surface-variant rounded-wf-xs mt-2"></div>
+                    <div class="pt-2 border-t border-wf-border-subtle flex items-center justify-between">
+                        <div class="h-2.5 w-16 bg-wf-surface-variant rounded-wf-xs"></div>
+                        <div class="h-2.5 w-20 bg-wf-surface-variant rounded-wf-xs"></div>
+                    </div>
+                </div>
             </template>
             <template v-else>
                 <!-- Card 1: Current Value -->
@@ -622,16 +634,15 @@ watch(portfolio, (val) => emit('update:count', val.length))
                             </button>
 
                             <!-- Settings Menu -->
-                            <v-menu location="bottom end">
-                                <template v-slot:activator="{ props: menuProps }">
-                                    <button v-bind="menuProps" type="button"
-                                        class="h-7 w-7 rounded-wf-sm bg-wf-surface-variant hover:bg-wf-surface border border-wf-border text-wf-text-secondary flex items-center justify-center transition-colors"
-                                        title="Timeline Options">
-                                        <Settings :size="13" />
-                                    </button>
-                                </template>
-                                <div class="p-1.5 rounded-wf-md border border-wf-border bg-wf-surface shadow-lg min-w-[200px] space-y-1 text-xs">
-                                    <button type="button" @click="handleRebuildHoldings" :disabled="isRebuilding"
+                            <div class="relative">
+                                <button type="button" @click="showSettingsMenu = !showSettingsMenu; showBenchmarkMenu = false"
+                                    class="h-7 w-7 rounded-wf-sm bg-wf-surface-variant hover:bg-wf-surface border border-wf-border text-wf-text-secondary flex items-center justify-center transition-colors"
+                                    title="Timeline Options">
+                                    <Settings :size="13" />
+                                </button>
+                                <div v-if="showSettingsMenu"
+                                    class="absolute right-0 top-full mt-1 z-30 p-1.5 rounded-wf-md border border-wf-border bg-wf-surface shadow-lg min-w-[200px] space-y-1 text-xs">
+                                    <button type="button" @click="handleRebuildHoldings(); showSettingsMenu = false" :disabled="isRebuilding"
                                         class="w-full px-2.5 py-1.5 rounded-wf-sm text-left hover:bg-wf-surface-variant flex items-center gap-2 text-amber-500">
                                         <Activity :size="13" />
                                         <div>
@@ -639,30 +650,32 @@ watch(portfolio, (val) => emit('update:count', val.length))
                                             <div class="text-[9px] text-wf-text-muted">Fixes unit/cost desync</div>
                                         </div>
                                     </button>
-                                    <button type="button" @click="handleCleanupDuplicates"
+                                    <button type="button" @click="handleCleanupDuplicates(); showSettingsMenu = false"
                                         class="w-full px-2.5 py-1.5 rounded-wf-sm text-left hover:bg-rose-500/10 flex items-center gap-2 text-rose-500">
                                         <Trash2 :size="13" />
                                         <span>Cleanup Duplicates</span>
                                     </button>
                                 </div>
-                            </v-menu>
+                            </div>
 
                             <span class="px-2 py-0.5 text-[10px] font-bold rounded-wf-sm bg-wf-surface-variant text-wf-primary border border-wf-border flex items-center gap-1">
                                 <Calendar :size="12" /> 1Y
                             </span>
 
                             <!-- Benchmarks Popover -->
-                            <v-menu :close-on-content-click="false" location="bottom end">
-                                <template v-slot:activator="{ props: bmProps }">
-                                    <button v-bind="bmProps" type="button"
-                                        class="h-7 px-2.5 rounded-wf-sm text-xs font-semibold bg-wf-primary-light text-wf-primary hover:bg-indigo-100 border border-transparent transition-all flex items-center gap-1.5">
-                                        <TrendingUp :size="12" />
-                                        <span>Benchmarks ({{ selectedBenchmarkSymbols.length }})</span>
-                                    </button>
-                                </template>
-                                <div class="p-2 rounded-wf-md border border-wf-border bg-wf-surface shadow-lg min-w-[210px] space-y-1">
-                                    <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted px-2 py-1">
-                                        Select Indices
+                            <div class="relative">
+                                <button type="button" @click="showBenchmarkMenu = !showBenchmarkMenu; showSettingsMenu = false"
+                                    class="h-7 px-2.5 rounded-wf-sm text-xs font-semibold bg-wf-primary-light text-wf-primary hover:bg-indigo-100 border border-transparent transition-all flex items-center gap-1.5">
+                                    <TrendingUp :size="12" />
+                                    <span>Benchmarks ({{ selectedBenchmarkSymbols.length }})</span>
+                                </button>
+                                <div v-if="showBenchmarkMenu"
+                                    class="absolute right-0 top-full mt-1 z-30 p-2 rounded-wf-md border border-wf-border bg-wf-surface shadow-lg min-w-[210px] space-y-1">
+                                    <div class="flex items-center justify-between px-2 py-1">
+                                        <span class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted">Select Indices</span>
+                                        <button type="button" @click="showBenchmarkMenu = false" class="text-wf-text-muted hover:text-wf-text-primary">
+                                            <X :size="12" />
+                                        </button>
                                     </div>
                                     <div v-for="bm in benchmarksData" :key="bm.symbol"
                                         @click="selectedBenchmarkSymbols.includes(bm.symbol) ? selectedBenchmarkSymbols = selectedBenchmarkSymbols.filter(s => s !== bm.symbol) : selectedBenchmarkSymbols.push(bm.symbol)"
@@ -675,14 +688,14 @@ watch(portfolio, (val) => emit('update:count', val.length))
                                         <div class="w-2.5 h-2.5 rounded-xs" :style="{ background: bm.styling?.color }"></div>
                                     </div>
                                 </div>
-                            </v-menu>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Chart Canvas -->
                     <div class="w-full relative overflow-hidden pb-1">
                         <div v-if="isTimelineLoading" class="h-[260px] flex items-center justify-center">
-                            <v-progress-circular indeterminate color="primary" />
+                            <div class="w-6 h-6 border-2 border-wf-primary border-t-transparent rounded-full animate-spin"></div>
                         </div>
                         <FundPerformanceChart v-else-if="timelineData.length" :data="timelineData"
                             :benchmarks="filteredBenchmarksData" :height="260" valueLabel="Portfolio Value"

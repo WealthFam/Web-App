@@ -1,7 +1,63 @@
 <template>
-    <div class="premium-skeleton-container" :class="[type, { 'is-glass': glass }]">
-        <v-skeleton-loader :type="skeletonType" :height="height" :width="width" rounded="xl" class="premium-loader">
-        </v-skeleton-loader>
+    <div class="relative overflow-hidden rounded-wf-lg bg-wf-surface border border-wf-border/60"
+        :class="[containerClass, { 'backdrop-blur-md bg-wf-surface/60': glass }]"
+        :style="{ height: typeof height === 'number' ? `${height}px` : height, width: typeof width === 'number' ? `${width}px` : width }">
+        
+        <!-- Hero Variant -->
+        <div v-if="type === 'hero'" class="p-6 space-y-4 animate-pulse">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-wf-surface-variant"></div>
+                <div class="space-y-2 flex-1">
+                    <div class="h-4 bg-wf-surface-variant rounded w-1/3"></div>
+                    <div class="h-3 bg-wf-surface-variant rounded w-1/4"></div>
+                </div>
+            </div>
+            <div class="h-32 bg-wf-surface-variant/70 rounded-wf-md"></div>
+        </div>
+
+        <!-- Stat Card Variant -->
+        <div v-else-if="type === 'stat-card'" class="p-4 space-y-3 animate-pulse">
+            <div class="h-3 bg-wf-surface-variant rounded w-1/3"></div>
+            <div class="h-7 bg-wf-surface-variant rounded w-2/3"></div>
+            <div class="h-3 bg-wf-surface-variant rounded w-1/2"></div>
+        </div>
+
+        <!-- Category Card Variant -->
+        <div v-else-if="type === 'category-card'" class="p-5 space-y-3 animate-pulse">
+            <div class="h-28 bg-wf-surface-variant rounded-wf-md"></div>
+            <div class="h-4 bg-wf-surface-variant rounded w-2/3"></div>
+            <div class="h-3 bg-wf-surface-variant rounded w-1/3"></div>
+        </div>
+
+        <!-- Insight Card Variant -->
+        <div v-else-if="type === 'insight-card'" class="p-4 space-y-2.5 animate-pulse">
+            <div class="h-4 bg-wf-surface-variant rounded w-3/4"></div>
+            <div class="h-3 bg-wf-surface-variant rounded w-full"></div>
+            <div class="h-3 bg-wf-surface-variant rounded w-5/6"></div>
+        </div>
+
+        <!-- List Item Variant -->
+        <div v-else-if="type === 'list-item'" class="p-3 flex items-center gap-3 animate-pulse">
+            <div class="w-10 h-10 rounded-full bg-wf-surface-variant shrink-0"></div>
+            <div class="space-y-2 flex-1">
+                <div class="h-3.5 bg-wf-surface-variant rounded w-1/3"></div>
+                <div class="h-2.5 bg-wf-surface-variant rounded w-1/4"></div>
+            </div>
+            <div class="h-4 bg-wf-surface-variant rounded w-16"></div>
+        </div>
+
+        <!-- Pulse Card Variant -->
+        <div v-else-if="type === 'pulse-card'" class="p-4 space-y-2 animate-pulse">
+            <div class="h-3 bg-wf-surface-variant rounded w-1/2"></div>
+            <div class="h-5 bg-wf-surface-variant rounded w-3/4"></div>
+        </div>
+
+        <!-- Fund Card Variant / Default -->
+        <div v-else class="p-5 space-y-3 animate-pulse">
+            <div class="h-20 bg-wf-surface-variant rounded-wf-md"></div>
+            <div class="h-4 bg-wf-surface-variant rounded w-3/4"></div>
+            <div class="h-3 bg-wf-surface-variant rounded w-1/2"></div>
+        </div>
     </div>
 </template>
 
@@ -9,71 +65,21 @@
 import { computed } from 'vue'
 
 const props = defineProps<{
-    type: 'hero' | 'stat-card' | 'category-card' | 'insight-card' | 'list-item' | 'pulse-card' | 'fund-card'
+    type?: 'hero' | 'stat-card' | 'category-card' | 'insight-card' | 'list-item' | 'pulse-card' | 'fund-card'
     height?: string | number
     width?: string | number
     glass?: boolean
 }>()
 
-
-const skeletonType = computed(() => {
+const containerClass = computed(() => {
     switch (props.type) {
-        case 'hero': return 'card-avatar'
-        case 'stat-card': return 'card'
-        case 'category-card': return 'image, heading, subtitle'
-        case 'insight-card': return 'article'
-        case 'list-item': return 'list-item-avatar-two-line'
-        case 'pulse-card': return 'image'
-        case 'fund-card': return 'image, article'
-        default: return 'card'
+        case 'hero': return 'min-h-[280px]'
+        case 'stat-card': return 'h-[120px]'
+        case 'category-card': return 'h-[240px]'
+        case 'pulse-card': return 'h-[110px]'
+        case 'fund-card': return 'h-[280px]'
+        case 'list-item': return 'h-[64px]'
+        default: return 'min-h-[100px]'
     }
 })
 </script>
-
-<style scoped>
-.premium-skeleton-container {
-    position: relative;
-    overflow: hidden;
-    border-radius: 24px;
-}
-
-.premium-skeleton-container.is-glass {
-    background: rgba(var(--v-theme-surface), 0.4);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
-
-.premium-loader {
-    background: transparent !important;
-}
-
-/* Custom Overrides for deep skeleton elements if needed */
-:deep(.v-skeleton-loader__bone) {
-    background: rgba(var(--v-theme-on-surface), 0.05) !important;
-}
-
-/* Hero Variant */
-.hero {
-    min-height: 300px;
-}
-
-/* Stat Card Variant */
-.stat-card {
-    height: 120px;
-}
-
-/* Category Card Variant */
-.category-card {
-    height: 240px;
-}
-
-/* Pulse Card Variant */
-.pulse-card {
-    height: 110px;
-}
-
-/* Fund Card Variant */
-.fund-card {
-    height: 280px;
-}
-</style>

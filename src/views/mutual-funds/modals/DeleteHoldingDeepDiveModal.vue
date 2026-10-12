@@ -154,7 +154,7 @@ const projectedStats = computed(() => {
       <!-- Partial Mode -->
       <div v-show="deleteMode === 'partial'" class="space-y-3">
         <div v-if="isFetching" class="py-10 flex flex-col items-center justify-center gap-2">
-          <v-progress-circular indeterminate color="primary" size="28" width="2" />
+          <div class="w-7 h-7 rounded-full border-2 border-wf-primary border-t-transparent animate-spin"></div>
           <span class="text-xs text-wf-text-muted font-medium">Fetching transaction history...</span>
         </div>
 

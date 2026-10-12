@@ -10,7 +10,7 @@
                 <span class="text-tiny font-weight-bold opacity-70">{{ getUserName(String(key)) }}:</span>
                 <span class="text-tiny font-weight-black">₹{{ Math.round(val) }}</span>
             </div>
-            <v-divider class="my-1"></v-divider>
+            <div class="h-px bg-slate-200 dark:bg-slate-700 my-1"></div>
             <div class="d-flex align-center justify-space-between gap-4">
                 <span class="text-tiny font-weight-black">TOTAL</span>
                 <span class="text-tiny font-weight-black">₹{{ Math.round(hoveredBar.total) }}</span>
@@ -22,7 +22,7 @@
             <!-- Grid Lines -->
             <g class="grid-lines">
                 <line v-for="i in 5" :key="i" :x1="axisPadding" :y1="(height / 4) * (i - 1)" :x2="width - axisPadding"
-                    :y2="(height / 4) * (i - 1)" stroke="rgba(var(--v-border-color), 0.05)" />
+                    :y2="(height / 4) * (i - 1)" stroke="rgba(148, 163, 184, 0.15)" />
             </g>
 
             <!-- Y-Axis Labels -->
@@ -50,7 +50,7 @@
             <!-- Today Marker Line -->
             <line v-if="todayIndex !== -1" :x1="axisPadding + (todayIndex + 1) * (barWidth + gap) - (gap / 2)" y1="0"
                 :x2="axisPadding + (todayIndex + 1) * (barWidth + gap) - (gap / 2)" :y2="height"
-                stroke="rgb(var(--v-theme-primary))" stroke-width="1" stroke-dasharray="4,2" />
+                stroke="#6366f1" stroke-width="1" stroke-dasharray="4,2" />
         </svg>
 
         <!-- X-Axis Labels -->
@@ -148,8 +148,8 @@ function getHeight(val: number | string) {
 }
 
 function getStackColor(key: string) {
-    if (key === 'Predicted') return 'rgb(var(--v-theme-primary))'
-    if (key === 'Upcoming Bills') return 'rgb(var(--v-theme-secondary))'
+    if (key === 'Predicted') return '#6366f1'
+    if (key === 'Upcoming Bills') return '#a855f7'
     if (key === 'None' || key === 'Shared/Other') return '#94a3b8'
 
     // Deterministic color based on user ID
@@ -191,7 +191,7 @@ function onHover(day: any, idx: number) {
 
 .active-bar {
     filter: brightness(1.2);
-    stroke: rgba(var(--v-theme-on-surface), 0.2);
+    stroke: rgba(148, 163, 184, 0.4);
     stroke-width: 1;
 }
 
@@ -205,9 +205,9 @@ function onHover(day: any, idx: number) {
     z-index: 100;
     min-width: 180px;
     pointer-events: none;
-    background: rgba(var(--v-theme-surface), 0.95);
+    background: var(--wf-surface, #ffffff);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(var(--v-border-color), 0.2);
+    border: 1px solid var(--wf-border, #e2e8f0);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 

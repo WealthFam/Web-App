@@ -12,112 +12,117 @@
                 </p>
             </div>
             <div class="flex items-center gap-2">
-                <v-tooltip text="Force re-mapping of all funds using current rules" location="bottom">
-                    <template v-slot:activator="{ props }">
-                        <v-btn
-                            v-bind="props"
-                            color="secondary"
-                            variant="tonal"
-                            :loading="syncLoading"
-                            @click="triggerSync"
-                            class="rounded-wf-sm text-xs font-semibold px-2.5"
-                            height="28"
-                        >
-                            <template v-slot:prepend>
-                                <RotateCw :size="12" class="mr-1.5" />
-                            </template>
-                            Sync All Holdings
-                        </v-btn>
-                    </template>
-                </v-tooltip>
-                
-                <v-btn
-                    color="primary"
-                    @click="openAddDialog"
-                    class="rounded-wf-sm text-xs font-bold px-3"
-                    height="28"
+                <button
+                    type="button"
+                    :disabled="syncLoading"
+                    @click="triggerSync"
+                    class="h-7 px-2.5 rounded-wf-sm text-xs font-semibold border border-wf-border bg-wf-surface-variant hover:bg-wf-surface-variant/80 text-wf-text-secondary hover:text-wf-text-primary transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                    title="Force re-mapping of all funds using current rules"
                 >
-                    <template v-slot:prepend>
-                        <Plus :size="14" class="mr-1" />
-                    </template>
-                    Add Rule
-                </v-btn>
+                    <RotateCw :size="12" :class="{ 'animate-spin': syncLoading }" />
+                    <span>Sync All Holdings</span>
+                </button>
+                
+                <button
+                    type="button"
+                    @click="openAddDialog"
+                    class="h-7 px-3 rounded-wf-sm text-xs font-bold bg-wf-primary text-white hover:bg-wf-primary-dark transition-colors flex items-center gap-1 shadow-2xs cursor-pointer"
+                >
+                    <Plus :size="14" />
+                    <span>Add Rule</span>
+                </button>
             </div>
         </div>
 
         <!-- Rules Table -->
         <div class="rounded-wf-md border border-wf-border bg-wf-surface shadow-2xs overflow-hidden">
-            <v-data-table
-                :headers="[
-                    { title: 'Priority', key: 'priority', width: '90px' },
-                    { title: 'Keyword Match', key: 'keyword' },
-                    { title: 'Benchmark Label', key: 'benchmark_label' },
-                    { title: 'API Symbol', key: 'benchmark_symbol' },
-                    { title: 'Style', key: 'styling_color', sortable: false },
-                    { title: '', key: 'actions', sortable: false, align: 'end', width: '80px' }
-                ]"
-                :items="rules"
-                :loading="loading"
-                density="compact"
-                class="bg-transparent text-xs"
-            >
-                <template v-slot:item.priority="{ item }">
-                    <span class="px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-surface-variant text-wf-text-secondary border border-wf-border-subtle">
-                        {{ item.priority }}
-                    </span>
-                </template>
-
-                <template v-slot:item.keyword="{ item }">
-                    <span v-if="item.keyword" class="px-1.5 py-0.5 rounded-wf-xs text-xs font-mono font-semibold bg-wf-surface-variant text-wf-primary border border-wf-border-subtle">
-                        {{ item.keyword }}
-                    </span>
-                    <span v-else class="px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
-                        Default Fallback
-                    </span>
-                </template>
-
-                <template v-slot:item.benchmark_label="{ item }">
-                    <span class="font-bold text-xs text-wf-text-primary">{{ item.benchmark_label }}</span>
-                </template>
-
-                <template v-slot:item.benchmark_symbol="{ item }">
-                    <span class="font-mono text-xs text-wf-text-muted">{{ item.benchmark_symbol }}</span>
-                </template>
-
-                <template v-slot:item.styling_color="{ item }">
-                    <div class="flex items-center gap-2">
-                        <svg width="32" height="4">
-                            <line x1="0" y1="2" x2="32" y2="2" 
-                                :stroke="item.styling_color" 
-                                :stroke-width="2"
-                                :stroke-dasharray="item.styling_style === 'solid' ? '0' : (item.styling_dash_array || '4,2')"
-                            />
-                        </svg>
-                        <span class="text-[10px] font-mono text-wf-text-muted">{{ item.styling_color }}</span>
-                    </div>
-                </template>
-
-                <template v-slot:item.actions="{ item }">
-                    <div class="flex items-center justify-end gap-1">
-                        <button type="button" class="w-6 h-6 rounded-wf-xs flex items-center justify-center text-wf-primary hover:bg-wf-primary/10 transition-colors"
-                            @click="openEditDialog(item)">
-                            <Edit2 :size="13" />
-                        </button>
-                        <button type="button" class="w-6 h-6 rounded-wf-xs flex items-center justify-center text-rose-500 hover:bg-rose-500/10 transition-colors"
-                            @click="deleteRule(item.id)">
-                            <Trash2 :size="13" />
-                        </button>
-                    </div>
-                </template>
-
-                <template v-slot:no-data>
-                    <div class="py-8 text-center text-wf-text-muted">
-                        <Info :size="32" class="mx-auto mb-1 opacity-50" />
-                        <p class="text-xs">No benchmark rules found.</p>
-                        <button type="button" class="text-xs font-semibold text-wf-primary hover:underline mt-1" @click="fetchRules">Retry</button>
-                    </div>
-                </template>
-            </v-data-table>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left">
+                    <thead class="bg-wf-surface-variant/50 border-b border-wf-border text-[10px] font-bold uppercase tracking-wider text-wf-text-muted">
+                        <tr>
+                            <th class="py-2.5 px-3 w-[90px]">Priority</th>
+                            <th class="py-2.5 px-3">Keyword Match</th>
+                            <th class="py-2.5 px-3">Benchmark Label</th>
+                            <th class="py-2.5 px-3">API Symbol</th>
+                            <th class="py-2.5 px-3">Style</th>
+                            <th class="py-2.5 px-3 w-[80px] text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-wf-border-subtle">
+                        <tr v-if="loading">
+                            <td colspan="6" class="py-8 text-center text-wf-text-muted">
+                                <div class="w-6 h-6 rounded-full border-2 border-wf-primary border-t-transparent animate-spin mx-auto mb-2"></div>
+                                <span>Loading benchmark rules...</span>
+                            </td>
+                        </tr>
+                        <tr v-else-if="rules.length === 0">
+                            <td colspan="6" class="py-8 text-center text-wf-text-muted">
+                                <Info :size="24" class="mx-auto mb-1 opacity-50" />
+                                <p class="text-xs">No benchmark rules found.</p>
+                                <button type="button" class="text-xs font-semibold text-wf-primary hover:underline mt-1" @click="fetchRules">Retry</button>
+                            </td>
+                        </tr>
+                        <tr
+                            v-else
+                            v-for="item in rules"
+                            :key="item.id"
+                            class="hover:bg-wf-surface-variant/30 transition-colors"
+                        >
+                            <td class="py-2.5 px-3">
+                                <span class="px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-surface-variant text-wf-text-secondary border border-wf-border-subtle">
+                                    {{ item.priority }}
+                                </span>
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <span v-if="item.keyword" class="px-1.5 py-0.5 rounded-wf-xs text-xs font-mono font-semibold bg-wf-surface-variant text-wf-primary border border-wf-border-subtle">
+                                    {{ item.keyword }}
+                                </span>
+                                <span v-else class="px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
+                                    Default Fallback
+                                </span>
+                            </td>
+                            <td class="py-2.5 px-3 font-bold text-wf-text-primary">
+                                {{ item.benchmark_label }}
+                            </td>
+                            <td class="py-2.5 px-3 font-mono text-wf-text-muted">
+                                {{ item.benchmark_symbol }}
+                            </td>
+                            <td class="py-2.5 px-3">
+                                <div class="flex items-center gap-2">
+                                    <svg width="32" height="4">
+                                        <line x1="0" y1="2" x2="32" y2="2" 
+                                            :stroke="item.styling_color" 
+                                            :stroke-width="2"
+                                            :stroke-dasharray="item.styling_style === 'solid' ? '0' : (item.styling_dash_array || '4,2')"
+                                        />
+                                    </svg>
+                                    <span class="text-[10px] font-mono text-wf-text-muted">{{ item.styling_color }}</span>
+                                </div>
+                            </td>
+                            <td class="py-2.5 px-3 text-right">
+                                <div class="flex items-center justify-end gap-1">
+                                    <button
+                                        type="button"
+                                        class="w-6 h-6 rounded-wf-xs flex items-center justify-center text-wf-primary hover:bg-wf-primary-light transition-colors cursor-pointer"
+                                        @click="openEditDialog(item)"
+                                        title="Edit Rule"
+                                    >
+                                        <Edit2 :size="13" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="w-6 h-6 rounded-wf-xs flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                        @click="deleteRule(item.id)"
+                                        title="Delete Rule"
+                                    >
+                                        <Trash2 :size="13" />
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Upsert Dialog with WfModal -->
@@ -374,12 +379,12 @@ onMounted(fetchRules)
 
 <style scoped>
 .style-visualization {
-    background: rgba(var(--v-theme-on-surface), 0.05);
+    background: rgba(148, 163, 184, 0.08);
     padding: 8px 12px;
     border-radius: 8px;
     display: flex;
     align-items: center;
-    border: 1px solid rgba(var(--v-border-color), 0.05);
+    border: 1px solid rgba(226, 232, 240, 0.5);
 }
 
 .text-mono {
@@ -391,8 +396,8 @@ onMounted(fetchRules)
 .gap-3 { gap: 12px; }
 
 code {
-    background: rgba(var(--v-theme-primary), 0.1);
-    color: rgb(var(--v-theme-primary));
+    background: rgba(99, 102, 241, 0.1);
+    color: rgb(99, 102, 241);
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 0.85rem;

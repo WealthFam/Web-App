@@ -38,7 +38,7 @@
 
       <!-- Hover Cursor Line -->
       <line v-if="hoveredIndex !== null && data.length > 1" :x1="getPoint(hoveredIndex).x" y1="0" :x2="getPoint(hoveredIndex).x"
-        :y2="height" stroke="rgba(var(--v-theme-on-surface), 0.1)" stroke-width="1" />
+        :y2="height" stroke="rgba(148, 163, 184, 0.25)" stroke-width="1" />
       
       <!-- Hover Point -->
       <circle v-if="hoveredIndex !== null && data.length > 1" :cx="getPoint(hoveredIndex).x" :cy="getPoint(hoveredIndex).y" r="4"
@@ -183,8 +183,8 @@ function onMouseMove(e: MouseEvent) {
 }
 .spark-tooltip {
   position: absolute;
-  background: rgba(var(--v-theme-surface), 0.95);
-  border: 1px solid rgba(var(--v-border-color), 0.15);
+  background: var(--wf-surface, #ffffff);
+  border: 1px solid var(--wf-border, #e2e8f0);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(8px);
   z-index: 10;

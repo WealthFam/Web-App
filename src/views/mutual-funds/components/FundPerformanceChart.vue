@@ -41,7 +41,7 @@
       <!-- Vertical Tracking Line -->
       <line v-if="hoveredIndex !== null" :x1="padding.left + xScale(hoveredIndex)" :y1="padding.top"
         :x2="padding.left + xScale(hoveredIndex)" :y2="padding.top + chartHeight" 
-        stroke="rgba(var(--v-theme-primary), 0.3)" stroke-width="1" stroke-dasharray="4,4" />
+        stroke="rgba(99, 102, 241, 0.4)" stroke-width="1" stroke-dasharray="4,4" />
 
       <!-- Data points (visible circles on hover) -->
       <g v-if="hoveredIndex !== null && data[hoveredIndex]" class="data-points">
@@ -490,7 +490,7 @@ svg {
 }
 
 .chart-grid-line {
-  color: rgba(var(--v-theme-on-surface), 0.06);
+  color: rgba(148, 163, 184, 0.15);
 }
 
 .axis-label {
@@ -557,9 +557,9 @@ svg {
 
 .chart-tooltip {
   position: absolute;
-  background: rgba(var(--v-theme-surface), 0.95);
+  background: var(--wf-surface, #ffffff);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(var(--v-border-color), 0.15);
+  border: 1px solid var(--wf-border, #e2e8f0);
   border-radius: 12px;
   padding: 0.75rem;
   box-shadow: 0 16px 24px -4px rgba(0, 0, 0, 0.2);
@@ -588,8 +588,8 @@ svg {
   font-weight: 900;
   padding: 2px 6px;
   border-radius: 4px;
-  background: rgba(var(--v-theme-primary), 0.1);
-  color: rgb(var(--v-theme-primary));
+  background: rgba(99, 102, 241, 0.1);
+  color: rgb(99, 102, 241);
 }
 
 .transaction-badge.buy { background: rgba(16, 185, 129, 0.1); color: #10b981; }
@@ -614,7 +614,7 @@ svg {
 
 .tooltip-divider {
   height: 1px;
-  background: rgba(var(--v-border-color), 0.1);
+  background: var(--wf-border, rgba(226, 232, 240, 0.6));
   margin: 0.35rem 0;
 }
 

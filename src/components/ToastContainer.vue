@@ -42,14 +42,14 @@ const store = useNotificationStore()
     max-width: 400px;
     padding: 1rem;
     border-radius: 12px;
-    background: rgb(var(--v-theme-surface));
-    color: rgb(var(--v-theme-on-surface));
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    background: var(--wf-surface, #ffffff);
+    color: var(--wf-text-primary, #0f172a);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
     gap: 0.75rem;
     cursor: pointer;
-    border: 1px solid rgba(var(--v-border-color), 0.1);
+    border: 1px solid var(--wf-border, #e2e8f0);
     position: relative;
     overflow: hidden;
     backdrop-filter: blur(10px);
@@ -66,28 +66,28 @@ const store = useNotificationStore()
 }
 
 .toast.success::before {
-    background: rgb(var(--v-theme-success));
+    background: #10b981;
 }
 
 .toast.error::before {
-    background: rgb(var(--v-theme-error));
+    background: #ef4444;
 }
 
 .toast.info::before {
-    background: rgb(var(--v-theme-primary));
+    background: #6366f1;
 }
 
 /* Subtle tint based on type */
 .toast.success {
-    background: linear-gradient(to right, rgba(var(--v-theme-success), 0.05), rgb(var(--v-theme-surface)));
+    background: linear-gradient(to right, rgba(16, 185, 129, 0.08), var(--wf-surface, #ffffff));
 }
 
 .toast.error {
-    background: linear-gradient(to right, rgba(var(--v-theme-error), 0.05), rgb(var(--v-theme-surface)));
+    background: linear-gradient(to right, rgba(239, 68, 68, 0.08), var(--wf-surface, #ffffff));
 }
 
 .toast.info {
-    background: linear-gradient(to right, rgba(var(--v-theme-primary), 0.05), rgb(var(--v-theme-surface)));
+    background: linear-gradient(to right, rgba(99, 102, 241, 0.08), var(--wf-surface, #ffffff));
 }
 
 .content {
@@ -113,19 +113,19 @@ const store = useNotificationStore()
 
 /* Text Colors */
 .text-success {
-    color: rgb(var(--v-theme-success));
+    color: #10b981;
 }
 
 .text-error {
-    color: rgb(var(--v-theme-error));
+    color: #ef4444;
 }
 
 .text-primary {
-    color: rgb(var(--v-theme-primary));
+    color: #6366f1;
 }
 
 .text-medium-emphasis {
-    color: rgba(var(--v-theme-on-surface), 0.6);
+    color: var(--wf-text-secondary, #64748b);
 }
 
 /* Animation */

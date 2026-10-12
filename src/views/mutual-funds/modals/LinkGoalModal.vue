@@ -93,7 +93,7 @@ onMounted(fetchGoals)
         <div class="space-y-3">
             <!-- Loading indicator -->
             <div v-if="loading" class="py-8 flex flex-col items-center justify-center gap-2">
-                <v-progress-circular indeterminate color="primary" size="28" width="2" />
+                <div class="w-7 h-7 rounded-full border-2 border-wf-primary border-t-transparent animate-spin"></div>
                 <span class="text-xs font-medium text-wf-text-muted">Loading active goals...</span>
             </div>
 

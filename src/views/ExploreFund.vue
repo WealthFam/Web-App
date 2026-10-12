@@ -81,7 +81,7 @@ function getRiskBadgeClass(risk: string) {
         <div class="space-y-4 pb-8">
             <!-- Loading State -->
             <div v-if="isLoading && !fund" class="flex flex-col items-center justify-center min-h-[50vh] gap-3">
-                <v-progress-circular indeterminate color="primary" size="36" width="3" />
+                <div class="w-9 h-9 rounded-full border-2 border-wf-primary border-t-transparent animate-spin"></div>
                 <span class="text-xs font-semibold text-wf-text-muted">Loading fund details...</span>
             </div>
 
@@ -168,7 +168,7 @@ function getRiskBadgeClass(risk: string) {
                             <!-- Chart Canvas -->
                             <div class="h-[340px] sm:h-[380px] w-full">
                                 <div v-if="isChartLoading" class="flex flex-col items-center justify-center h-full gap-2">
-                                    <v-progress-circular indeterminate color="primary" size="32" width="2" />
+                                    <div class="w-8 h-8 rounded-full border-2 border-wf-primary border-t-transparent animate-spin"></div>
                                     <span class="text-xs font-medium text-wf-text-muted">Calculating NAV Performance...</span>
                                 </div>
                                 <template v-else>

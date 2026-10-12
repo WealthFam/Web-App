@@ -2,7 +2,7 @@
     <div class="donut-chart-container" :class="`legend-${legendPosition}`">
         <svg :width="size" :height="size" viewBox="0 0 100 100">
             <!-- Background circle -->
-            <circle cx="50" cy="50" :r="radius" fill="none" stroke="rgba(var(--v-border-color), 0.1)"
+            <circle cx="50" cy="50" :r="radius" fill="none" stroke="var(--wf-border, rgba(226, 232, 240, 0.6))"
                 :stroke-width="strokeWidth" />
 
             <!-- Data segments -->
@@ -168,13 +168,13 @@ const largestValue = computed(() => {
 .center-value {
     font-size: 14px;
     font-weight: 800;
-    fill: rgb(var(--v-theme-on-surface));
+    fill: var(--wf-text-primary, #0f172a);
 }
 
 .center-label {
     font-size: 7px;
     font-weight: 700;
-    fill: rgba(var(--v-theme-on-surface), 0.6);
+    fill: var(--wf-text-secondary, #64748b);
     text-transform: uppercase;
 }
 
@@ -207,14 +207,14 @@ const largestValue = computed(() => {
 
 .legend-label {
     flex: 1;
-    color: rgba(var(--v-theme-on-surface), 0.7);
+    color: var(--wf-text-secondary, #64748b);
     font-weight: 700;
     white-space: nowrap;
     /* Prevent wrapping in side legend */
 }
 
 .legend-value {
-    color: rgb(var(--v-theme-on-surface));
+    color: var(--wf-text-primary, #0f172a);
     font-weight: 800;
 }
 </style>
