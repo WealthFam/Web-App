@@ -6,7 +6,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useTheme } from 'vuetify'
 import { useCurrency } from '@/composables/useCurrency'
 import { useSettingsStore } from '@/stores/settings'
 import {
@@ -48,8 +47,7 @@ const props = defineProps<{
 
 const emit = defineEmits(['chart-click'])
 
-const vTheme = useTheme()
-const isDark = computed(() => vTheme.global.current.value.dark)
+const isDark = computed(() => document.documentElement.classList.contains('dark'))
 const { formatAmount } = useCurrency()
 const settings = useSettingsStore()
 
@@ -95,8 +93,7 @@ const polylineLabelsPlugin = {
         const percent = ((value / total) * 100).toFixed(0) + '%'
 
         ctx.font = 'bold 12px Inter, sans-serif'
-        // Accessing isDark from the theme instance available in the closure
-        ctx.fillStyle = vTheme.global.current.value.dark ? '#ffffff' : '#0f172a'
+        ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#ffffff' : '#0f172a'
         ctx.textAlign = isRight ? 'left' : 'right'
         ctx.textBaseline = 'middle'
 
@@ -290,23 +287,7 @@ const computedChartData = computed(() => {
 function resolveColor(colorStr: string): string {
   if (!colorStr.includes('var(')) return colorStr
 
-  // Try to extract variable name for direct theme lookup first
-  const match = colorStr.match(/--v-theme-([a-z0-9-]+)/)
-  if (match && match[1]) {
-    // Convert kebab-case to camelCase (e.g., surface-variant to surfaceVariant)
-    const key = match[1].replace(/-([a-z])/g, (g) => g[1].toUpperCase())
-    const themeColor = (vTheme.global.current.value.colors as any)[key]
-    if (themeColor) {
-      if (colorStr.includes('rgba(')) {
-        const parts = colorStr.split(',')
-        const alpha = parts[parts.length - 1].replace(')', '').trim() || '1'
-        return `rgba(${hexToRgb(themeColor)}, ${alpha})`
-      }
-      return themeColor
-    }
-  }
-
-  // Fallback to DOM resolution for complex strings
+  // Resolve CSS variables (e.g. var(--wf-color-primary)) via DOM
   try {
     const temp = document.createElement('div')
     temp.style.color = colorStr

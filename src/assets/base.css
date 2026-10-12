@@ -1,5 +1,4 @@
 :root {
-  /* Use Vuetify Theme Variables instead of custom colors */
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 64px;
 }
@@ -28,8 +27,8 @@
 
 body {
   min-height: 100vh;
-  color: rgb(var(--v-theme-on-background));
-  background: rgb(var(--v-theme-background));
+  color: var(--wf-color-text-primary, #0f172a);
+  background: var(--wf-color-background, #f8fafc);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -50,8 +49,7 @@ body {
   letter-spacing: -0.03em !important;
 }
 
-/* Base Components - REMOVED (Use Vuetify) */
-/* .container, .btn, .btn-primary, .btn-outline, .btn-text, .form-*, .btn-icon, .modal-* removed */
+
 
 /* Global Scrollbar Hiding (Premium Dashboard Standards) */
 /* This ensures a seamless "grid" experience without distracting scrollbars */

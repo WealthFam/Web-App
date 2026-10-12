@@ -34,7 +34,6 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
-import { useTheme } from 'vuetify'
 import ToastContainer from '@/components/ToastContainer.vue'
 import GlobalSearch from '@/components/common/GlobalSearch.vue'
 import { useWebSockets } from '@/composables/useWebSockets'
@@ -57,7 +56,7 @@ const auth = useAuthStore()
 const settingsStore = useSettingsStore()
 const router = useRouter()
 const route = useRoute()
-const theme = useTheme()
+const isDark = ref(localStorage.getItem('theme') === 'dark' || document.documentElement.classList.contains('dark'))
 
 // App metadata
 const appVersionDisplay = `v${__APP_VERSION__} (${__APP_BUILD__})`
@@ -95,14 +94,15 @@ function toggleMasking() {
 
 // Theme Toggle
 function toggleTheme() {
-  const isDark = theme.global.current.value.dark
-  theme.global.name.value = isDark ? 'wealthFamTheme' : 'wealthFamDark'
-  if (isDark) {
-    document.documentElement.classList.remove('dark')
-    document.documentElement.setAttribute('data-theme', 'light')
-  } else {
+  isDark.value = !isDark.value
+  if (isDark.value) {
     document.documentElement.classList.add('dark')
     document.documentElement.setAttribute('data-theme', 'dark')
+    localStorage.setItem('theme', 'dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+    document.documentElement.setAttribute('data-theme', 'light')
+    localStorage.setItem('theme', 'light')
   }
 }
 
@@ -110,9 +110,12 @@ onMounted(() => {
   if (route.query.search === 'true') showSearch.value = true
   
   // Set initial data-theme
-  if (theme.global.current.value.dark) {
+  if (isDark.value) {
     document.documentElement.classList.add('dark')
     document.documentElement.setAttribute('data-theme', 'dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+    document.documentElement.setAttribute('data-theme', 'light')
   }
 
   // Auto-expand group if current route matches child
@@ -497,7 +500,7 @@ function logout() {
             class="w-8 h-8 rounded-wf-md border border-wf-border flex items-center justify-center text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
             title="Toggle Light / Dark Mode"
           >
-            <component :is="theme.global.current.value.dark ? Sun : Moon" class="w-3.5 h-3.5" />
+            <component :is="isDark ? Sun : Moon" class="w-3.5 h-3.5" />
           </button>
 
           <!-- Notifications Bell -->
