@@ -345,7 +345,7 @@
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" v-model="payBillForm.record_transaction" class="sr-only peer" />
-                            <div class="w-9 h-5 bg-wf-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-wf-primary"></div>
+                            <div class="w-9 h-5 bg-wf-surface-muted peer-focus:outline-none rounded-wf-pill peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-wf-pill after:h-4 after:w-4 after:transition-all peer-checked:bg-wf-primary"></div>
                         </label>
                     </div>
                 </form>

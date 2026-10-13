@@ -260,8 +260,10 @@ import WfSelect from '@/components/ui/WfSelect.vue'
 
 import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
+import { useConfirmStore } from '@/stores/confirm'
 
 const notify = useNotificationStore()
+const confirmDialog = useConfirmStore()
 
 // State
 const rules = ref<any[]>([])
@@ -355,7 +357,8 @@ const saveRule = async () => {
 }
 
 const deleteRule = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this rule?')) return
+    const isConfirmed = await confirmDialog.prompt('Are you sure you want to delete this rule?', 'Delete Rule', 'Delete', 'Cancel')
+    if (!isConfirmed) return
     try {
         await financeApi.deleteBenchmarkRule(id)
         notify.success('Rule deleted')

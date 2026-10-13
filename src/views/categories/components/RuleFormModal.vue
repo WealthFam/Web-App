@@ -6,6 +6,7 @@ import { useCategoriesStore } from '@/stores/finance/categories'
 import { useRulesStore, type Rule } from '@/stores/finance/rules'
 import { useFinanceStore } from '@/stores/finance'
 import { useNotificationStore } from '@/stores/notification'
+import { useConfirmStore } from '@/stores/confirm'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfSelect from '@/components/ui/WfSelect.vue'
@@ -22,6 +23,7 @@ const rulesStore = useRulesStore()
 const categoriesStore = useCategoriesStore()
 const financeStore = useFinanceStore()
 const notify = useNotificationStore()
+const confirmDialog = useConfirmStore()
 
 const showExcludeConfirm = ref(false)
 const testingLogic = ref(false)
@@ -141,7 +143,8 @@ async function saveRule() {
 
     if (matchingRules.length > 0) {
         const confirmMsg = `Keywords overlap with rules in: ${matchingRules.map(r => r.category).join(', ')}. Continue?`
-        if (!confirm(confirmMsg)) return
+        const isConfirmed = await confirmDialog.prompt(confirmMsg, 'Keyword Overlap', 'Continue', 'Cancel')
+        if (!isConfirmed) return
     }
 
     if (form.value.exclude_from_reports) {

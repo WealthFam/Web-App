@@ -281,7 +281,7 @@ function logout() {
       <!-- Top Brand Header in Sidebar -->
       <div class="h-13 flex items-center justify-between px-3 border-b border-wf-border shrink-0">
         <router-link to="/" class="flex items-center gap-2 min-w-0">
-          <div class="w-7 h-7 rounded-wf-md bg-white border border-wf-border p-1 flex items-center justify-center shadow-xs shrink-0">
+          <div class="w-7 h-7 rounded-wf-md bg-wf-surface border border-wf-border p-1 flex items-center justify-center shadow-xs shrink-0">
             <img src="/logo.png" alt="WealthFam Logo" class="w-full h-full object-contain" />
           </div>
           <div v-if="!isSidebarCollapsed" class="flex flex-col min-w-0">
@@ -640,7 +640,7 @@ function logout() {
                     :to="child.to!"
                     @click="isMobileDrawerOpen = false"
                     class="flex items-center gap-2 px-2 py-1 rounded-wf-md text-xs font-medium"
-                    :class="route.path === child.to ? 'text-wf-primary font-bold bg-indigo-50 dark:bg-indigo-950/60' : 'text-wf-text-secondary'"
+                    :class="route.path === child.to ? 'text-wf-primary font-bold bg-wf-primary-light' : 'text-wf-text-secondary'"
                   >
                     <component :is="child.icon" class="w-3 h-3 opacity-70" />
                     <span>{{ child.title }}</span>

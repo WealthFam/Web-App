@@ -1045,7 +1045,7 @@ function toggleSelectTransaction(id: string) {
                                     ></iframe>
                                 </div>
                                 <div v-else class="p-10 text-center bg-wf-surface-variant/40 rounded-wf-lg border border-dashed border-wf-border text-wf-text-muted">
-                                    <Mail class="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                                    <Mail class="w-8 h-8 text-wf-text-muted opacity-50 mx-auto mb-2" />
                                     <p class="text-xs font-semibold">No raw email body captured for this statement.</p>
                                 </div>
                             </div>
