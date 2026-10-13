@@ -4,9 +4,7 @@
  */
 
 [data-theme="dark"],
-.dark,
-.v-theme--wealthFamDark,
-.v-theme--dark {
+.dark {
   --wf-color-background: #090D16;
   --wf-color-surface: #111827;
   --wf-color-surface-variant: #1E293B;
