@@ -100,7 +100,7 @@ const nextDueDateFormatted = computed(() => {
           <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">
             Outstanding
           </span>
-          <div class="text-sm font-black text-wf-text-primary font-mono mt-0.5">
+          <div class="text-sm font-bold text-wf-text-primary font-mono mt-0.5">
             {{ formatAmount(loan.outstanding_balance) }}
           </div>
         </div>
@@ -108,7 +108,7 @@ const nextDueDateFormatted = computed(() => {
           <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">
             Monthly EMI
           </span>
-          <div class="text-sm font-black text-wf-text-primary font-mono mt-0.5">
+          <div class="text-sm font-bold text-wf-text-primary font-mono mt-0.5">
             {{ formatAmount(loan.emi_amount) }}
           </div>
         </div>

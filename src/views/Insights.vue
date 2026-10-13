@@ -1,6 +1,6 @@
 <template>
     <MainLayout>
-        <div class="space-y-6">
+        <div class="space-y-5 pb-8">
             <!-- Header: Title left, Segmented Tabs right -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
                 <div>
@@ -21,46 +21,46 @@
                 </div>
 
                 <!-- Aether V4 Segmented Tab Switcher -->
-                <div class="flex items-center p-1 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs self-start sm:self-auto">
+                <div class="flex items-center p-0.5 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs self-start sm:self-auto">
                     <button
                         type="button"
                         @click="switchTab(0)"
-                        class="px-3.5 py-1.5 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
+                        class="px-3 py-1 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
                         :class="[
                             activeTab === 0
                                 ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
                                 : 'text-wf-text-secondary hover:text-wf-text-primary'
                         ]"
                     >
-                        <BarChart3 :size="15" />
+                        <BarChart3 :size="14" />
                         <span>Analytics</span>
                     </button>
 
                     <button
                         type="button"
                         @click="switchTab(1)"
-                        class="px-3.5 py-1.5 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
+                        class="px-3 py-1 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
                         :class="[
                             activeTab === 1
                                 ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
                                 : 'text-wf-text-secondary hover:text-wf-text-primary'
                         ]"
                     >
-                        <RefreshCw :size="15" />
+                        <RefreshCw :size="14" />
                         <span>Subscriptions</span>
                     </button>
 
                     <button
                         type="button"
                         @click="switchTab(2)"
-                        class="px-3.5 py-1.5 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
+                        class="px-3 py-1 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
                         :class="[
                             activeTab === 2
                                 ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
                                 : 'text-wf-text-secondary hover:text-wf-text-primary'
                         ]"
                     >
-                        <Users :size="15" />
+                        <Users :size="14" />
                         <span>Family Wealth</span>
                     </button>
                 </div>

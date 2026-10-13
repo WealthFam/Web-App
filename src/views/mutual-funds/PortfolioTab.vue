@@ -413,7 +413,7 @@ watch(portfolio, (val) => emit('update:count', val.length))
                     <button v-for="p in ['1d', '7d', '30d']" :key="p"
                         @click="marketPulsePeriod = p; fetchMarketIndices()"
                         class="px-2 py-0.5 text-[10px] font-bold rounded-wf-xs transition-all uppercase"
-                        :class="marketPulsePeriod === p ? 'bg-wf-surface text-wf-primary shadow-xs font-black' : 'text-wf-text-muted hover:text-wf-text-primary'">
+                        :class="marketPulsePeriod === p ? 'bg-wf-surface text-wf-primary shadow-xs font-bold' : 'text-wf-text-muted hover:text-wf-text-primary'">
                         {{ p }}
                     </button>
                 </div>
@@ -741,12 +741,12 @@ watch(portfolio, (val) => emit('update:count', val.length))
                         <div v-if="intelligenceTab === 'allocation'" class="flex items-center gap-1">
                             <button type="button" @click="allocationType = 'category'"
                                 class="px-2 py-0.5 text-[10px] font-bold rounded-wf-xs transition-all uppercase"
-                                :class="allocationType === 'category' ? 'bg-wf-primary-light text-wf-primary font-black border border-indigo-200 dark:border-indigo-900/50' : 'text-wf-text-muted hover:text-wf-text-primary'">
+                                :class="allocationType === 'category' ? 'bg-wf-primary-light text-wf-primary font-bold border border-indigo-200 dark:border-indigo-900/50' : 'text-wf-text-muted hover:text-wf-text-primary'">
                                 Category
                             </button>
                             <button type="button" @click="allocationType = 'asset'"
                                 class="px-2 py-0.5 text-[10px] font-bold rounded-wf-xs transition-all uppercase"
-                                :class="allocationType === 'asset' ? 'bg-wf-primary-light text-wf-primary font-black border border-indigo-200 dark:border-indigo-900/50' : 'text-wf-text-muted hover:text-wf-text-primary'">
+                                :class="allocationType === 'asset' ? 'bg-wf-primary-light text-wf-primary font-bold border border-indigo-200 dark:border-indigo-900/50' : 'text-wf-text-muted hover:text-wf-text-primary'">
                                 Asset Class
                             </button>
                         </div>

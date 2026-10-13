@@ -160,14 +160,14 @@ const projectedStats = computed(() => {
 
         <template v-else>
           <!-- Projected State Post Removal -->
-          <div v-if="selectedTxns.length > 0" class="p-3.5 rounded-wf-lg border border-primary/30 bg-primary/5 space-y-2">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-primary block">Projected State Post-Removal</span>
+          <div v-if="selectedTxns.length > 0" class="p-3.5 rounded-wf-lg border border-wf-primary/30 bg-wf-primary/5 space-y-2">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-wf-primary block">Projected State Post-Removal</span>
             <div class="grid grid-cols-3 gap-3 text-xs font-mono">
               <div>
                 <div class="text-[10px] text-wf-text-muted uppercase">Invested</div>
                 <div class="flex items-center gap-1 font-bold text-xs mt-0.5">
                   <span class="line-through opacity-40">{{ formatAmount(activeHolding?.invested_value) }}</span>
-                  <ArrowRight :size="10" class="text-primary flex-shrink-0" />
+                  <ArrowRight :size="10" class="text-wf-primary flex-shrink-0" />
                   <span class="text-wf-text-primary">{{ formatAmount(projectedStats.invested) }}</span>
                 </div>
               </div>
@@ -175,7 +175,7 @@ const projectedStats = computed(() => {
                 <div class="text-[10px] text-wf-text-muted uppercase">Current</div>
                 <div class="flex items-center gap-1 font-bold text-xs mt-0.5">
                   <span class="line-through opacity-40">{{ formatAmount(activeHolding?.current_value) }}</span>
-                  <ArrowRight :size="10" class="text-primary flex-shrink-0" />
+                  <ArrowRight :size="10" class="text-wf-primary flex-shrink-0" />
                   <span class="text-wf-text-primary">{{ formatAmount(projectedStats.current) }}</span>
                 </div>
               </div>
@@ -194,7 +194,7 @@ const projectedStats = computed(() => {
             <button
               type="button"
               @click="toggleSelectAll"
-              class="text-xs font-bold text-primary hover:underline"
+              class="text-xs font-bold text-wf-primary hover:underline"
             >
               {{ selectedTxns.length === activeHolding?.transactions?.length ? 'Deselect All' : 'Select All' }}
             </button>

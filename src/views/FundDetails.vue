@@ -447,7 +447,7 @@ function isImageUrl(url: string) {
                                                 <input
                                                     type="checkbox"
                                                     :checked="selectedBenchmarkSymbols.includes(bm.symbol)"
-                                                    class="rounded border-wf-border text-primary focus:ring-0"
+                                                    class="rounded border-wf-border text-wf-primary focus:ring-0"
                                                 />
                                                 <span class="font-medium text-wf-text-primary text-xs">{{ bm.label }}</span>
                                             </div>
@@ -783,7 +783,7 @@ function isImageUrl(url: string) {
                         v-model="searchQuery"
                         type="text"
                         placeholder="Search members..."
-                        class="w-full h-9 pl-9 pr-3 text-xs rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                        class="w-full h-9 pl-9 pr-3 text-xs rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
                     />
                 </div>
                 <div class="max-h-60 overflow-y-auto space-y-1 divide-y divide-wf-border/40 pr-1">
@@ -795,13 +795,13 @@ function isImageUrl(url: string) {
                         class="w-full p-2.5 rounded-wf-md hover:bg-wf-surface-variant flex items-center justify-between text-left transition-colors"
                     >
                         <div class="flex items-center gap-2.5">
-                            <div class="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold overflow-hidden">
+                            <div class="w-7 h-7 rounded-full bg-wf-primary/10 text-wf-primary flex items-center justify-center text-xs font-bold overflow-hidden">
                                 <img v-if="isImageUrl(user.avatar)" :src="user.avatar" class="w-full h-full object-cover" />
                                 <span v-else>{{ user.avatar || user.full_name[0] }}</span>
                             </div>
                             <span class="text-xs font-semibold text-wf-text-primary">{{ user.full_name }}</span>
                         </div>
-                        <Check v-if="holding?.user_id === user.id" :size="15" class="text-primary flex-shrink-0" />
+                        <Check v-if="holding?.user_id === user.id" :size="15" class="text-wf-primary flex-shrink-0" />
                     </button>
                 </div>
             </div>

@@ -234,12 +234,12 @@ onMounted(() => {
 
 <template>
     <MainLayout>
-        <div class="space-y-6">
+        <div class="space-y-5">
             <!-- PAGE HEADER: Title & Month Navigator -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-wf-lg bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs">
-                        <Target class="w-5 h-5 text-wf-primary" />
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs shrink-0">
+                        <Target class="w-4.5 h-4.5 text-wf-primary" />
                     </div>
                     <div>
                         <div class="flex items-center gap-2">

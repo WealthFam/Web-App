@@ -52,7 +52,7 @@ const spendingVelocity = computed(() => {
 
           <!-- Spent vs Budget -->
           <div class="flex items-baseline gap-2.5 flex-wrap">
-            <span class="text-3xl sm:text-4xl font-black font-mono text-white tracking-tight">
+            <span class="text-3xl sm:text-4xl font-bold font-mono text-white tracking-tight">
               {{ formatAmount(overallBudget.spent) }}
             </span>
             <span class="text-xl sm:text-2xl text-slate-500 font-light">/</span>

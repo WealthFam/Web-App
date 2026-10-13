@@ -1,10 +1,10 @@
 <template>
-  <div ref="container" class="sparkline-wrapper d-flex align-center justify-center position-relative"
+  <div ref="container" class="sparkline-wrapper flex items-center justify-center relative"
     :style="{ width: '100%', height: (props.height + 25) + 'px' }">
-    <div class="spark-tooltip px-2 py-1 text-[10px] font-weight-black rounded shadow-sm text-center"
+    <div class="spark-tooltip px-2 py-1 text-[10px] font-bold rounded shadow-sm text-center"
       v-if="hoveredIndex !== null" :style="{ left: tooltipX + 'px', top: '0px', color: props.color }">
-      <div class="d-flex align-center gap-1">
-        <span v-if="props.labels && props.labels[hoveredIndex]" class="text-medium-emphasis">{{ props.labels[hoveredIndex] }}</span>
+      <div class="flex items-center gap-1">
+        <span v-if="props.labels && props.labels[hoveredIndex]" class="text-wf-text-secondary">{{ props.labels[hoveredIndex] }}</span>
         <span v-if="props.labels && props.labels[hoveredIndex]" class="mx-1 opacity-30">|</span>
         <span>{{ formatValue(props.data[hoveredIndex]) }}</span>
       </div>

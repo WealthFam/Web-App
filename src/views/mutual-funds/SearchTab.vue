@@ -34,7 +34,7 @@
                         @keyup.enter="handleSearch(1)" />
                 </div>
                 <button type="button" @click="handleSearch(1)" :disabled="isSearching"
-                    class="h-8 px-4 text-xs font-bold rounded-wf-md bg-wf-primary text-white hover:bg-wf-primary-dark transition-colors shadow-2xs shrink-0 disabled:opacity-50">
+                    class="h-8 px-4 text-xs font-bold rounded-wf-md bg-wf-primary text-white hover:bg-wf-primary-hover transition-colors shadow-2xs shrink-0 disabled:opacity-50">
                     {{ isSearching ? 'SEARCHING...' : 'DISCOVER' }}
                 </button>
             </div>
@@ -123,7 +123,7 @@
                 <!-- Invest Button -->
                 <div class="mt-2.5 pt-2 border-t border-wf-border-subtle">
                     <button type="button"
-                        class="w-full h-6 text-xs font-bold rounded-wf-xs bg-wf-primary text-white hover:bg-wf-primary-dark transition-colors flex items-center justify-center gap-1 shadow-2xs"
+                        class="w-full h-6 text-xs font-bold rounded-wf-xs bg-wf-primary text-white hover:bg-wf-primary-hover transition-colors flex items-center justify-center gap-1 shadow-2xs"
                         @click.stop="openInvestModal(fund)">
                         <span>INSTANT INVEST</span>
                         <Plus :size="12" />

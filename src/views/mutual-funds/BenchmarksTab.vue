@@ -26,7 +26,7 @@
                 <button
                     type="button"
                     @click="openAddDialog"
-                    class="h-7 px-3 rounded-wf-sm text-xs font-bold bg-wf-primary text-white hover:bg-wf-primary-dark transition-colors flex items-center gap-1 shadow-2xs cursor-pointer"
+                    class="h-7 px-3 rounded-wf-sm text-xs font-bold bg-wf-primary text-white hover:bg-wf-primary-hover transition-colors flex items-center gap-1 shadow-2xs cursor-pointer"
                 >
                     <Plus :size="14" />
                     <span>Add Rule</span>
@@ -140,7 +140,7 @@
                             v-model.number="ruleForm.priority"
                             type="number"
                             placeholder="0"
-                            class="w-full h-9 px-3 text-xs font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                            class="w-full h-9 px-3 text-xs font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
                         />
                         <span class="text-[10px] text-wf-text-muted">Lower number = higher priority</span>
                     </div>
@@ -150,7 +150,7 @@
                             v-model="ruleForm.keyword"
                             type="text"
                             placeholder="e.g. small cap"
-                            class="w-full h-9 px-3 text-xs font-semibold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                            class="w-full h-9 px-3 text-xs font-semibold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
                         />
                         <span class="text-[10px] text-wf-text-muted">Leave empty for default fallback rule</span>
                     </div>
@@ -163,7 +163,7 @@
                         <select
                             v-model="selectedCommonBenchmark"
                             @change="onBenchmarkSelect(selectedCommonBenchmark)"
-                            class="w-full h-9 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                            class="w-full h-9 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
                         >
                             <option v-for="b in commonBenchmarks" :key="b.symbol" :value="b.symbol">
                                 {{ b.label }}
@@ -179,7 +179,7 @@
                                 type="text"
                                 placeholder="120716"
                                 :readonly="selectedCommonBenchmark !== 'custom'"
-                                class="w-full h-9 px-3 text-xs font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-60"
+                                class="w-full h-9 px-3 text-xs font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all disabled:opacity-60"
                             />
                         </div>
                         <div class="sm:col-span-8 space-y-1">
@@ -189,7 +189,7 @@
                                 type="text"
                                 placeholder="e.g. Nifty 50 Index"
                                 :readonly="selectedCommonBenchmark !== 'custom'"
-                                class="w-full h-9 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-60"
+                                class="w-full h-9 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all disabled:opacity-60"
                             />
                         </div>
                     </div>
@@ -217,7 +217,7 @@
                             <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Line Style</label>
                             <select
                                 v-model="ruleForm.styling_style"
-                                class="w-full h-9 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                class="w-full h-9 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
                             >
                                 <option value="solid">Solid</option>
                                 <option value="dashed">Dashed</option>
@@ -248,7 +248,7 @@
                 <button
                     type="button"
                     @click="saveRule"
-                    class="px-5 py-2 text-xs font-bold rounded-wf-md bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5"
+                    class="px-5 py-2 text-xs font-bold rounded-wf-md bg-wf-primary text-white shadow-sm hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5"
                 >
                     <Check :size="14" />
                     <span>Save Benchmark Rule</span>

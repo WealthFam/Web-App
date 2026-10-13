@@ -1,19 +1,19 @@
 <template>
-    <div class="forecast-chart-wrapper position-relative" :style="{ height: (height + 30) + 'px' }">
+    <div class="forecast-chart-wrapper relative" :style="{ height: (height + 30) + 'px' }">
         <!-- Overlay Tooltip -->
-        <div v-if="hoveredBar !== null" class="chart-tooltip glass-card pa-3"
+        <div v-if="hoveredBar !== null" class="chart-tooltip glass-card p-3"
             :style="{ left: tooltipPos.x + 'px', top: '-60px' }">
-            <div class="text-caption font-weight-black mb-1">{{ formatDate(hoveredBar.date) }} <span
-                    v-if="hoveredBar.is_forecast" class="text-primary font-weight-bold ml-1">(Forecast)</span></div>
-            <div v-for="(val, key) in hoveredBar.stacks" :key="key" class="d-flex align-center gap-2 mb-1">
+            <div class="text-xs font-bold mb-1">{{ formatDate(hoveredBar.date) }} <span
+                    v-if="hoveredBar.is_forecast" class="text-wf-primary font-bold ml-1">(Forecast)</span></div>
+            <div v-for="(val, key) in hoveredBar.stacks" :key="key" class="flex items-center gap-2 mb-1">
                 <div class="stack-indicator" :style="{ background: getStackColor(String(key)) }"></div>
-                <span class="text-tiny font-weight-bold opacity-70">{{ getUserName(String(key)) }}:</span>
-                <span class="text-tiny font-weight-black">₹{{ Math.round(val) }}</span>
+                <span class="text-tiny font-bold opacity-70">{{ getUserName(String(key)) }}:</span>
+                <span class="text-tiny font-bold">₹{{ Math.round(val) }}</span>
             </div>
-            <div class="h-px bg-slate-200 dark:bg-slate-700 my-1"></div>
-            <div class="d-flex align-center justify-space-between gap-4">
-                <span class="text-tiny font-weight-black">TOTAL</span>
-                <span class="text-tiny font-weight-black">₹{{ Math.round(hoveredBar.total) }}</span>
+            <div class="h-px bg-wf-border my-1"></div>
+            <div class="flex items-center justify-between gap-4">
+                <span class="text-tiny font-bold">TOTAL</span>
+                <span class="text-tiny font-bold">₹{{ Math.round(hoveredBar.total) }}</span>
             </div>
         </div>
 
@@ -28,7 +28,7 @@
             <!-- Y-Axis Labels -->
             <g class="y-axis-labels">
                 <text v-for="i in 5" :key="i" :x="axisPadding - 10" :y="(height / 4) * (i - 1) + 4" text-anchor="end"
-                    class="text-tiny opacity-40 font-weight-black fill-content" style="font-size: 9px;">
+                    class="text-tiny opacity-40 font-bold fill-current" style="font-size: 9px;">
                     ₹{{ formatYLabel((maxVal / 4) * (4 - (i - 1))) }}
                 </text>
             </g>
@@ -54,8 +54,8 @@
         </svg>
 
         <!-- X-Axis Labels -->
-        <div class="x-axis mt-3 opacity-50 font-weight-bold text-tiny position-relative" style="height: 20px;">
-            <div v-for="day in filteredLabels" :key="day.date" class="position-absolute"
+        <div class="x-axis mt-3 opacity-50 font-bold text-tiny relative" style="height: 20px;">
+            <div v-for="day in filteredLabels" :key="day.date" class="absolute"
                 :style="{ left: (axisPadding + getLabelX(day.date)) + 'px', transform: 'translateX(-50%)' }">
                 {{ day.label }}
             </div>

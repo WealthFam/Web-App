@@ -16,7 +16,7 @@ onMounted(() => {
 
 <template>
     <MainLayout>
-        <div class="max-w-[1600px] mx-auto space-y-4 pb-8">
+        <div class="space-y-4 pb-8">
             <!-- HEADER: Title & Segmented Tab Switcher -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wf-border-subtle">
                 <div class="flex items-center gap-2.5">
@@ -25,7 +25,7 @@ onMounted(() => {
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
-                            <h1 class="text-base sm:text-lg font-bold tracking-tight text-wf-text-primary leading-tight">
+                            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary leading-tight">
                                 Categories & Classification Rules
                             </h1>
                             <span class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">

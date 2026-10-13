@@ -171,7 +171,7 @@ const hasAssets = computed(() => {
       <div class="space-y-2 pt-1">
         <div class="flex items-end justify-between">
           <div>
-            <div class="text-lg font-black text-wf-text-primary font-mono leading-none">
+            <div class="text-lg font-bold text-wf-text-primary font-mono leading-none">
               {{ formatAmount(goal.current_amount) }}
             </div>
             <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block mt-1">
@@ -181,7 +181,7 @@ const hasAssets = computed(() => {
 
           <div class="text-right">
             <div
-              class="text-base font-black font-mono leading-none"
+              class="text-base font-bold font-mono leading-none"
               :style="{ color: goal.color || 'var(--wf-color-primary)' }"
             >
               {{ Math.round(goal.progress_percentage || 0) }}%

@@ -110,7 +110,7 @@ onMounted(fetchGoals)
                     <div
                         @click="selectedGoalId = null"
                         class="p-3 rounded-wf-lg border transition-all cursor-pointer flex items-center justify-between"
-                        :class="selectedGoalId === null ? 'border-primary bg-primary/5' : 'border-wf-border bg-wf-surface hover:bg-wf-surface-variant/40'"
+                        :class="selectedGoalId === null ? 'border-wf-primary bg-wf-primary/5' : 'border-wf-border bg-wf-surface hover:bg-wf-surface-variant/40'"
                     >
                         <div class="flex items-center gap-2.5">
                             <div class="w-8 h-8 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-text-muted">
@@ -121,7 +121,7 @@ onMounted(fetchGoals)
                                 <div class="text-[11px] text-wf-text-muted">Do not associate with any specific target</div>
                             </div>
                         </div>
-                        <div v-if="selectedGoalId === null" class="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                        <div v-if="selectedGoalId === null" class="w-5 h-5 rounded-full bg-wf-primary text-white flex items-center justify-center">
                             <Check class="w-3 h-3" />
                         </div>
                     </div>
@@ -132,7 +132,7 @@ onMounted(fetchGoals)
                         :key="g.id"
                         @click="selectedGoalId = g.id"
                         class="p-3 rounded-wf-lg border transition-all cursor-pointer flex items-center justify-between"
-                        :class="selectedGoalId === g.id ? 'border-primary bg-primary/5' : 'border-wf-border bg-wf-surface hover:bg-wf-surface-variant/40'"
+                        :class="selectedGoalId === g.id ? 'border-wf-primary bg-wf-primary/5' : 'border-wf-border bg-wf-surface hover:bg-wf-surface-variant/40'"
                     >
                         <div class="flex items-center gap-2.5 min-w-0">
                             <div
@@ -146,7 +146,7 @@ onMounted(fetchGoals)
                                 <div class="text-[11px] font-mono text-wf-text-muted">Target: {{ formatAmount(g.target_amount) }}</div>
                             </div>
                         </div>
-                        <div v-if="selectedGoalId === g.id" class="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
+                        <div v-if="selectedGoalId === g.id" class="w-5 h-5 rounded-full bg-wf-primary text-white flex items-center justify-center flex-shrink-0">
                             <Check class="w-3 h-3" />
                         </div>
                     </div>
@@ -171,7 +171,7 @@ onMounted(fetchGoals)
                 type="button"
                 :disabled="processing"
                 @click="handleLink"
-                class="px-5 py-2 text-xs font-bold rounded-wf-md bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2"
+                class="px-5 py-2 text-xs font-bold rounded-wf-md bg-wf-primary text-white shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2"
             >
                 <span v-if="processing">Updating...</span>
                 <span v-else>Save Goal Association</span>

@@ -47,7 +47,7 @@ watch(() => route.query.tab, (newTab) => {
 
 <template>
   <MainLayout>
-    <div class="max-w-[1600px] mx-auto space-y-4 pb-12">
+    <div class="space-y-4 pb-8">
       <!-- PAGE HEADER -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wf-border-subtle">
         <div class="flex items-center gap-2.5">
@@ -55,10 +55,10 @@ watch(() => route.query.tab, (newTab) => {
             <SettingsIcon class="w-4 h-4 text-wf-primary" />
           </div>
           <div>
-            <h1 class="text-base sm:text-lg font-bold tracking-tight text-wf-text-primary leading-tight">
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary leading-tight">
               Settings & Administration
             </h1>
-            <p class="text-[11px] text-wf-text-secondary">
+            <p class="text-xs text-wf-text-secondary">
               Manage family circle, email synchronization, mobile sync devices, and extraction rules.
             </p>
           </div>

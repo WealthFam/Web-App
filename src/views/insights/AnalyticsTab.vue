@@ -508,7 +508,7 @@
                             class="p-2.5 rounded-wf-md bg-wf-surface border border-wf-border-subtle hover:border-wf-border transition-colors flex items-center justify-between gap-3"
                         >
                             <div class="flex items-center gap-2.5 min-w-0">
-                                <div class="w-6 h-6 rounded-wf-full bg-wf-surface-variant text-wf-text-secondary font-bold text-[10px] flex items-center justify-center shrink-0">
+                                <div class="w-6 h-6 rounded-wf-pill bg-wf-surface-variant text-wf-text-secondary font-bold text-[10px] flex items-center justify-center shrink-0">
                                     #{{ Number(idx) + 1 }}
                                 </div>
                                 <div class="min-w-0">

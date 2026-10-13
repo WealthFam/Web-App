@@ -155,7 +155,7 @@
                         type="button"
                         :disabled="!file || isProcessing"
                         @click="handlePreview"
-                        class="h-8 px-4 text-xs font-bold rounded-wf-sm bg-wf-primary text-white hover:bg-wf-primary-dark transition-colors flex items-center gap-1.5 shadow-2xs disabled:opacity-50 cursor-pointer"
+                        class="h-8 px-4 text-xs font-bold rounded-wf-sm bg-wf-primary text-white hover:bg-wf-primary-hover transition-colors flex items-center gap-1.5 shadow-2xs disabled:opacity-50 cursor-pointer"
                     >
                         <span>{{ isProcessing ? 'ANALYZING...' : 'ANALYZE STATEMENT' }}</span>
                         <ArrowRight :size="14" />
@@ -193,7 +193,7 @@
                     :disabled="isProcessing"
                     @click="handleConfirm"
                     class="h-9 px-5 text-xs font-bold rounded-wf-md text-white transition-all flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                    :class="importMode === 'pdf' ? 'bg-wf-primary hover:bg-wf-primary-dark' : 'bg-purple-600 hover:bg-purple-700'"
+                    :class="importMode === 'pdf' ? 'bg-wf-primary hover:bg-wf-primary-hover' : 'bg-purple-600 hover:bg-purple-700'"
                 >
                     <span>CONFIRM IMPORT</span>
                     <CheckCircle :size="16" />
@@ -367,7 +367,7 @@
                 <button
                     type="button"
                     @click="finishImport"
-                    class="px-5 py-2 text-xs font-bold rounded-wf-md bg-wf-primary text-white hover:bg-wf-primary-dark transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                    class="px-5 py-2 text-xs font-bold rounded-wf-md bg-wf-primary text-white hover:bg-wf-primary-hover transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
                 >
                     <span>View Updated Portfolio</span>
                     <ArrowRight :size="14" />

@@ -89,7 +89,7 @@ function setMax() {
             <div class="p-3.5 rounded-wf-lg bg-wf-surface-variant/40 border border-wf-border grid grid-cols-2 gap-3">
                 <div>
                     <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted flex items-center gap-1.5 mb-1">
-                        <Wallet class="w-3.5 h-3.5 text-primary" />
+                        <Wallet class="w-3.5 h-3.5 text-wf-primary" />
                         <span>Available Units</span>
                     </div>
                     <div class="font-mono font-bold text-sm text-wf-text-primary">
@@ -100,7 +100,7 @@ function setMax() {
                     <div class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted mb-1">
                         Current Value
                     </div>
-                    <div class="font-mono font-bold text-sm text-primary">
+                    <div class="font-mono font-bold text-sm text-wf-primary">
                         {{ formatAmount(holding?.current_value) }}
                     </div>
                 </div>
@@ -112,7 +112,7 @@ function setMax() {
                     type="button"
                     @click="activeTab = 'amount'"
                     class="py-2 px-3 rounded-wf-md transition-all text-center"
-                    :class="activeTab === 'amount' ? 'bg-primary text-primary-foreground shadow-sm font-bold' : 'text-wf-text-muted hover:text-wf-text-primary'"
+                    :class="activeTab === 'amount' ? 'bg-wf-primary text-white shadow-sm font-bold' : 'text-wf-text-muted hover:text-wf-text-primary'"
                 >
                     Redeem by Amount (₹)
                 </button>
@@ -120,7 +120,7 @@ function setMax() {
                     type="button"
                     @click="activeTab = 'units'"
                     class="py-2 px-3 rounded-wf-md transition-all text-center"
-                    :class="activeTab === 'units' ? 'bg-primary text-primary-foreground shadow-sm font-bold' : 'text-wf-text-muted hover:text-wf-text-primary'"
+                    :class="activeTab === 'units' ? 'bg-wf-primary text-white shadow-sm font-bold' : 'text-wf-text-muted hover:text-wf-text-primary'"
                 >
                     Redeem by Units
                 </button>
@@ -135,7 +135,7 @@ function setMax() {
                     <button
                         type="button"
                         @click="setMax"
-                        class="text-[11px] font-bold text-primary hover:underline transition-all"
+                        class="text-[11px] font-bold text-wf-primary hover:underline transition-all"
                     >
                         Redeem All (MAX)
                     </button>
@@ -148,7 +148,7 @@ function setMax() {
                         type="number"
                         :step="activeTab === 'units' ? '0.001' : '100'"
                         :placeholder="activeTab === 'amount' ? 'Enter amount' : 'Enter units'"
-                        class="w-full h-11 text-base font-bold rounded-wf-lg border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono transition-all"
+                        class="w-full h-11 text-base font-bold rounded-wf-lg border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary font-mono transition-all"
                         :class="activeTab === 'amount' ? 'pl-8 pr-4' : 'px-4'"
                     />
                 </div>
@@ -157,7 +157,7 @@ function setMax() {
             <!-- Conversion Projection Card -->
             <div class="p-3 rounded-wf-lg bg-wf-surface-variant/30 border border-wf-border flex items-center justify-between text-xs">
                 <div class="flex items-center gap-2 text-wf-text-muted">
-                    <ArrowDownRight class="w-4 h-4 text-primary" />
+                    <ArrowDownRight class="w-4 h-4 text-wf-primary" />
                     <span>Estimated {{ activeTab === 'amount' ? 'Units Deducted:' : 'Cash Value:' }}</span>
                 </div>
                 <div class="font-mono font-bold text-wf-text-primary">

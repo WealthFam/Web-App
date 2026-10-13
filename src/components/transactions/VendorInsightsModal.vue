@@ -2,7 +2,7 @@
     <WfModal v-model="internalValue" max-width="md">
         <template #header>
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-wf-lg bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20 flex items-center justify-center font-bold text-sm shrink-0">
+                <div class="w-10 h-10 rounded-wf-lg bg-wf-primary/10 text-wf-primary dark:text-wf-primary border border-wf-primary/20 flex items-center justify-center font-bold text-sm shrink-0">
                     {{ (vendorName || 'V').slice(0, 2).toUpperCase() }}
                 </div>
                 <div>
@@ -18,7 +18,7 @@
                         <router-link
                             :to="`/merchants/${encodeURIComponent(vendorName)}`"
                             @click="internalValue = false"
-                            class="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
+                            class="text-xs font-semibold text-wf-primary hover:underline inline-flex items-center gap-1"
                             title="Open Merchant Profile page"
                         >
                             <span>Full Analytics</span>
@@ -98,7 +98,7 @@
                 <div>
                     <div class="flex items-center justify-between mb-2 px-1">
                         <div class="flex items-center gap-1.5 text-xs font-bold text-wf-text-primary">
-                            <History :size="14" class="text-primary-500" />
+                            <History :size="14" class="text-wf-primary" />
                             <span>Recent History</span>
                         </div>
                         <span class="text-[10px] font-mono font-bold text-wf-text-muted uppercase">

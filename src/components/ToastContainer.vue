@@ -13,7 +13,7 @@ const store = useNotificationStore()
                 <div class="icon-wrapper">
                     <CheckCircle v-if="note.type === 'success'" :size="20" class="text-success" />
                     <AlertCircle v-if="note.type === 'error'" :size="20" class="text-error" />
-                    <Info v-if="note.type === 'info'" :size="20" class="text-primary" />
+                    <Info v-if="note.type === 'info'" :size="20" class="text-wf-primary" />
                 </div>
                 <div class="content">{{ note.message }}</div>
                 <button class="close-btn">
@@ -120,7 +120,7 @@ const store = useNotificationStore()
     color: #ef4444;
 }
 
-.text-primary {
+.text-wf-primary {
     color: #6366f1;
 }
 

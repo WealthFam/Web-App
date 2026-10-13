@@ -143,12 +143,12 @@ watch(() => authStore.selectedMemberId, () => {
 
 <template>
   <MainLayout>
-    <div class="max-w-[1600px] mx-auto space-y-8 pb-16">
+    <div class="space-y-5 pb-8">
       <!-- PAGE HEADER -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-wf-lg bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs">
-            <Landmark class="w-5 h-5 text-wf-primary" />
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs shrink-0">
+            <Landmark class="w-4.5 h-4.5 text-wf-primary" />
           </div>
           <div>
             <div class="flex items-center gap-2">
@@ -165,10 +165,10 @@ watch(() => authStore.selectedMemberId, () => {
           </div>
         </div>
 
-        <div class="flex items-center gap-3 self-start sm:self-auto flex-wrap">
+        <div class="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
           <WfButton
             variant="secondary"
-            size="md"
+            size="sm"
             :loading="insightLoading"
             @click="generatePortfolioInsights"
           >
@@ -176,7 +176,7 @@ watch(() => authStore.selectedMemberId, () => {
             <span>Repayment Strategy</span>
           </WfButton>
 
-          <WfButton variant="primary" size="md" @click="openAddModal">
+          <WfButton variant="primary" size="sm" @click="openAddModal">
             <Plus class="w-4 h-4 mr-1.5" />
             <span>Add Loan</span>
           </WfButton>
@@ -192,7 +192,7 @@ watch(() => authStore.selectedMemberId, () => {
       />
 
       <!-- LOADING SKELETONS -->
-      <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         <div
           v-for="i in 3"
           :key="`skel-${i}`"
@@ -227,14 +227,14 @@ watch(() => authStore.selectedMemberId, () => {
             Add a loan to track your principal balance, calculate savings from prepayments, and schedule monthly EMIs.
           </p>
         </div>
-        <WfButton variant="primary" size="md" @click="openAddModal">
+        <WfButton variant="primary" size="sm" @click="openAddModal">
           <Plus class="w-4 h-4 mr-1.5" />
           <span>Add Your First Loan</span>
         </WfButton>
       </div>
 
       <!-- LOANS GRID -->
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 pb-8">
         <!-- Add New Loan Quick Action Card -->
         <div
           @click="openAddModal"

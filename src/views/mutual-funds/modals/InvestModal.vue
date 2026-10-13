@@ -69,7 +69,7 @@ function handleClose() {
                     type="button"
                     @click="activeTab = 'lumpsum'"
                     class="py-2 px-3 rounded-wf-md transition-all text-center flex items-center justify-center gap-1.5"
-                    :class="activeTab === 'lumpsum' ? 'bg-primary text-primary-foreground shadow-sm font-bold' : 'text-wf-text-muted hover:text-wf-text-primary'"
+                    :class="activeTab === 'lumpsum' ? 'bg-wf-primary text-white shadow-sm font-bold' : 'text-wf-text-muted hover:text-wf-text-primary'"
                 >
                     <DollarSign class="w-3.5 h-3.5" />
                     <span>One-Time (Lumpsum)</span>
@@ -78,7 +78,7 @@ function handleClose() {
                     type="button"
                     @click="activeTab = 'sip'"
                     class="py-2 px-3 rounded-wf-md transition-all text-center flex items-center justify-center gap-1.5"
-                    :class="activeTab === 'sip' ? 'bg-primary text-primary-foreground shadow-sm font-bold' : 'text-wf-text-muted hover:text-wf-text-primary'"
+                    :class="activeTab === 'sip' ? 'bg-wf-primary text-white shadow-sm font-bold' : 'text-wf-text-muted hover:text-wf-text-primary'"
                 >
                     <Calendar class="w-3.5 h-3.5" />
                     <span>Monthly SIP</span>
@@ -96,7 +96,7 @@ function handleClose() {
                         v-model.number="amount"
                         type="number"
                         placeholder="5,000"
-                        class="w-full h-11 pl-8 pr-4 text-base font-bold rounded-wf-lg border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono transition-all"
+                        class="w-full h-11 pl-8 pr-4 text-base font-bold rounded-wf-lg border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary font-mono transition-all"
                     />
                 </div>
 
@@ -120,7 +120,7 @@ function handleClose() {
                     <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider block">
                         Monthly Debit Date
                     </label>
-                    <span class="text-xs font-mono font-medium text-primary">Every {{ sipDate }}th of month</span>
+                    <span class="text-xs font-mono font-medium text-wf-primary">Every {{ sipDate }}th of month</span>
                 </div>
                 <div class="grid grid-cols-6 gap-1.5">
                     <button
@@ -129,7 +129,7 @@ function handleClose() {
                         type="button"
                         @click="sipDate = d"
                         class="h-9 text-xs font-bold rounded-wf-md border transition-all text-center"
-                        :class="sipDate === d ? 'border-primary bg-primary text-primary-foreground shadow-sm' : 'border-wf-border bg-wf-surface-variant/40 text-wf-text-muted hover:border-primary/40 hover:text-wf-text-primary'"
+                        :class="sipDate === d ? 'border-wf-primary bg-wf-primary text-white shadow-sm' : 'border-wf-border bg-wf-surface-variant/40 text-wf-text-muted hover:border-wf-primary/40 hover:text-wf-text-primary'"
                     >
                         {{ d }}th
                     </button>
@@ -139,7 +139,7 @@ function handleClose() {
             <!-- Summary Box -->
             <div class="p-3 rounded-wf-lg bg-wf-surface-variant/40 border border-wf-border flex items-center justify-between text-xs">
                 <div class="flex items-center gap-2 text-wf-text-muted">
-                    <Sparkles class="w-4 h-4 text-primary" />
+                    <Sparkles class="w-4 h-4 text-wf-primary" />
                     <span>Order Type:</span>
                     <span class="font-semibold text-wf-text-primary">{{ activeTab === 'sip' ? 'Automated Monthly SIP' : 'Lumpsum Immediate Purchase' }}</span>
                 </div>
@@ -173,7 +173,7 @@ function handleClose() {
                 type="button"
                 :disabled="!isValid || isLoading"
                 @click="handleSubmit"
-                class="px-5 py-2 text-xs font-bold rounded-wf-md bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2"
+                class="px-5 py-2 text-xs font-bold rounded-wf-md bg-wf-primary text-white shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2"
             >
                 <span v-if="isLoading">Processing Order...</span>
                 <span v-else>Confirm & Invest {{ amount ? formatAmount(amount) : '' }}</span>

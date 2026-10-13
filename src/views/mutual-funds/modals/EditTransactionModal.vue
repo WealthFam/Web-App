@@ -70,7 +70,7 @@ const isValid = computed(() => {
             <input
               v-model="formData.date"
               type="date"
-              class="w-full h-10 px-3 text-xs font-mono font-medium rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              class="w-full h-10 px-3 text-xs font-mono font-medium rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
             />
           </div>
 
@@ -79,7 +79,7 @@ const isValid = computed(() => {
             <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider block">Type</label>
             <select
               v-model="formData.type"
-              class="w-full h-10 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              class="w-full h-10 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
             >
               <option value="BUY">BUY (Purchase)</option>
               <option value="SELL">SELL (Redemption)</option>
@@ -97,7 +97,7 @@ const isValid = computed(() => {
               type="number"
               step="0.01"
               placeholder="0.00"
-              class="w-full h-10 pl-7 pr-3 text-sm font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              class="w-full h-10 pl-7 pr-3 text-sm font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
             />
           </div>
         </div>
@@ -111,7 +111,7 @@ const isValid = computed(() => {
               type="number"
               step="0.0001"
               placeholder="0.0000"
-              class="w-full h-10 px-3 text-xs font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              class="w-full h-10 px-3 text-xs font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
             />
           </div>
 
@@ -123,7 +123,7 @@ const isValid = computed(() => {
               type="number"
               step="0.0001"
               placeholder="0.0000"
-              class="w-full h-10 px-3 text-xs font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              class="w-full h-10 px-3 text-xs font-mono font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
             />
           </div>
         </div>
@@ -131,7 +131,7 @@ const isValid = computed(() => {
 
       <!-- Recalculation Note -->
       <div class="p-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border flex items-start gap-2 text-xs text-wf-text-muted">
-        <Info class="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+        <Info class="w-4 h-4 text-wf-primary flex-shrink-0 mt-0.5" />
         <span>Updating this transaction recalculates holding balance, unit totals, and historic portfolio timeline.</span>
       </div>
     </div>
@@ -149,7 +149,7 @@ const isValid = computed(() => {
         type="button"
         :disabled="!isValid || loading"
         @click="save"
-        class="px-5 py-2 text-xs font-bold rounded-wf-md bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-1.5"
+        class="px-5 py-2 text-xs font-bold rounded-wf-md bg-wf-primary text-white shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-1.5"
       >
         <Check :size="14" />
         <span>{{ loading ? 'Saving...' : 'Save Changes' }}</span>

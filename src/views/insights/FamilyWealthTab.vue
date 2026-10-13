@@ -30,7 +30,7 @@
                             <span class="text-[11px] font-bold uppercase tracking-widest text-slate-400 block mb-1">
                                 Total Family Net Worth
                             </span>
-                            <h1 class="text-3xl sm:text-4xl md:text-5xl font-black font-mono tracking-tight text-white">
+                            <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold font-mono tracking-tight text-white">
                                 {{ formatAmount(wealthData.total_net_worth) }}
                             </h1>
                         </div>
@@ -56,7 +56,7 @@
                             v-for="(m, i) in wealthData.members.slice(0, 5)"
                             :key="m.user_id || i"
                             class="w-12 h-12 rounded-full border-2 border-slate-900 flex items-center justify-center font-bold text-sm text-white shadow-md transition-transform hover:-translate-y-1"
-                            :style="{ backgroundColor: chartPalette[i % chartPalette.length] }"
+                            :style="{ backgroundColor: getMemberColor(Number(i)) }"
                             :title="m.name"
                         >
                             {{ m.name ? m.name.charAt(0).toUpperCase() : 'U' }}
@@ -148,7 +148,7 @@
                             <div class="flex items-start justify-between gap-2">
                                 <div
                                     class="w-12 h-12 rounded-wf-xl flex items-center justify-center font-bold text-base text-white shadow-xs"
-                                    :style="{ backgroundColor: chartPalette[i % chartPalette.length] }"
+                                    :style="{ backgroundColor: getMemberColor(Number(i)) }"
                                 >
                                     {{ member.name ? member.name.charAt(0).toUpperCase() : 'U' }}
                                 </div>
@@ -175,7 +175,7 @@
                                         class="h-full rounded-wf-pill transition-all duration-300"
                                         :style="{
                                             width: `${Math.max(0, Math.min(wealthData.total_assets > 0 ? (member.net_worth / wealthData.total_assets) * 100 : 0, 100))}%`,
-                                            backgroundColor: chartPalette[i % chartPalette.length]
+                                            backgroundColor: getMemberColor(Number(i))
                                         }"
                                     ></div>
                                 </div>
@@ -279,6 +279,8 @@ const chartPalette = [
     '#6366F1', // Indigo
     '#14B8A6'  // Teal
 ]
+
+const getMemberColor = (index: number) => chartPalette[Math.abs(index) % chartPalette.length]
 
 onMounted(async () => {
     loading.value = true

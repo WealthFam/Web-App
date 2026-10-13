@@ -396,13 +396,13 @@ onMounted(() => {
 
 <template>
   <MainLayout>
-    <div class="max-w-[1600px] mx-auto space-y-8 pb-16">
+    <div class="space-y-5 pb-8">
       <!-- Back Link -->
       <div>
         <button
           type="button"
           @click="router.back()"
-          class="inline-flex items-center gap-1.5 text-xs font-bold text-wf-text-secondary hover:text-wf-primary transition-colors"
+          class="inline-flex items-center gap-1.5 text-xs font-semibold text-wf-text-muted hover:text-wf-text-primary transition-colors cursor-pointer"
         >
           <ChevronLeft class="w-4 h-4" />
           <span>Back to Loans</span>
@@ -410,7 +410,7 @@ onMounted(() => {
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="space-y-6">
+      <div v-if="loading" class="space-y-5">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div v-for="i in 4" :key="`skel-top-${i}`" class="h-28 rounded-wf-lg bg-wf-surface-variant/40 animate-pulse"></div>
         </div>
@@ -418,16 +418,16 @@ onMounted(() => {
       </div>
 
       <!-- Loan Detail Content -->
-      <div v-else-if="loan" class="space-y-8">
+      <div v-else-if="loan" class="space-y-5">
         <!-- HEADER ROW -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-wf-border-subtle">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
           <div class="flex items-center gap-4">
-            <div class="w-14 h-14 rounded-wf-xl bg-wf-surface-variant flex items-center justify-center text-3xl border border-wf-border-subtle shadow-2xs">
+            <div class="w-12 h-12 rounded-wf-xl bg-wf-surface-variant flex items-center justify-center text-2xl border border-wf-border-subtle shadow-2xs shrink-0">
               <span>{{ getLoanIcon(loan.loan_type) }}</span>
             </div>
             <div>
               <div class="flex items-center gap-2">
-                <h1 class="text-xl sm:text-2xl font-black tracking-tight text-wf-text-primary">
+                <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary">
                   {{ loan.name }}
                 </h1>
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50 uppercase tracking-wider">
@@ -453,7 +453,7 @@ onMounted(() => {
             <span class="text-[10px] font-bold text-wf-primary uppercase tracking-wider block">
               Current Outstanding
             </span>
-            <div class="text-2xl font-black text-wf-primary font-mono mt-0.5">
+            <div class="text-2xl font-bold text-wf-primary font-mono mt-0.5">
               {{ formatAmount(loan.outstanding_balance) }}
             </div>
           </div>
@@ -469,7 +469,7 @@ onMounted(() => {
               </div>
               <span class="text-[10px] font-bold text-wf-text-secondary uppercase tracking-wider">Principal</span>
             </div>
-            <div class="text-lg font-black text-wf-text-primary font-mono">
+            <div class="text-lg font-bold text-wf-text-primary font-mono">
               {{ formatAmount(loan.principal_amount) }}
             </div>
           </WfCard>
@@ -482,7 +482,7 @@ onMounted(() => {
               </div>
               <span class="text-[10px] font-bold text-wf-text-secondary uppercase tracking-wider">Monthly EMI</span>
             </div>
-            <div class="text-lg font-black text-wf-text-primary font-mono">
+            <div class="text-lg font-bold text-wf-text-primary font-mono">
               {{ formatAmount(loan.emi_amount) }}
             </div>
           </WfCard>
@@ -509,7 +509,7 @@ onMounted(() => {
                 </div>
                 <span class="text-[10px] font-bold text-wf-text-secondary uppercase tracking-wider">Progress</span>
               </div>
-              <span class="text-xs font-black text-wf-primary font-mono">{{ Math.round(loan.progress_percentage || 0) }}%</span>
+              <span class="text-xs font-bold text-wf-primary font-mono">{{ Math.round(loan.progress_percentage || 0) }}%</span>
             </div>
             <div class="w-full bg-wf-surface-variant rounded-wf-pill h-2 overflow-hidden mt-2">
               <div
@@ -600,7 +600,7 @@ onMounted(() => {
                     <label class="text-[11px] font-bold text-wf-text-secondary">
                       Extra Monthly Payment (EMI Top-up)
                     </label>
-                    <span class="text-xs font-black text-wf-primary font-mono">
+                    <span class="text-xs font-bold text-wf-primary font-mono">
                       {{ formatAmount(customSimForm.extra_monthly_payment) }}
                     </span>
                   </div>
@@ -620,7 +620,7 @@ onMounted(() => {
                     <label class="text-[11px] font-bold text-wf-text-secondary">
                       One-time Lumpsum Prepayment
                     </label>
-                    <span class="text-xs font-black text-wf-primary font-mono">
+                    <span class="text-xs font-bold text-wf-primary font-mono">
                       {{ formatAmount(customSimForm.one_time_prepayment) }}
                     </span>
                   </div>
@@ -658,13 +658,13 @@ onMounted(() => {
                 <div class="grid grid-cols-2 gap-3">
                   <div class="p-2.5 rounded-wf-sm bg-wf-surface border border-emerald-500/20">
                     <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Interest Saved</span>
-                    <div class="text-base font-black text-emerald-500 font-mono mt-0.5">
+                    <div class="text-base font-bold text-emerald-500 font-mono mt-0.5">
                       {{ formatAmount(customSimResult.interest_saved) }}
                     </div>
                   </div>
                   <div class="p-2.5 rounded-wf-sm bg-wf-surface border border-emerald-500/20">
                     <span class="text-[10px] font-bold text-wf-text-muted uppercase tracking-wider block">Time Saved</span>
-                    <div class="text-base font-black text-wf-primary font-mono mt-0.5">
+                    <div class="text-base font-bold text-wf-primary font-mono mt-0.5">
                       {{ customSimResult.months_saved }} Months
                     </div>
                   </div>
@@ -739,7 +739,7 @@ onMounted(() => {
               <span class="text-[10px] font-bold text-rose-500 uppercase tracking-wider block">
                 Total Interest Payable
               </span>
-              <div class="text-lg font-black text-rose-500 font-mono mt-0.5">
+              <div class="text-lg font-bold text-rose-500 font-mono mt-0.5">
                 {{ formatAmount(totalInterest) }}
               </div>
             </div>
@@ -780,7 +780,7 @@ onMounted(() => {
                 >
                   <td class="px-4 py-3 font-sans text-wf-text-muted">{{ item.installment_no }}</td>
                   <td class="px-4 py-3 font-sans font-medium text-wf-text-primary">{{ formatDate(item.due_date) }}</td>
-                  <td class="px-4 py-3 text-right font-black text-wf-text-primary">{{ formatAmount(item.emi) }}</td>
+                  <td class="px-4 py-3 text-right font-bold text-wf-text-primary">{{ formatAmount(item.emi) }}</td>
                   <td class="px-4 py-3 text-right font-bold text-wf-primary">{{ formatAmount(item.principal_component) }}</td>
                   <td class="px-4 py-3 text-right font-bold text-rose-500">{{ formatAmount(item.interest_component) }}</td>
                   <td class="px-4 py-3 text-right text-wf-text-muted">{{ formatAmount(item.closing_balance) }}</td>

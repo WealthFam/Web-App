@@ -364,12 +364,12 @@ onMounted(() => {
 
 <template>
   <MainLayout>
-    <div class="space-y-6 pb-16">
+    <div class="space-y-5 pb-8">
       <!-- 1. PAGE HEADER -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-wf-lg bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs">
-            <ShieldCheck class="w-5 h-5 text-wf-primary" />
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs shrink-0">
+            <ShieldCheck class="w-4.5 h-4.5 text-wf-primary" />
           </div>
           <div>
             <div class="flex items-center gap-2">
@@ -386,10 +386,10 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="flex items-center gap-3 self-start sm:self-auto flex-wrap">
+        <div class="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
           <WfButton
             variant="secondary"
-            size="md"
+            size="sm"
             @click="showFolderModal = true"
           >
             <FolderPlus class="w-4 h-4 mr-1.5" />
@@ -398,7 +398,7 @@ onMounted(() => {
 
           <WfButton
             variant="primary"
-            size="md"
+            size="sm"
             @click="showUploadModal = true"
           >
             <Upload class="w-4 h-4 mr-1.5" />

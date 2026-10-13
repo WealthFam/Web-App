@@ -138,7 +138,7 @@
         <div class="tooltip-divider"></div>
         <div class="tooltip-stat pnl" :class="tooltip.gain >= 0 ? 'positive' : 'negative'">
           <span class="stat-label">P&L</span>
-          <span class="stat-value font-weight-black">
+          <span class="stat-value font-bold">
             {{ tooltip.gain >= 0 ? '+' : '' }}{{ formatAmount(tooltip.gain) }}
             <span class="text-[10px]">({{ ((tooltip.gain / (tooltip.invested || 1)) * 100).toFixed(2) }}%)</span>
           </span>

@@ -53,7 +53,7 @@ const progressClamped = computed(() => {
       </div>
 
       <div class="space-y-1 mb-4">
-        <div class="text-xl sm:text-2xl font-black text-wf-text-primary tracking-tight font-mono">
+        <div class="text-xl sm:text-2xl font-bold text-wf-text-primary tracking-tight font-mono">
           {{ formatAmount(overallStats.current) }}
         </div>
         <div class="flex items-center gap-2">
@@ -99,7 +99,7 @@ const progressClamped = computed(() => {
       </div>
 
       <div class="space-y-1 mb-4">
-        <div class="text-xl sm:text-2xl font-black text-wf-text-primary tracking-tight font-mono">
+        <div class="text-xl sm:text-2xl font-bold text-wf-text-primary tracking-tight font-mono">
           {{ formatAmount(overallStats.remaining) }}
         </div>
         <p class="text-[11px] text-wf-text-secondary font-medium">

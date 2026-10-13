@@ -164,12 +164,12 @@ onMounted(() => {
 
 <template>
     <MainLayout>
-        <div class="space-y-6 pb-12">
+        <div class="space-y-5 pb-8">
             <!-- HEADER: Title, Subtitle, & Segmented Tab Controls -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-wf-lg bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs">
-                        <Layers class="w-5 h-5 text-wf-primary" />
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs shrink-0">
+                        <Layers class="w-4.5 h-4.5 text-wf-primary" />
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
@@ -187,11 +187,11 @@ onMounted(() => {
                 </div>
 
                 <!-- Segmented Control: Active vs Archived -->
-                <div class="flex items-center p-1 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs self-start sm:self-auto">
+                <div class="flex items-center p-0.5 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs self-start sm:self-auto">
                     <button
                         type="button"
                         @click="showArchived = false"
-                        class="px-3.5 py-1.5 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5"
+                        class="px-3 py-1 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5"
                         :class="[
                             !showArchived
                                 ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
@@ -372,7 +372,7 @@ onMounted(() => {
                     @click="openAddModal"
                     class="h-[230px] rounded-wf-lg border-2 border-dashed border-wf-border hover:border-wf-primary bg-wf-surface-variant/20 hover:bg-wf-primary-light/30 transition-all duration-200 flex flex-col items-center justify-center p-6 cursor-pointer group text-center"
                 >
-                    <div class="w-11 h-11 rounded-wf-full bg-wf-primary text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform mb-3">
+                    <div class="w-11 h-11 rounded-wf-pill bg-wf-primary text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform mb-3">
                         <Plus class="w-5 h-5 stroke-[2.5]" />
                     </div>
                     <span class="text-sm font-bold text-wf-text-primary group-hover:text-wf-primary transition-colors">Create New Bucket</span>
@@ -512,7 +512,7 @@ onMounted(() => {
             maxWidth="sm"
         >
             <div class="text-center space-y-4">
-                <div class="w-12 h-12 rounded-wf-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center mx-auto border border-rose-200 dark:border-rose-900/50 shadow-2xs">
+                <div class="w-12 h-12 rounded-wf-pill bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center mx-auto border border-rose-200 dark:border-rose-900/50 shadow-2xs">
                     <Trash2 class="w-6 h-6" />
                 </div>
                 <div>

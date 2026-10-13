@@ -71,7 +71,7 @@ function getRiskBadgeClass(risk: string) {
         case 'moderate': return 'text-blue-500 bg-blue-500/10 border-blue-500/20'
         case 'high': return 'text-amber-500 bg-amber-500/10 border-amber-500/20'
         case 'very high': return 'text-rose-500 bg-rose-500/10 border-rose-500/20'
-        default: return 'text-primary bg-primary/10 border-primary/20'
+        default: return 'text-wf-primary bg-wf-primary/10 border-wf-primary/20'
     }
 }
 </script>
@@ -87,7 +87,7 @@ function getRiskBadgeClass(risk: string) {
 
             <template v-else-if="fund">
                 <!-- Header Card -->
-                <WfCard padding="md" radius="xl" class="border-wf-border shadow-wf-card">
+                <WfCard padding="md" radius="lg" class="border-wf-border shadow-wf-card">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div class="flex items-center gap-3 min-w-0">
                             <button
@@ -103,7 +103,7 @@ function getRiskBadgeClass(risk: string) {
                                     <h1 class="text-base sm:text-lg font-bold text-wf-text-primary truncate">
                                         {{ fund.scheme_name }}
                                     </h1>
-                                    <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-wf-full bg-primary/10 text-primary border border-primary/20">
+                                    <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-wf-pill bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
                                         {{ fund.category || 'Mutual Fund' }}
                                     </span>
                                 </div>
@@ -113,7 +113,7 @@ function getRiskBadgeClass(risk: string) {
                                         <span>{{ fund.fund_house }}</span>
                                     </div>
                                     <div class="flex items-center gap-1 font-mono text-xs">
-                                        <Globe :size="13" class="opacity-70 text-primary" />
+                                        <Globe :size="13" class="opacity-70 text-wf-primary" />
                                         <span>Code: {{ fund.scheme_code }}</span>
                                     </div>
                                 </div>
@@ -124,7 +124,7 @@ function getRiskBadgeClass(risk: string) {
                             <button
                                 type="button"
                                 @click="showInvestModal = true"
-                                class="h-9 px-4 text-xs font-bold rounded-wf-md bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5"
+                                class="h-9 px-4 text-xs font-bold rounded-wf-md bg-wf-primary text-white shadow-sm hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5"
                             >
                                 <Target :size="14" />
                                 <span>Invest Now</span>
@@ -141,7 +141,7 @@ function getRiskBadgeClass(risk: string) {
                             <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
                                 <div class="flex items-center gap-2.5">
                                     <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary flex items-center gap-1.5">
-                                        <TrendingUp :size="16" class="text-primary" />
+                                        <TrendingUp :size="16" class="text-wf-primary" />
                                         <span>NAV Historical Performance (1Y)</span>
                                     </span>
                                     <button
@@ -155,7 +155,7 @@ function getRiskBadgeClass(risk: string) {
                                     </button>
                                 </div>
                                 <div class="flex items-center gap-2 font-mono">
-                                    <span v-if="fund.last_nav > 0" class="text-base font-bold text-primary">
+                                    <span v-if="fund.last_nav > 0" class="text-base font-bold text-wf-primary">
                                         ₹{{ fund.last_nav.toFixed(2) }}
                                     </span>
                                     <span v-else class="px-2 py-0.5 text-[10px] font-bold rounded-wf-sm bg-amber-500/10 text-amber-500 border border-amber-500/20">
@@ -209,7 +209,7 @@ function getRiskBadgeClass(risk: string) {
                                 <!-- AUM -->
                                 <div class="p-3 rounded-wf-lg border border-wf-border bg-wf-surface-variant/40">
                                     <div class="flex items-center gap-1.5 mb-1 text-wf-text-muted">
-                                        <BarChart2 :size="13" class="text-primary" />
+                                        <BarChart2 :size="13" class="text-wf-primary" />
                                         <span class="text-[10px] font-bold uppercase tracking-wider">Fund Size</span>
                                     </div>
                                     <div class="text-xs font-bold text-wf-text-primary font-mono">
@@ -250,9 +250,9 @@ function getRiskBadgeClass(risk: string) {
                         </WfCard>
 
                         <!-- CTA Box -->
-                        <WfCard padding="md" radius="xl" class="border-primary/25 bg-primary/5 shadow-wf-card space-y-3">
+                        <WfCard padding="md" radius="xl" class="border-wf-primary/25 bg-wf-primary/5 shadow-wf-card space-y-3">
                             <div class="flex items-start gap-3">
-                                <div class="w-9 h-9 rounded-wf-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                                <div class="w-9 h-9 rounded-wf-lg bg-wf-primary/10 text-wf-primary flex items-center justify-center flex-shrink-0">
                                     <Target :size="18" />
                                 </div>
                                 <div>
@@ -263,7 +263,7 @@ function getRiskBadgeClass(risk: string) {
                             <button
                                 type="button"
                                 @click="showInvestModal = true"
-                                class="w-full h-9 px-4 text-xs font-bold rounded-wf-md bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                                class="w-full h-9 px-4 text-xs font-bold rounded-wf-md bg-wf-primary text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
                             >
                                 Start Investing
                             </button>

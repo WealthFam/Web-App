@@ -24,7 +24,7 @@ const { formatAmount } = useCurrency()
           <Landmark class="w-3.5 h-3.5" />
         </div>
       </div>
-      <div class="text-xl sm:text-2xl font-black text-wf-text-primary tracking-tight font-mono">
+      <div class="text-xl sm:text-2xl font-bold text-wf-text-primary tracking-tight font-mono">
         {{ formatAmount(totalOutstanding) }}
       </div>
       <p class="text-[11px] text-wf-text-muted mt-1 font-medium">
@@ -42,7 +42,7 @@ const { formatAmount } = useCurrency()
           <Wallet class="w-3.5 h-3.5" />
         </div>
       </div>
-      <div class="text-xl sm:text-2xl font-black text-wf-text-primary tracking-tight font-mono">
+      <div class="text-xl sm:text-2xl font-bold text-wf-text-primary tracking-tight font-mono">
         {{ formatAmount(totalMonthlyEmi) }}
       </div>
       <p class="text-[11px] text-wf-text-muted mt-1 font-medium">
@@ -60,7 +60,7 @@ const { formatAmount } = useCurrency()
           <Layers class="w-3.5 h-3.5" />
         </div>
       </div>
-      <div class="text-xl sm:text-2xl font-black text-wf-text-primary tracking-tight font-mono">
+      <div class="text-xl sm:text-2xl font-bold text-wf-text-primary tracking-tight font-mono">
         {{ activeCount }}
       </div>
       <p class="text-[11px] text-wf-text-muted mt-1 font-medium">

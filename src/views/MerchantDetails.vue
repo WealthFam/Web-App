@@ -156,7 +156,7 @@ function downloadReport() {
 
 <template>
     <MainLayout>
-        <div class="max-w-[1600px] mx-auto space-y-5 px-1">
+        <div class="space-y-5 pb-8">
             <!-- Header -->
             <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">

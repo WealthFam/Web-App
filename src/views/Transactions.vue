@@ -4,51 +4,51 @@
             <!-- Header -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
                 <div>
-                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Transactions</h1>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary">Transactions</h1>
+                    <p class="text-xs text-wf-text-muted mt-0.5">
                         Track and manage your family's spending
                     </p>
                 </div>
 
                 <!-- Navigation Tabs -->
-                <div class="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-wf-xl border border-slate-200/80 dark:border-slate-700/60 w-fit self-start md:self-auto">
+                <div class="flex items-center p-0.5 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs self-start md:self-auto">
                     <button
                         type="button"
-                        class="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-wf-lg transition-all"
+                        class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-wf-sm transition-all"
                         :class="activeTab === 'list'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                            ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                            : 'text-wf-text-secondary hover:text-wf-text-primary'"
                         @click="activeTab = 'list'; fetchData()"
                     >
-                        <LayoutList :size="15" />
+                        <LayoutList :size="14" />
                         <span>List</span>
                     </button>
                     <button
                         type="button"
-                        class="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-wf-lg transition-all"
+                        class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-wf-sm transition-all"
                         :class="activeTab === 'pending'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                            ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                            : 'text-wf-text-secondary hover:text-wf-text-primary'"
                         @click="activeTab = 'pending'; fetchTriage()"
                     >
-                        <Inbox :size="15" />
+                        <Inbox :size="14" />
                         <span>Inbox</span>
                         <span
                             v-if="triagePagination.total > 0"
-                            class="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400"
+                            class="px-1.5 py-0.2 text-[10px] font-bold rounded-wf-pill bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50"
                         >
                             {{ triagePagination.total }}
                         </span>
                     </button>
                     <button
                         type="button"
-                        class="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-wf-lg transition-all"
+                        class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-wf-sm transition-all"
                         :class="activeTab === 'heatmap'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                            ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                            : 'text-wf-text-secondary hover:text-wf-text-primary'"
                         @click="activeTab = 'heatmap'"
                     >
-                        <MapIcon :size="15" />
+                        <MapIcon :size="14" />
                         <span>Heatmap</span>
                     </button>
                 </div>
@@ -62,17 +62,17 @@
                     variant="flat"
                     padding="none"
                     radius="lg"
-                    class="overflow-hidden border border-slate-200/70 dark:border-slate-800"
+                    class="overflow-hidden border border-wf-border"
                 >
-                    <div class="px-4 py-2 flex items-center justify-between cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors" @click="showVelocityChart = !showVelocityChart">
+                    <div class="px-4 py-2 flex items-center justify-between cursor-pointer select-none hover:bg-wf-surface-variant transition-colors" @click="showVelocityChart = !showVelocityChart">
                         <div class="flex items-center gap-2">
-                            <Activity :size="15" class="text-primary-500" />
-                            <span class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Spending Velocity & Forecast</span>
-                            <span class="text-[10px] font-bold font-mono bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full">
+                            <Activity :size="14" class="text-wf-primary" />
+                            <span class="text-xs sm:text-sm font-bold text-wf-text-primary">Spending Velocity & Forecast</span>
+                            <span class="text-[10px] font-bold font-mono bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50 px-2 py-0.5 rounded-wf-pill">
                                 AVG ₹{{ Math.round(metrics.avg_daily_spending || 0) }}/DAY
                             </span>
                         </div>
-                        <div class="flex items-center gap-1 text-xs text-slate-400 font-semibold">
+                        <div class="flex items-center gap-1 text-xs text-wf-text-muted font-semibold">
                             <span>{{ showVelocityChart ? 'Hide' : 'Show' }}</span>
                             <ChevronDown :size="14" class="transition-transform duration-200" :class="{ 'rotate-180': showVelocityChart }" />
                         </div>
@@ -158,29 +158,30 @@
                 <div class="w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto mb-3">
                     <Trash2 :size="24" />
                 </div>
-                <p class="text-sm text-slate-600 dark:text-slate-300">
-                    Are you sure you want to delete <span class="font-bold text-slate-900 dark:text-white">{{ selectedIds.size }}</span> selected transactions?
+                <p class="text-sm text-wf-text-secondary">
+                    Are you sure you want to delete <span class="font-bold text-wf-text-primary">{{ selectedIds.size }}</span> selected transactions?
                 </p>
             </div>
             <template #footer>
                 <div class="flex items-center justify-end gap-2 w-full">
-                    <button
-                        type="button"
-                        class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-wf-lg transition-colors"
+                    <WfButton
+                        variant="ghost"
+                        size="sm"
                         :disabled="loading"
                         @click="showDeleteConfirm = false"
                     >
                         Cancel
-                    </button>
-                    <button
-                        type="button"
-                        class="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-wf-lg shadow-sm transition-colors flex items-center gap-1.5"
+                    </WfButton>
+                    <WfButton
+                        variant="danger"
+                        size="sm"
                         :disabled="loading"
+                        :loading="loading"
                         @click="async () => { await confirmDelete(); fetchData(); showDeleteConfirm = false }"
                     >
-                        <Trash2 :size="15" />
+                        <Trash2 :size="14" class="mr-1" />
                         <span>Delete Forever</span>
-                    </button>
+                    </WfButton>
                 </div>
             </template>
         </WfModal>
@@ -194,6 +195,7 @@ import { useRoute } from 'vue-router'
 import { financeApi } from '@/api/client'
 
 import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
 import WfModal from '@/components/ui/WfModal.vue'
 import ImportModal from '@/components/ImportModal.vue'
 import SmartPromptModal from '@/components/SmartPromptModal.vue'

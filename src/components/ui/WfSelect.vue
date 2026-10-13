@@ -179,7 +179,7 @@ onUnmounted(() => {
             :class="[
               item.value === modelValue
                 ? 'bg-wf-primary/10 text-wf-primary font-medium'
-                : 'text-wf-text-primary hover:bg-wf-hover'
+                : 'text-wf-text-primary hover:bg-wf-surface-variant'
             ]"
             @click="selectItem(item)"
           >

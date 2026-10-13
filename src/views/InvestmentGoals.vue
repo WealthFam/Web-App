@@ -308,12 +308,12 @@ watch(() => authStore.selectedMemberId, () => {
 
 <template>
   <MainLayout>
-    <div class="max-w-[1600px] mx-auto space-y-8 pb-16">
+    <div class="space-y-5 pb-8">
       <!-- PAGE HEADER -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-wf-lg bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs">
-            <Target class="w-5 h-5 text-wf-primary" />
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs shrink-0">
+            <Target class="w-4.5 h-4.5 text-wf-primary" />
           </div>
           <div>
             <div class="flex items-center gap-2">
@@ -331,7 +331,7 @@ watch(() => authStore.selectedMemberId, () => {
         </div>
 
         <div class="flex items-center gap-3 self-start sm:self-auto">
-          <WfButton variant="primary" size="md" @click="openAddModal">
+          <WfButton variant="primary" size="sm" @click="openAddModal">
             <Plus class="w-4 h-4 mr-1.5" />
             <span>Create Goal</span>
           </WfButton>
@@ -346,7 +346,7 @@ watch(() => authStore.selectedMemberId, () => {
       />
 
       <!-- LOADING SKELETONS -->
-      <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         <div
           v-for="i in 3"
           :key="`skel-goal-${i}`"
@@ -378,14 +378,14 @@ watch(() => authStore.selectedMemberId, () => {
             Define your financial milestones, connect holdings and bank balances, and track progress effortlessly.
           </p>
         </div>
-        <WfButton variant="primary" size="md" @click="openAddModal">
+        <WfButton variant="primary" size="sm" @click="openAddModal">
           <Plus class="w-4 h-4 mr-1.5" />
           <span>Set Your First Goal</span>
         </WfButton>
       </div>
 
       <!-- GOALS GRID -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         <GoalCard
           v-for="goal in goals"
           :key="goal.id"
