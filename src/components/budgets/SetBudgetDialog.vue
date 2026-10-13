@@ -4,6 +4,7 @@ import { Check, RefreshCw, Lightbulb } from 'lucide-vue-next'
 import { financeApi } from '@/api/client'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -21,7 +22,7 @@ const isEditing = computed(() => !!props.newBudget.category && props.newBudget.c
 
 const categoryOptions = computed(() => {
   return props.categories.map(c => ({
-    label: `${c.icon || '🏷️'} ${c.name}`,
+    title: `${c.icon || '🏷️'} ${c.name}`,
     value: c.name,
     icon: c.icon
   }))
@@ -37,9 +38,7 @@ const isGeneratingSuggestion = ref(false)
 const budgetSuggestion = ref<BudgetSuggestion | null>(null)
 const suggestionCache = ref<Map<string, BudgetSuggestion>>(new Map())
 
-function onCategoryChange(event: Event) {
-  const target = event.target as HTMLSelectElement
-  const val = target.value
+function handleCategorySelect(val: any) {
   props.newBudget.category = val
   const cat = props.categories.find(c => c.name === val)
   if (cat) {
@@ -130,18 +129,13 @@ function handleClose() {
       <!-- Target Category Selector (Only for New) -->
       <div v-if="!isEditing && newBudget.category !== 'OVERALL'" class="space-y-1">
         <label class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">Target Category</label>
-        <div class="flex items-center h-9 px-3 rounded-wf-sm bg-wf-surface border border-wf-border focus-within:border-wf-primary shadow-2xs">
-          <select
-            :value="newBudget.category"
-            @change="onCategoryChange"
-            class="w-full bg-transparent text-xs font-semibold text-wf-text-primary focus:outline-none cursor-pointer"
-          >
-            <option value="" disabled selected>Choose a category...</option>
-            <option v-for="c in categoryOptions" :key="c.value" :value="c.value">
-              {{ c.label }}
-            </option>
-          </select>
-        </div>
+        <WfSelect
+          :model-value="newBudget.category"
+          :items="categoryOptions"
+          placeholder="Choose a category..."
+          size="sm"
+          @update:model-value="handleCategorySelect"
+        />
       </div>
 
       <!-- Limit Input Section -->

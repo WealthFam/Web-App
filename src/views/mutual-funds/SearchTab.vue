@@ -51,10 +51,13 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <select v-if="searchResults.length" v-model="sortBy"
-                    class="h-7 text-xs px-2 rounded-wf-sm border border-wf-border bg-wf-surface text-wf-text-primary focus:outline-none focus:border-wf-primary">
-                    <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                </select>
+                <WfSelect
+                    v-if="searchResults.length"
+                    size="sm"
+                    v-model="sortBy"
+                    :items="sortOptions"
+                    class="w-48 shrink-0"
+                />
             </div>
         </div>
 
@@ -150,29 +153,16 @@
         </div>
 
         <!-- PAGINATION -->
-        <div v-if="totalPages > 1 && !isSearching" class="flex items-center justify-center gap-2 mt-4 mb-2">
-            <button
-                type="button"
-                :disabled="currentPage === 1"
-                @click="handleSearch(currentPage - 1)"
-                class="h-8 w-8 rounded-wf-md border border-wf-border bg-wf-surface hover:bg-wf-surface-variant flex items-center justify-center text-wf-text-secondary disabled:opacity-40 cursor-pointer transition-colors"
-                title="Previous Page"
-            >
-                <ChevronLeft :size="16" />
-            </button>
-            <span class="text-xs font-semibold text-wf-text-secondary px-2">
-                Page <strong class="text-wf-text-primary">{{ currentPage }}</strong> of {{ totalPages }}
-            </span>
-            <button
-                type="button"
-                :disabled="currentPage >= totalPages"
-                @click="handleSearch(currentPage + 1)"
-                class="h-8 w-8 rounded-wf-md border border-wf-border bg-wf-surface hover:bg-wf-surface-variant flex items-center justify-center text-wf-text-secondary disabled:opacity-40 cursor-pointer transition-colors"
-                title="Next Page"
-            >
-                <ChevronRight :size="16" />
-            </button>
-        </div>
+        <WfPagination
+            v-if="totalItems > itemsPerPage && !isSearching"
+            :page="currentPage"
+            :page-size="itemsPerPage"
+            :total="totalItems"
+            :page-sizes="[12, 24, 48]"
+            @update:page="handleSearch($event)"
+            @update:page-size="itemsPerPage = $event; handleSearch(1)"
+            class="rounded-wf-md border border-wf-border mt-4 mb-2"
+        />
 
         <!-- Curated Discovery -->
         <div v-if="!searchQuery && currentPage === 1" class="mt-4 pt-4 border-t border-wf-border-subtle">
@@ -214,10 +204,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
-import { Search, Plus, TrendingUp, Sparkles, ArrowRight, ChevronLeft, ChevronRight, ShieldCheck, Star, Target } from 'lucide-vue-next'
+import { ref, onMounted, watch } from 'vue'
+import { Search, Plus, TrendingUp, Sparkles, ArrowRight, ShieldCheck, Star, Target } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import WfCard from '@/components/ui/WfCard.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfPagination from '@/components/ui/WfPagination.vue'
 import InvestModal from './modals/InvestModal.vue'
 import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
@@ -233,16 +225,15 @@ const activeFilter = ref('ALL')
 const searchFilters = ['ALL', 'EQUITY', 'DEBT', 'HYBRID', 'ELSS', 'INDEX FUNDS']
 const sortBy = ref('relevance')
 const sortOptions = [
-    { label: 'Sort by Relevance', value: 'relevance' },
-    { label: 'Highest Returns (3Y)', value: 'returns_desc' },
-    { label: 'Lowest Returns (3Y)', value: 'returns_asc' }
+    { title: 'Sort by Relevance', value: 'relevance' },
+    { title: 'Highest Returns (3Y)', value: 'returns_desc' },
+    { title: 'Lowest Returns (3Y)', value: 'returns_asc' }
 ]
 
 // Pagination Stats
 const currentPage = ref(1)
 const totalItems = ref(0)
 const itemsPerPage = ref(12)
-const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
 
 // Curated Collections Data
 const curatedCollections = [

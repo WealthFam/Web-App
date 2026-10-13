@@ -20,6 +20,7 @@ import {
 import WfCard from '@/components/ui/WfCard.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfModal from '@/components/ui/WfModal.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 
 const notify = useNotificationStore()
 
@@ -28,6 +29,14 @@ const devices = ref<any[]>([])
 const familyMembers = ref<any[]>([])
 const searchQuery = ref('')
 const loading = ref(false)
+
+const memberOptions = computed(() => [
+  { title: '👤 Unassigned', value: null },
+  ...familyMembers.value.map(m => ({
+    title: `${m.avatar || '👤'} ${m.full_name || m.email}`,
+    value: m.id
+  }))
+])
 
 // Pagination State
 const pendingPage = ref(1)
@@ -810,15 +819,11 @@ onMounted(() => {
 
         <div>
           <label class="block text-xs font-bold text-wf-text-secondary mb-1">Assign to Member</label>
-          <select
+          <WfSelect
             v-model="selectedAssignUserId"
-            class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary font-medium"
-          >
-            <option :value="null">👤 Unassigned</option>
-            <option v-for="m in familyMembers" :key="m.id" :value="m.id">
-              {{ m.avatar || '👤' }} {{ m.full_name || m.email }}
-            </option>
-          </select>
+            :items="memberOptions"
+            size="md"
+          />
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-4 border-t border-wf-border-subtle">

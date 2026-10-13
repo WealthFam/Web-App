@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
 import WfButton from '@/components/ui/WfButton.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 import {
   X,
   Download,
@@ -490,20 +491,11 @@ function close() {
                 <label class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">
                   Classification
                 </label>
-                <div class="flex items-center h-9 px-3 rounded-wf-md bg-wf-surface border border-wf-border focus-within:border-wf-primary">
-                  <select
-                    v-model="editedItem.file_type"
-                    class="w-full bg-transparent text-xs font-semibold text-wf-text-primary focus:outline-none cursor-pointer"
-                  >
-                    <option
-                      v-for="dt in docTypes"
-                      :key="dt.value"
-                      :value="dt.value"
-                    >
-                      {{ dt.title }}
-                    </option>
-                  </select>
-                </div>
+                <WfSelect
+                  v-model="editedItem.file_type"
+                  :items="docTypes"
+                  size="sm"
+                />
               </div>
 
               <!-- Shared with Family Toggle -->
@@ -512,7 +504,7 @@ function close() {
                 <input
                   type="checkbox"
                   v-model="editedItem.is_shared"
-                  class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  class="w-4 h-4 rounded border-wf-border text-wf-primary focus:ring-wf-primary cursor-pointer"
                 />
               </div>
 

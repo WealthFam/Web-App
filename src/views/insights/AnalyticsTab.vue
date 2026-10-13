@@ -239,9 +239,9 @@
                             </div>
                             <div class="flex items-center justify-between text-[10px] font-semibold text-wf-text-muted px-0.5">
                                 <span>0%</span>
-                                <span class="text-blue-600 font-bold">Needs Target (50%)</span>
-                                <span class="text-amber-600 font-bold">Wants (30%)</span>
-                                <span class="text-emerald-600 font-bold">Savings (20%)</span>
+                                <span class="text-wf-info font-bold">Needs Target (50%)</span>
+                                <span class="text-wf-warning font-bold">Wants (30%)</span>
+                                <span class="text-wf-success font-bold">Savings (20%)</span>
                                 <span>100%</span>
                             </div>
                         </div>

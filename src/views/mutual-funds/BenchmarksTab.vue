@@ -160,15 +160,12 @@
                     <div class="text-xs font-bold text-wf-text-secondary uppercase tracking-wider">Target Benchmark (Proxy Fund)</div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Standard Benchmark</label>
-                        <select
+                        <WfSelect
                             v-model="selectedCommonBenchmark"
-                            @change="onBenchmarkSelect(selectedCommonBenchmark)"
-                            class="w-full h-9 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
-                        >
-                            <option v-for="b in commonBenchmarks" :key="b.symbol" :value="b.symbol">
-                                {{ b.label }}
-                            </option>
-                        </select>
+                            :items="benchmarkOptions"
+                            size="sm"
+                            @update:model-value="onBenchmarkSelect"
+                        />
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
@@ -215,14 +212,11 @@
                         </div>
                         <div class="sm:col-span-6 space-y-1">
                             <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">Line Style</label>
-                            <select
+                            <WfSelect
                                 v-model="ruleForm.styling_style"
-                                class="w-full h-9 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
-                            >
-                                <option value="solid">Solid</option>
-                                <option value="dashed">Dashed</option>
-                                <option value="dotted">Dotted</option>
-                            </select>
+                                :items="lineStyleOptions"
+                                size="sm"
+                            />
                         </div>
                         <div v-if="ruleForm.styling_style !== 'solid'" class="sm:col-span-12 space-y-1">
                             <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block">SVG Dash Array</label>
@@ -262,6 +256,7 @@
 import { ref, onMounted } from 'vue'
 import { Plus, Edit2, Trash2, RotateCw, Check, Palette } from 'lucide-vue-next'
 import WfModal from '@/components/ui/WfModal.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 
 import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
@@ -297,6 +292,14 @@ const commonBenchmarks = [
     { label: 'Nifty 500 TRI', symbol: '147734' },
     { label: 'BSE Sensex TRI', symbol: '147915' },
     { label: 'Custom / Other', symbol: 'custom' }
+]
+
+const benchmarkOptions = commonBenchmarks.map(b => ({ title: b.label, value: b.symbol }))
+
+const lineStyleOptions = [
+    { title: 'Solid', value: 'solid' },
+    { title: 'Dashed', value: 'dashed' },
+    { title: 'Dotted', value: 'dotted' }
 ]
 
 const onBenchmarkSelect = (val: string) => {

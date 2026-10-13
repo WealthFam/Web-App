@@ -2,22 +2,27 @@
     <MainLayout>
         <div class="space-y-5 pb-8">
             <!-- Header: Title left, Segmented Tabs right -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary">
-                            Insights
-                        </h1>
-                        <span
-                            v-if="authStore.selectedMemberId"
-                            class="px-2 py-0.5 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50"
-                        >
-                            Member Filter Active
-                        </span>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wf-border-subtle">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs shrink-0">
+                        <Sparkles class="w-4.5 h-4.5 text-wf-primary" />
                     </div>
-                    <p class="text-xs text-wf-text-secondary mt-0.5">
-                        Deep cashflow dynamics, subscriptions intelligence, and family wealth consolidation
-                    </p>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary leading-tight">
+                                Insights
+                            </h1>
+                            <span
+                                v-if="authStore.selectedMemberId"
+                                class="px-2 py-0.5 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50"
+                            >
+                                Member Filter Active
+                            </span>
+                        </div>
+                        <p class="text-xs text-wf-text-secondary mt-0.5">
+                            Deep cashflow dynamics, subscriptions intelligence, and family wealth consolidation.
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Aether V4 Segmented Tab Switcher -->
@@ -96,7 +101,7 @@ import { useAuthStore } from '@/stores/auth'
 import AnalyticsTab from '@/views/insights/AnalyticsTab.vue'
 import RecurringTab from '@/views/insights/RecurringTab.vue'
 import FamilyWealthTab from '@/views/insights/FamilyWealthTab.vue'
-import { BarChart3, RefreshCw, Users } from 'lucide-vue-next'
+import { BarChart3, RefreshCw, Users, Sparkles } from 'lucide-vue-next'
 
 const store = useFinanceStore()
 const authStore = useAuthStore()

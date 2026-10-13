@@ -12,6 +12,7 @@ import { useNotificationStore } from '@/stores/notification'
 import { useFinanceStore } from '@/stores/finance'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 
 const props = defineProps<{
     modelValue: boolean
@@ -52,6 +53,11 @@ const accountFilter = ref<string | null>(null)
 const accounts = ref<any[]>([])
 const displayLimit = ref(50)
 const initializing = ref(false)
+
+const accountOptions = computed(() => [
+    { title: 'All Accounts', value: null },
+    ...accounts.value.map(a => ({ title: a.name, value: a.id }))
+])
 
 const emojis = [
     '✈️', '🏠', '🍔', '🛒', '💊', '🎓', '🎮', '🎁',
@@ -585,16 +591,12 @@ onMounted(() => {
                             </button>
                         </div>
 
-                        <div class="flex items-center h-8 px-2.5 rounded-wf-sm bg-wf-surface border border-wf-border">
-                            <select
+                        <div class="w-36 shrink-0">
+                            <WfSelect
                                 v-model="accountFilter"
-                                class="w-full bg-transparent text-xs text-wf-text-primary focus:outline-none cursor-pointer"
-                            >
-                                <option :value="null">All Accounts</option>
-                                <option v-for="acc in accounts" :key="acc.id" :value="acc.id">
-                                    {{ acc.name }}
-                                </option>
-                            </select>
+                                :items="accountOptions"
+                                size="sm"
+                            />
                         </div>
                     </div>
                 </div>

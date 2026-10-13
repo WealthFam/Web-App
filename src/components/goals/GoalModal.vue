@@ -2,6 +2,7 @@
 import { Check } from 'lucide-vue-next'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 
 defineProps<{
   modelValue: boolean
@@ -163,20 +164,11 @@ function handleClose() {
         <label class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">
           Ownership & Responsibility
         </label>
-        <div class="flex items-center h-10 px-3 rounded-wf-md bg-wf-surface border border-wf-border focus-within:border-wf-primary shadow-2xs">
-          <select
-            v-model="goalForm.owner_id"
-            class="w-full bg-transparent text-xs font-semibold text-wf-text-primary focus:outline-none cursor-pointer"
-          >
-            <option
-              v-for="m in memberOptions"
-              :key="m.value === null ? 'shared' : m.value"
-              :value="m.value"
-            >
-              {{ m.title }}
-            </option>
-          </select>
-        </div>
+        <WfSelect
+          v-model="goalForm.owner_id"
+          :items="memberOptions"
+          size="md"
+        />
       </div>
 
       <!-- Theme Color Palette -->

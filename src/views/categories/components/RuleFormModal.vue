@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { FileText, Folder, Zap, CreditCard, EyeOff, Save, X } from 'lucide-vue-next'
+import { FileText, Zap, EyeOff, Save, X } from 'lucide-vue-next'
 import { financeApi } from '@/api/client'
 import { useCategoriesStore } from '@/stores/finance/categories'
 import { useRulesStore, type Rule } from '@/stores/finance/rules'
@@ -8,6 +8,7 @@ import { useFinanceStore } from '@/stores/finance'
 import { useNotificationStore } from '@/stores/notification'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 
 const props = defineProps<{
     modelValue: boolean
@@ -41,6 +42,13 @@ const categoryOptions = computed(() => {
     return categoriesStore.categories.map(c => ({
         title: `${c.icon || '🏷️'} ${c.name}`,
         value: c.name
+    }))
+})
+
+const accountOptions = computed(() => {
+    return financeStore.accounts.map(a => ({
+        title: a.name,
+        value: a.id
     }))
 })
 
@@ -220,18 +228,12 @@ async function confirmSaveRule() {
                 <!-- Category select -->
                 <div v-if="!form.is_transfer">
                     <span class="text-xs font-semibold text-wf-text-secondary mb-1 block">Target Category</span>
-                    <div class="relative">
-                        <Folder class="w-4 h-4 text-wf-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        <select
-                            v-model="form.category"
-                            class="w-full h-10 pl-9 pr-3 text-sm bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
-                        >
-                            <option value="" disabled>Select Target Category</option>
-                            <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">
-                                {{ opt.title }}
-                            </option>
-                        </select>
-                    </div>
+                    <WfSelect
+                        v-model="form.category"
+                        :items="categoryOptions"
+                        placeholder="Select Target Category"
+                        size="md"
+                    />
                 </div>
 
                 <!-- Keywords tag input -->
@@ -312,18 +314,12 @@ async function confirmSaveRule() {
                 <!-- Destination account when transfer -->
                 <div v-if="form.is_transfer" class="pt-1">
                     <span class="text-xs font-semibold text-wf-text-secondary mb-1 block">Destination Account</span>
-                    <div class="relative">
-                        <CreditCard class="w-4 h-4 text-wf-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        <select
-                            v-model="form.to_account_id"
-                            class="w-full h-9 pl-9 pr-3 text-xs bg-wf-surface border border-wf-border rounded-wf-sm text-wf-text-primary focus:outline-none focus:ring-1 focus:ring-wf-primary"
-                        >
-                            <option value="" disabled>Select Destination Account</option>
-                            <option v-for="a in financeStore.accounts" :key="a.id" :value="a.id">
-                                {{ a.name }}
-                            </option>
-                        </select>
-                    </div>
+                    <WfSelect
+                        v-model="form.to_account_id"
+                        :items="accountOptions"
+                        placeholder="Select Destination Account"
+                        size="sm"
+                    />
                 </div>
 
                 <!-- Priority Slider -->

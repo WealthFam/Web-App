@@ -30,7 +30,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen
 } from 'lucide-vue-next'
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
@@ -106,7 +106,29 @@ function toggleTheme() {
   }
 }
 
+// Mobile drawer and modal keyboard dismissal
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    if (isMobileDrawerOpen.value) isMobileDrawerOpen.value = false
+    if (showMemberMenu.value) showMemberMenu.value = false
+    if (showNotificationMenu.value) showNotificationMenu.value = false
+  }
+}
+
+watch(isMobileDrawerOpen, (isOpen) => {
+  if (isOpen) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+})
+
+watch(() => route.path, () => {
+  isMobileDrawerOpen.value = false
+})
+
 onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
   if (route.query.search === 'true') showSearch.value = true
   
   // Set initial data-theme
@@ -126,6 +148,11 @@ onMounted(() => {
       }
     })
   })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+  document.body.style.overflow = ''
 })
 
 const selectedAvatar = ref(localStorage.getItem('user_avatar') || 'default')

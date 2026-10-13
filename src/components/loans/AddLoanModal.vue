@@ -2,6 +2,7 @@
 import { Check, Plus } from 'lucide-vue-next'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 import { useCurrency } from '@/composables/useCurrency'
 
 const props = defineProps<{
@@ -35,6 +36,11 @@ const loanTypeOptions = [
   { label: 'Credit Card', value: 'CREDIT_CARD', icon: '💳' },
   { label: 'Other', value: 'OTHER', icon: '💰' }
 ]
+
+const formattedLoanTypeOptions = loanTypeOptions.map(opt => ({
+  title: `${opt.icon} ${opt.label}`,
+  value: opt.value
+}))
 
 function calculateEmi() {
   const p = props.form.principal_amount
@@ -99,20 +105,11 @@ function handleClose() {
         <label class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">
           Loan Type
         </label>
-        <div class="flex items-center h-10 px-3 rounded-wf-md bg-wf-surface border border-wf-border focus-within:border-wf-primary shadow-2xs">
-          <select
-            v-model="form.loan_type"
-            class="w-full bg-transparent text-xs font-semibold text-wf-text-primary focus:outline-none cursor-pointer"
-          >
-            <option
-              v-for="opt in loanTypeOptions"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.icon }} {{ opt.label }}
-            </option>
-          </select>
-        </div>
+        <WfSelect
+          v-model="form.loan_type"
+          :items="formattedLoanTypeOptions"
+          size="md"
+        />
       </div>
 
       <!-- Principal & Interest Rate -->

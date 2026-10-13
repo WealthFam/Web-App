@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { UploadCloud, FileText, X, Check } from 'lucide-vue-next'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 
 defineProps<{
   modelValue: boolean
@@ -147,20 +148,11 @@ function submit() {
         <label class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">
           Document Classification
         </label>
-        <div class="flex items-center h-10 px-3 rounded-wf-md bg-wf-surface border border-wf-border focus-within:border-wf-primary shadow-2xs">
-          <select
-            v-model="uploadForm.file_type"
-            class="w-full bg-transparent text-xs font-semibold text-wf-text-primary focus:outline-none cursor-pointer"
-          >
-            <option
-              v-for="dt in docTypes"
-              :key="dt.value"
-              :value="dt.value"
-            >
-              {{ dt.title }}
-            </option>
-          </select>
-        </div>
+        <WfSelect
+          v-model="uploadForm.file_type"
+          :items="docTypes"
+          size="md"
+        />
       </div>
 
       <!-- Shared with Family Toggle -->
@@ -176,7 +168,7 @@ function submit() {
         <input
           type="checkbox"
           v-model="uploadForm.is_shared"
-          class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+          class="w-4 h-4 rounded border-wf-border text-wf-primary focus:ring-wf-primary cursor-pointer"
         />
       </div>
     </div>

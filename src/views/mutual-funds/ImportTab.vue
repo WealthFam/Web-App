@@ -65,14 +65,11 @@
                                     TARGET USER
                                 </label>
                                 <!-- Family Member Selection -->
-                                <select
+                                <WfSelect
                                     v-model="selectedMemberId"
-                                    class="w-full h-8 px-2.5 text-xs font-semibold rounded-wf-md border border-wf-border bg-wf-surface text-wf-text-primary focus:outline-hidden focus:border-wf-primary transition-colors cursor-pointer"
-                                >
-                                    <option v-for="opt in memberOptions" :key="opt.value" :value="opt.value">
-                                        {{ opt.title }} ({{ opt.initials }})
-                                    </option>
-                                </select>
+                                    :items="formattedMemberOptions"
+                                    size="sm"
+                                />
                             </div>
 
                             <!-- PAN for Password Protection -->
@@ -137,14 +134,13 @@
                                 Scanning inbox for: <span class="font-semibold text-wf-text-primary">{{ selectedMemberEmail }}</span>
                             </p>
 
-                            <select
-                                v-model="emailSyncPeriod"
-                                class="w-48 h-8 px-2.5 text-xs font-semibold rounded-wf-md border border-purple-200 dark:border-purple-900 bg-wf-surface text-wf-text-primary focus:outline-hidden focus:border-purple-500 transition-colors cursor-pointer"
-                            >
-                                <option v-for="opt in periodOptions" :key="opt.value" :value="opt.value">
-                                    {{ opt.title }}
-                                </option>
-                            </select>
+                            <div class="w-48">
+                                <WfSelect
+                                    v-model="emailSyncPeriod"
+                                    :items="periodOptions"
+                                    size="sm"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -263,10 +259,10 @@
                                             >
                                                 {{ t.type || 'BUY' }}
                                             </span>
-                                            <span v-if="t.is_duplicate" class="px-1.5 py-0.2 rounded-wf-xs text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/40">
+                                            <span v-if="t.is_duplicate" class="px-1.5 py-0.2 rounded-wf-xs text-[10px] font-bold bg-wf-warning-light text-wf-warning border border-wf-warning/20">
                                                 DUPLICATE
                                             </span>
-                                            <span v-if="t.is_synthesized" class="px-1.5 py-0.2 rounded-wf-xs text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-600 border border-blue-200 dark:border-blue-900/40">
+                                            <span v-if="t.is_synthesized" class="px-1.5 py-0.2 rounded-wf-xs text-[10px] font-bold bg-wf-info-light text-wf-info border border-wf-info/20">
                                                 SNAPSHOT
                                             </span>
                                         </div>
@@ -297,44 +293,15 @@
                 </div>
 
                 <!-- Table Footer Pagination -->
-                <div class="px-4 py-2.5 border-t border-wf-border-subtle bg-wf-surface-variant/30 flex items-center justify-between text-xs text-wf-text-secondary">
-                    <div class="flex items-center gap-4">
-                        <div class="flex items-center gap-2">
-                            <span class="text-[11px] font-medium text-wf-text-muted">Rows per page:</span>
-                            <select
-                                :value="itemsPerPage"
-                                @change="(e: any) => itemsPerPage = Number(e.target.value)"
-                                class="h-6 px-1.5 rounded-wf-sm border border-wf-border bg-wf-surface text-xs font-bold cursor-pointer"
-                            >
-                                <option :value="5">5</option>
-                                <option :value="10">10</option>
-                                <option :value="25">25</option>
-                                <option :value="50">50</option>
-                            </select>
-                        </div>
-                        <span class="text-[11px] font-medium text-wf-text-muted">
-                            {{ (currentPage - 1) * itemsPerPage + 1 }}-{{ Math.min(currentPage * itemsPerPage, previewResults.length) }} of {{ previewResults.length }}
-                        </span>
-                    </div>
-
-                    <div class="flex items-center gap-1">
-                        <button
-                            type="button"
-                            :disabled="currentPage === 1"
-                            @click="currentPage--"
-                            class="h-6 w-6 rounded-wf-sm border border-wf-border bg-wf-surface hover:bg-wf-surface-variant flex items-center justify-center text-wf-text-secondary disabled:opacity-40 cursor-pointer"
-                        >
-                            <ChevronLeft :size="14" />
-                        </button>
-                        <button
-                            type="button"
-                            :disabled="currentPage * itemsPerPage >= previewResults.length"
-                            @click="currentPage++"
-                            class="h-6 w-6 rounded-wf-sm border border-wf-border bg-wf-surface hover:bg-wf-surface-variant flex items-center justify-center text-wf-text-secondary disabled:opacity-40 cursor-pointer"
-                        >
-                            <ChevronRight :size="14" />
-                        </button>
-                    </div>
+                <div class="p-2 border-t border-wf-border-subtle bg-wf-surface-variant/30">
+                    <WfPagination
+                        :page="currentPage"
+                        :page-size="itemsPerPage"
+                        :total="previewResults.length"
+                        :page-sizes="[5, 10, 25, 50]"
+                        @update:page="currentPage = $event"
+                        @update:page-size="itemsPerPage = $event"
+                    />
                 </div>
             </div>
         </WfCard>
@@ -382,11 +349,13 @@ import { ref, computed, watch, onMounted } from 'vue'
 import {
     FileText, Mail, CheckCircle, ArrowRight, AlertTriangle,
     HelpCircle, Search, CornerDownRight, Info,
-    Eye, EyeOff, ChevronLeft, ChevronRight
+    Eye, EyeOff
 } from 'lucide-vue-next'
 
 import WfCard from '@/components/ui/WfCard.vue'
 import WfModal from '@/components/ui/WfModal.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfPagination from '@/components/ui/WfPagination.vue'
 import { useNotificationStore } from '@/stores/notification'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/dashboard'
@@ -444,6 +413,13 @@ const memberOptions = computed(() => {
         email: m.email,
         initials: (m.full_name || m.email || 'UU').substring(0, 2).toUpperCase(),
         pan: m.pan_number
+    }))
+})
+
+const formattedMemberOptions = computed(() => {
+    return memberOptions.value.map(m => ({
+        title: `${m.title} (${m.initials})`,
+        value: m.value
     }))
 })
 

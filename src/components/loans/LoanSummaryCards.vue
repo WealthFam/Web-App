@@ -15,12 +15,12 @@ const { formatAmount } = useCurrency()
 <template>
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
     <!-- Total Outstanding -->
-    <WfCard variant="flat" padding="md" radius="lg" class="relative overflow-hidden group hover:border-rose-500/40 transition-colors shadow-2xs">
+    <WfCard variant="flat" padding="md" radius="lg" class="relative overflow-hidden group hover:border-wf-error/40 transition-colors shadow-2xs">
       <div class="flex items-center justify-between mb-2">
         <span class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">
           Total Outstanding
         </span>
-        <div class="w-7 h-7 rounded-wf-md bg-rose-500/10 text-rose-500 flex items-center justify-center border border-rose-500/20">
+        <div class="w-7 h-7 rounded-wf-md bg-wf-error-light text-wf-error flex items-center justify-center border border-rose-200 dark:border-rose-900/50">
           <Landmark class="w-3.5 h-3.5" />
         </div>
       </div>
@@ -51,12 +51,12 @@ const { formatAmount } = useCurrency()
     </WfCard>
 
     <!-- Active Loans Count -->
-    <WfCard variant="flat" padding="md" radius="lg" class="relative overflow-hidden group hover:border-emerald-500/40 transition-colors shadow-2xs">
+    <WfCard variant="flat" padding="md" radius="lg" class="relative overflow-hidden group hover:border-wf-success/40 transition-colors shadow-2xs">
       <div class="flex items-center justify-between mb-2">
         <span class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">
           Active Loans
         </span>
-        <div class="w-7 h-7 rounded-wf-md bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
+        <div class="w-7 h-7 rounded-wf-md bg-wf-success-light text-wf-success flex items-center justify-center border border-emerald-200 dark:border-emerald-900/50">
           <Layers class="w-3.5 h-3.5" />
         </div>
       </div>

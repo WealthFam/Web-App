@@ -8,6 +8,7 @@ import {
 import MainLayout from '@/layouts/MainLayout.vue'
 import WfCard from '@/components/ui/WfCard.vue'
 import WfButton from '@/components/ui/WfButton.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 import WfModal from '@/components/ui/WfModal.vue'
 import ExpenseGroupModal from '@/components/groups/ExpenseGroupModal.vue'
 import { financeApi } from '@/api/client'
@@ -32,9 +33,9 @@ const isDeleting = ref(false)
 
 const yearOptions = computed(() => {
     const currentYear = new Date().getFullYear()
-    const years = [{ label: 'All Years', value: 'All' }]
+    const years = [{ title: 'All Years', value: 'All' }]
     for (let y = currentYear + 1; y >= 2018; y--) {
-        years.push({ label: y.toString(), value: y.toString() })
+        years.push({ title: y.toString(), value: y.toString() })
     }
     return years
 })
@@ -312,17 +313,12 @@ onMounted(() => {
                     </div>
 
                     <!-- Year Dropdown Filter -->
-                    <div class="flex items-center h-8 px-2.5 rounded-wf-sm bg-wf-surface border border-wf-border shadow-2xs">
-                        <Calendar class="w-3.5 h-3.5 text-wf-text-muted shrink-0 mr-2" />
-                        <select
-                            v-model="selectedYear"
-                            class="bg-transparent text-xs font-semibold text-wf-text-primary focus:outline-none cursor-pointer"
-                        >
-                            <option v-for="y in yearOptions" :key="y.value" :value="y.value">
-                                {{ y.label }}
-                            </option>
-                        </select>
-                    </div>
+                    <WfSelect
+                        size="sm"
+                        v-model="selectedYear"
+                        :items="yearOptions"
+                        class="w-32 shrink-0"
+                    />
                 </div>
 
                 <div class="flex items-center gap-2 w-full sm:w-auto justify-end">

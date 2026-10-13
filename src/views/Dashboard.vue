@@ -5,7 +5,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wf-border-subtle">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-wf-lg bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs">
-            <component :is="greetingIcon" class="w-5 h-5 text-amber-500 dark:text-amber-400" />
+            <component :is="greetingIcon" class="w-5 h-5 text-wf-warning" />
           </div>
           <div>
             <div class="flex items-center gap-2">
@@ -49,8 +49,8 @@
       <div v-if="loading && !metrics" class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div v-for="i in 5" :key="`skel-${i}`" class="h-28 rounded-wf-lg bg-wf-surface border border-wf-border animate-pulse p-4 flex flex-col justify-between">
-            <div class="w-8 h-8 rounded-wf-md bg-slate-200 dark:bg-slate-700"></div>
-            <div class="w-24 h-6 rounded bg-slate-200 dark:bg-slate-700"></div>
+            <div class="w-8 h-8 rounded-wf-md bg-wf-surface-variant"></div>
+            <div class="w-24 h-6 rounded bg-wf-surface-variant"></div>
           </div>
         </div>
         <div class="h-64 rounded-wf-lg bg-wf-surface border border-wf-border animate-pulse"></div>
@@ -224,10 +224,10 @@
               </div>
             </div>
             <div class="pt-2 border-t border-wf-border-subtle mt-2">
-              <div class="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div class="w-full h-1.5 rounded-full bg-wf-surface-variant overflow-hidden">
                 <div
                   class="h-full rounded-full transition-all duration-500"
-                  :class="(metrics?.budget_health?.percentage || 0) > 90 ? 'bg-rose-500' : 'bg-emerald-500'"
+                  :class="(metrics?.budget_health?.percentage || 0) > 90 ? 'bg-wf-error' : 'bg-wf-success'"
                   :style="{ width: `${Math.min(100, Number(metrics?.budget_health?.percentage || 0))}%` }"
                 ></div>
               </div>

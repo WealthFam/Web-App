@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { Folder, Activity, Trash2, Save } from 'lucide-vue-next'
+import { Trash2, Save } from 'lucide-vue-next'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+
+const financialTypeOptions = [
+    { title: '🔴 Expense', value: 'expense' },
+    { title: '🟢 Income', value: 'income' },
+    { title: '🔄 Transfer', value: 'transfer' },
+    { title: '📈 Investment', value: 'investment' }
+]
 
 interface CategoryForm {
     name: string
@@ -133,34 +141,21 @@ function handleSave() {
                     <!-- Parent Category Select -->
                     <div>
                         <span class="text-xs font-semibold text-wf-text-secondary mb-1 block">Parent Category</span>
-                        <div class="flex items-center h-10 px-3 bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary focus-within:ring-2 focus-within:ring-wf-primary/20 focus-within:border-wf-primary transition-all gap-2">
-                            <Folder class="w-4 h-4 text-wf-text-muted shrink-0 pointer-events-none" />
-                            <select
-                                v-model="localForm.parent_id"
-                                class="w-full h-full bg-transparent text-sm text-wf-text-primary focus:outline-none cursor-pointer"
-                            >
-                                <option v-for="opt in parentOptions" :key="String(opt.value)" :value="opt.value">
-                                    {{ opt.title }}
-                                </option>
-                            </select>
-                        </div>
+                        <WfSelect
+                            v-model="localForm.parent_id"
+                            :items="parentOptions"
+                            size="md"
+                        />
                     </div>
 
                     <!-- Financial Type Select -->
                     <div>
                         <span class="text-xs font-semibold text-wf-text-secondary mb-1 block">Financial Type</span>
-                        <div class="flex items-center h-10 px-3 bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary focus-within:ring-2 focus-within:ring-wf-primary/20 focus-within:border-wf-primary transition-all gap-2">
-                            <Activity class="w-4 h-4 text-wf-text-muted shrink-0 pointer-events-none" />
-                            <select
-                                v-model="localForm.type"
-                                class="w-full h-full bg-transparent text-sm text-wf-text-primary focus:outline-none cursor-pointer"
-                            >
-                                <option value="expense">🔴 Expense</option>
-                                <option value="income">🟢 Income</option>
-                                <option value="transfer">🔄 Transfer</option>
-                                <option value="investment">📈 Investment</option>
-                            </select>
-                        </div>
+                        <WfSelect
+                            v-model="localForm.type"
+                            :items="financialTypeOptions"
+                            size="md"
+                        />
                     </div>
                 </div>
             </div>

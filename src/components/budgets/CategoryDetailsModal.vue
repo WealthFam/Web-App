@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import {
-    Calendar, TrendingUp, Hash, ChevronLeft, ChevronRight, RefreshCw
+    Calendar, TrendingUp, Hash, RefreshCw
 } from 'lucide-vue-next'
 
 import { financeApi } from '@/api/client'
@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/auth'
 import { localDateString } from '@/utils/time'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
+import WfPagination from '@/components/ui/WfPagination.vue'
 
 const { formatAmount } = useCurrency()
 const authStore = useAuthStore()
@@ -38,9 +39,6 @@ const serverOptions = ref({
     sortOrder: 'desc'
 })
 
-const totalPages = computed(() => {
-    return Math.ceil(totalTransactions.value / serverOptions.value.itemsPerPage) || 1
-})
 
 // Fetch Data
 const fetchData = async () => {
@@ -195,17 +193,6 @@ const formatDate = (dateStr: string) => {
     return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
 }
 
-function prevPage() {
-    if (serverOptions.value.page > 1) {
-        serverOptions.value.page--
-    }
-}
-
-function nextPage() {
-    if (serverOptions.value.page < totalPages.value) {
-        serverOptions.value.page++
-    }
-}
 </script>
 
 <template>
@@ -359,42 +346,15 @@ function nextPage() {
                     </template>
 
                     <!-- Table Pagination Footer -->
-                    <div class="flex items-center justify-between px-3.5 py-2 bg-wf-surface-variant/30 text-xs">
-                        <div class="flex items-center gap-2">
-                            <span class="text-[11px] text-wf-text-muted">Rows per page:</span>
-                            <select
-                                v-model="serverOptions.itemsPerPage"
-                                class="bg-transparent border border-wf-border rounded-wf-xs px-1.5 py-0.5 text-xs font-semibold focus:outline-none cursor-pointer"
-                            >
-                                <option :value="5">5</option>
-                                <option :value="10">10</option>
-                                <option :value="20">20</option>
-                            </select>
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                            <span class="text-[11px] text-wf-text-muted">
-                                Page {{ serverOptions.page }} of {{ totalPages }}
-                            </span>
-                            <div class="flex items-center gap-1">
-                                <button
-                                    type="button"
-                                    @click="prevPage"
-                                    :disabled="serverOptions.page <= 1"
-                                    class="p-1 rounded-wf-xs border border-wf-border hover:bg-wf-surface-variant disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    <ChevronLeft class="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                    type="button"
-                                    @click="nextPage"
-                                    :disabled="serverOptions.page >= totalPages"
-                                    class="p-1 rounded-wf-xs border border-wf-border hover:bg-wf-surface-variant disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    <ChevronRight class="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                        </div>
+                    <div class="p-2 bg-wf-surface-variant/30 border-t border-wf-border">
+                        <WfPagination
+                            :page="serverOptions.page"
+                            :page-size="serverOptions.itemsPerPage"
+                            :total="totalTransactions"
+                            :page-sizes="[5, 10, 20]"
+                            @update:page="serverOptions.page = $event"
+                            @update:page-size="serverOptions.itemsPerPage = $event"
+                        />
                     </div>
                 </div>
             </div>

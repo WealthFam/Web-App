@@ -2,24 +2,34 @@
     <MainLayout>
         <div class="space-y-5">
             <!-- Header Section -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 class="text-xl sm:text-2xl font-bold text-wf-text-primary tracking-tight">
-                        Financial Sources
-                    </h1>
-                    <p class="text-xs sm:text-sm text-wf-text-muted mt-0.5">
-                        Managing {{ verifiedAccounts.length }} active capital streams
-                    </p>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wf-border-subtle">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs shrink-0">
+                        <Landmark class="w-4.5 h-4.5 text-wf-primary" />
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-lg sm:text-xl font-bold text-wf-text-primary tracking-tight leading-tight">
+                                Accounts
+                            </h1>
+                            <span class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
+                                {{ verifiedAccounts.length }} Active
+                            </span>
+                        </div>
+                        <p class="text-xs text-wf-text-secondary mt-0.5">
+                            Manage linked bank accounts, credit cards, digital wallets, and balance anchoring.
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Navigation Tabs (Pill Segmented Switcher) -->
-                <div class="flex items-center p-1 bg-wf-surface-variant/60 rounded-wf-lg border border-wf-border text-xs font-semibold self-start sm:self-auto">
+                <div class="flex items-center p-0.5 bg-wf-surface-variant/80 rounded-wf-md border border-wf-border shadow-2xs text-xs font-semibold self-start sm:self-auto">
                     <button
                         type="button"
-                        class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-wf-md transition-all cursor-pointer"
+                        class="flex items-center gap-1.5 px-3 py-1 rounded-wf-sm transition-all cursor-pointer"
                         :class="activeTab === 'approved'
-                            ? 'bg-wf-surface text-wf-text-primary shadow-sm font-bold'
-                            : 'text-wf-text-muted hover:text-wf-text-primary'"
+                            ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                            : 'text-wf-text-secondary hover:text-wf-text-primary'"
                         @click="activeTab = 'approved'"
                     >
                         <Landmark :size="14" />
@@ -27,10 +37,10 @@
                     </button>
                     <button
                         type="button"
-                        class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-wf-md transition-all cursor-pointer"
+                        class="flex items-center gap-1.5 px-3 py-1 rounded-wf-sm transition-all cursor-pointer"
                         :class="activeTab === 'triage'
-                            ? 'bg-wf-surface text-wf-text-primary shadow-sm font-bold'
-                            : 'text-wf-text-muted hover:text-wf-text-primary'"
+                            ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                            : 'text-wf-text-secondary hover:text-wf-text-primary'"
                         @click="activeTab = 'triage'"
                     >
                         <AlertCircle :size="14" class="text-amber-500" />
@@ -48,9 +58,9 @@
             <!-- Account Summary Metric Strip -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Net Liquid Assets -->
-                <WfCard variant="flat" padding="md" radius="xl" class="border border-wf-border flex flex-col justify-between">
+                <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
                     <div class="flex items-start justify-between">
-                        <div class="w-10 h-10 rounded-wf-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <div class="w-10 h-10 rounded-wf-lg bg-wf-info-light text-wf-info border border-blue-500/20 flex items-center justify-center shrink-0">
                             <Scale :size="20" />
                         </div>
                     </div>
@@ -59,21 +69,21 @@
                             Net Liquid Assets
                         </div>
                         <div
-                            class="text-xl sm:text-2xl font-bold font-mono tracking-tight mt-0.5"
-                            :class="accountMetrics.total < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-wf-text-primary'"
+                            class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight mt-0.5"
+                            :class="accountMetrics.total < 0 ? 'text-wf-error' : 'text-wf-text-primary'"
                         >
                             {{ formatAmount(accountMetrics.total) }}
                         </div>
-                        <div class="text-[11px] text-wf-text-muted mt-1">
+                        <div class="text-[11px] text-wf-text-secondary mt-1">
                             Total available capital
                         </div>
                     </div>
                 </WfCard>
 
                 <!-- Bank Balances -->
-                <WfCard variant="flat" padding="md" radius="xl" class="border border-wf-border flex flex-col justify-between">
+                <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
                     <div class="flex items-start justify-between">
-                        <div class="w-10 h-10 rounded-wf-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <div class="w-10 h-10 rounded-wf-lg bg-wf-success-light text-wf-success border border-emerald-500/20 flex items-center justify-center shrink-0">
                             <Landmark :size="20" />
                         </div>
                     </div>
@@ -81,19 +91,19 @@
                         <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
                             Bank Balances
                         </div>
-                        <div class="text-xl sm:text-2xl font-bold font-mono tracking-tight text-emerald-600 dark:text-emerald-400 mt-0.5">
+                        <div class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight text-wf-success mt-0.5">
                             {{ formatAmount(accountMetrics.bank) }}
                         </div>
-                        <div class="text-[11px] text-wf-text-muted mt-1">
+                        <div class="text-[11px] text-wf-text-secondary mt-1">
                             Cash in hand
                         </div>
                     </div>
                 </WfCard>
 
                 <!-- Active Credit Debt -->
-                <WfCard variant="flat" padding="md" radius="xl" class="border border-wf-border flex flex-col justify-between">
+                <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
                     <div class="flex items-start justify-between">
-                        <div class="w-10 h-10 rounded-wf-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                        <div class="w-10 h-10 rounded-wf-lg bg-wf-error-light text-wf-error border border-rose-500/20 flex items-center justify-center shrink-0">
                             <CreditCard :size="20" />
                         </div>
                     </div>
@@ -101,24 +111,24 @@
                         <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
                             Active Credit Debt
                         </div>
-                        <div class="text-xl sm:text-2xl font-bold font-mono tracking-tight text-rose-600 dark:text-rose-400 mt-0.5">
+                        <div class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight text-wf-error mt-0.5">
                             {{ formatAmount(accountMetrics.credit) }}
                         </div>
-                        <div class="text-[11px] text-wf-text-muted mt-1">
+                        <div class="text-[11px] text-wf-text-secondary mt-1">
                             Utilized limits
                         </div>
                     </div>
                 </WfCard>
 
                 <!-- Credit Utilization -->
-                <WfCard variant="flat" padding="md" radius="xl" class="border border-wf-border flex flex-col justify-between">
+                <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
                     <div class="flex items-start justify-between">
-                        <div class="w-10 h-10 rounded-wf-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                        <div class="w-10 h-10 rounded-wf-lg bg-wf-warning-light text-wf-warning border border-amber-500/20 flex items-center justify-center shrink-0">
                             <Zap :size="20" />
                         </div>
                         <div
-                            class="text-lg font-bold font-mono"
-                            :class="totalUtilization > 80 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'"
+                            class="text-lg font-bold font-mono tabular-nums"
+                            :class="totalUtilization > 80 ? 'text-wf-error' : 'text-wf-warning'"
                         >
                             {{ Math.round(totalUtilization) }}%
                         </div>
@@ -130,7 +140,7 @@
                         <div class="w-full h-2 bg-wf-surface-variant rounded-full overflow-hidden mt-2">
                             <div
                                 class="h-full rounded-full transition-all duration-300"
-                                :class="totalUtilization > 80 ? 'bg-rose-500' : 'bg-amber-500'"
+                                :class="totalUtilization > 80 ? 'bg-wf-error' : 'bg-wf-warning'"
                                 :style="{ width: `${Math.min(100, Math.max(0, totalUtilization))}%` }"
                             ></div>
                         </div>

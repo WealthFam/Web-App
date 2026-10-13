@@ -4,12 +4,14 @@ import { useCategoriesStore } from '@/stores/finance/categories'
 import {
     Search, Plus, Pencil, Trash2,
     Download, Upload, AlertCircle,
-    BarChart3, TrendingDown, TrendingUp, Repeat, Inbox, Filter,
-    ChevronLeft, ChevronRight, X
+    BarChart3, TrendingDown, TrendingUp, Repeat, Inbox,
+    X
 } from 'lucide-vue-next'
 import WfCard from '@/components/ui/WfCard.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfModal from '@/components/ui/WfModal.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfPagination from '@/components/ui/WfPagination.vue'
 import CategoryModal from './components/CategoryModal.vue'
 
 const categoriesStore = useCategoriesStore()
@@ -47,6 +49,14 @@ const parentOptions = computed(() => {
     ]
 })
 
+const filterTypeOptions = [
+    { title: 'All Types', value: 'all' },
+    { title: 'Expenses', value: 'expense' },
+    { title: 'Income', value: 'income' },
+    { title: 'Investment', value: 'investment' },
+    { title: 'Transfer', value: 'transfer' }
+]
+
 // Filtered root categories based on type and search query
 const filteredRootCategories = computed<any[]>(() => {
     let list = categoriesStore.rootCategories
@@ -66,10 +76,6 @@ const filteredRootCategories = computed<any[]>(() => {
     }
 
     return list
-})
-
-const totalPages = computed(() => {
-    return Math.ceil(filteredRootCategories.value.length / pageSize.value) || 1
 })
 
 const paginatedRootCategories = computed(() => {
@@ -348,18 +354,12 @@ defineExpose({
         <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border bg-wf-surface flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2 shadow-2xs">
             <div class="flex items-center gap-2 flex-1 max-w-lg">
                 <!-- Type Filter Dropdown -->
-                <div class="flex items-center h-8 px-2.5 bg-wf-surface-variant/40 border border-wf-border rounded-wf-md text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-1.5 w-36 shrink-0">
-                    <Filter class="w-3.5 h-3.5 text-wf-text-muted shrink-0 pointer-events-none" />
-                    <select
+                <div class="w-36 shrink-0">
+                    <WfSelect
                         v-model="categoriesStore.searchFilter"
-                        class="w-full h-full bg-transparent text-xs font-semibold text-wf-text-primary focus:outline-none cursor-pointer"
-                    >
-                        <option value="all">All Types</option>
-                        <option value="expense">Expenses</option>
-                        <option value="income">Income</option>
-                        <option value="investment">Investment</option>
-                        <option value="transfer">Transfer</option>
-                    </select>
+                        :items="filterTypeOptions"
+                        size="sm"
+                    />
                 </div>
 
                 <!-- Search Input -->
@@ -548,32 +548,16 @@ defineExpose({
             <!-- Pagination Footer -->
             <div
                 v-if="filteredRootCategories.length > 0"
-                class="p-2.5 px-3 border-t border-wf-border bg-wf-surface-variant/30 flex items-center justify-between text-xs shrink-0"
+                class="p-2.5 border-t border-wf-border bg-wf-surface-variant/30"
             >
-                <span class="text-[11px] text-wf-text-secondary font-medium">
-                    Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, filteredRootCategories.length) }} of {{ filteredRootCategories.length }} categories
-                </span>
-                <div class="flex items-center gap-2">
-                    <span class="text-[11px] text-wf-text-secondary font-semibold mr-1">
-                        Page {{ currentPage }} of {{ totalPages }}
-                    </span>
-                    <button
-                        :disabled="currentPage <= 1"
-                        @click="currentPage--"
-                        class="p-1 rounded-wf-xs border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                        title="Previous page"
-                    >
-                        <ChevronLeft class="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                        :disabled="currentPage >= totalPages"
-                        @click="currentPage++"
-                        class="p-1 rounded-wf-xs border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                        title="Next page"
-                    >
-                        <ChevronRight class="w-3.5 h-3.5" />
-                    </button>
-                </div>
+                <WfPagination
+                    :page="currentPage"
+                    :page-size="pageSize"
+                    :total="filteredRootCategories.length"
+                    :page-sizes="[10, 25, 50]"
+                    @update:page="currentPage = $event"
+                    @update:page-size="pageSize = $event"
+                />
             </div>
         </WfCard>
 

@@ -23,11 +23,20 @@ import {
 import WfCard from '@/components/ui/WfCard.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfModal from '@/components/ui/WfModal.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 
 const emailConfigs = ref<any[]>([])
 const familyMembers = ref<any[]>([])
 const searchQuery = ref('')
 const loading = ref(false)
+
+const memberOptions = computed(() => [
+  { title: '👤 Unassigned (Self)', value: null },
+  ...familyMembers.value.map(m => ({
+    title: `${m.avatar || '👤'} ${m.full_name || m.email}`,
+    value: m.id
+  }))
+])
 
 const notify = useNotificationStore()
 const confirmDialog = useConfirmStore()
@@ -683,15 +692,11 @@ onMounted(() => {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-bold text-wf-text-secondary mb-1">Assign to Family Member</label>
-              <select
+              <WfSelect
                 v-model="emailForm.user_id"
-                class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary font-medium"
-              >
-                <option :value="null">👤 Unassigned (Self)</option>
-                <option v-for="m in familyMembers" :key="m.id" :value="m.id">
-                  {{ m.avatar || '👤' }} {{ m.full_name || m.email }}
-                </option>
-              </select>
+                :items="memberOptions"
+                size="md"
+              />
             </div>
 
             <div class="flex items-center justify-between p-2.5 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle self-end">

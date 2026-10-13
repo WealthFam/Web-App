@@ -60,7 +60,7 @@ const progressClamped = computed(() => {
           <div
             v-if="overallStats.dayChange !== 0"
             class="flex items-center text-[11px] font-bold"
-            :class="overallStats.dayChange >= 0 ? 'text-emerald-500' : 'text-rose-500'"
+            :class="overallStats.dayChange >= 0 ? 'text-wf-success' : 'text-wf-error'"
           >
             <TrendingUp v-if="overallStats.dayChange >= 0" class="w-3 h-3 mr-0.5" />
             <TrendingDown v-else class="w-3 h-3 mr-0.5" />
@@ -83,10 +83,10 @@ const progressClamped = computed(() => {
     </WfCard>
 
     <!-- Card 2: Wealth Gap -->
-    <WfCard variant="flat" padding="md" radius="lg" class="relative overflow-hidden group hover:border-amber-500/40 transition-colors shadow-2xs">
+    <WfCard variant="flat" padding="md" radius="lg" class="relative overflow-hidden group hover:border-wf-warning/40 transition-colors shadow-2xs">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded-wf-md bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20">
+          <div class="w-7 h-7 rounded-wf-md bg-wf-warning-light text-wf-warning flex items-center justify-center border border-amber-200 dark:border-amber-900/50">
             <ArrowUpRight class="w-3.5 h-3.5" />
           </div>
           <span class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">
@@ -113,7 +113,7 @@ const progressClamped = computed(() => {
           v-for="i in 5"
           :key="i"
           class="rounded-wf-pill transition-colors duration-300"
-          :class="i <= Math.ceil(overallStats.progress / 20) ? 'bg-amber-500' : 'bg-wf-surface-variant'"
+          :class="i <= Math.ceil(overallStats.progress / 20) ? 'bg-wf-warning' : 'bg-wf-surface-variant'"
         ></div>
       </div>
     </WfCard>
@@ -148,7 +148,7 @@ const progressClamped = computed(() => {
             <component
               :is="asset.icon"
               class="w-3.5 h-3.5"
-              :class="asset.color === 'primary' ? 'text-wf-primary' : (asset.color === 'success' ? 'text-emerald-500' : 'text-amber-500')"
+              :class="asset.color === 'primary' ? 'text-wf-primary' : (asset.color === 'success' ? 'text-wf-success' : 'text-wf-warning')"
             />
             <span class="text-wf-text-secondary font-semibold">{{ asset.label }}</span>
           </div>

@@ -301,7 +301,7 @@ onMounted(() => {
 
             <!-- LOADING SKELETON -->
             <div v-if="loading" class="space-y-6 animate-pulse">
-                <div class="h-64 rounded-wf-xl bg-slate-900/80 border border-slate-800"></div>
+                <div class="h-64 rounded-wf-xl bg-wf-surface-variant/60 border border-wf-border-subtle"></div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
                     <div v-for="i in 4" :key="`skel-${i}`" class="h-24 rounded-wf-lg bg-wf-surface-variant/50 border border-wf-border-subtle"></div>
                 </div>

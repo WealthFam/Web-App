@@ -2,6 +2,12 @@
 import { ref, watch, computed } from 'vue'
 import { Check, Info } from 'lucide-vue-next'
 import WfModal from '@/components/ui/WfModal.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+
+const typeOptions = [
+  { title: 'BUY (Purchase)', value: 'BUY' },
+  { title: 'SELL (Redemption)', value: 'SELL' }
+]
 
 const props = defineProps<{
   modelValue: boolean
@@ -77,13 +83,11 @@ const isValid = computed(() => {
           <!-- Type -->
           <div class="space-y-1.5">
             <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider block">Type</label>
-            <select
+            <WfSelect
               v-model="formData.type"
-              class="w-full h-10 px-3 text-xs font-bold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
-            >
-              <option value="BUY">BUY (Purchase)</option>
-              <option value="SELL">SELL (Redemption)</option>
-            </select>
+              :items="typeOptions"
+              size="md"
+            />
           </div>
         </div>
 

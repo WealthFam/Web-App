@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Check, Wallet } from 'lucide-vue-next'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 
-defineProps<{
+const props = defineProps<{
   modelValue: boolean
   repaymentForm: {
     amount: number
@@ -18,6 +20,10 @@ defineProps<{
   }>
   saving?: boolean
 }>()
+
+const formattedAccountOptions = computed(() =>
+  props.accountOptions.map(a => ({ title: a.label, value: a.value }))
+)
 
 const emit = defineEmits<{
   (e: 'update:modelValue', val: boolean): void
@@ -94,22 +100,12 @@ function handleClose() {
         <label class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">
           Paid From Account
         </label>
-        <div class="flex items-center h-10 px-3 rounded-wf-md bg-wf-surface border border-wf-border focus-within:border-wf-primary shadow-2xs">
-          <select
-            v-model="repaymentForm.bank_account_id"
-            class="w-full bg-transparent text-xs font-semibold text-wf-text-primary focus:outline-none cursor-pointer"
-            required
-          >
-            <option value="" disabled>Select account...</option>
-            <option
-              v-for="acc in accountOptions"
-              :key="acc.value"
-              :value="acc.value"
-            >
-              {{ acc.label }}
-            </option>
-          </select>
-        </div>
+        <WfSelect
+          v-model="repaymentForm.bank_account_id"
+          :items="formattedAccountOptions"
+          placeholder="Select account..."
+          size="md"
+        />
       </div>
 
       <!-- Notes -->

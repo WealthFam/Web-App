@@ -23,6 +23,7 @@ import { format } from 'date-fns'
 import WfCard from '@/components/ui/WfCard.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfModal from '@/components/ui/WfModal.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 
 const notify = useNotificationStore()
 
@@ -48,6 +49,13 @@ const memberForm = ref({
   phone_number: ''
 })
 const showPan = ref(false)
+
+const roleOptions = [
+  { title: 'Owner (Full Administrator)', value: 'OWNER' },
+  { title: 'Adult (Edit & View Access)', value: 'ADULT' },
+  { title: 'Child (View Only)', value: 'CHILD' },
+  { title: 'Guest (Restricted)', value: 'GUEST' }
+]
 
 const showTenantModal = ref(false)
 const tenantForm = ref({ id: '', name: '' })
@@ -533,15 +541,11 @@ onMounted(() => {
 
           <div>
             <label class="block text-xs font-bold text-wf-text-secondary mb-1">Role & Permissions</label>
-            <select
+            <WfSelect
               v-model="memberForm.role"
-              class="w-full h-10 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary font-medium"
-            >
-              <option value="OWNER">Owner (Full Administrator)</option>
-              <option value="ADULT">Adult (Edit & View Access)</option>
-              <option value="CHILD">Child (View Only)</option>
-              <option value="GUEST">Guest (Restricted)</option>
-            </select>
+              :items="roleOptions"
+              size="md"
+            />
           </div>
         </div>
 

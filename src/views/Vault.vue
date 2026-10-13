@@ -6,9 +6,6 @@ import {
   Upload,
   Home,
   ChevronRight,
-  ChevronLeft,
-  ChevronsLeft,
-  ChevronsRight,
   Search,
   X,
   FolderOpen,
@@ -40,6 +37,8 @@ import { useConfirmStore } from '@/stores/confirm'
 import { useNotificationStore } from '@/stores/notification'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfCard from '@/components/ui/WfCard.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfPagination from '@/components/ui/WfPagination.vue'
 import VaultItemCard from '@/components/vault/VaultItemCard.vue'
 import UploadDocModal from '@/components/vault/UploadDocModal.vue'
 import CreateFolderModal from '@/components/vault/CreateFolderModal.vue'
@@ -82,6 +81,14 @@ const filterCategories = [
   { label: 'Policies', value: 'POLICY' },
   { label: 'Tax Docs', value: 'TAX' },
   { label: 'Identity', value: 'IDENTITY' }
+]
+
+const filterCategoriesItems = filterCategories.map(c => ({ title: c.label, value: c.value }))
+const sortOptions = [
+  { title: 'Sort: Newest', value: 'newest' },
+  { title: 'Sort: Oldest', value: 'oldest' },
+  { title: 'Sort: A-Z', value: 'name_asc' },
+  { title: 'Sort: Z-A', value: 'name_desc' }
 ]
 
 // Stats Computation
@@ -141,27 +148,11 @@ const sortedItems = computed(() => {
 })
 
 // Pagination
-const totalPages = computed(() => Math.max(1, Math.ceil(sortedItems.value.length / pageSize.value)))
 
 const paginatedItems = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   return sortedItems.value.slice(start, start + pageSize.value)
 })
-
-const paginationStart = computed(() => {
-  if (sortedItems.value.length === 0) return 0
-  return (currentPage.value - 1) * pageSize.value + 1
-})
-
-const paginationEnd = computed(() => {
-  return Math.min(currentPage.value * pageSize.value, sortedItems.value.length)
-})
-
-function goToPage(page: number) {
-  if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page
-  }
-}
 
 function navigateTo(id: string | null, name?: string) {
   currentPage.value = 1
@@ -544,26 +535,21 @@ onMounted(() => {
           </div>
 
           <!-- Category Selector (when inside folder) -->
-          <select
+          <WfSelect
             v-if="currentFolderId"
+            size="sm"
             v-model="filterType"
-            class="h-9 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary font-medium shrink-0"
-          >
-            <option v-for="cat in filterCategories" :key="cat.value" :value="cat.value">
-              {{ cat.label }}
-            </option>
-          </select>
+            :items="filterCategoriesItems"
+            class="w-36 shrink-0"
+          />
 
           <!-- Sort Dropdown -->
-          <select
+          <WfSelect
+            size="sm"
             v-model="sortBy"
-            class="h-9 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary font-medium shrink-0"
-          >
-            <option value="newest">Sort: Newest</option>
-            <option value="oldest">Sort: Oldest</option>
-            <option value="name_asc">Sort: A-Z</option>
-            <option value="name_desc">Sort: Z-A</option>
-          </select>
+            :items="sortOptions"
+            class="w-36 shrink-0"
+          />
 
           <!-- View Mode Toggle -->
           <div class="flex items-center p-0.5 bg-wf-surface-variant/70 border border-wf-border-subtle rounded-wf-md shrink-0">
@@ -780,71 +766,16 @@ onMounted(() => {
       </div>
 
       <!-- 5. PAGINATION TOOLBAR -->
-      <div
-        v-if="sortedItems.length > 0"
-        class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-wf-border-subtle"
-      >
-        <!-- Item Range & Page Size Picker -->
-        <div class="flex items-center gap-3 text-xs text-wf-text-secondary">
-          <span>
-            Showing <strong class="text-wf-text-primary font-bold">{{ paginationStart }}</strong> to <strong class="text-wf-text-primary font-bold">{{ paginationEnd }}</strong> of <strong class="text-wf-text-primary font-bold">{{ sortedItems.length }}</strong> items
-          </span>
-
-          <div class="flex items-center gap-1.5 ml-2">
-            <span class="text-wf-text-muted text-[11px]">Per page:</span>
-            <select
-              v-model="pageSize"
-              class="h-7 px-2 rounded-wf-xs bg-wf-surface border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
-            >
-              <option v-for="opt in pageSizeOptions" :key="opt" :value="opt">{{ opt }}</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Page Buttons -->
-        <div class="flex items-center gap-1 self-center sm:self-auto">
-          <button
-            type="button"
-            @click="goToPage(1)"
-            :disabled="currentPage === 1"
-            class="p-1.5 rounded-wf-xs border border-wf-border-subtle text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant disabled:opacity-40 disabled:pointer-events-none transition-colors"
-            title="First Page"
-          >
-            <ChevronsLeft class="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            @click="goToPage(currentPage - 1)"
-            :disabled="currentPage === 1"
-            class="p-1.5 rounded-wf-xs border border-wf-border-subtle text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant disabled:opacity-40 disabled:pointer-events-none transition-colors"
-            title="Previous Page"
-          >
-            <ChevronLeft class="w-3.5 h-3.5" />
-          </button>
-
-          <span class="px-3 py-1 text-xs font-bold text-wf-text-primary bg-wf-surface-variant rounded-wf-xs border border-wf-border-subtle">
-            {{ currentPage }} / {{ totalPages }}
-          </span>
-
-          <button
-            type="button"
-            @click="goToPage(currentPage + 1)"
-            :disabled="currentPage === totalPages"
-            class="p-1.5 rounded-wf-xs border border-wf-border-subtle text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant disabled:opacity-40 disabled:pointer-events-none transition-colors"
-            title="Next Page"
-          >
-            <ChevronRight class="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            @click="goToPage(totalPages)"
-            :disabled="currentPage === totalPages"
-            class="p-1.5 rounded-wf-xs border border-wf-border-subtle text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant disabled:opacity-40 disabled:pointer-events-none transition-colors"
-            title="Last Page"
-          >
-            <ChevronsRight class="w-3.5 h-3.5" />
-          </button>
-        </div>
+      <div v-if="sortedItems.length > 0" class="pt-2">
+        <WfPagination
+          :page="currentPage"
+          :page-size="pageSize"
+          :total="sortedItems.length"
+          :page-sizes="pageSizeOptions"
+          @update:page="currentPage = $event"
+          @update:page-size="pageSize = $event"
+          class="rounded-wf-md border border-wf-border-subtle"
+        />
       </div>
     </div>
 

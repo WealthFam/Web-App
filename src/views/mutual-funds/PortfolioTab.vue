@@ -2,12 +2,14 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import {
     TrendingUp, TrendingDown, Clock, Search, Target,
-    Eye as EyeIconMain, ChevronDown, ChevronRight, ChevronLeft,
+    Eye as EyeIconMain, ChevronDown, ChevronRight,
     Trash2, Activity, RefreshCcw, Settings, Calendar, RefreshCw,
     Zap, ArrowUpDown, PieChart, X
 } from 'lucide-vue-next'
 
 import WfCard from '@/components/ui/WfCard.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfPagination from '@/components/ui/WfPagination.vue'
 import { useMutualFundStore } from '@/stores/finance/mutualFunds'
 import { useNotificationStore } from '@/stores/notification'
 import { useAuthStore } from '@/stores/auth'
@@ -140,6 +142,13 @@ const availableCategories = computed(() => {
     return ['ALL', ...Array.from(cats)]
 })
 
+const categorySelectItems = computed(() =>
+    availableCategories.value.map(cat => ({
+        title: cat === 'ALL' ? 'All Categories' : cat,
+        value: cat
+    }))
+)
+
 const filteredHoldings = computed(() => {
     let list = [...sortedPortfolio.value]
     if (selectedCategory.value !== 'ALL') {
@@ -167,7 +176,7 @@ const filteredHoldings = computed(() => {
     return list
 })
 
-const totalPages = computed(() => Math.ceil(filteredHoldings.value.length / pageSize.value) || 1)
+
 
 const paginatedHoldings = computed(() => {
     const start = (currentPage.value - 1) * pageSize.value
@@ -482,7 +491,7 @@ watch(portfolio, (val) => emit('update:count', val.length))
                             {{ formatAmount(portfolioStats.current) }}
                         </div>
                         <div class="flex items-center gap-1.5 mt-1 text-xs font-semibold">
-                            <span :class="latestInsights.dayChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
+                            <span :class="latestInsights.dayChange >= 0 ? 'text-wf-success' : 'text-wf-error'">
                                 {{ latestInsights.dayChange >= 0 ? '+' : '' }}{{ formatAmount(latestInsights.dayChange) }}
                                 ({{ Number(latestInsights?.dayChangePercent || 0).toFixed(2) }}%)
                             </span>
@@ -505,7 +514,7 @@ watch(portfolio, (val) => emit('update:count', val.length))
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">Invested Capital</span>
-                            <div class="w-7 h-7 rounded-wf-sm bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                            <div class="w-7 h-7 rounded-wf-sm bg-wf-primary-light text-wf-primary flex items-center justify-center shrink-0">
                                 <Clock :size="14" />
                             </div>
                         </div>
@@ -535,17 +544,17 @@ watch(portfolio, (val) => emit('update:count', val.length))
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">Total Return</span>
                             <div class="w-7 h-7 rounded-wf-sm flex items-center justify-center shrink-0"
-                                :class="portfolioStats.pl >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'">
+                                :class="portfolioStats.pl >= 0 ? 'bg-wf-success-light text-wf-success' : 'bg-wf-error-light text-wf-error'">
                                 <Target :size="14" />
                             </div>
                         </div>
                         <div class="text-xl sm:text-2xl font-bold tracking-tight font-mono"
-                            :class="portfolioStats.pl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
+                            :class="portfolioStats.pl >= 0 ? 'text-wf-success' : 'text-wf-error'">
                             {{ portfolioStats.pl >= 0 ? '+' : '' }}{{ formatAmount(portfolioStats.pl) }}
                         </div>
                         <div class="flex items-center gap-1.5 mt-1 text-xs font-semibold">
                             <span class="px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold font-mono"
-                                :class="portfolioStats.pl >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'">
+                                :class="portfolioStats.pl >= 0 ? 'bg-wf-success-light text-wf-success' : 'bg-wf-error-light text-wf-error'">
                                 {{ (portfolioStats?.pl || 0) >= 0 ? '+' : '' }}{{ Number(portfolioStats?.plPercent || 0).toFixed(2) }}% Absolute
                             </span>
                         </div>
@@ -848,12 +857,12 @@ watch(portfolio, (val) => emit('update:count', val.length))
 
                 <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
                     <!-- Category Filter Dropdown -->
-                    <select v-model="selectedCategory"
-                        class="h-8 px-2.5 rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-wf-primary focus:border-wf-primary cursor-pointer shrink-0 max-w-[200px] truncate">
-                        <option v-for="cat in availableCategories" :key="cat" :value="cat">
-                            {{ cat === 'ALL' ? 'All Categories' : cat }}
-                        </option>
-                    </select>
+                    <WfSelect
+                        size="sm"
+                        v-model="selectedCategory"
+                        :items="categorySelectItems"
+                        class="w-44 shrink-0"
+                    />
 
                     <!-- Search Input -->
                     <div class="relative w-full sm:w-60">
@@ -1076,45 +1085,16 @@ watch(portfolio, (val) => emit('update:count', val.length))
                 </p>
             </div>
 
-            <!-- Custom Compact Pagination (Aether V4 Standard) -->
-            <div
-                class="p-3 px-4 sm:px-5 border-t border-wf-border bg-wf-surface flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
-                <div class="text-[11px] text-wf-text-muted">
-                    Showing <span class="font-semibold text-wf-text-primary">{{ filteredHoldings.length ? (currentPage - 1) * pageSize + 1 : 0 }}</span>
-                    to <span class="font-semibold text-wf-text-primary">{{ Math.min(currentPage * pageSize, filteredHoldings.length) }}</span>
-                    of <span class="font-semibold text-wf-text-primary">{{ filteredHoldings.length }}</span> holdings
-                </div>
-
-                <div class="flex items-center gap-2">
-                    <!-- Page Size Selector -->
-                    <div class="flex items-center gap-1 text-[11px] text-wf-text-muted">
-                        <span>Rows:</span>
-                        <select v-model="pageSize"
-                            class="h-6.5 px-2 rounded-wf-xs border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary text-[11px] font-semibold focus:outline-none focus:border-wf-primary cursor-pointer">
-                            <option :value="10">10</option>
-                            <option :value="25">25</option>
-                            <option :value="50">50</option>
-                        </select>
-                    </div>
-
-                    <!-- Navigation Controls -->
-                    <div class="flex items-center gap-1">
-                        <button type="button" :disabled="currentPage === 1" @click="currentPage--"
-                            class="h-6.5 w-6.5 rounded-wf-xs border border-wf-border bg-wf-surface-variant/30 hover:bg-wf-surface-variant flex items-center justify-center text-wf-text-secondary disabled:opacity-40 disabled:pointer-events-none transition-colors"
-                            title="Previous Page">
-                            <ChevronLeft :size="13" />
-                        </button>
-                        <span class="px-2 text-[11px] font-semibold text-wf-text-primary">
-                            {{ currentPage }} / {{ totalPages }}
-                        </span>
-                        <button type="button" :disabled="currentPage === totalPages" @click="currentPage++"
-                            class="h-6.5 w-6.5 rounded-wf-xs border border-wf-border bg-wf-surface-variant/30 hover:bg-wf-surface-variant flex items-center justify-center text-wf-text-secondary disabled:opacity-40 disabled:pointer-events-none transition-colors"
-                            title="Next Page">
-                            <ChevronRight :size="13" />
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <!-- Standard Compact Pagination -->
+            <WfPagination
+                v-if="filteredHoldings.length > 0"
+                :page="currentPage"
+                :page-size="pageSize"
+                :total="filteredHoldings.length"
+                :page-sizes="[10, 25, 50]"
+                @update:page="currentPage = $event"
+                @update:page-size="pageSize = $event"
+            />
         </WfCard>
 
         <!-- Modals -->

@@ -98,7 +98,7 @@ function formatCategoryName(name: string) {
               </span>
               <span
                 class="text-sm font-bold font-mono tracking-tight"
-                :class="activeTab === 'investment' ? 'text-amber-600 dark:text-amber-400' : (activeTab === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-wf-text-primary')"
+                :class="activeTab === 'investment' ? 'text-wf-warning' : (activeTab === 'income' ? 'text-wf-success' : 'text-wf-text-primary')"
               >
                 {{ formatAmount(activeTab === 'income' ? group.parent.income : group.parent.spent) }}
               </span>
@@ -110,7 +110,7 @@ function formatCategoryName(name: string) {
               </span>
               <span
                 class="text-sm font-bold font-mono tracking-tight"
-                :class="group.parent.remaining < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'"
+                :class="group.parent.remaining < 0 ? 'text-wf-error' : 'text-wf-success'"
               >
                 {{ group.parent.remaining < 0 ? '-' : '' }}{{ formatAmount(Math.abs(group.parent.remaining)) }}
               </span>
@@ -121,10 +121,10 @@ function formatCategoryName(name: string) {
         <!-- Linear Progress Bar -->
         <div v-if="group.parent.amount_limit" class="space-y-1.5">
           <div class="relative">
-            <div class="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-wf-pill overflow-hidden">
+            <div class="h-2 w-full bg-wf-surface-variant rounded-wf-pill overflow-hidden">
               <div
                 class="h-full rounded-wf-pill transition-all duration-300"
-                :class="group.parent.percentage > 90 ? 'bg-rose-500' : group.parent.percentage > 70 ? 'bg-amber-500' : 'bg-emerald-500'"
+                :class="group.parent.percentage > 90 ? 'bg-wf-error' : group.parent.percentage > 70 ? 'bg-wf-warning' : 'bg-wf-success'"
                 :style="{ width: `${Math.max(0, Math.min(group.parent.percentage, 100))}%` }"
               ></div>
             </div>
@@ -132,7 +132,7 @@ function formatCategoryName(name: string) {
             <!-- Flame overspent indicator -->
             <div
               v-if="group.parent.percentage > 100"
-              class="absolute top-1/2 -translate-y-1/2 right-0 translate-x-1/2 w-4 h-4 rounded-full bg-rose-500 flex items-center justify-center z-10 shadow-xs"
+              class="absolute top-1/2 -translate-y-1/2 right-0 translate-x-1/2 w-4 h-4 rounded-full bg-wf-error flex items-center justify-center z-10 shadow-xs"
             >
               <Flame class="w-2.5 h-2.5 text-white" />
             </div>
@@ -140,7 +140,7 @@ function formatCategoryName(name: string) {
 
           <div
             class="flex items-center justify-between text-[10px] font-bold"
-            :class="group.parent.percentage > 100 ? 'text-rose-600' : 'text-wf-text-secondary'"
+            :class="group.parent.percentage > 100 ? 'text-wf-error' : 'text-wf-text-secondary'"
           >
             <span>{{ group.parent.percentage.toFixed(0) }}% OF LIMIT</span>
             <span class="font-mono">{{ formatAmount(group.parent.amount_limit) }}</span>
@@ -171,7 +171,7 @@ function formatCategoryName(name: string) {
               <div class="flex items-center gap-1.5 shrink-0 ml-2">
                 <span
                   class="text-[11px] font-bold font-mono"
-                  :class="child.percentage > 100 ? 'text-rose-600' : 'text-wf-text-primary'"
+                  :class="child.percentage > 100 ? 'text-wf-error' : 'text-wf-text-primary'"
                 >
                   {{ formatAmount(activeTab === 'income' ? child.income : child.spent) }}
                 </span>

@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
     AlertCircle, ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Copy,
     Download, EyeOff, FileText, Inbox, MoreVertical, Pencil, Plus, Search, Shuffle,
-    Trash2, Upload, Zap, Filter, X
+    Trash2, Upload, Zap, X
 } from 'lucide-vue-next'
 import { useRulesStore, type Rule } from '@/stores/finance/rules'
 import { useCategoriesStore } from '@/stores/finance/categories'
 import WfCard from '@/components/ui/WfCard.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfModal from '@/components/ui/WfModal.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfPagination from '@/components/ui/WfPagination.vue'
 
 const rulesStore = useRulesStore()
 const categoriesStore = useCategoriesStore()
@@ -35,23 +37,13 @@ watch(() => [rulesStore.searchQuery, rulesStore.categoryFilter], () => {
     rulesStore.fetchRules(1)
 })
 
-function handlePageSizeChange(event: Event) {
-    const target = event.target as HTMLSelectElement
-    rulesStore.pageSize = Number(target.value)
-    rulesStore.fetchRules(1)
-}
-
-function nextPage() {
-    if (rulesStore.currentPage * rulesStore.pageSize < rulesStore.totalRules) {
-        rulesStore.fetchRules(rulesStore.currentPage + 1)
-    }
-}
-
-function prevPage() {
-    if (rulesStore.currentPage > 1) {
-        rulesStore.fetchRules(rulesStore.currentPage - 1)
-    }
-}
+const categoryFilterOptions = computed(() => [
+    { title: 'All Categories', value: 'all' },
+    ...categoriesStore.categories.map(c => ({
+        title: `${c.icon || '🏷️'} ${c.name}`,
+        value: c.name
+    }))
+])
 
 // Priority
 async function updatePriority(rule: Rule, delta: number) {
@@ -134,17 +126,12 @@ function toggleActionMenu(id: string) {
         <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border bg-wf-surface flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2 shadow-2xs">
             <div class="flex items-center gap-2 flex-1 max-w-lg">
                 <!-- Category Filter Dropdown -->
-                <div class="flex items-center h-8 px-2.5 bg-wf-surface-variant/40 border border-wf-border rounded-wf-md text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-1.5 w-44 shrink-0">
-                    <Filter class="w-3.5 h-3.5 text-wf-text-muted shrink-0 pointer-events-none" />
-                    <select
+                <div class="w-44 shrink-0">
+                    <WfSelect
                         v-model="rulesStore.categoryFilter"
-                        class="w-full h-full bg-transparent text-xs font-semibold text-wf-text-primary focus:outline-none cursor-pointer"
-                    >
-                        <option value="all">All Categories</option>
-                        <option v-for="c in categoriesStore.categories" :key="c.id" :value="c.name">
-                            {{ c.icon }} {{ c.name }}
-                        </option>
-                    </select>
+                        :items="categoryFilterOptions"
+                        size="sm"
+                    />
                 </div>
 
                 <!-- Search Input -->
@@ -412,45 +399,16 @@ function toggleActionMenu(id: string) {
             <!-- Pagination Footer -->
             <div
                 v-if="rulesStore.totalRules > 0"
-                class="p-2.5 px-3 border-t border-wf-border bg-wf-surface-variant/30 flex items-center justify-between text-xs shrink-0"
+                class="p-2 border-t border-wf-border bg-wf-surface-variant/30"
             >
-                <div class="flex items-center gap-2">
-                    <span class="text-[11px] text-wf-text-secondary font-medium">Rows per page:</span>
-                    <select
-                        :value="rulesStore.pageSize"
-                        @change="handlePageSizeChange"
-                        class="h-6.5 px-1.5 text-xs font-semibold bg-wf-surface border border-wf-border rounded-wf-xs text-wf-text-primary focus:outline-none"
-                    >
-                        <option :value="10">10</option>
-                        <option :value="20">20</option>
-                        <option :value="50">50</option>
-                        <option :value="100">100</option>
-                    </select>
-                </div>
-
-                <div class="flex items-center gap-3">
-                    <span class="text-[11px] text-wf-text-secondary font-medium">
-                        {{ (rulesStore.currentPage - 1) * rulesStore.pageSize + 1 }} - {{ Math.min(rulesStore.currentPage * rulesStore.pageSize, rulesStore.totalRules) }} of {{ rulesStore.totalRules }}
-                    </span>
-                    <div class="flex items-center gap-1">
-                        <button
-                            :disabled="rulesStore.currentPage === 1"
-                            @click="prevPage"
-                            class="p-1 rounded-wf-xs border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                            title="Previous page"
-                        >
-                            <ChevronLeft class="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                            :disabled="rulesStore.currentPage * rulesStore.pageSize >= rulesStore.totalRules"
-                            @click="nextPage"
-                            class="p-1 rounded-wf-xs border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                            title="Next page"
-                        >
-                            <ChevronRight class="w-3.5 h-3.5" />
-                        </button>
-                    </div>
-                </div>
+                <WfPagination
+                    :page="rulesStore.currentPage"
+                    :page-size="rulesStore.pageSize"
+                    :total="rulesStore.totalRules"
+                    :page-sizes="[10, 20, 50, 100]"
+                    @update:page="rulesStore.fetchRules($event)"
+                    @update:page-size="rulesStore.pageSize = $event; rulesStore.fetchRules(1)"
+                />
             </div>
         </WfCard>
 

@@ -10,6 +10,7 @@ import {
 } from 'lucide-vue-next'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -46,6 +47,14 @@ const filteredPortfolioOptions = computed(() => {
   const query = fundSearch.value.toLowerCase()
   return props.portfolioOptions.filter(f => f.label.toLowerCase().includes(query))
 })
+
+const formattedAccountOptions = computed(() =>
+  props.accountOptions.map(a => ({ title: a.label, value: a.value }))
+)
+
+const formattedPortfolioOptions = computed(() =>
+  filteredPortfolioOptions.value.map(f => ({ title: f.label, value: f.value }))
+)
 
 function handleClose() {
   fundSearch.value = ''
@@ -181,22 +190,12 @@ function handleClose() {
           <label class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">
             Select Linked Bank Account
           </label>
-          <div class="flex items-center h-10 px-3 rounded-wf-md bg-wf-surface border border-wf-border focus-within:border-wf-primary shadow-2xs">
-            <select
-              v-model="assetForm.linked_account_id"
-              class="w-full bg-transparent text-xs font-semibold text-wf-text-primary focus:outline-none cursor-pointer"
-              required
-            >
-              <option :value="null" disabled>Choose a bank account...</option>
-              <option
-                v-for="acc in accountOptions"
-                :key="acc.value"
-                :value="acc.value"
-              >
-                {{ acc.label }}
-              </option>
-            </select>
-          </div>
+          <WfSelect
+            v-model="assetForm.linked_account_id"
+            :items="formattedAccountOptions"
+            placeholder="Choose a bank account..."
+            size="md"
+          />
         </div>
 
         <div v-if="accountOptions.length === 0" class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-wf-md text-xs text-amber-600 dark:text-amber-400 font-medium">
@@ -222,23 +221,13 @@ function handleClose() {
             />
           </div>
 
-          <!-- Fund Options Select / List -->
-          <div class="flex items-center h-10 px-3 rounded-wf-md bg-wf-surface border border-wf-border focus-within:border-wf-primary shadow-2xs">
-            <select
-              v-model="assetForm.holding_id"
-              class="w-full bg-transparent text-xs font-semibold text-wf-text-primary focus:outline-none cursor-pointer"
-              required
-            >
-              <option :value="null" disabled>Choose a mutual fund holding...</option>
-              <option
-                v-for="fund in filteredPortfolioOptions"
-                :key="fund.value"
-                :value="fund.value"
-              >
-                {{ fund.label }}
-              </option>
-            </select>
-          </div>
+          <!-- Fund Options Select -->
+          <WfSelect
+            v-model="assetForm.holding_id"
+            :items="formattedPortfolioOptions"
+            placeholder="Choose a mutual fund holding..."
+            size="md"
+          />
         </div>
 
         <div v-if="portfolioOptions.length === 0" class="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-wf-md text-xs text-wf-primary font-medium">

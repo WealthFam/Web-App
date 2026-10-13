@@ -18,8 +18,6 @@ import {
     Mail,
     Table,
     Search as SearchIcon,
-    ChevronLeft,
-    ChevronRight,
     FileSpreadsheet
 } from 'lucide-vue-next'
 
@@ -28,6 +26,8 @@ import WfButton from '@/components/ui/WfButton.vue'
 import WfCard from '@/components/ui/WfCard.vue'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfAlert from '@/components/ui/WfAlert.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfPagination from '@/components/ui/WfPagination.vue'
 import apiClient, { financeApi } from '@/api/client'
 import { useStatementStore, type Statement } from '@/stores/finance/statements'
 import { useNotificationStore } from '@/stores/notification'
@@ -126,6 +126,35 @@ const categoryOptions = computed(() => {
     }
     return list
 })
+
+const bulkCategoryOptions = computed(() => [
+    { title: '-- Select Category --', value: null },
+    ...categoryOptions.value
+])
+
+const userOptions = computed(() => [
+    { title: '-- Select Person (Optional) --', value: null },
+    ...users.value.map(u => ({
+        title: `${u.full_name} (${u.email})`,
+        value: u
+    }))
+])
+
+const uploadAccountOptions = computed(() => [
+    { title: '-- Auto Detect from Statement --', value: null },
+    ...accounts.value.map(a => ({
+        title: `${a.name} (XX${a.account_mask || '????'})`,
+        value: a
+    }))
+])
+
+const accountSelectOptions = computed(() => [
+    { title: '-- Select Account --', value: null },
+    ...accounts.value.map(acc => ({
+        title: `${acc.name} (Mask: XX${acc.account_mask || '????'})`,
+        value: acc.id
+    }))
+])
 
 function openBulkIngestDialog() {
     bulkIngestItems.value = store.currentTransactions
@@ -472,18 +501,11 @@ function toggleSelectTransaction(id: string) {
     }
 }
 
-const totalPages = computed(() => {
-    return Math.ceil(store.totalStatements / statementPageSize) || 1
-})
-
-const totalTxnPages = computed(() => {
-    return Math.ceil(store.totalTransactions / txnLimit.value) || 1
-})
 </script>
 
 <template>
     <MainLayout>
-        <div class="flex flex-col lg:h-[calc(100vh-80px)] space-y-3 pb-3">
+        <div class="flex flex-col lg:h-[calc(100vh-92px)] space-y-3 pb-3">
             <!-- HEADER: Title, Intelligence Pill & Action Buttons -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wf-border-subtle shrink-0">
                 <div class="flex items-center gap-2.5">
@@ -641,28 +663,14 @@ const totalTxnPages = computed(() => {
                         </div>
 
                         <!-- Footer Pagination -->
-                        <div v-if="store.totalStatements > statementPageSize" class="p-2.5 border-t border-wf-border bg-wf-surface-variant/30 flex items-center justify-between text-xs shrink-0">
-                            <span class="text-[11px] text-wf-text-secondary font-medium">
-                                Page {{ statementPage }} of {{ totalPages }}
-                            </span>
-                            <div class="flex items-center gap-1">
-                                <button
-                                    :disabled="statementPage <= 1"
-                                    @click="statementPage--"
-                                    class="p-1 rounded-wf-sm text-wf-text-secondary hover:bg-wf-surface-variant disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                                    title="Previous Page"
-                                >
-                                    <ChevronLeft class="w-4 h-4" />
-                                </button>
-                                <button
-                                    :disabled="statementPage >= totalPages"
-                                    @click="statementPage++"
-                                    class="p-1 rounded-wf-sm text-wf-text-secondary hover:bg-wf-surface-variant disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                                    title="Next Page"
-                                >
-                                    <ChevronRight class="w-4 h-4" />
-                                </button>
-                            </div>
+                        <div v-if="store.totalStatements > statementPageSize" class="p-2 border-t border-wf-border bg-wf-surface-variant/30">
+                            <WfPagination
+                                :page="statementPage"
+                                :page-size="statementPageSize"
+                                :total="store.totalStatements"
+                                :page-sizes="[statementPageSize]"
+                                @update:page="statementPage = $event"
+                            />
                         </div>
                     </WfCard>
                 </div>
@@ -987,52 +995,15 @@ const totalTxnPages = computed(() => {
                                     </div>
 
                                     <!-- Table Footer Pagination -->
-                                    <div class="p-3 border-t border-wf-border bg-wf-surface-variant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shrink-0">
-                                        <div class="flex items-center gap-3">
-                                            <span class="text-[11px] font-bold text-wf-text-muted uppercase tracking-wider">
-                                                Total {{ store.totalTransactions }} Transactions
-                                            </span>
-                                            <div class="flex items-center gap-1.5 text-xs text-wf-text-secondary">
-                                                <span>Rows:</span>
-                                                <select 
-                                                    v-model="txnLimit" 
-                                                    class="h-7 text-xs bg-wf-surface border border-wf-border rounded-wf-md px-1.5 focus:outline-none focus:ring-1 focus:ring-wf-primary"
-                                                >
-                                                    <option :value="10">10</option>
-                                                    <option :value="25">25</option>
-                                                    <option :value="50">50</option>
-                                                    <option :value="100">100</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="flex items-center gap-3">
-                                            <span class="text-xs text-wf-text-secondary tabular-nums">
-                                                {{ (txnPage - 1) * txnLimit + 1 }}-{{ Math.min(txnPage * txnLimit, store.totalTransactions) }} of {{ store.totalTransactions }}
-                                            </span>
-
-                                            <div class="flex items-center gap-1">
-                                                <button
-                                                    :disabled="txnPage <= 1"
-                                                    @click="txnPage--"
-                                                    class="p-1 rounded-wf-sm text-wf-text-secondary hover:bg-wf-surface-variant disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                                                    title="Previous Page"
-                                                >
-                                                    <ChevronLeft class="w-4 h-4" />
-                                                </button>
-                                                <span class="text-xs font-bold text-wf-text-primary px-1.5">
-                                                    {{ txnPage }} / {{ totalTxnPages }}
-                                                </span>
-                                                <button
-                                                    :disabled="txnPage >= totalTxnPages"
-                                                    @click="txnPage++"
-                                                    class="p-1 rounded-wf-sm text-wf-text-secondary hover:bg-wf-surface-variant disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                                                    title="Next Page"
-                                                >
-                                                    <ChevronRight class="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
+                                    <div class="p-2 border-t border-wf-border bg-wf-surface-variant/20">
+                                        <WfPagination
+                                            :page="txnPage"
+                                            :page-size="txnLimit"
+                                            :total="store.totalTransactions"
+                                            :page-sizes="[10, 25, 50, 100]"
+                                            @update:page="txnPage = $event"
+                                            @update:page-size="txnLimit = $event; txnPage = 1"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -1134,15 +1105,11 @@ const totalTxnPages = computed(() => {
                         <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
                             Statement Owner
                         </label>
-                        <select
+                        <WfSelect
                             v-model="uploadUser"
-                            class="w-full h-10 px-3 bg-wf-surface border border-wf-border rounded-wf-md text-sm text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
-                        >
-                            <option :value="null">-- Select Person (Optional) --</option>
-                            <option v-for="u in users" :key="u.id" :value="u">
-                                {{ u.full_name }} ({{ u.email }})
-                            </option>
-                        </select>
+                            :items="userOptions"
+                            size="md"
+                        />
                     </div>
 
                     <!-- Target Account Select -->
@@ -1150,15 +1117,11 @@ const totalTxnPages = computed(() => {
                         <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
                             Target Account
                         </label>
-                        <select
+                        <WfSelect
                             v-model="uploadAccount"
-                            class="w-full h-10 px-3 bg-wf-surface border border-wf-border rounded-wf-md text-sm text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
-                        >
-                            <option :value="null">-- Auto Detect from Statement --</option>
-                            <option v-for="a in accounts" :key="a.id" :value="a">
-                                {{ a.name }} (XX{{ a.account_mask || '????' }})
-                            </option>
-                        </select>
+                            :items="uploadAccountOptions"
+                            size="md"
+                        />
                     </div>
                 </div>
 
@@ -1290,15 +1253,11 @@ const totalTxnPages = computed(() => {
                     <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
                         Target Account
                     </label>
-                    <select
+                    <WfSelect
                         v-model="reassignAccountId"
-                        class="w-full h-10 px-3 bg-wf-surface border border-wf-border rounded-wf-md text-sm text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
-                    >
-                        <option :value="null">-- Select Account --</option>
-                        <option v-for="acc in accounts" :key="acc.id" :value="acc.id">
-                            {{ acc.name }} (Mask: XX{{ acc.account_mask || '????' }})
-                        </option>
-                    </select>
+                        :items="accountSelectOptions"
+                        size="md"
+                    />
                 </div>
             </div>
 
@@ -1339,15 +1298,12 @@ const totalTxnPages = computed(() => {
                             </td>
 
                             <td class="py-2 px-3">
-                                <select
+                                <WfSelect
                                     v-model="item.category"
-                                    class="w-full h-8 text-xs bg-wf-surface border border-wf-border rounded-wf-md px-2 focus:outline-none focus:ring-1 focus:ring-wf-primary"
-                                >
-                                    <option :value="null">-- Select Category --</option>
-                                    <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">
-                                        {{ opt.title }}
-                                    </option>
-                                </select>
+                                    :items="bulkCategoryOptions"
+                                    placeholder="-- Select Category --"
+                                    size="sm"
+                                />
                             </td>
 
                             <td class="py-2 px-3 text-center">

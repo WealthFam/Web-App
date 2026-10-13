@@ -2,16 +2,21 @@
     <MainLayout>
         <div class="space-y-4">
             <!-- Header -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-                <div>
-                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-wf-text-primary">Transactions</h1>
-                    <p class="text-xs text-wf-text-muted mt-0.5">
-                        Track and manage your family's spending
-                    </p>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wf-border-subtle">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs shrink-0">
+                        <Wallet class="w-4.5 h-4.5 text-wf-primary" />
+                    </div>
+                    <div>
+                        <h1 class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary leading-tight">Transactions</h1>
+                        <p class="text-xs text-wf-text-secondary mt-0.5">
+                            Track and manage your family's spending ledger and automated categorization.
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Navigation Tabs -->
-                <div class="flex items-center p-0.5 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs self-start md:self-auto">
+                <div class="flex items-center p-0.5 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs self-start sm:self-auto">
                     <button
                         type="button"
                         class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-wf-sm transition-all"
@@ -211,7 +216,8 @@ import {
     Map as MapIcon,
     Activity,
     Trash2,
-    ChevronDown
+    ChevronDown,
+    Wallet
 } from 'lucide-vue-next'
 import SpendingForecastChart from '@/components/SpendingForecastChart.vue'
 

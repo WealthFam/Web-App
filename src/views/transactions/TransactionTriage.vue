@@ -290,44 +290,15 @@
                 </div>
 
                 <!-- Pagination Footer -->
-                <div v-if="triagePagination.total > 0" class="flex items-center justify-between py-4 px-2 mt-4 text-xs font-medium text-wf-text-muted">
-                    <div class="flex items-center gap-2">
-                        <span>Show</span>
-                        <select
-                            :value="triagePagination.limit"
-                            @change="handleTriagePaginationLimitChange(Number(($event.target as HTMLSelectElement).value))"
-                            class="bg-wf-surface border border-wf-border rounded-wf-md px-2 py-1 font-bold text-wf-text-primary text-xs cursor-pointer focus:outline-none focus:ring-1 focus:ring-wf-primary"
-                        >
-                            <option :value="12">12</option>
-                            <option :value="24">24</option>
-                            <option :value="60">60</option>
-                        </select>
-                        <span>per page</span>
-                    </div>
-
-                    <div class="flex items-center gap-3">
-                        <span class="font-mono text-wf-text-secondary">
-                            {{ triagePagination.skip + 1 }}-{{ Math.min(triagePagination.skip + triagePagination.limit, triagePagination.total) }} of {{ triagePagination.total }}
-                        </span>
-                        <div class="flex items-center gap-1">
-                            <button
-                                type="button"
-                                :disabled="triagePagination.skip === 0"
-                                @click="triageCurrentPage--"
-                                class="w-7 h-7 rounded-wf-md flex items-center justify-center border border-wf-border text-wf-text-secondary hover:bg-wf-surface-variant disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <ChevronLeft :size="16" />
-                            </button>
-                            <button
-                                type="button"
-                                :disabled="triagePagination.skip + triagePagination.limit >= triagePagination.total"
-                                @click="triageCurrentPage++"
-                                class="w-7 h-7 rounded-wf-md flex items-center justify-center border border-wf-border text-wf-text-secondary hover:bg-wf-surface-variant disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <ChevronRight :size="16" />
-                            </button>
-                        </div>
-                    </div>
+                <div v-if="triagePagination.total > 0" class="mt-4">
+                    <WfPagination
+                        :page="triageCurrentPage"
+                        :page-size="triagePagination.limit"
+                        :total="triagePagination.total"
+                        :page-sizes="[12, 24, 60]"
+                        @update:page="triageCurrentPage = $event"
+                        @update:page-size="handleTriagePaginationLimitChange"
+                    />
                 </div>
             </div>
 
@@ -485,6 +456,7 @@ import WfCard from '@/components/ui/WfCard.vue'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfSelect from '@/components/ui/WfSelect.vue'
 import WfButton from '@/components/ui/WfButton.vue'
+import WfPagination from '@/components/ui/WfPagination.vue'
 import MerchantAliasModal from '@/components/MerchantAliasModal.vue'
 import { useCurrency } from '@/composables/useCurrency'
 import {
@@ -500,8 +472,6 @@ import {
     Info,
     Check,
     CheckCircle2,
-    ChevronLeft,
-    ChevronRight,
     EyeOff,
     X
 

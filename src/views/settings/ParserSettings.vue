@@ -26,10 +26,16 @@ import { useCurrency } from '@/composables/useCurrency'
 import WfCard from '@/components/ui/WfCard.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfModal from '@/components/ui/WfModal.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
 
 const { formatAmount } = useCurrency()
 const notify = useNotificationStore()
 const confirmDialog = useConfirmStore()
+
+const sourceTypeOptions = [
+  { title: 'SMS Notification', value: 'SMS' },
+  { title: 'Email Body', value: 'EMAIL' }
+]
 
 // State
 const parserStatus = ref({ isOnline: false })
@@ -482,13 +488,11 @@ onMounted(() => {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
                 <label class="block text-[9px] font-bold text-wf-text-muted uppercase mb-1">Source Type</label>
-                <select
+                <WfSelect
                   v-model="sandboxForm.source"
-                  class="w-full h-8 px-2.5 rounded-wf-md bg-wf-surface border border-wf-border-subtle text-xs text-wf-text-primary focus:outline-none focus:border-wf-primary"
-                >
-                  <option value="SMS">SMS Notification</option>
-                  <option value="EMAIL">Email Body</option>
-                </select>
+                  :items="sourceTypeOptions"
+                  size="sm"
+                />
               </div>
 
               <div>

@@ -143,9 +143,9 @@ const hasAssets = computed(() => {
             <button
               type="button"
               @click="emit('delete', goal.id); menuOpen = false"
-              class="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-rose-500 hover:bg-rose-500/10 text-left transition-colors"
+              class="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-wf-error hover:bg-wf-error-light text-left transition-colors"
             >
-              <Trash2 class="w-3.5 h-3.5 text-rose-500" />
+              <Trash2 class="w-3.5 h-3.5 text-wf-error" />
               <span>Delete Goal</span>
             </button>
           </div>
@@ -189,7 +189,7 @@ const hasAssets = computed(() => {
             <div
               v-if="goal.day_change && goal.day_change !== 0"
               class="text-[10px] font-bold font-mono mt-1"
-              :class="goal.day_change >= 0 ? 'text-emerald-500' : 'text-rose-500'"
+              :class="goal.day_change >= 0 ? 'text-wf-success' : 'text-wf-error'"
             >
               {{ goal.day_change >= 0 ? '+' : '' }}{{ formatAmount(goal.day_change) }}
             </div>
@@ -253,7 +253,7 @@ const hasAssets = computed(() => {
                   <span
                     v-if="h.day_change_percentage"
                     class="font-bold"
-                    :class="h.day_change >= 0 ? 'text-emerald-500' : 'text-rose-500'"
+                    :class="h.day_change >= 0 ? 'text-wf-success' : 'text-wf-error'"
                   >
                     {{ h.day_change >= 0 ? '▲' : '▼' }}{{ Math.abs(h.day_change_percentage).toFixed(1) }}%
                   </span>
@@ -264,7 +264,7 @@ const hasAssets = computed(() => {
             <button
               type="button"
               @click="emit('unlinkHolding', goal.id, h.id)"
-              class="p-1 rounded-wf-xs text-wf-text-muted hover:text-rose-500 hover:bg-rose-500/10 transition-colors opacity-60 group-hover/item:opacity-100 shrink-0"
+              class="p-1 rounded-wf-xs text-wf-text-muted hover:text-wf-error hover:bg-wf-error-light transition-colors opacity-60 group-hover/item:opacity-100 shrink-0"
               title="Unlink fund"
             >
               <X class="w-3.5 h-3.5" />
@@ -280,7 +280,7 @@ const hasAssets = computed(() => {
             <div class="flex items-center gap-2.5 overflow-hidden">
               <div
                 class="w-6 h-6 rounded-wf-xs flex items-center justify-center shrink-0 border"
-                :class="a.type === 'BANK_ACCOUNT' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'"
+                :class="a.type === 'BANK_ACCOUNT' ? 'bg-wf-success-light text-wf-success border-emerald-200 dark:border-emerald-900/50' : 'bg-wf-warning-light text-wf-warning border-amber-200 dark:border-amber-900/50'"
               >
                 <Building2 v-if="a.type === 'BANK_ACCOUNT'" class="w-3 h-3" />
                 <Activity v-else class="w-3 h-3" />
@@ -298,7 +298,7 @@ const hasAssets = computed(() => {
             <button
               type="button"
               @click="emit('removeAsset', a.id)"
-              class="p-1 rounded-wf-xs text-wf-text-muted hover:text-rose-500 hover:bg-rose-500/10 transition-colors opacity-60 group-hover/item:opacity-100 shrink-0"
+              class="p-1 rounded-wf-xs text-wf-text-muted hover:text-wf-error hover:bg-wf-error-light transition-colors opacity-60 group-hover/item:opacity-100 shrink-0"
               title="Remove asset"
             >
               <X class="w-3.5 h-3.5" />

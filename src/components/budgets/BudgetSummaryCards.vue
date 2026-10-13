@@ -28,12 +28,12 @@ const { formatAmount } = useCurrency()
       <WfCard v-if="activeTab !== 'investment'" class="p-4 flex flex-col justify-between">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">Income In</span>
-          <div class="w-8 h-8 rounded-wf-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center border border-emerald-100 dark:border-emerald-900/50 shadow-2xs">
+          <div class="w-8 h-8 rounded-wf-md bg-wf-success-light text-wf-success flex items-center justify-center border border-emerald-200 dark:border-emerald-900/50 shadow-2xs">
             <TrendingUp class="w-4 h-4" />
           </div>
         </div>
         <div class="mt-2">
-          <span class="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 tracking-tight">
+          <span class="text-xl font-bold font-mono text-wf-success tracking-tight">
             {{ formatAmount(totalIncome) }}
           </span>
           <p class="text-[10px] text-wf-text-muted mt-0.5">Total monthly inflows</p>
@@ -48,7 +48,7 @@ const { formatAmount } = useCurrency()
           </span>
           <div
             class="w-8 h-8 rounded-wf-md flex items-center justify-center shadow-2xs border"
-            :class="activeTab === 'investment' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 border-amber-100 dark:border-amber-900/50' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 border-rose-100 dark:border-rose-900/50'"
+            :class="activeTab === 'investment' ? 'bg-wf-warning-light text-wf-warning border-amber-200 dark:border-amber-900/50' : 'bg-wf-error-light text-wf-error border-rose-200 dark:border-rose-900/50'"
           >
             <TrendingDown class="w-4 h-4" />
           </div>
@@ -56,7 +56,7 @@ const { formatAmount } = useCurrency()
         <div class="mt-2">
           <span
             class="text-xl font-bold font-mono tracking-tight"
-            :class="activeTab === 'investment' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'"
+            :class="activeTab === 'investment' ? 'text-wf-warning' : 'text-wf-error'"
           >
             {{ formatAmount(activeTab === 'investment' ? totalInvested : totalSpent) }}
           </span>
@@ -72,14 +72,14 @@ const { formatAmount } = useCurrency()
           <span class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">
             {{ activeTab === 'investment' ? 'Remaining Budget' : 'Net Savings' }}
           </span>
-          <div class="w-8 h-8 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/40 text-wf-primary flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50 shadow-2xs">
+          <div class="w-8 h-8 rounded-wf-md bg-wf-primary-light text-wf-primary flex items-center justify-center border border-indigo-200 dark:border-indigo-900/50 shadow-2xs">
             <Wallet class="w-4 h-4" />
           </div>
         </div>
         <div class="mt-2">
           <span
             class="text-xl font-bold font-mono tracking-tight"
-            :class="(totalIncome - totalSpent) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-wf-primary dark:text-indigo-400'"
+            :class="(totalIncome - totalSpent) < 0 ? 'text-wf-error' : 'text-wf-primary'"
           >
             {{ formatAmount(totalIncome - totalSpent) }}
           </span>
@@ -93,7 +93,7 @@ const { formatAmount } = useCurrency()
       <WfCard v-if="overallBudget?.total_excluded || overallBudget?.excluded_income" class="p-4 flex flex-col justify-between">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">Excluded Items</span>
-          <div class="w-8 h-8 rounded-wf-md bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center border border-slate-200 dark:border-slate-700 shadow-2xs">
+          <div class="w-8 h-8 rounded-wf-md bg-wf-surface-variant text-wf-text-muted flex items-center justify-center border border-wf-border shadow-2xs">
             <Ban class="w-4 h-4" />
           </div>
         </div>
@@ -103,8 +103,8 @@ const { formatAmount } = useCurrency()
             <span class="font-bold text-wf-text-primary">{{ formatAmount(overallBudget.total_excluded) }}</span>
           </div>
           <div v-if="overallBudget.excluded_income > 0" class="flex items-center justify-between text-xs">
-            <span class="text-emerald-600">Income</span>
-            <span class="font-bold text-emerald-600">+{{ formatAmount(overallBudget.excluded_income) }}</span>
+            <span class="text-wf-success">Income</span>
+            <span class="font-bold text-wf-success">+{{ formatAmount(overallBudget.excluded_income) }}</span>
           </div>
         </div>
       </WfCard>
@@ -112,7 +112,7 @@ const { formatAmount } = useCurrency()
       <WfCard v-else class="p-4 flex flex-col justify-between">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-bold text-wf-text-secondary uppercase tracking-wider">Savings Rate</span>
-          <div class="w-8 h-8 rounded-wf-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center border border-emerald-100 dark:border-emerald-900/50 shadow-2xs">
+          <div class="w-8 h-8 rounded-wf-md bg-wf-success-light text-wf-success flex items-center justify-center border border-emerald-200 dark:border-emerald-900/50 shadow-2xs">
             <TrendingUp class="w-4 h-4" />
           </div>
         </div>
@@ -120,7 +120,7 @@ const { formatAmount } = useCurrency()
           <div class="flex items-baseline gap-1.5">
             <span
               class="text-xl font-bold font-mono tracking-tight"
-              :class="totalIncome > 0 && ((totalIncome - totalSpent) / totalIncome) >= 0.2 ? 'text-emerald-600 dark:text-emerald-400' : 'text-wf-primary'"
+              :class="totalIncome > 0 && ((totalIncome - totalSpent) / totalIncome) >= 0.2 ? 'text-wf-success' : 'text-wf-primary'"
             >
               {{ totalIncome > 0 ? Math.max(0, Math.round(((totalIncome - totalSpent) / totalIncome) * 100)) : 0 }}%
             </span>
@@ -136,8 +136,8 @@ const { formatAmount } = useCurrency()
     <!-- Budget Alerts Banner (when any category > 85%) -->
     <div v-if="alertGroups.length > 0" class="space-y-3">
       <div class="flex items-center gap-2">
-        <div class="w-7 h-7 rounded-wf-sm bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center border border-amber-200 dark:border-amber-900/50">
-          <Flame class="w-3.5 h-3.5 text-amber-600" />
+        <div class="w-7 h-7 rounded-wf-sm bg-wf-warning-light text-wf-warning flex items-center justify-center border border-amber-200 dark:border-amber-900/50">
+          <Flame class="w-3.5 h-3.5 text-wf-warning" />
         </div>
         <div>
           <h3 class="text-xs font-bold text-wf-text-primary leading-none">Budget Alerts</h3>
@@ -151,13 +151,13 @@ const { formatAmount } = useCurrency()
           :key="`alert-${group.parent.category}`"
           @click="emit('edit', group.parent)"
           class="p-3.5 rounded-wf-lg border transition-all duration-200 cursor-pointer hover:shadow-sm"
-          :class="group.parent.percentage > 100 ? 'bg-rose-50/70 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/50' : 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50'"
+          :class="group.parent.percentage > 100 ? 'bg-wf-error-light/70 border-rose-200 dark:border-rose-900/50' : 'bg-wf-warning-light/70 border-amber-200 dark:border-amber-900/50'"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2.5 min-w-0">
               <div
                 class="w-8 h-8 rounded-wf-md flex items-center justify-center text-sm shrink-0 border"
-                :class="group.parent.percentage > 100 ? 'bg-rose-100 dark:bg-rose-900/60 border-rose-300 dark:border-rose-700' : 'bg-amber-100 dark:bg-amber-900/60 border-amber-300 dark:border-amber-700'"
+                :class="group.parent.percentage > 100 ? 'bg-wf-error-light border-rose-300 dark:border-rose-700' : 'bg-wf-warning-light border-amber-300 dark:border-amber-700'"
               >
                 <span>{{ group.parent.icon || '🏷️' }}</span>
               </div>
@@ -165,7 +165,7 @@ const { formatAmount } = useCurrency()
                 <div class="text-xs font-bold text-wf-text-primary truncate">{{ group.parent.category }}</div>
                 <div
                   class="text-[10px] font-bold mt-0.5"
-                  :class="group.parent.percentage > 100 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'"
+                  :class="group.parent.percentage > 100 ? 'text-wf-error' : 'text-wf-warning'"
                 >
                   {{ group.parent.percentage > 100 ? 'Overspent' : 'Near Limit' }} ({{ group.parent.percentage.toFixed(0) }}%)
                 </div>
