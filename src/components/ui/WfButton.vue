@@ -23,17 +23,17 @@ const props = withDefaults(defineProps<Props>(), {
 const variantClasses = computed(() => {
   switch (props.variant) {
     case 'primary':
-      return 'bg-wf-primary hover:bg-wf-primary-hover text-white shadow-xs border border-transparent'
+      return 'bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white shadow-xs border border-indigo-500/20 font-semibold'
     case 'secondary':
-      return 'bg-wf-primary-light text-wf-primary hover:bg-indigo-100 border border-transparent dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60'
+      return 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 dark:text-indigo-400 dark:border-indigo-900/50'
     case 'outline':
       return 'bg-transparent border border-wf-border hover:bg-wf-surface-variant text-wf-text-primary'
     case 'ghost':
       return 'bg-transparent text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant'
     case 'danger':
-      return 'bg-wf-error hover:bg-red-600 text-white shadow-xs border border-transparent'
+      return 'bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white shadow-xs border border-rose-500/20 font-semibold'
     default:
-      return 'bg-wf-primary text-white'
+      return 'bg-indigo-600 text-white'
   }
 })
 

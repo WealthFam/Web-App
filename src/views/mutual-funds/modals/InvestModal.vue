@@ -91,7 +91,9 @@ function handleClose() {
                     Investment Amount
                 </label>
                 <div class="relative">
-                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-base font-bold text-wf-text-muted">₹</span>
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                        <span class="text-base font-bold text-wf-text-muted">₹</span>
+                    </div>
                     <input
                         v-model.number="amount"
                         type="number"

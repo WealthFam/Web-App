@@ -84,14 +84,16 @@
                                         placeholder="ABCDE1234F"
                                         class="w-full h-8 px-2.5 pr-8 text-xs font-mono font-bold uppercase rounded-wf-md border border-wf-border bg-wf-surface text-wf-text-primary placeholder:text-wf-text-muted focus:outline-hidden focus:border-wf-primary transition-colors"
                                     />
-                                    <button
-                                        type="button"
-                                        @click="showPan = !showPan"
-                                        class="absolute right-2 top-1/2 -translate-y-1/2 text-wf-text-muted hover:text-wf-text-primary cursor-pointer"
-                                        tabindex="-1"
-                                    >
-                                        <component :is="showPan ? EyeOff : Eye" :size="14" />
-                                    </button>
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-2">
+                                        <button
+                                            type="button"
+                                            @click="showPan = !showPan"
+                                            class="text-wf-text-muted hover:text-wf-text-primary cursor-pointer flex items-center justify-center"
+                                            tabindex="-1"
+                                        >
+                                            <component :is="showPan ? EyeOff : Eye" :size="14" />
+                                        </button>
+                                    </div>
                                 </div>
                                 <span class="text-[10px] text-wf-text-muted mt-1 block">
                                     {{ importMode === 'pdf' ? 'Statement password for decryption' : 'Password for attachment decryption' }}

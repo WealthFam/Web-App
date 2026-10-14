@@ -42,7 +42,9 @@
                         <div class="flex flex-wrap items-center gap-2 flex-1">
                             <!-- Search with clear button -->
                             <div class="relative min-w-[200px] flex-1 sm:flex-initial sm:w-72">
-                                <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-wf-text-muted pointer-events-none" aria-hidden="true" />
+                                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <Search :size="14" class="text-wf-text-muted shrink-0" aria-hidden="true" />
+                                </div>
                                 <input
                                     :value="triageSearchQuery"
                                     type="search"
@@ -52,16 +54,17 @@
                                     class="w-full h-9 pl-9 pr-8 text-xs rounded-wf-md bg-wf-surface-variant/40 text-wf-text-primary border border-wf-border placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary focus:bg-wf-surface transition-all"
                                     @input="emit('update:triageSearchQuery', ($event.target as HTMLInputElement).value)"
                                 />
-                                <button
-                                    v-if="triageSearchQuery"
-                                    type="button"
-                                    @click="emit('update:triageSearchQuery', '')"
-                                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-wf-text-muted hover:text-wf-text-primary transition-colors"
-                                    title="Clear search"
-                                    aria-label="Clear search"
-                                >
-                                    <X :size="13" />
-                                </button>
+                                <div v-if="triageSearchQuery" class="absolute inset-y-0 right-0 flex items-center pr-2.5">
+                                    <button
+                                        type="button"
+                                        @click="emit('update:triageSearchQuery', '')"
+                                        class="text-wf-text-muted hover:text-wf-text-primary transition-colors flex items-center justify-center"
+                                        title="Clear search"
+                                        aria-label="Clear search"
+                                    >
+                                        <X :size="13" />
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Segmented Source Toggle -->

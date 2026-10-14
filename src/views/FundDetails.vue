@@ -780,7 +780,9 @@ function isImageUrl(url: string) {
         >
             <div class="space-y-3">
                 <div class="relative">
-                    <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-wf-text-muted" />
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <Search :size="15" class="text-wf-text-muted shrink-0" />
+                    </div>
                     <input
                         v-model="searchQuery"
                         type="text"

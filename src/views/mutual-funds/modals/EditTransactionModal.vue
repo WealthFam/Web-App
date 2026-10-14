@@ -95,7 +95,9 @@ const isValid = computed(() => {
         <div class="space-y-1.5">
           <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider block">Total Amount (₹)</label>
           <div class="relative">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-wf-text-muted">₹</span>
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <span class="text-xs font-bold text-wf-text-muted">₹</span>
+            </div>
             <input
               v-model.number="formData.amount"
               type="number"

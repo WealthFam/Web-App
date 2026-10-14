@@ -15,6 +15,7 @@ interface Props {
   error?: string
   ariaLabel?: string
   searchable?: boolean
+  native?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -23,26 +24,19 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   required: false,
   searchable: false,
+  native: false,
 })
 
 const emit = defineEmits<{ (e: 'update:modelValue', value: any): void }>()
 
-// Native select logic
-const selectedIndex = computed(() => props.items.findIndex(i => i.value === props.modelValue))
-
-function onChange(e: Event) {
-  const idx = Number((e.target as HTMLSelectElement).value)
-  emit('update:modelValue', idx >= 0 ? props.items[idx].value : '')
-}
-
-// Searchable dropdown logic
+// Dropdown state
 const isOpen = ref(false)
 const searchQuery = ref('')
 const containerRef = ref<HTMLElement | null>(null)
 const searchInputRef = ref<HTMLInputElement | null>(null)
 
+const selectedIndex = computed(() => props.items.findIndex(i => i.value === props.modelValue))
 const selectedItem = computed(() => props.items.find(i => i.value === props.modelValue))
-
 const hasSelected = computed(() => selectedIndex.value >= 0)
 
 const displayTitle = computed(() => {
@@ -53,7 +47,7 @@ const displayTitle = computed(() => {
 })
 
 const filteredItems = computed(() => {
-  if (!searchQuery.value.trim()) return props.items
+  if (!props.searchable || !searchQuery.value.trim()) return props.items
   const q = searchQuery.value.toLowerCase().trim()
   return props.items.filter(item =>
     item.title.toLowerCase().includes(q) ||
@@ -82,14 +76,25 @@ function onSearchEnter() {
   }
 }
 
+function onNativeChange(e: Event) {
+  const idx = Number((e.target as HTMLSelectElement).value)
+  emit('update:modelValue', idx >= 0 ? props.items[idx].value : '')
+}
+
 function onDocumentClick(e: MouseEvent) {
   if (isOpen.value && containerRef.value && !containerRef.value.contains(e.target as Node)) {
     closeDropdown()
   }
 }
 
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && isOpen.value) {
+    closeDropdown()
+  }
+}
+
 watch(isOpen, (open) => {
-  if (open) {
+  if (open && props.searchable) {
     searchQuery.value = ''
     nextTick(() => {
       searchInputRef.value?.focus()
@@ -99,10 +104,12 @@ watch(isOpen, (open) => {
 
 onMounted(() => {
   document.addEventListener('pointerdown', onDocumentClick)
+  document.addEventListener('keydown', onKeydown)
 })
 
 onUnmounted(() => {
   document.removeEventListener('pointerdown', onDocumentClick)
+  document.removeEventListener('keydown', onKeydown)
 })
 </script>
 
@@ -112,103 +119,115 @@ onUnmounted(() => {
       {{ label }}<span v-if="required" class="text-wf-error ml-0.5">*</span>
     </label>
 
-    <!-- SEARCHABLE DROPDOWN MODE -->
-    <div v-if="searchable" class="relative">
+    <!-- NATIVE SELECT FALLBACK (when explicitly requested) -->
+    <div v-if="native" class="relative flex items-center">
+      <select
+        :value="selectedIndex"
+        :disabled="disabled"
+        :aria-label="ariaLabel || label || placeholder"
+        class="w-full appearance-none -webkit-appearance-none bg-wf-surface text-wf-text-primary border rounded-wf-md pl-3 pr-8 truncate transition-colors focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+        :class="[
+          size === 'sm' ? 'h-8 text-xs' : 'h-10 text-sm',
+          error ? 'border-wf-error' : 'border-wf-border hover:border-slate-300 dark:hover:border-slate-600',
+        ]"
+        @change="onNativeChange"
+      >
+        <option v-if="placeholder && selectedIndex < 0" :value="-1" disabled>{{ placeholder }}</option>
+        <option v-for="(item, i) in items" :key="i" :value="i">{{ item.title }}</option>
+      </select>
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
+        <ChevronDown class="w-3.5 h-3.5 text-wf-text-muted" aria-hidden="true" />
+      </div>
+    </div>
+
+    <!-- CUSTOM STYLED DROPDOWN (DEFAULT) -->
+    <div v-else class="relative">
       <button
         type="button"
         :disabled="disabled"
         :aria-label="ariaLabel || label || placeholder"
         :aria-expanded="isOpen"
-        class="w-full appearance-none bg-wf-surface text-wf-text-primary border rounded-wf-md pl-3 pr-8 truncate transition-colors text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary disabled:opacity-60 disabled:cursor-not-allowed"
+        aria-haspopup="listbox"
+        class="w-full bg-wf-surface hover:bg-wf-surface-variant/40 text-wf-text-primary border rounded-wf-md transition-all text-left flex items-center justify-between gap-1.5 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wf-primary/20 focus-visible:border-wf-primary"
         :class="[
-          size === 'sm' ? 'h-8 text-xs' : 'h-10 text-sm',
-          error ? 'border-wf-error' : 'border-wf-border hover:border-wf-text-muted',
-          isOpen ? 'border-wf-primary ring-2 ring-wf-primary/20' : '',
+          size === 'sm' ? 'h-8 text-xs px-2.5' : 'h-10 text-sm px-3',
+          error ? 'border-wf-error' : 'border-wf-border hover:border-slate-300 dark:hover:border-slate-600',
+          isOpen ? 'border-wf-primary ring-2 ring-wf-primary/20 bg-wf-surface' : '',
         ]"
         @click="toggleDropdown"
       >
-        <span class="truncate" :class="{ 'text-wf-text-muted': !hasSelected }">
+        <span class="truncate min-w-0 flex-1" :class="{ 'text-wf-text-muted': !hasSelected }">
           {{ hasSelected ? displayTitle : (placeholder || 'Select...') }}
         </span>
         <ChevronDown
-          class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-wf-text-muted transition-transform duration-150"
-          :class="{ 'rotate-180': isOpen }"
+          class="shrink-0 w-3.5 h-3.5 text-wf-text-muted transition-transform duration-200"
+          :class="{ 'rotate-180 text-wf-primary': isOpen }"
           aria-hidden="true"
         />
       </button>
 
       <!-- FLOATING POPOVER -->
-      <div
-        v-if="isOpen"
-        class="absolute left-0 top-full mt-1 z-50 w-full min-w-[220px] bg-wf-surface border border-wf-border rounded-wf-md shadow-xl overflow-hidden flex flex-col"
+      <Transition
+        enter-active-class="transition duration-150 ease-out"
+        enter-from-class="opacity-0 translate-y-1 scale-[0.98]"
+        enter-to-class="opacity-100 translate-y-0 scale-100"
+        leave-active-class="transition duration-100 ease-in"
+        leave-from-class="opacity-100 translate-y-0 scale-100"
+        leave-to-class="opacity-0 translate-y-1 scale-[0.98]"
       >
-        <!-- SEARCH INPUT -->
-        <div class="p-2 border-b border-wf-border-subtle bg-wf-surface-variant/30 flex items-center gap-1.5">
-          <Search class="w-3.5 h-3.5 text-wf-text-muted shrink-0" />
-          <input
-            ref="searchInputRef"
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search..."
-            class="w-full text-xs bg-transparent border-none outline-none text-wf-text-primary placeholder:text-wf-text-muted focus:ring-0 p-0"
-            @keydown.stop
-            @keydown.esc="closeDropdown"
-            @keydown.enter.prevent="onSearchEnter"
-          />
-          <button
-            v-if="searchQuery"
-            type="button"
-            @click.stop="searchQuery = ''"
-            class="text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded text-xs shrink-0"
-            aria-label="Clear search"
-          >
-            <X class="w-3 h-3" />
-          </button>
-        </div>
-
-        <!-- LIST ITEMS -->
-        <div role="listbox" class="max-h-56 overflow-y-auto p-1 space-y-0.5 overscroll-contain">
-          <div v-if="filteredItems.length === 0" class="px-3 py-3 text-center text-xs text-wf-text-muted">
-            No options found
+        <div
+          v-if="isOpen"
+          class="absolute left-0 top-full mt-1.5 z-50 min-w-full w-max max-w-xs bg-wf-surface border border-wf-border rounded-wf-lg shadow-wf-modal overflow-hidden flex flex-col"
+        >
+          <!-- SEARCH INPUT (if searchable) -->
+          <div v-if="searchable" class="p-2 border-b border-wf-border-subtle bg-wf-surface-variant/30 flex items-center gap-1.5">
+            <Search class="w-3.5 h-3.5 text-wf-text-muted shrink-0" />
+            <input
+              ref="searchInputRef"
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search..."
+              class="w-full text-xs bg-transparent border-none outline-none text-wf-text-primary placeholder:text-wf-text-muted focus:ring-0 p-0"
+              @keydown.stop
+              @keydown.esc="closeDropdown"
+              @keydown.enter.prevent="onSearchEnter"
+            />
+            <button
+              v-if="searchQuery"
+              type="button"
+              @click.stop="searchQuery = ''"
+              class="text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded text-xs shrink-0"
+              aria-label="Clear search"
+            >
+              <X class="w-3 h-3" />
+            </button>
           </div>
-          <button
-            v-for="item in filteredItems"
-            :key="String(item.value)"
-            type="button"
-            role="option"
-            :aria-selected="item.value === modelValue"
-            class="w-full text-left px-2.5 py-1.5 text-xs truncate transition-colors flex items-center justify-between cursor-pointer rounded-wf-sm"
-            :class="[
-              item.value === modelValue
-                ? 'bg-wf-primary/10 text-wf-primary font-medium'
-                : 'text-wf-text-primary hover:bg-wf-surface-variant'
-            ]"
-            @click="selectItem(item)"
-          >
-            <span class="truncate whitespace-pre">{{ item.title }}</span>
-            <Check v-if="item.value === modelValue" class="w-3.5 h-3.5 shrink-0 ml-1.5 text-wf-primary" />
-          </button>
-        </div>
-      </div>
-    </div>
 
-    <!-- NATIVE SELECT MODE (DEFAULT) -->
-    <div v-else class="relative">
-      <select
-        :value="selectedIndex"
-        :disabled="disabled"
-        :aria-label="ariaLabel || label || placeholder"
-        class="w-full appearance-none bg-wf-surface text-wf-text-primary border rounded-wf-md pl-3 pr-8 truncate transition-colors focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary disabled:opacity-60 disabled:cursor-not-allowed"
-        :class="[
-          size === 'sm' ? 'h-8 text-xs' : 'h-10 text-sm',
-          error ? 'border-wf-error' : 'border-wf-border hover:border-wf-text-muted',
-        ]"
-        @change="onChange"
-      >
-        <option v-if="placeholder && selectedIndex < 0" :value="-1" disabled>{{ placeholder }}</option>
-        <option v-for="(item, i) in items" :key="i" :value="i">{{ item.title }}</option>
-      </select>
-      <ChevronDown class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-wf-text-muted" aria-hidden="true" />
+          <!-- LIST ITEMS -->
+          <div role="listbox" class="max-h-60 overflow-y-auto p-1 space-y-0.5 overscroll-contain">
+            <div v-if="filteredItems.length === 0" class="px-3 py-3 text-center text-xs text-wf-text-muted">
+              No options found
+            </div>
+            <button
+              v-for="item in filteredItems"
+              :key="String(item.value)"
+              type="button"
+              role="option"
+              :aria-selected="item.value === modelValue"
+              class="w-full text-left px-2.5 py-1.5 text-xs truncate transition-colors flex items-center justify-between cursor-pointer rounded-wf-sm"
+              :class="[
+                item.value === modelValue
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-wf-primary font-semibold'
+                  : 'text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant'
+              ]"
+              @click="selectItem(item)"
+            >
+              <span class="truncate whitespace-pre">{{ item.title }}</span>
+              <Check v-if="item.value === modelValue" class="w-3.5 h-3.5 shrink-0 ml-1.5 text-wf-primary" />
+            </button>
+          </div>
+        </div>
+      </Transition>
     </div>
 
     <p v-if="error" class="text-xs text-wf-error font-medium">{{ error }}</p>

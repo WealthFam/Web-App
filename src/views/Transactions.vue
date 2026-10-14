@@ -16,46 +16,48 @@
                 </div>
 
                 <!-- Navigation Tabs -->
-                <div class="flex items-center p-0.5 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs self-start sm:self-auto">
-                    <button
-                        type="button"
-                        class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-wf-sm transition-all"
-                        :class="activeTab === 'list'
-                            ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
-                            : 'text-wf-text-secondary hover:text-wf-text-primary'"
-                        @click="activeTab = 'list'; fetchData()"
-                    >
-                        <LayoutList :size="14" />
-                        <span>List</span>
-                    </button>
-                    <button
-                        type="button"
-                        class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-wf-sm transition-all"
-                        :class="activeTab === 'pending'
-                            ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
-                            : 'text-wf-text-secondary hover:text-wf-text-primary'"
-                        @click="activeTab = 'pending'; fetchTriage()"
-                    >
-                        <Inbox :size="14" />
-                        <span>Inbox</span>
-                        <span
-                            v-if="triagePagination.total > 0"
-                            class="px-1.5 py-0.2 text-[10px] font-bold rounded-wf-pill bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50"
+                <div class="flex items-center gap-2 self-start sm:self-auto">
+                    <div class="flex items-center p-0.5 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs">
+                        <button
+                            type="button"
+                            class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-wf-sm transition-all"
+                            :class="activeTab === 'list'
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'"
+                            @click="activeTab = 'list'; fetchData()"
                         >
-                            {{ triagePagination.total }}
-                        </span>
-                    </button>
-                    <button
-                        type="button"
-                        class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-wf-sm transition-all"
-                        :class="activeTab === 'heatmap'
-                            ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
-                            : 'text-wf-text-secondary hover:text-wf-text-primary'"
-                        @click="activeTab = 'heatmap'"
-                    >
-                        <MapIcon :size="14" />
-                        <span>Heatmap</span>
-                    </button>
+                            <LayoutList :size="14" />
+                            <span>List</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-wf-sm transition-all"
+                            :class="activeTab === 'pending'
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'"
+                            @click="activeTab = 'pending'; fetchTriage()"
+                        >
+                            <Inbox :size="14" />
+                            <span>Inbox</span>
+                            <span
+                                v-if="triagePagination.total > 0"
+                                class="px-1.5 py-0.2 text-[10px] font-bold rounded-wf-pill bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50"
+                            >
+                                {{ triagePagination.total }}
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-wf-sm transition-all"
+                            :class="activeTab === 'heatmap'
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'"
+                            @click="activeTab = 'heatmap'"
+                        >
+                            <MapIcon :size="14" />
+                            <span>Heatmap</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 

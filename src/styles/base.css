@@ -21,6 +21,13 @@
     outline: 2px solid var(--wf-color-primary);
     outline-offset: 2px;
   }
+
+  /* Reset default dual arrows on native selects */
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
 }
 
 /* Tabular Numbers for Financial Precision (Section 7.2) */

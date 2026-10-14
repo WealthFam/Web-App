@@ -28,7 +28,9 @@
 
             <div class="mt-3.5 max-w-xl flex items-center gap-2">
                 <div class="relative flex-grow">
-                    <Search class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-wf-text-muted pointer-events-none" />
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+                        <Search class="w-3.5 h-3.5 text-wf-text-muted shrink-0" />
+                    </div>
                     <input v-model="searchQuery" type="text" placeholder="Search funds, AMC, or AMFI codes..."
                         class="w-full h-8 pl-8 pr-3 text-xs rounded-wf-md border border-wf-border bg-wf-surface-variant/40 text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none focus:ring-1 focus:ring-wf-primary focus:border-wf-primary transition-all"
                         @keyup.enter="handleSearch(1)" />

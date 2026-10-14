@@ -1,121 +1,8 @@
 <template>
-    <div class="transaction-list-container">
-        <!-- Integrated compact toolbar -->
-        <WfCard variant="flat" padding="none" radius="lg" class="p-3 mb-3 border border-wf-border-subtle bg-wf-surface shadow-xs">
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
-                <!-- Left: Search & Filter Controls -->
-                <div class="flex flex-wrap items-center gap-2 flex-1">
-                    <!-- Search with clean icon and clear button -->
-                    <div class="relative min-w-[200px] flex-1 sm:flex-initial sm:w-64">
-                        <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-wf-text-muted pointer-events-none" aria-hidden="true" />
-                        <input
-                            :value="searchQuery"
-                            type="search"
-                            autocomplete="off"
-                            aria-label="Search transactions"
-                            placeholder="Search description or vendor..."
-                            class="w-full h-9 pl-9 pr-8 text-xs rounded-wf-md bg-wf-surface-variant/40 text-wf-text-primary border border-wf-border placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary focus:bg-wf-surface transition-all"
-                            @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
-                        />
-                        <button
-                            v-if="searchQuery"
-                            type="button"
-                            @click="emit('update:searchQuery', '')"
-                            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-wf-text-muted hover:text-wf-text-primary transition-colors"
-                            title="Clear search"
-                        >
-                            <X :size="13" />
-                        </button>
-                    </div>
-
-                    <!-- Account Filter -->
-                    <WfSelect
-                        size="sm"
-                        class="w-[155px]"
-                        aria-label="Filter by account"
-                        :model-value="selectedAccount"
-                        :items="accountOptions"
-                        @update:model-value="emit('update:selectedAccount', $event)"
-                    />
-
-                    <!-- Category Filter -->
-                    <WfSelect
-                        size="sm"
-                        class="w-[165px]"
-                        searchable
-                        aria-label="Filter by category"
-                        :model-value="categoryFilter"
-                        :items="[{ title: 'All Categories', value: '' }, ...categoryOptions]"
-                        @update:model-value="emit('update:categoryFilter', $event); emit('fetchData')"
-                    />
-
-                    <!-- Time Range Filter -->
-                    <WfSelect
-                        size="sm"
-                        class="w-[130px]"
-                        aria-label="Filter by time range"
-                        :model-value="selectedTimeRange"
-                        :items="timeRangeOptions"
-                        @update:model-value="handleTimeRangeChange"
-                    />
-
-                    <!-- Custom Date Range Inputs (if selected) -->
-                    <div v-if="selectedTimeRange === 'custom'" class="flex items-center gap-1.5 bg-wf-surface-variant/40 px-2 py-1 rounded-wf-md border border-wf-border">
-                        <input :value="startDate" type="date" aria-label="Start date" class="wf-date-input text-xs h-7 px-1.5 rounded-wf-sm bg-wf-surface border border-wf-border text-wf-text-primary"
-                            @change="emit('update:startDate', ($event.target as HTMLInputElement).value); emit('fetchData')" />
-                        <span class="text-[11px] text-wf-text-muted">to</span>
-                        <input :value="endDate" type="date" aria-label="End date" class="wf-date-input text-xs h-7 px-1.5 rounded-wf-sm bg-wf-surface border border-wf-border text-wf-text-primary"
-                            @change="emit('update:endDate', ($event.target as HTMLInputElement).value); emit('fetchData')" />
-                    </div>
-
-                    <!-- Reset Active Filters Button -->
-                    <button
-                        v-if="startDate || endDate || searchQuery || categoryFilter || selectedAccount"
-                        type="button"
-                        @click="handleReset"
-                        class="h-9 px-2.5 text-xs font-semibold text-wf-primary hover:text-wf-primary-hover hover:bg-wf-primary/10 rounded-wf-md transition-colors flex items-center gap-1.5"
-                        title="Reset all filters"
-                    >
-                        <RotateCcw :size="13" />
-                        <span>Reset</span>
-                    </button>
-                </div>
-
-                <!-- Right: Selection & Action Buttons -->
-                <div class="flex items-center gap-2 shrink-0 self-end lg:self-auto">
-                    <!-- Contextual Selection / Delete -->
-                    <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0">
-                        <div v-if="selectedIds.size > 0" class="flex items-center gap-2 bg-wf-primary/10 px-2.5 py-1 rounded-wf-md border border-wf-primary/20">
-                            <span class="text-xs font-semibold font-mono text-wf-primary">{{ selectedIds.size }} selected</span>
-                            <WfButton variant="danger" size="sm" @click="emit('deleteSelected')">
-                                <Trash2 :size="12" /> Delete
-                            </WfButton>
-                        </div>
-                    </Transition>
-
-                    <!-- Records Count Badge -->
-                    <span class="text-xs font-mono font-medium px-2.5 py-1.5 rounded-wf-md bg-wf-surface-variant text-wf-text-secondary border border-wf-border-subtle whitespace-nowrap">
-                        {{ total }} <span class="text-[11px] text-wf-text-muted">records</span>
-                    </span>
-
-                    <div class="h-5 w-px bg-wf-border-subtle hidden sm:block"></div>
-
-                    <!-- Primary Action Buttons -->
-                    <WfButton variant="outline" size="sm" @click="emit('importCsv')">
-                        <Upload :size="13" />
-                        <span>Import</span>
-                    </WfButton>
-                    <WfButton size="sm" @click="emit('editTxn', null)">
-                        <Plus :size="14" />
-                        <span>Add Transaction</span>
-                    </WfButton>
-                </div>
-            </div>
-        </WfCard>
-
+    <div class="transaction-list-container space-y-3">
         <!-- Compact KPI Strip -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-            <WfCard variant="flat" padding="none" radius="lg" class="px-2.5 py-1.5 flex items-center gap-2.5">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <WfCard variant="flat" padding="none" radius="lg" class="px-2.5 py-1.5 flex items-center gap-2.5 border border-wf-border-subtle">
                 <div class="w-7 h-7 rounded-wf-md bg-wf-success/10 text-wf-success flex items-center justify-center shrink-0"><TrendingUp :size="14" aria-hidden="true" /></div>
                 <div class="min-w-0">
                     <div class="text-[10px] font-semibold text-wf-text-muted uppercase tracking-wider leading-none mb-0.5">Income</div>
@@ -123,7 +10,7 @@
                 </div>
             </WfCard>
 
-            <WfCard variant="flat" padding="none" radius="lg" class="px-2.5 py-1.5 flex items-center gap-2.5">
+            <WfCard variant="flat" padding="none" radius="lg" class="px-2.5 py-1.5 flex items-center gap-2.5 border border-wf-border-subtle">
                 <div class="w-7 h-7 rounded-wf-md bg-wf-error/10 text-wf-error flex items-center justify-center shrink-0"><TrendingDown :size="14" aria-hidden="true" /></div>
                 <div class="min-w-0">
                     <div class="text-[10px] font-semibold text-wf-text-muted uppercase tracking-wider leading-none mb-0.5">Expenses</div>
@@ -131,7 +18,7 @@
                 </div>
             </WfCard>
 
-            <WfCard variant="flat" padding="none" radius="lg" class="px-2.5 py-1.5 flex items-center gap-2.5">
+            <WfCard variant="flat" padding="none" radius="lg" class="px-2.5 py-1.5 flex items-center gap-2.5 border border-wf-border-subtle">
                 <div class="w-7 h-7 rounded-wf-md bg-wf-primary/10 text-wf-primary flex items-center justify-center shrink-0"><ArrowUpRight :size="14" aria-hidden="true" /></div>
                 <div class="min-w-0">
                     <div class="text-[10px] font-semibold text-wf-text-muted uppercase tracking-wider leading-none mb-0.5">Investments</div>
@@ -139,7 +26,7 @@
                 </div>
             </WfCard>
 
-            <WfCard variant="flat" padding="none" radius="lg" class="px-2.5 py-1.5 flex items-center gap-2.5">
+            <WfCard variant="flat" padding="none" radius="lg" class="px-2.5 py-1.5 flex items-center gap-2.5 border border-wf-border-subtle">
                 <div class="w-7 h-7 rounded-wf-md flex items-center justify-center shrink-0"
                     :class="netFlow >= 0 ? 'bg-wf-primary/10 text-wf-primary' : 'bg-wf-warning/10 text-wf-warning'"><Wallet :size="14" aria-hidden="true" /></div>
                 <div class="min-w-0">
@@ -150,36 +37,124 @@
             </WfCard>
         </div>
 
-        <!-- Quick Category Filter Pills (Section 14.1 #2) -->
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 mb-2.5 text-xs select-none">
-            <button
-                type="button"
-                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-wf-pill text-xs font-semibold border transition-all shrink-0 cursor-pointer"
-                :class="!categoryFilter
-                    ? 'bg-wf-primary text-white border-wf-primary shadow-xs'
-                    : 'bg-wf-surface text-wf-text-secondary border-wf-border hover:bg-wf-surface-variant hover:text-wf-text-primary'"
-                @click="emit('update:categoryFilter', ''); emit('fetchData')"
-            >
-                <span>All Categories</span>
-            </button>
-            <button
-                v-for="cat in quickCategoryPills"
-                :key="cat.id || cat.name"
-                type="button"
-                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-wf-pill text-xs font-medium border transition-all shrink-0 cursor-pointer"
-                :class="categoryFilter === cat.name
-                    ? 'bg-wf-primary text-white border-wf-primary shadow-xs font-semibold'
-                    : 'bg-wf-surface text-wf-text-secondary border-wf-border hover:bg-wf-surface-variant hover:text-wf-text-primary'"
-                @click="emit('update:categoryFilter', categoryFilter === cat.name ? '' : cat.name); emit('fetchData')"
-            >
-                <span>{{ cat.icon || '🏷️' }}</span>
-                <span>{{ cat.name }}</span>
-                <X v-if="categoryFilter === cat.name" :size="12" class="ml-0.5 opacity-80 hover:opacity-100" />
-            </button>
-        </div>
+        <!-- Integrated Table & Toolbar Card -->
+        <WfCard variant="flat" padding="none" radius="lg" class="overflow-hidden border border-wf-border-subtle bg-wf-surface shadow-xs">
+            <!-- Toolbar directly connected to Table -->
+            <div class="p-2.5 border-b border-wf-border-subtle flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+                <!-- Left: Search & Filter Controls -->
+                <div class="flex flex-wrap items-center gap-2 flex-1">
+                    <!-- Search with clean icon and clear button -->
+                    <div class="relative min-w-[180px] flex-1 sm:flex-initial sm:w-56">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+                            <Search :size="14" class="text-wf-text-muted shrink-0" aria-hidden="true" />
+                        </div>
+                        <input
+                            :value="searchQuery"
+                            type="search"
+                            autocomplete="off"
+                            aria-label="Search transactions"
+                            placeholder="Search description or vendor..."
+                            class="w-full h-8 pl-8 pr-7 text-xs rounded-wf-md bg-wf-surface text-wf-text-primary border border-wf-border placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-all"
+                            @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
+                        />
+                        <div v-if="searchQuery" class="absolute inset-y-0 right-0 flex items-center pr-2">
+                            <button
+                                type="button"
+                                @click="emit('update:searchQuery', '')"
+                                class="text-wf-text-muted hover:text-wf-text-primary transition-colors flex items-center justify-center"
+                                title="Clear search"
+                                aria-label="Clear search"
+                            >
+                                <X :size="13" />
+                            </button>
+                        </div>
+                    </div>
 
-        <!-- Transaction Table -->
-        <WfCard variant="flat" padding="none" radius="lg" class="overflow-hidden">
+                    <!-- Account Filter -->
+                    <WfSelect
+                        size="sm"
+                        class="w-36"
+                        aria-label="Filter by account"
+                        :model-value="selectedAccount"
+                        :items="accountOptions"
+                        @update:model-value="emit('update:selectedAccount', $event)"
+                    />
+
+                    <!-- Category Filter -->
+                    <WfSelect
+                        size="sm"
+                        class="w-44"
+                        searchable
+                        aria-label="Filter by category"
+                        :model-value="categoryFilter"
+                        :items="[{ title: 'All Categories', value: '' }, ...categoryOptions]"
+                        @update:model-value="emit('update:categoryFilter', $event); emit('fetchData')"
+                    />
+
+                    <!-- Time Range Filter -->
+                    <WfSelect
+                        size="sm"
+                        class="w-32"
+                        aria-label="Filter by time range"
+                        :model-value="selectedTimeRange"
+                        :items="timeRangeOptions"
+                        @update:model-value="handleTimeRangeChange"
+                    />
+
+                    <!-- Custom Date Range Inputs (if selected) -->
+                    <div v-if="selectedTimeRange === 'custom'" class="flex items-center gap-1.5 bg-wf-surface-variant/40 px-2 rounded-wf-md border border-wf-border h-8">
+                        <input :value="startDate" type="date" aria-label="Start date" class="wf-date-input text-xs h-6 px-1 rounded-wf-sm bg-wf-surface border border-wf-border text-wf-text-primary"
+                            @change="emit('update:startDate', ($event.target as HTMLInputElement).value); emit('fetchData')" />
+                        <span class="text-[11px] text-wf-text-muted">to</span>
+                        <input :value="endDate" type="date" aria-label="End date" class="wf-date-input text-xs h-6 px-1 rounded-wf-sm bg-wf-surface border border-wf-border text-wf-text-primary"
+                            @change="emit('update:endDate', ($event.target as HTMLInputElement).value); emit('fetchData')" />
+                    </div>
+
+                    <!-- Reset Active Filters Button -->
+                    <button
+                        v-if="startDate || endDate || searchQuery || categoryFilter || selectedAccount"
+                        type="button"
+                        @click="handleReset"
+                        class="h-8 px-2 text-xs font-semibold text-wf-primary hover:text-wf-primary-hover hover:bg-wf-primary/10 rounded-wf-md transition-colors flex items-center gap-1"
+                        title="Reset all filters"
+                    >
+                        <RotateCcw :size="13" />
+                        <span>Reset</span>
+                    </button>
+                </div>
+
+                <!-- Right: Selection & Action Buttons -->
+                <div class="flex items-center gap-2 shrink-0">
+                    <!-- Contextual Selection / Delete -->
+                    <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0">
+                        <div v-if="selectedIds.size > 0" class="flex items-center gap-2 bg-wf-primary/10 px-2 py-0.5 rounded-wf-md border border-wf-primary/20 h-8">
+                            <span class="text-xs font-semibold font-mono text-wf-primary">{{ selectedIds.size }} selected</span>
+                            <WfButton variant="danger" size="sm" @click="emit('deleteSelected')">
+                                <Trash2 :size="12" /> Delete
+                            </WfButton>
+                        </div>
+                    </Transition>
+
+                    <!-- Records Count Badge -->
+                    <span class="text-xs font-mono font-medium px-2.5 h-8 rounded-wf-md bg-wf-surface-variant text-wf-text-secondary border border-wf-border-subtle whitespace-nowrap flex items-center">
+                        {{ total }} <span class="text-[11px] text-wf-text-muted ml-1">records</span>
+                    </span>
+
+                    <div class="h-5 w-px bg-wf-border-subtle hidden sm:block"></div>
+
+                    <!-- Primary Action Buttons -->
+                    <WfButton variant="outline" size="sm" @click="emit('importCsv')">
+                        <Upload :size="13" />
+                        <span>Import</span>
+                    </WfButton>
+                    <WfButton variant="primary" size="sm" @click="emit('editTxn', null)" class="shrink-0 font-semibold shadow-xs">
+                        <Plus :size="14" />
+                        <span>Add Transaction</span>
+                    </WfButton>
+                </div>
+            </div>
+
+            <!-- Table -->
             <div class="overflow-x-auto">
                 <table class="w-full text-sm border-collapse">
                     <thead>
@@ -486,19 +461,6 @@ const netFlow = computed(() =>
 // Computed
 const accountOptions = computed(() => {
     return [{ title: 'All Accounts', value: '' }, ...props.accounts.map(a => ({ title: a.name, value: a.id }))]
-})
-
-const quickCategoryPills = computed(() => {
-    const roots: CategoryItem[] = [...props.categories.filter(c => !c.parent_id).slice(0, 10)]
-    if (props.categoryFilter && !roots.some(r => r.name === props.categoryFilter)) {
-        const found = props.categories.find(c => c.name === props.categoryFilter)
-        if (found) {
-            roots.unshift(found)
-        } else {
-            roots.unshift({ id: 'active', name: props.categoryFilter, icon: '🏷️' })
-        }
-    }
-    return roots
 })
 
 const flatCategories = computed<CategoryItem[]>(() => {

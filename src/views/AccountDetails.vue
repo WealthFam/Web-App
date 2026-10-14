@@ -185,7 +185,9 @@
 
                         <!-- Search Bar -->
                         <div class="relative w-full sm:w-72">
-                            <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-wf-text-muted pointer-events-none" />
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <Search :size="14" class="text-wf-text-muted shrink-0" />
+                            </div>
                             <input
                                 v-model="searchQuery"
                                 type="text"
@@ -193,15 +195,16 @@
                                 class="w-full h-8 pl-9 pr-8 text-xs bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-colors"
                                 @input="fetchTransactions"
                             />
-                            <button
-                                v-if="searchQuery"
-                                type="button"
-                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded cursor-pointer"
-                                aria-label="Clear search"
-                                @click="searchQuery = ''; fetchTransactions()"
-                            >
-                                <X :size="13" />
-                            </button>
+                            <div v-if="searchQuery" class="absolute inset-y-0 right-0 flex items-center pr-2.5">
+                                <button
+                                    type="button"
+                                    class="text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded cursor-pointer flex items-center justify-center"
+                                    aria-label="Clear search"
+                                    @click="searchQuery = ''; fetchTransactions()"
+                                >
+                                    <X :size="13" />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
