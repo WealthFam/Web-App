@@ -58,6 +58,7 @@
                                     @click="emit('update:triageSearchQuery', '')"
                                     class="absolute right-2.5 top-1/2 -translate-y-1/2 text-wf-text-muted hover:text-wf-text-primary transition-colors"
                                     title="Clear search"
+                                    aria-label="Clear search"
                                 >
                                     <X :size="13" />
                                 </button>

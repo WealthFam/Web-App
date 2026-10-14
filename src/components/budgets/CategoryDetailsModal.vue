@@ -12,6 +12,7 @@ import { localDateString } from '@/utils/time'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfPagination from '@/components/ui/WfPagination.vue'
+import { getThemeColors } from '@/utils/themeColors'
 
 const { formatAmount } = useCurrency()
 const authStore = useAuthStore()
@@ -139,12 +140,13 @@ const doughnutChartData = computed(() => {
         top.push({ merchant: 'Others', amount: others })
     }
 
+    const theme = getThemeColors()
     return {
         labels: top.map(v => v.merchant),
         datasets: [{
             data: top.map(v => v.amount),
             backgroundColor: [
-                '#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#64748B'
+                theme.primary, theme.success, theme.warning, theme.error, theme.secondary, theme.textMuted
             ],
             borderWidth: 0
         }]

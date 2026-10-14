@@ -14,6 +14,7 @@ import {
 } from 'lucide-vue-next'
 import WfCard from '@/components/ui/WfCard.vue'
 import { useCurrency } from '@/composables/useCurrency'
+import { getCssToken } from '@/utils/themeColors'
 
 const props = defineProps<{
   goal: any
@@ -28,6 +29,7 @@ const emit = defineEmits<{
 }>()
 
 const { formatAmount } = useCurrency()
+const cardColor = computed(() => props.goal?.color || getCssToken('--wf-color-primary', '#6366F1'))
 
 const menuOpen = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
@@ -97,8 +99,8 @@ const hasAssets = computed(() => {
           <div
             class="w-12 h-12 rounded-wf-lg flex items-center justify-center text-xl shadow-2xs border"
             :style="{
-              backgroundColor: `${goal.color || '#6366F1'}15`,
-              borderColor: `${goal.color || '#6366F1'}30`
+              backgroundColor: `${cardColor}15`,
+              borderColor: `${cardColor}30`
             }"
           >
             <span>{{ goal.icon || '🎯' }}</span>
@@ -157,9 +159,9 @@ const hasAssets = computed(() => {
         <span
           class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-pill text-[10px] font-bold border"
           :style="{
-            backgroundColor: `${goal.color || '#6366F1'}15`,
-            borderColor: `${goal.color || '#6366F1'}40`,
-            color: goal.color || 'var(--wf-color-primary)'
+            backgroundColor: `${cardColor}15`,
+            borderColor: `${cardColor}40`,
+            color: cardColor
           }"
         >
           <Timer class="w-3 h-3" />

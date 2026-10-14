@@ -295,6 +295,7 @@ function logout() {
           class="p-1 rounded-wf-sm text-wf-text-muted hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
           @click="isSidebarCollapsed = !isSidebarCollapsed"
           :title="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+          :aria-label="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
         >
           <PanelLeftClose v-if="!isSidebarCollapsed" class="w-3.5 h-3.5" />
           <PanelLeftOpen v-else class="w-3.5 h-3.5" />
@@ -415,6 +416,7 @@ function logout() {
             type="button"
             class="lg:hidden p-1.5 rounded-wf-md text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
             @click="isMobileDrawerOpen = true"
+            aria-label="Open mobile navigation menu"
           >
             <Menu class="w-4.5 h-4.5" />
           </button>
@@ -516,6 +518,7 @@ function logout() {
               ? 'bg-indigo-50 dark:bg-indigo-950/60 text-wf-primary border-indigo-200 dark:border-indigo-900/50'
               : 'text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant'"
             :title="settingsStore.isMasked ? 'Privacy Mask: ON (Values Hidden)' : 'Privacy Mask: OFF'"
+            :aria-label="settingsStore.isMasked ? 'Privacy Mask: ON (Values Hidden)' : 'Privacy Mask: OFF'"
           >
             <component :is="settingsStore.isMasked ? EyeOff : Eye" class="w-3.5 h-3.5" />
           </button>
@@ -526,6 +529,7 @@ function logout() {
             @click="toggleTheme"
             class="w-8 h-8 rounded-wf-md border border-wf-border flex items-center justify-center text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
             title="Toggle Light / Dark Mode"
+            aria-label="Toggle Light / Dark Mode"
           >
             <component :is="isDark ? Sun : Moon" class="w-3.5 h-3.5" />
           </button>
@@ -537,6 +541,7 @@ function logout() {
               @click="showNotificationMenu = !showNotificationMenu"
               class="w-8 h-8 rounded-wf-md border border-wf-border flex items-center justify-center text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors relative"
               title="Notifications"
+              aria-label="Notifications"
             >
               <Bell class="w-3.5 h-3.5" :class="{ 'animate-bounce': isBellRinging }" />
               <span
@@ -610,6 +615,7 @@ function logout() {
             type="button"
             class="p-1 rounded-wf-sm hover:bg-wf-surface-variant"
             @click="isMobileDrawerOpen = false"
+            aria-label="Close mobile navigation menu"
           >
             <X class="w-4 h-4" />
           </button>

@@ -16,7 +16,7 @@ const store = useNotificationStore()
                     <Info v-if="note.type === 'info'" :size="20" class="text-wf-primary" />
                 </div>
                 <div class="content">{{ note.message }}</div>
-                <button class="close-btn">
+                <button class="close-btn" aria-label="Dismiss notification">
                     <X :size="14" class="text-medium-emphasis" />
                 </button>
             </div>
@@ -42,14 +42,14 @@ const store = useNotificationStore()
     max-width: 400px;
     padding: 1rem;
     border-radius: 12px;
-    background: var(--wf-surface, #ffffff);
-    color: var(--wf-text-primary, #0f172a);
+    background: var(--wf-color-surface, #ffffff);
+    color: var(--wf-color-text-primary, #0f172a);
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
     gap: 0.75rem;
     cursor: pointer;
-    border: 1px solid var(--wf-border, #e2e8f0);
+    border: 1px solid var(--wf-color-border, #e2e8f0);
     position: relative;
     overflow: hidden;
     backdrop-filter: blur(10px);
@@ -66,28 +66,28 @@ const store = useNotificationStore()
 }
 
 .toast.success::before {
-    background: #10b981;
+    background: var(--wf-color-success);
 }
 
 .toast.error::before {
-    background: #ef4444;
+    background: var(--wf-color-error);
 }
 
 .toast.info::before {
-    background: #6366f1;
+    background: var(--wf-color-primary);
 }
 
 /* Subtle tint based on type */
 .toast.success {
-    background: linear-gradient(to right, rgba(16, 185, 129, 0.08), var(--wf-surface, #ffffff));
+    background: linear-gradient(to right, rgba(16, 185, 129, 0.08), var(--wf-color-surface, #ffffff));
 }
 
 .toast.error {
-    background: linear-gradient(to right, rgba(239, 68, 68, 0.08), var(--wf-surface, #ffffff));
+    background: linear-gradient(to right, rgba(239, 68, 68, 0.08), var(--wf-color-surface, #ffffff));
 }
 
 .toast.info {
-    background: linear-gradient(to right, rgba(99, 102, 241, 0.08), var(--wf-surface, #ffffff));
+    background: linear-gradient(to right, rgba(99, 102, 241, 0.08), var(--wf-color-surface, #ffffff));
 }
 
 .content {
@@ -113,19 +113,19 @@ const store = useNotificationStore()
 
 /* Text Colors */
 .text-success {
-    color: #10b981;
+    color: var(--wf-color-success);
 }
 
 .text-error {
-    color: #ef4444;
+    color: var(--wf-color-error);
 }
 
 .text-wf-primary {
-    color: #6366f1;
+    color: var(--wf-color-primary);
 }
 
 .text-medium-emphasis {
-    color: var(--wf-text-secondary, #64748b);
+    color: var(--wf-color-text-secondary, #64748b);
 }
 
 /* Animation */

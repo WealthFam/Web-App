@@ -18,7 +18,7 @@
         </div>
 
         <svg :width="width" :height="height" :viewBox="`0 0 ${width} ${height}`" preserveAspectRatio="none"
-            @mouseleave="hoveredBar = null" style="overflow: visible;">
+            @mouseleave="hoveredBar = null" class="overflow-visible">
             <!-- Grid Lines -->
             <g class="grid-lines">
                 <line v-for="i in 5" :key="i" :x1="axisPadding" :y1="(height / 4) * (i - 1)" :x2="width - axisPadding"
@@ -28,7 +28,7 @@
             <!-- Y-Axis Labels -->
             <g class="y-axis-labels">
                 <text v-for="i in 5" :key="i" :x="axisPadding - 10" :y="(height / 4) * (i - 1) + 4" text-anchor="end"
-                    class="text-tiny opacity-40 font-bold fill-current" style="font-size: 9px;">
+                    class="text-[9px] opacity-40 font-bold fill-current">
                     ₹{{ formatYLabel((maxVal / 4) * (4 - (i - 1))) }}
                 </text>
             </g>
@@ -44,17 +44,17 @@
 
                 <!-- Hover interaction area -->
                 <rect :x="axisPadding + idx * (barWidth + gap)" y="0" :width="barWidth" :height="height"
-                    fill="transparent" style="cursor: pointer;" />
+                    fill="transparent" class="cursor-pointer" />
             </g>
 
             <!-- Today Marker Line -->
             <line v-if="todayIndex !== -1" :x1="axisPadding + (todayIndex + 1) * (barWidth + gap) - (gap / 2)" y1="0"
                 :x2="axisPadding + (todayIndex + 1) * (barWidth + gap) - (gap / 2)" :y2="height"
-                stroke="#6366f1" stroke-width="1" stroke-dasharray="4,2" />
+                stroke="var(--wf-color-primary, #6366f1)" stroke-width="1" stroke-dasharray="4,2" />
         </svg>
 
         <!-- X-Axis Labels -->
-        <div class="x-axis mt-3 opacity-50 font-bold text-tiny relative" style="height: 20px;">
+        <div class="x-axis mt-3 opacity-50 font-bold text-tiny relative h-5">
             <div v-for="day in filteredLabels" :key="day.date" class="absolute"
                 :style="{ left: (axisPadding + getLabelX(day.date)) + 'px', transform: 'translateX(-50%)' }">
                 {{ day.label }}
@@ -205,9 +205,9 @@ function onHover(day: any, idx: number) {
     z-index: 100;
     min-width: 180px;
     pointer-events: none;
-    background: var(--wf-surface, #ffffff);
+    background: var(--wf-color-surface, #ffffff);
     backdrop-filter: blur(12px);
-    border: 1px solid var(--wf-border, #e2e8f0);
+    border: 1px solid var(--wf-color-border, #e2e8f0);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 

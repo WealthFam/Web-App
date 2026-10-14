@@ -123,6 +123,8 @@ import BaseChart from '@/components/BaseChart.vue'
 import { useCurrency } from '@/composables/useCurrency'
 import { useDashboardStore } from '@/stores/dashboard'
 
+import { getCssToken } from '@/utils/themeColors'
+
 const dashboardStore = useDashboardStore()
 const { formatAmount } = useCurrency()
 
@@ -174,14 +176,22 @@ const chartType = computed(() => {
   return 'line'
 })
 
-// Aether V4 Chart Token Constants
-const COLOR_EXPENSE = '#EF4444' // --wf-color-error
-const COLOR_EXPENSE_BG = 'rgba(239, 68, 68, 0.12)'
-const COLOR_EXPENSE_BG_MTD = 'rgba(239, 68, 68, 0.15)'
-const COLOR_INVEST = '#10B981' // --wf-color-success
-const COLOR_INVEST_BG = 'rgba(16, 185, 129, 0.08)'
+// Aether V4 Chart Tokens resolved from CSS custom properties
+function getChartColors() {
+  const expense = getCssToken('--wf-color-error', '#EF4444')
+  const invest = getCssToken('--wf-color-success', '#10B981')
+  return {
+    expense,
+    expenseBg: 'rgba(239, 68, 68, 0.12)',
+    expenseBgMtd: 'rgba(239, 68, 68, 0.15)',
+    invest,
+    investBg: 'rgba(16, 185, 129, 0.08)',
+  }
+}
 
 const chartData = computed(() => {
+  const colors = getChartColors()
+
   if (viewMode.value === 'mtd') {
     const labels = dashboardStore.spendingLabels.length > 0 ? dashboardStore.spendingLabels : ['Day 1', 'Today']
     const data = dashboardStore.spendingTrend.length > 0 ? dashboardStore.spendingTrend : [0, dashboardStore.metrics?.monthly_spending || 0]
@@ -192,8 +202,8 @@ const chartData = computed(() => {
         {
           label: 'Daily Spending',
           data,
-          borderColor: COLOR_EXPENSE,
-          backgroundColor: COLOR_EXPENSE_BG_MTD,
+          borderColor: colors.expense,
+          backgroundColor: colors.expenseBgMtd,
           fill: true,
           tension: 0.35,
           borderWidth: 2,
@@ -211,13 +221,13 @@ const chartData = computed(() => {
         {
           label: 'Expenses',
           data: sixMonthSpending.value,
-          backgroundColor: COLOR_EXPENSE,
+          backgroundColor: colors.expense,
           borderRadius: 4
         },
         {
           label: 'Investments',
           data: sixMonthInvestment.value,
-          backgroundColor: COLOR_INVEST,
+          backgroundColor: colors.invest,
           borderRadius: 4
         }
       ]
@@ -231,8 +241,8 @@ const chartData = computed(() => {
       {
         label: 'Expenses',
         data: sixMonthSpending.value,
-        borderColor: COLOR_EXPENSE,
-        backgroundColor: COLOR_EXPENSE_BG,
+        borderColor: colors.expense,
+        backgroundColor: colors.expenseBg,
         fill: true,
         tension: 0.35,
         borderWidth: 2.5,
@@ -242,8 +252,8 @@ const chartData = computed(() => {
       {
         label: 'Investments',
         data: sixMonthInvestment.value,
-        borderColor: COLOR_INVEST,
-        backgroundColor: COLOR_INVEST_BG,
+        borderColor: colors.invest,
+        backgroundColor: colors.investBg,
         fill: true,
         tension: 0.35,
         borderWidth: 2,

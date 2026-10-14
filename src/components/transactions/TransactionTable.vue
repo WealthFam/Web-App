@@ -134,6 +134,7 @@ import { useCurrency } from '@/composables/useCurrency'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfMenu from '@/components/ui/WfMenu.vue'
 import WfPagination from '@/components/ui/WfPagination.vue'
+import { getCssToken } from '@/utils/themeColors'
 
 const { formatAmount } = useCurrency()
 
@@ -212,12 +213,14 @@ function getAccountName(id: string) {
 
 // Category colours come from user data (dynamic), not design tokens.
 function getCategoryDisplay(name: string) {
-    if (!name || name === 'Uncategorized') return { icon: '🏷️', text: 'Uncategorized', color: '#9ca3af' }
+    const mutedColor = getCssToken('--wf-color-text-muted', '#64748B')
+    const primaryColor = getCssToken('--wf-color-primary', '#6366F1')
+    if (!name || name === 'Uncategorized') return { icon: '🏷️', text: 'Uncategorized', color: mutedColor }
     const cat = props.categories.find(c => c.name === name)
     if (cat) {
-        return { icon: cat.icon || '🏷️', text: cat.name, color: cat.color || '#3B82F6' }
+        return { icon: cat.icon || '🏷️', text: cat.name, color: cat.color || primaryColor }
     }
-    return { icon: '🏷️', text: name, color: '#9ca3af' }
+    return { icon: '🏷️', text: name, color: mutedColor }
 }
 
 function getExpenseGroupName(id: string) {

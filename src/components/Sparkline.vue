@@ -183,8 +183,8 @@ function onMouseMove(e: MouseEvent) {
 }
 .spark-tooltip {
   position: absolute;
-  background: var(--wf-surface, #ffffff);
-  border: 1px solid var(--wf-border, #e2e8f0);
+  background: var(--wf-color-surface, #ffffff);
+  border: 1px solid var(--wf-color-border, #e2e8f0);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(8px);
   z-index: 10;

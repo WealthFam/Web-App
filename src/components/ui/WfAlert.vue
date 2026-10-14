@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { AlertCircle, CheckCircle2, AlertTriangle, Info } from 'lucide-vue-next'
+import { AlertCircle, CheckCircle2, AlertTriangle, Info, X } from 'lucide-vue-next'
 
 interface Props {
   variant?: 'error' | 'success' | 'warning' | 'info'
@@ -12,6 +12,10 @@ const props = withDefaults(defineProps<Props>(), {
   variant: 'info',
   dismissible: false,
 })
+
+const emit = defineEmits<{
+  (e: 'dismiss'): void
+}>()
 
 const variantClasses = computed(() => {
   switch (props.variant) {
@@ -57,5 +61,14 @@ const iconComponent = computed(() => {
         <slot />
       </div>
     </div>
+    <button
+      v-if="dismissible"
+      type="button"
+      @click="emit('dismiss')"
+      class="p-0.5 rounded-wf-xs opacity-70 hover:opacity-100 transition-opacity"
+      aria-label="Dismiss alert"
+    >
+      <X class="w-4 h-4" />
+    </button>
   </div>
 </template>

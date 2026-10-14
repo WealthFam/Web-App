@@ -61,6 +61,9 @@ watch(() => props.modelValue, (isOpen) => {
         v-if="modelValue"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
         @click.self="close"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="title || 'Dialog'"
       >
         <div
           class="w-full bg-wf-surface border border-wf-border rounded-wf-xl shadow-wf-modal overflow-hidden animate-in fade-in zoom-in-95 duration-200"
@@ -82,6 +85,7 @@ watch(() => props.modelValue, (isOpen) => {
               type="button"
               class="p-1 rounded-wf-sm text-wf-text-muted hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
               @click="close"
+              aria-label="Close modal"
             >
               <X class="w-4 h-4" />
             </button>

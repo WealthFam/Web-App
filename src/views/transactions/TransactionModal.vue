@@ -451,14 +451,14 @@ function getIcon(item: any) {
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 rounded-wf-lg border border-wf-border bg-wf-surface">
                         <label class="flex items-start gap-2.5 cursor-pointer">
-                            <input v-model="localForm.is_transfer" type="checkbox" role="switch" class="mt-0.5 accent-[var(--wf-color-primary)]" />
+                            <input v-model="localForm.is_transfer" type="checkbox" role="switch" class="mt-0.5 accent-wf-primary" />
                             <span>
                                 <span class="block text-sm font-semibold text-wf-text-primary">Internal Transfer</span>
                                 <span class="block text-[11px] text-wf-text-muted">Moving money between your own accounts</span>
                             </span>
                         </label>
                         <label class="flex items-start gap-2.5 cursor-pointer">
-                            <input v-model="localForm.exclude_from_reports" type="checkbox" role="switch" class="mt-0.5 accent-[var(--wf-color-error)]" />
+                            <input v-model="localForm.exclude_from_reports" type="checkbox" role="switch" class="mt-0.5 accent-wf-error" />
                             <span>
                                 <span class="block text-sm font-semibold text-wf-text-primary">Hide from Analytics</span>
                                 <span class="block text-[11px] text-wf-text-muted">Exclude from budget/spending</span>

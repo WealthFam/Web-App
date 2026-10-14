@@ -13,6 +13,7 @@ import { useFinanceStore } from '@/stores/finance'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfSelect from '@/components/ui/WfSelect.vue'
+import { getCssToken } from '@/utils/themeColors'
 
 const props = defineProps<{
     modelValue: boolean
@@ -290,11 +291,13 @@ function getAccountName(id: string) {
 }
 
 function getCategoryDisplay(name: string) {
-    if (!name || name === 'Uncategorized') return { icon: '🏷️', color: '#9ca3af' }
+    const muted = getCssToken('--wf-color-text-muted', '#64748B')
+    const primary = getCssToken('--wf-color-primary', '#6366F1')
+    if (!name || name === 'Uncategorized') return { icon: '🏷️', color: muted }
     const cat = financeStore.categories.flatMap(c => [c, ...(c.subcategories || [])]).find(c => c.name === name)
     return {
         icon: cat?.icon || '🏷️',
-        color: cat?.color || '#6366f1'
+        color: cat?.color || primary
     }
 }
 

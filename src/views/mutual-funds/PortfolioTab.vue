@@ -1017,12 +1017,14 @@ watch(portfolio, (val) => emit('update:count', val.length))
                                         <button type="button"
                                             @click="item.has_multiple ? $router.push(`/mutual-funds/${item.scheme_code}?type=aggregate`) : $router.push(`/mutual-funds/${item.id}`)"
                                             class="w-6 h-6 rounded-wf-xs flex items-center justify-center text-wf-primary hover:bg-wf-primary/10 transition-colors"
-                                            title="View Details">
+                                            title="View Details"
+                                            aria-label="View Details">
                                             <EyeIconMain :size="13" />
                                         </button>
                                         <button type="button" @click="openDeleteModal(item)"
                                             class="w-6 h-6 rounded-wf-xs flex items-center justify-center text-rose-500 hover:bg-rose-500/10 transition-colors"
-                                            title="Remove Holding">
+                                            title="Remove Holding"
+                                            aria-label="Remove Holding">
                                             <Trash2 :size="13" />
                                         </button>
                                     </div>
@@ -1060,12 +1062,14 @@ watch(portfolio, (val) => emit('update:count', val.length))
                                             <div class="flex items-center gap-1 pl-4">
                                                 <button type="button" @click="$router.push(`/mutual-funds/${child.id}`)"
                                                     class="w-5 h-5 rounded-wf-xs flex items-center justify-center text-wf-primary hover:bg-wf-primary/10 transition-colors"
-                                                    title="View Folio">
+                                                    title="View Folio"
+                                                    aria-label="View Folio">
                                                     <EyeIconMain :size="12" />
                                                 </button>
                                                 <button type="button" @click="openDeleteModal(child)"
                                                     class="w-5 h-5 rounded-wf-xs flex items-center justify-center text-rose-500 hover:bg-rose-500/10 transition-colors"
-                                                    title="Remove Folio">
+                                                    title="Remove Folio"
+                                                    aria-label="Remove Folio">
                                                     <Trash2 :size="12" />
                                                 </button>
                                             </div>

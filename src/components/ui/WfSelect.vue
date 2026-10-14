@@ -167,7 +167,7 @@ onUnmounted(() => {
         </div>
 
         <!-- LIST ITEMS -->
-        <div class="max-h-56 overflow-y-auto p-1 space-y-0.5 overscroll-contain">
+        <div role="listbox" class="max-h-56 overflow-y-auto p-1 space-y-0.5 overscroll-contain">
           <div v-if="filteredItems.length === 0" class="px-3 py-3 text-center text-xs text-wf-text-muted">
             No options found
           </div>
@@ -175,6 +175,8 @@ onUnmounted(() => {
             v-for="item in filteredItems"
             :key="String(item.value)"
             type="button"
+            role="option"
+            :aria-selected="item.value === modelValue"
             class="w-full text-left px-2.5 py-1.5 text-xs truncate transition-colors flex items-center justify-between cursor-pointer rounded-wf-sm"
             :class="[
               item.value === modelValue

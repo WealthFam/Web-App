@@ -11,8 +11,8 @@
       <!-- Gradient definition for area fill -->
       <defs>
         <linearGradient id="valueGradient" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.2" />
-          <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.0" />
+          <stop offset="0%" stop-color="var(--wf-color-primary, #6366f1)" stop-opacity="0.2" />
+          <stop offset="100%" stop-color="var(--wf-color-primary, #6366f1)" stop-opacity="0.0" />
         </linearGradient>
         
         <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
@@ -25,11 +25,11 @@
       <path v-if="paths.area" :d="paths.area" fill="url(#valueGradient)" stroke="none" class="animate-fade-in" />
 
       <!-- Value line (smooth) -->
-      <path v-if="paths.value" :d="paths.value" fill="none" stroke="#3b82f6" stroke-width="2.5"
+      <path v-if="paths.value" :d="paths.value" fill="none" stroke="var(--wf-color-primary, #6366f1)" stroke-width="2.5"
         stroke-linecap="round" stroke-linejoin="round" class="chart-line-value" filter="url(#glow)" />
 
       <!-- Invested line (smooth dashed) -->
-      <path v-if="paths.invested" :d="paths.invested" fill="none" stroke="#94a3b8" stroke-width="1"
+      <path v-if="paths.invested" :d="paths.invested" fill="none" stroke="var(--wf-color-text-muted, #94a3b8)" stroke-width="1"
         stroke-dasharray="5,4" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.55;" />
 
       <!-- Benchmark lines (dynamic) -->
@@ -46,7 +46,7 @@
       <!-- Data points (visible circles on hover) -->
       <g v-if="hoveredIndex !== null && data[hoveredIndex]" class="data-points">
         <circle :cx="padding.left + xScale(hoveredIndex)" :cy="padding.top + yScale(data[hoveredIndex].value)"
-          r="5" fill="#3b82f6" stroke="white" stroke-width="2" pointer-events="none" />
+          r="5" fill="var(--wf-color-primary, #6366f1)" stroke="white" stroke-width="2" pointer-events="none" />
       </g>
 
       <!-- Premium Transaction Markers -->
@@ -97,11 +97,11 @@
     <!-- Legend with wrapping and bounded height -->
     <div v-if="!hideLegend" class="chart-legend">
       <div class="legend-item" @click="$emit('toggle-invested')">
-        <div class="legend-dot" style="background: #3b82f6;"></div>
+        <div class="legend-dot" style="background: var(--wf-color-primary, #6366f1);"></div>
         <span>{{ props.valueLabel || 'Portfolio Value' }}</span>
       </div>
       <div class="legend-item" @click="$emit('toggle-invested')">
-        <div class="legend-dot dashed" style="background: #94a3b8;"></div>
+        <div class="legend-dot dashed" style="background: var(--wf-color-text-muted, #94a3b8);"></div>
         <span>{{ props.investedLabel || 'Invested' }}</span>
       </div>
       <div v-for="(bm, idx) in benchmarkDataList" :key="`leg-bm-${idx}`" 
@@ -557,9 +557,9 @@ svg {
 
 .chart-tooltip {
   position: absolute;
-  background: var(--wf-surface, #ffffff);
+  background: var(--wf-color-surface, #ffffff);
   backdrop-filter: blur(12px);
-  border: 1px solid var(--wf-border, #e2e8f0);
+  border: 1px solid var(--wf-color-border, #e2e8f0);
   border-radius: 12px;
   padding: 0.75rem;
   box-shadow: 0 16px 24px -4px rgba(0, 0, 0, 0.2);
@@ -589,11 +589,11 @@ svg {
   padding: 2px 6px;
   border-radius: 4px;
   background: rgba(99, 102, 241, 0.1);
-  color: rgb(99, 102, 241);
+  color: var(--wf-color-primary, rgb(99, 102, 241));
 }
 
-.transaction-badge.buy { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-.transaction-badge.sell { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.transaction-badge.buy { background: rgba(16, 185, 129, 0.1); color: var(--wf-color-success, #10b981); }
+.transaction-badge.sell { background: rgba(239, 68, 68, 0.1); color: var(--wf-color-error, #ef4444); }
 
 .tooltip-stat {
   display: flex;
@@ -614,12 +614,12 @@ svg {
 
 .tooltip-divider {
   height: 1px;
-  background: var(--wf-border, rgba(226, 232, 240, 0.6));
+  background: var(--wf-color-border, rgba(226, 232, 240, 0.6));
   margin: 0.35rem 0;
 }
 
-.pnl.positive .stat-value { color: #10b981; }
-.pnl.negative .stat-value { color: #ef4444; }
+.pnl.positive .stat-value { color: var(--wf-color-success, #10b981); }
+.pnl.negative .stat-value { color: var(--wf-color-error, #ef4444); }
 
 .marker-group {
   cursor: pointer;

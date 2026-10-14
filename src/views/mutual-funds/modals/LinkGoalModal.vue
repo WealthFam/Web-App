@@ -137,7 +137,7 @@ onMounted(fetchGoals)
                         <div class="flex items-center gap-2.5 min-w-0">
                             <div
                                 class="w-8 h-8 rounded-wf-md flex items-center justify-center text-sm font-bold flex-shrink-0"
-                                :style="{ background: (g.color || '#3b82f6') + '20', color: g.color || '#3b82f6' }"
+                                :style="{ background: (g.color || '#6366f1') + '20', color: g.color || '#6366f1' }"
                             >
                                 {{ g.icon || '🎯' }}
                             </div>

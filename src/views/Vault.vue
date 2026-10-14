@@ -469,6 +469,7 @@ onMounted(() => {
               type="button"
               @click="navigateUp"
               title="Up one folder"
+              aria-label="Up one folder"
               class="p-1.5 rounded-wf-xs text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors border border-wf-border-subtle"
             >
               <ArrowLeft class="w-3.5 h-3.5" />
@@ -557,6 +558,7 @@ onMounted(() => {
               type="button"
               @click="viewMode = 'grid'"
               title="Grid View"
+              aria-label="Grid View"
               class="p-1.5 rounded-wf-xs transition-colors"
               :class="viewMode === 'grid' ? 'bg-wf-surface text-wf-primary shadow-2xs' : 'text-wf-text-muted hover:text-wf-text-primary'"
             >
@@ -566,6 +568,7 @@ onMounted(() => {
               type="button"
               @click="viewMode = 'list'"
               title="List / Table View"
+              aria-label="List / Table View"
               class="p-1.5 rounded-wf-xs transition-colors"
               :class="viewMode === 'list' ? 'bg-wf-surface text-wf-primary shadow-2xs' : 'text-wf-text-muted hover:text-wf-text-primary'"
             >

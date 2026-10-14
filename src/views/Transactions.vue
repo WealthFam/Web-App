@@ -74,7 +74,7 @@
                             <Activity :size="14" class="text-wf-primary" />
                             <span class="text-xs sm:text-sm font-bold text-wf-text-primary">Spending Velocity & Forecast</span>
                             <span class="text-[10px] font-bold font-mono bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50 px-2 py-0.5 rounded-wf-pill">
-                                AVG ₹{{ Math.round(metrics.avg_daily_spending || 0) }}/DAY
+                                AVG {{ formatAmount(metrics.avg_daily_spending || 0) }}/DAY
                             </span>
                         </div>
                         <div class="flex items-center gap-1 text-xs text-wf-text-muted font-semibold">
@@ -229,10 +229,13 @@ const showVelocityChart = ref(false)
 import { useTransactionState } from '@/composables/useTransactionState'
 import { useTriageState } from '@/composables/useTriageState'
 import { useTransactionModals } from '@/composables/useTransactionModals'
+import { useCurrency } from '@/composables/useCurrency'
 import { useAuthStore } from '@/stores/auth'
 import { useFinanceStore } from '@/stores/finance'
 import { useBudgetStore } from '@/stores/finance/budgets'
 import { useExpenseGroupStore } from '@/stores/expenseGroups'
+
+const { formatAmount } = useCurrency()
 
 // Global State
 const route = useRoute()

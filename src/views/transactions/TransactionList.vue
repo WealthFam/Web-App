@@ -150,6 +150,34 @@
             </WfCard>
         </div>
 
+        <!-- Quick Category Filter Pills (Section 14.1 #2) -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 mb-2.5 text-xs select-none">
+            <button
+                type="button"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-wf-pill text-xs font-semibold border transition-all shrink-0 cursor-pointer"
+                :class="!categoryFilter
+                    ? 'bg-wf-primary text-white border-wf-primary shadow-xs'
+                    : 'bg-wf-surface text-wf-text-secondary border-wf-border hover:bg-wf-surface-variant hover:text-wf-text-primary'"
+                @click="emit('update:categoryFilter', ''); emit('fetchData')"
+            >
+                <span>All Categories</span>
+            </button>
+            <button
+                v-for="cat in quickCategoryPills"
+                :key="cat.id || cat.name"
+                type="button"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-wf-pill text-xs font-medium border transition-all shrink-0 cursor-pointer"
+                :class="categoryFilter === cat.name
+                    ? 'bg-wf-primary text-white border-wf-primary shadow-xs font-semibold'
+                    : 'bg-wf-surface text-wf-text-secondary border-wf-border hover:bg-wf-surface-variant hover:text-wf-text-primary'"
+                @click="emit('update:categoryFilter', categoryFilter === cat.name ? '' : cat.name); emit('fetchData')"
+            >
+                <span>{{ cat.icon || '🏷️' }}</span>
+                <span>{{ cat.name }}</span>
+                <X v-if="categoryFilter === cat.name" :size="12" class="ml-0.5 opacity-80 hover:opacity-100" />
+            </button>
+        </div>
+
         <!-- Transaction Table -->
         <WfCard variant="flat" padding="none" radius="lg" class="overflow-hidden">
             <div class="overflow-x-auto">
@@ -158,7 +186,7 @@
                         <tr class="bg-wf-surface-variant/60 text-[11px] font-semibold uppercase tracking-wider text-wf-text-muted">
                             <th scope="col" class="w-10 px-3 h-9 text-left">
                                 <input type="checkbox" aria-label="Select all on page" :checked="allSelected"
-                                    class="accent-[var(--wf-color-primary)]" @change="toggleAll" />
+                                    class="accent-wf-primary" @change="toggleAll" />
                             </th>
                             <th v-for="h in sortableHeaders" :key="h.key" scope="col"
                                 class="px-3 h-9 whitespace-nowrap" :class="[h.align === 'right' ? 'text-right' : 'text-left', h.width]"
@@ -206,7 +234,7 @@
                             @click="handleRowClick(item)">
                             <td class="px-3 py-1.5" @click.stop>
                                 <input type="checkbox" :aria-label="'Select ' + (item.recipient || item.description)"
-                                    :checked="selectedIds.has(item.id)" class="accent-[var(--wf-color-primary)]"
+                                    :checked="selectedIds.has(item.id)" class="accent-wf-primary"
                                     @change="toggleSelection(item.id)" />
                             </td>
 
@@ -315,6 +343,7 @@ import WfMenu from '@/components/ui/WfMenu.vue'
 import WfPagination from '@/components/ui/WfPagination.vue'
 import MerchantAliasModal from '@/components/MerchantAliasModal.vue'
 import { useCurrency } from '@/composables/useCurrency'
+import { getCssToken } from '@/utils/themeColors'
 import {
     Search,
     Trash2,
@@ -457,6 +486,19 @@ const netFlow = computed(() =>
 // Computed
 const accountOptions = computed(() => {
     return [{ title: 'All Accounts', value: '' }, ...props.accounts.map(a => ({ title: a.name, value: a.id }))]
+})
+
+const quickCategoryPills = computed(() => {
+    const roots: CategoryItem[] = [...props.categories.filter(c => !c.parent_id).slice(0, 10)]
+    if (props.categoryFilter && !roots.some(r => r.name === props.categoryFilter)) {
+        const found = props.categories.find(c => c.name === props.categoryFilter)
+        if (found) {
+            roots.unshift(found)
+        } else {
+            roots.unshift({ id: 'active', name: props.categoryFilter, icon: '🏷️' })
+        }
+    }
+    return roots
 })
 
 const flatCategories = computed<CategoryItem[]>(() => {
@@ -606,7 +648,9 @@ function getAccountName(id: string) {
 }
 
 function getCategoryDisplay(name: string) {
-    if (!name || name === 'Uncategorized') return { icon: '🏷️', text: 'Uncategorized', color: '#9ca3af' }
+    const mutedColor = getCssToken('--wf-color-text-muted', '#64748B')
+    const primaryColor = getCssToken('--wf-color-primary', '#6366F1')
+    if (!name || name === 'Uncategorized') return { icon: '🏷️', text: 'Uncategorized', color: mutedColor }
 
     const cat = flatCategories.value.find(c => c.name === name)
     if (cat) {
@@ -616,10 +660,10 @@ function getCategoryDisplay(name: string) {
         if (parent) {
             text = `${parent.name} › ${cat.name}`
         }
-        return { icon: cat.icon || '🏷️', text: text, color: cat.color || '#3B82F6' }
+        return { icon: cat.icon || '🏷️', text: text, color: cat.color || primaryColor }
     }
 
-    return { icon: '🏷️', text: name, color: '#9ca3af' }
+    return { icon: '🏷️', text: name, color: mutedColor }
 }
 
 function getExpenseGroupName(id: string) {

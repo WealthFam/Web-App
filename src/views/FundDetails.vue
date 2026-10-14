@@ -327,21 +327,23 @@ function isImageUrl(url: string) {
 
                         <!-- Action Buttons -->
                         <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
-                            <button
-                                type="button"
+                            <WfButton
+                                variant="outline"
+                                size="sm"
                                 @click="showDeepDiveModal = true"
-                                class="h-8 px-3 text-xs font-semibold rounded-wf-md border border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-all flex items-center gap-1.5"
+                                class="!border-rose-500/20 !bg-rose-500/10 !text-rose-600 dark:!text-rose-400 hover:!bg-rose-500/20 font-semibold"
                             >
                                 <Trash2 :size="13" />
                                 <span>Manage Records</span>
-                            </button>
-                            <button
-                                type="button"
+                            </WfButton>
+                            <WfButton
+                                variant="outline"
+                                size="sm"
                                 @click="showRedeemModal = true"
-                                class="h-8 px-3.5 text-xs font-semibold rounded-wf-md border border-wf-border bg-wf-surface-variant/40 hover:bg-wf-surface-variant text-wf-text-primary transition-all"
+                                class="font-semibold"
                             >
                                 Redeem
-                            </button>
+                            </WfButton>
                             <WfButton
                                 variant="primary"
                                 size="sm"
@@ -451,7 +453,7 @@ function isImageUrl(url: string) {
                                                 />
                                                 <span class="font-medium text-wf-text-primary text-xs">{{ bm.label }}</span>
                                             </div>
-                                            <div class="w-2.5 h-2.5 rounded-full" :style="{ background: bm.styling?.color || '#94a3b8' }"></div>
+                                            <div class="w-2.5 h-2.5 rounded-full" :style="{ background: bm.styling?.color || 'var(--wf-color-text-muted, #94a3b8)' }"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -841,12 +843,12 @@ function isImageUrl(url: string) {
     font-weight: 800;
     margin-top: 0.75rem;
     margin-bottom: 0.25rem;
-    color: var(--wf-text-primary, #0f172a);
+    color: var(--wf-color-text-primary, #0f172a);
     text-transform: uppercase;
 }
 
 .mf-insights-markdown :deep(strong) {
-    color: var(--wf-text-primary, #0f172a);
+    color: var(--wf-color-text-primary, #0f172a);
     font-weight: 700;
 }
 

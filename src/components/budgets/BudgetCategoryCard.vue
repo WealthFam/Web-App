@@ -17,8 +17,11 @@ const emit = defineEmits<{
 
 const { formatAmount } = useCurrency()
 
+import { getThemeColors } from '@/utils/themeColors'
+
 const iconColor = computed(() => {
-  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+  const theme = getThemeColors()
+  const colors = [theme.info, theme.success, theme.warning, theme.error, theme.secondary, theme.primary]
   const str = props.group.parent.category || 'default'
   const hash = str.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)
   return colors[hash % colors.length]

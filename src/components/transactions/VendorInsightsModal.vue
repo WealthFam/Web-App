@@ -170,6 +170,7 @@ import WfModal from '@/components/ui/WfModal.vue'
 import WfCard from '@/components/ui/WfCard.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import BaseChart from '@/components/BaseChart.vue'
+import { getCssToken } from '@/utils/themeColors'
 
 const props = defineProps<{
     modelValue: boolean
@@ -217,12 +218,13 @@ const chartData = computed(() => {
     })
     const data = stats.value.chart_data.map((p: any) => p.amount)
 
+    const primary = getCssToken('--wf-color-primary', '#6366F1')
     return {
         labels,
         datasets: [{
             label: 'Spending',
             data,
-            borderColor: '#6366F1',
+            borderColor: primary,
             backgroundColor: 'rgba(99, 102, 241, 0.12)',
             fill: true,
             tension: 0.35,

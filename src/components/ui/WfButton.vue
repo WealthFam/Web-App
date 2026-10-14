@@ -23,17 +23,17 @@ const props = withDefaults(defineProps<Props>(), {
 const variantClasses = computed(() => {
   switch (props.variant) {
     case 'primary':
-      return 'bg-[var(--wf-color-primary,#6366F1)] hover:bg-[var(--wf-color-primary-hover,#4F46E5)] text-white shadow-sm border border-transparent'
+      return 'bg-wf-primary hover:bg-wf-primary-hover text-white shadow-xs border border-transparent'
     case 'secondary':
-      return 'bg-[var(--wf-color-primary-light,#EEF2FF)] text-[var(--wf-color-primary,#6366F1)] hover:bg-indigo-100 border border-transparent dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60'
+      return 'bg-wf-primary-light text-wf-primary hover:bg-indigo-100 border border-transparent dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60'
     case 'outline':
-      return 'bg-transparent border border-[var(--wf-color-border,#E2E8F0)] hover:bg-[var(--wf-color-surface-variant,#F1F5F9)] text-[var(--wf-color-text-primary,#0F172A)]'
+      return 'bg-transparent border border-wf-border hover:bg-wf-surface-variant text-wf-text-primary'
     case 'ghost':
-      return 'bg-transparent text-[var(--wf-color-text-secondary,#475569)] hover:text-[var(--wf-color-text-primary,#0F172A)] hover:bg-[var(--wf-color-surface-variant,#F1F5F9)]'
+      return 'bg-transparent text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant'
     case 'danger':
-      return 'bg-[var(--wf-color-error,#EF4444)] hover:bg-red-600 text-white shadow-sm border border-transparent'
+      return 'bg-wf-error hover:bg-red-600 text-white shadow-xs border border-transparent'
     default:
-      return 'bg-[var(--wf-color-primary,#6366F1)] text-white'
+      return 'bg-wf-primary text-white'
   }
 })
 
@@ -57,7 +57,7 @@ const sizeClasses = computed(() => {
   <button
     :type="type"
     :disabled="disabled || loading"
-    class="inline-flex items-center justify-center font-medium rounded-[var(--wf-radius-md,8px)] transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--wf-color-primary,#6366F1)] focus-visible:ring-offset-2"
+    class="inline-flex items-center justify-center font-medium rounded-wf-md transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wf-primary focus-visible:ring-offset-2"
     :class="[
       variantClasses,
       sizeClasses,

@@ -13,6 +13,7 @@ import WfModal from '@/components/ui/WfModal.vue'
 import WfSelect from '@/components/ui/WfSelect.vue'
 import WfPagination from '@/components/ui/WfPagination.vue'
 import CategoryModal from './components/CategoryModal.vue'
+import { getCssToken } from '@/utils/themeColors'
 
 const categoriesStore = useCategoriesStore()
 
@@ -449,8 +450,8 @@ defineExpose({
                                     <div
                                         class="w-7 h-7 rounded-wf-md flex items-center justify-center text-sm border shrink-0 transition-transform group-hover:scale-105"
                                         :style="{
-                                            backgroundColor: `${item.color || '#6366f1'}15`,
-                                            borderColor: `${item.color || '#6366f1'}35`
+                                            backgroundColor: `${item.color || getCssToken('--wf-color-primary', '#6366f1')}15`,
+                                            borderColor: `${item.color || getCssToken('--wf-color-primary', '#6366f1')}35`
                                         }"
                                     >
                                         <span>{{ item.icon || '🏷️' }}</span>

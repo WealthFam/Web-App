@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Check } from 'lucide-vue-next'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfSelect from '@/components/ui/WfSelect.vue'
+import { getCssToken } from '@/utils/themeColors'
 
-defineProps<{
+const props = defineProps<{
   modelValue: boolean
   isEditing: boolean
   goalForm: {
@@ -22,6 +24,8 @@ defineProps<{
   }>
   saving?: boolean
 }>()
+
+const activeGoalColor = computed(() => props.goalForm.color || getCssToken('--wf-color-primary', '#6366F1'))
 
 const emit = defineEmits<{
   (e: 'update:modelValue', val: boolean): void
@@ -60,8 +64,8 @@ function handleClose() {
         <div
           class="w-9 h-9 rounded-wf-md flex items-center justify-center text-lg border shadow-2xs"
           :style="{
-            backgroundColor: `${goalForm.color || '#6366F1'}15`,
-            borderColor: `${goalForm.color || '#6366F1'}30`
+            backgroundColor: `${activeGoalColor}15`,
+            borderColor: `${activeGoalColor}30`
           }"
         >
           <span>{{ goalForm.icon || '🎯' }}</span>
