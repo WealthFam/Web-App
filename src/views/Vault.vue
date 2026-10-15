@@ -480,7 +480,7 @@ onMounted(() => {
       </div>
 
       <!-- 2. SUMMARY KPI STATS BANNER -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <!-- Metric 1: Total Documents -->
         <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
           <div class="flex items-center justify-between">
@@ -495,23 +495,7 @@ onMounted(() => {
           </div>
         </WfCard>
 
-        <!-- Metric 2: Categorized Scope -->
-        <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-[11px] font-bold text-wf-text-muted uppercase tracking-wider">Active Category</p>
-              <p class="text-xl font-bold text-wf-text-primary mt-1">
-                {{ filterCategories.find(c => c.value === filterType)?.label || 'All' }}
-              </p>
-              <p class="text-[11px] text-wf-text-secondary mt-0.5">{{ sortedItems.length }} items in current view</p>
-            </div>
-            <div class="w-10 h-10 rounded-wf-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
-              <Receipt class="w-5 h-5" />
-            </div>
-          </div>
-        </WfCard>
-
-        <!-- Metric 3: Linked to Transactions -->
+        <!-- Metric 2: Linked to Transactions -->
         <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
           <div class="flex items-center justify-between">
             <div>
@@ -525,7 +509,7 @@ onMounted(() => {
           </div>
         </WfCard>
 
-        <!-- Metric 4: Shared with Family -->
+        <!-- Metric 3: Shared with Family -->
         <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
           <div class="flex items-center justify-between">
             <div>
