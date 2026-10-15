@@ -212,6 +212,7 @@ export const financeApi = {
     }),
     listVersions: (id: string) => apiClient.get(`/finance/vault/${id}/versions`),
     deleteDocument: (id: string) => apiClient.delete(`/finance/vault/${id}`),
+    batchDeleteDocuments: (ids: string[]) => apiClient.post('/finance/vault/batch-delete', { document_ids: ids }),
     linkDocToTransaction: (docId: string, transactionId: string | null) =>
         apiClient.patch(`/finance/vault/${docId}/link-transaction`, { transaction_id: transactionId }),
     syncVault: () => apiClient.post('/finance/vault/sync'),

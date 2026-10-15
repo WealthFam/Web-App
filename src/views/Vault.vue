@@ -154,7 +154,88 @@ const paginatedItems = computed(() => {
   return sortedItems.value.slice(start, start + pageSize.value)
 })
 
+// Multi-selection State
+const selectedIds = ref<Set<string>>(new Set())
+const tableImgErrors = ref<Set<string>>(new Set())
+
+const isAllPageSelected = computed(() => {
+  if (paginatedItems.value.length === 0) return false
+  return paginatedItems.value.every(item => selectedIds.value.has(item.id))
+})
+
+function toggleSelect(id: string) {
+  const next = new Set(selectedIds.value)
+  if (next.has(id)) {
+    next.delete(id)
+  } else {
+    next.add(id)
+  }
+  selectedIds.value = next
+}
+
+function toggleSelectAllPage() {
+  const next = new Set(selectedIds.value)
+  if (isAllPageSelected.value) {
+    paginatedItems.value.forEach(item => next.delete(item.id))
+  } else {
+    paginatedItems.value.forEach(item => next.add(item.id))
+  }
+  selectedIds.value = next
+}
+
+function selectAllItems() {
+  selectedIds.value = new Set(sortedItems.value.map(i => i.id))
+}
+
+function clearSelection() {
+  selectedIds.value = new Set()
+}
+
+async function deleteSelected() {
+  const count = selectedIds.value.size
+  if (count === 0) return
+
+  const isConfirmed = await confirmDialog.prompt(
+    `Are you sure you want to permanently delete ${count} selected item${count === 1 ? '' : 's'} and any contents?`,
+    'Confirm Batch Delete',
+    'Delete All',
+    'Cancel'
+  )
+  if (!isConfirmed) return
+
+  try {
+    const ids = Array.from(selectedIds.value)
+    await financeApi.batchDeleteDocuments(ids)
+    notification.success(`Successfully deleted ${count} item${count === 1 ? '' : 's'}`)
+    selectedIds.value = new Set()
+    fetchItems()
+  } catch (e) {
+    try {
+      const ids = Array.from(selectedIds.value)
+      await Promise.allSettled(ids.map(id => financeApi.deleteDocument(id)))
+      notification.success(`Deleted ${count} item${count === 1 ? '' : 's'}`)
+      selectedIds.value = new Set()
+      fetchItems()
+    } catch {
+      notification.error('Failed to delete selected items')
+    }
+  }
+}
+
+function canHaveThumbnail(item: any) {
+  if (item.is_folder || tableImgErrors.value.has(item.id)) return false
+  if (item.thumbnail_path) return true
+  const filename = (item.filename || '').toLowerCase()
+  const mt = (item.mime_type || '').toLowerCase()
+  return mt.startsWith('image/') || mt === 'application/pdf' || /\.(jpe?g|png|gif|webp|svg|pdf)$/i.test(filename)
+}
+
+function onTableRowImgError(id: string) {
+  tableImgErrors.value.add(id)
+}
+
 function navigateTo(id: string | null, name?: string) {
+  selectedIds.value = new Set()
   currentPage.value = 1
   if (id === 'ROOT' || !id) {
     currentFolderId.value = null
@@ -578,6 +659,47 @@ onMounted(() => {
         </div>
       </div>
 
+      <!-- Contextual Batch Action Bar when items are selected -->
+      <Transition enter-active-class="transition duration-150 ease-out" enter-from-class="opacity-0 -translate-y-1">
+        <div
+          v-if="selectedIds.size > 0"
+          class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-wf-primary/10 border border-wf-primary/25 rounded-wf-lg shadow-2xs"
+        >
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-bold font-mono text-wf-primary">
+              {{ selectedIds.size }} selected
+            </span>
+            <div class="h-4 w-px bg-wf-primary/20"></div>
+            <button
+              type="button"
+              @click="selectAllItems"
+              class="text-xs text-wf-text-secondary hover:text-wf-primary underline font-medium"
+            >
+              Select all {{ sortedItems.length }}
+            </button>
+            <button
+              type="button"
+              @click="clearSelection"
+              class="text-xs text-wf-text-muted hover:text-wf-text-primary underline"
+            >
+              Deselect
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <WfButton
+              variant="danger"
+              size="sm"
+              @click="deleteSelected"
+              class="shadow-xs font-semibold"
+            >
+              <Trash2 class="w-3.5 h-3.5 mr-1" />
+              <span>Delete Selected ({{ selectedIds.size }})</span>
+            </WfButton>
+          </div>
+        </div>
+      </Transition>
+
       <!-- 4. CONTENT VIEW: GRID OR LIST/TABLE -->
       <!-- Loading Skeleton State -->
       <div v-if="loading && items.length === 0" class="py-20 text-center space-y-3">
@@ -628,6 +750,9 @@ onMounted(() => {
           v-for="item in paginatedItems"
           :key="item.id"
           :item="item"
+          :selected="selectedIds.has(item.id)"
+          :selection-mode="selectedIds.size > 0"
+          @toggle-select="toggleSelect"
           @click="handleCardClick"
           @preview="openPreview"
           @download="downloadItem"
@@ -640,6 +765,15 @@ onMounted(() => {
         <table class="w-full text-left border-collapse text-xs">
           <thead>
             <tr class="border-b border-wf-border-subtle bg-wf-surface-variant/30 text-[11px] font-bold text-wf-text-muted uppercase tracking-wider">
+              <th scope="col" class="w-10 py-3 px-4 text-center">
+                <input
+                  type="checkbox"
+                  :checked="isAllPageSelected"
+                  @change="toggleSelectAllPage"
+                  class="w-4 h-4 rounded border-wf-border text-wf-primary accent-wf-primary cursor-pointer"
+                  aria-label="Select all items on current page"
+                />
+              </th>
               <th class="py-3 px-4">Name</th>
               <th class="py-3 px-3">Category</th>
               <th class="py-3 px-3">Version</th>
@@ -654,16 +788,40 @@ onMounted(() => {
               v-for="item in paginatedItems"
               :key="item.id"
               @click="handleCardClick(item)"
-              class="hover:bg-wf-surface-variant/40 transition-colors cursor-pointer group"
+              class="transition-colors cursor-pointer group"
+              :class="selectedIds.has(item.id) ? 'bg-wf-primary/5 hover:bg-wf-primary/10' : 'hover:bg-wf-surface-variant/40'"
             >
-              <!-- Name & Type -->
+              <!-- Multi-select Checkbox -->
+              <td class="w-10 py-3 px-4 text-center" @click.stop>
+                <input
+                  type="checkbox"
+                  :checked="selectedIds.has(item.id)"
+                  @change="toggleSelect(item.id)"
+                  class="w-4 h-4 rounded border-wf-border text-wf-primary accent-wf-primary cursor-pointer"
+                  :aria-label="`Select ${item.filename}`"
+                />
+              </td>
+
+              <!-- Name & Content Thumbnail -->
               <td class="py-3 px-4">
                 <div class="flex items-center gap-3">
                   <div
-                    class="w-8 h-8 rounded-wf-md flex items-center justify-center border shrink-0"
+                    class="w-9 h-9 rounded-wf-md flex items-center justify-center border shrink-0 overflow-hidden relative"
                     :class="getItemIconColorClass(item)"
                   >
-                    <component :is="getItemIcon(item)" class="w-4 h-4" />
+                    <img
+                      v-if="canHaveThumbnail(item)"
+                      :src="financeApi.getDocumentThumbnailUrl(item.id)"
+                      alt=""
+                      loading="lazy"
+                      class="w-full h-full object-cover"
+                      @error="onTableRowImgError(item.id)"
+                    />
+                    <component
+                      v-if="!canHaveThumbnail(item) || tableImgErrors.has(item.id)"
+                      :is="getItemIcon(item)"
+                      class="w-4 h-4"
+                    />
                   </div>
                   <div class="min-w-0">
                     <p class="font-bold text-wf-text-primary truncate max-w-xs md:max-w-md" :title="item.filename">

@@ -18,13 +18,16 @@ import {
   MoreVertical,
   Download,
   Link2,
-  Trash2
+  Trash2,
+  Eye
 } from 'lucide-vue-next'
 import WfCard from '@/components/ui/WfCard.vue'
 import { financeApi } from '@/api/client'
 
 const props = defineProps<{
   item: any
+  selected?: boolean
+  selectionMode?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -32,7 +35,17 @@ const emit = defineEmits<{
   (e: 'preview', item: any, isEdit?: boolean): void
   (e: 'download', item: any): void
   (e: 'delete', item: any): void
+  (e: 'toggleSelect', id: string): void
 }>()
+
+const imageFailed = ref(false)
+const hasThumbnail = computed(() => {
+  if (props.item.is_folder || imageFailed.value) return false
+  if (props.item.thumbnail_path) return true
+  const filename = (props.item.filename || '').toLowerCase()
+  const mt = (props.item.mime_type || '').toLowerCase()
+  return mt.startsWith('image/') || mt === 'application/pdf' || /\.(jpe?g|png|gif|webp|svg|pdf)$/i.test(filename)
+})
 
 const menuOpen = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
@@ -116,17 +129,35 @@ function formatDate(dateStr: string) {
     variant="flat"
     padding="none"
     radius="lg"
-    class="relative flex flex-col justify-between overflow-hidden group hover:border-wf-border cursor-pointer transition-all duration-200 shadow-2xs"
+    class="relative flex flex-col justify-between overflow-hidden group cursor-pointer transition-all duration-200 shadow-2xs"
+    :class="selected ? 'border-wf-primary ring-2 ring-wf-primary/40 bg-wf-primary/[0.03]' : 'hover:border-wf-border'"
     @click="emit('click', item)"
   >
     <!-- Preview / Thumbnail Banner Area -->
     <div class="h-28 bg-wf-surface-variant/40 border-b border-wf-border-subtle relative flex items-center justify-center overflow-hidden">
+      <!-- Checkbox for multi-select (top-left) -->
+      <div
+        class="absolute top-2 left-2 z-20 transition-opacity"
+        :class="selected || selectionMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+        @click.stop
+      >
+        <input
+          type="checkbox"
+          :checked="selected"
+          @change="emit('toggleSelect', item.id)"
+          class="w-4 h-4 rounded border-wf-border text-wf-primary accent-wf-primary cursor-pointer shadow-xs bg-wf-surface"
+          :aria-label="`Select ${item.filename}`"
+        />
+      </div>
+
       <!-- Thumbnail image if available -->
       <img
-        v-if="item.thumbnail_path"
+        v-if="hasThumbnail"
         :src="financeApi.getDocumentThumbnailUrl(item.id)"
         alt="thumbnail"
+        loading="lazy"
         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        @error="imageFailed = true"
       />
       <!-- Otherwise Icon Box -->
       <div
@@ -135,6 +166,16 @@ function formatDate(dateStr: string) {
         :class="iconColorClasses"
       >
         <component :is="iconComponent" class="w-6 h-6" />
+      </div>
+
+      <!-- Quick Preview badge overlay on hover (non-folder) -->
+      <div
+        v-if="!item.is_folder"
+        class="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none"
+      >
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-wf-pill bg-wf-surface/95 text-wf-text-primary text-[10px] font-bold shadow-xs">
+          <Eye class="w-3.5 h-3.5 text-wf-primary" /> Preview
+        </span>
       </div>
     </div>
 
