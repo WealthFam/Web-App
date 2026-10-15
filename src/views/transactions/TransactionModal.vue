@@ -2,8 +2,8 @@
 import { ref, computed, reactive, watch } from 'vue'
 import { useCurrency } from '@/composables/useCurrency'
 import {
-    CheckCircle2, X, Pencil, Plus, Info, Tag, Loader2,
-    Settings, ArrowLeftRight, Search, Link, SearchX, LineChart, IndianRupee, Calendar,
+    CheckCircle2, X, Pencil, Plus, Loader2,
+    ArrowLeftRight, Search, Link, SearchX, LineChart, IndianRupee, Calendar,
     FileText, Paperclip, ExternalLink, Trash2, Link2, MapPin,
     FileImage, FileVideo, Music, FileCode, FileArchive, Fingerprint, ShieldCheck, Receipt, Scale, Folder,
     FileSpreadsheet, Presentation, 
@@ -346,245 +346,232 @@ function getIcon(item: any) {
 </script>
 
 <template>
-    <WfModal :model-value="isOpen" @update:model-value="handleClose" max-width="lg">
+    <WfModal :model-value="isOpen" @update:model-value="handleClose" max-width="2xl">
         <template #header>
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-wf-lg bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shrink-0">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shrink-0">
                     <component :is="isEditing ? Pencil : Plus" class="w-4 h-4 text-wf-primary" aria-hidden="true" />
                 </div>
                 <div>
-                    <h3 class="text-base font-bold text-wf-text-primary">
+                    <h3 class="text-sm sm:text-base font-bold text-wf-text-primary leading-tight">
                         {{ isEditing ? 'Edit Transaction' : 'New Transaction' }}
                     </h3>
-                    <p class="text-xs text-wf-text-muted">
+                    <p class="text-[11px] text-wf-text-muted">
                         {{ isEditing ? 'Update transaction details and category' : 'Record a new spending or income' }}
                     </p>
                 </div>
             </div>
         </template>
 
-        <form @submit.prevent="handleSubmit" class="max-h-[72vh] overflow-y-auto pr-1">
-            <div class="space-y-5">
-                <!-- Primary Info Section -->
-                <section>
-                    <div class="flex items-center gap-2 mb-3">
-                        <Info :size="16" class="text-wf-primary" aria-hidden="true" />
-                        <h4 class="text-xs font-bold uppercase tracking-widest text-wf-primary">Basic Details</h4>
-                    </div>
-
-                    <div class="grid grid-cols-12 gap-3">
-                        <div class="col-span-12">
-                            <WfInput v-model="localForm.description" label="Description" placeholder="What was this for?" />
-                        </div>
-                        <div class="col-span-12">
-                            <WfInput v-model="localForm.recipient" label="Merchant / Payee" placeholder="Who did you pay?" />
-                        </div>
-                        <div class="col-span-12">
-                            <WfInput v-model="localForm.location_name" label="Location / City (Optional)" placeholder="e.g. Indiranagar, Bengaluru">
-                                <template #prepend><MapPin :size="14" class="text-wf-primary" /></template>
-                                <template #append>
-                                    <button type="button" title="Detect current GPS location" @click="detectLocation"
-                                        class="text-[11px] font-semibold text-wf-primary bg-wf-primary/10 hover:opacity-80 px-2 py-0.5 rounded-wf-sm">
-                                        Auto GPS
+        <form @submit.prevent="handleSubmit" class="max-h-[74vh] overflow-y-auto pr-1 pb-2 space-y-3">
+            <!-- Row 1: Amount, Type, Date & Time -->
+            <div class="grid grid-cols-12 gap-2.5">
+                <div class="col-span-12 sm:col-span-5">
+                    <WfInput v-model="localForm.amount" label="Amount" required type="number" placeholder="0.00">
+                        <template #prepend><IndianRupee :size="14" class="text-wf-primary" /></template>
+                    </WfInput>
+                </div>
+                <div class="col-span-6 sm:col-span-3">
+                    <WfSelect v-model="localForm.type" label="Type" :teleport="true"
+                        :items="[{ title: 'Debit', value: 'DEBIT' }, { title: 'Credit', value: 'CREDIT' }]" />
+                </div>
+                <div class="col-span-6 sm:col-span-4">
+                    <div class="w-full flex flex-col gap-1.5 text-left">
+                        <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider select-none">
+                            Date &amp; Time<span class="text-wf-error ml-0.5">*</span>
+                        </label>
+                        <div class="date-picker-wrapper">
+                            <VueDatePicker v-model="localForm.date" :dark="isDark" auto-apply
+                                :enable-time-picker="true" model-type="yyyy-MM-dd'T'HH:mm"
+                                format="dd MMM yyyy HH:mm" placeholder="Date & Time *" :teleport="true"
+                                input-class-name="premium-date-input">
+                                <template #trigger>
+                                    <button type="button"
+                                        class="w-full h-10 flex items-center gap-2 px-3 text-sm text-left rounded-wf-md border border-wf-border bg-wf-surface text-wf-text-primary hover:border-slate-300 dark:hover:border-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wf-primary/20 focus-visible:border-wf-primary transition-all">
+                                        <Calendar :size="14" class="text-wf-primary shrink-0" aria-hidden="true" />
+                                        <span class="truncate">{{ localForm.date ? new Date(localForm.date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Select date' }}</span>
                                     </button>
                                 </template>
-                            </WfInput>
-                        </div>
-
-                        <div class="col-span-12 sm:col-span-4 md:col-span-3">
-                            <WfSelect v-model="localForm.type" label="Type"
-                                :items="[{ title: 'Debit', value: 'DEBIT' }, { title: 'Credit', value: 'CREDIT' }]" />
-                        </div>
-                        <div class="col-span-12 sm:col-span-8 md:col-span-5">
-                            <WfInput v-model="localForm.amount" label="Amount" required type="number" placeholder="0.00">
-                                <template #prepend><IndianRupee :size="14" class="text-wf-primary" /></template>
-                            </WfInput>
-                        </div>
-                        <div class="col-span-12 md:col-span-4">
-                            <label class="block text-xs font-semibold text-wf-text-secondary uppercase tracking-wider mb-1.5">
-                                Date &amp; Time<span class="text-wf-error ml-0.5">*</span>
-                            </label>
-                            <div class="date-picker-wrapper">
-                                <VueDatePicker v-model="localForm.date" :dark="isDark" auto-apply
-                                    :enable-time-picker="true" model-type="yyyy-MM-dd'T'HH:mm"
-                                    format="dd MMM yyyy HH:mm" placeholder="Date & Time *" :teleport="true"
-                                    input-class-name="premium-date-input">
-                                    <template #trigger>
-                                        <button type="button"
-                                            class="w-full h-10 flex items-center gap-2 px-3 text-sm text-left rounded-wf-md border border-wf-border bg-wf-surface text-wf-text-primary hover:border-wf-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wf-primary/30">
-                                            <Calendar :size="14" class="text-wf-primary shrink-0" aria-hidden="true" />
-                                            <span class="truncate">{{ localForm.date ? new Date(localForm.date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Select date' }}</span>
-                                        </button>
-                                    </template>
-                                </VueDatePicker>
-                            </div>
+                            </VueDatePicker>
                         </div>
                     </div>
-                </section>
+                </div>
+            </div>
 
-                <!-- Categorization Section -->
-                <section>
-                    <div class="flex items-center gap-2 mb-3">
-                        <Tag :size="16" class="text-wf-secondary" aria-hidden="true" />
-                        <h4 class="text-xs font-bold uppercase tracking-widest text-wf-secondary">Classification</h4>
-                    </div>
+            <!-- Row 2: Merchant & Description -->
+            <div class="grid grid-cols-12 gap-2.5">
+                <div class="col-span-12 sm:col-span-6">
+                    <WfInput v-model="localForm.recipient" label="Merchant / Payee" placeholder="Who did you pay?" />
+                </div>
+                <div class="col-span-12 sm:col-span-6">
+                    <WfInput v-model="localForm.description" label="Description" placeholder="What was this for?" />
+                </div>
+            </div>
 
-                    <div class="grid grid-cols-12 gap-3">
-                        <div class="col-span-12 md:col-span-6">
-                            <WfSelect v-model="localForm.account_id" label="Account" required placeholder="Select account" :items="accountOptions" />
-                        </div>
-                        <div class="col-span-12 md:col-span-6">
-                            <WfSelect v-model="localForm.category" label="Category" required placeholder="Select Category" searchable :items="categoryOptions" />
-                        </div>
-                        <div class="col-span-12">
-                            <WfSelect v-model="localForm.expense_group_id" label="Life Event / Group (Optional)" :items="expenseGroupOptions" />
-                        </div>
-                    </div>
-                </section>
+            <!-- Row 3: Account & Category -->
+            <div class="grid grid-cols-12 gap-2.5">
+                <div class="col-span-12 sm:col-span-6">
+                    <WfSelect v-model="localForm.account_id" label="Account" required placeholder="Select account" :items="accountOptions" :teleport="true" />
+                </div>
+                <div class="col-span-12 sm:col-span-6">
+                    <WfSelect v-model="localForm.category" label="Category" required placeholder="Select Category" searchable :items="categoryOptions" :teleport="true" />
+                </div>
+            </div>
 
-                <!-- Advanced Options Section -->
-                <section>
-                    <div class="flex items-center gap-2 mb-3">
-                        <Settings :size="16" class="text-wf-warning" aria-hidden="true" />
-                        <h4 class="text-xs font-bold uppercase tracking-widest text-wf-warning">Advanced Options</h4>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 rounded-wf-lg border border-wf-border bg-wf-surface">
-                        <label class="flex items-start gap-2.5 cursor-pointer">
-                            <input v-model="localForm.is_transfer" type="checkbox" role="switch" class="mt-0.5 accent-wf-primary" />
-                            <span>
-                                <span class="block text-sm font-semibold text-wf-text-primary">Internal Transfer</span>
-                                <span class="block text-[11px] text-wf-text-muted">Moving money between your own accounts</span>
-                            </span>
-                        </label>
-                        <label class="flex items-start gap-2.5 cursor-pointer">
-                            <input v-model="localForm.exclude_from_reports" type="checkbox" role="switch" class="mt-0.5 accent-wf-error" />
-                            <span>
-                                <span class="block text-sm font-semibold text-wf-text-primary">Hide from Analytics</span>
-                                <span class="block text-[11px] text-wf-text-muted">Exclude from budget/spending</span>
-                            </span>
-                        </label>
-                    </div>
-
-                    <div v-if="localForm.is_transfer" class="mt-3 p-3 rounded-wf-lg bg-wf-primary/5 border border-wf-primary/10">
-                        <div class="flex items-center gap-2 mb-3">
-                            <ArrowLeftRight :size="16" class="text-wf-primary" aria-hidden="true" />
-                            <span class="text-sm font-semibold text-wf-text-primary">Match Transfer Pair</span>
-                        </div>
-
-                        <div class="grid grid-cols-12 gap-3 items-end">
-                            <div class="col-span-12 md:col-span-8">
-                                <WfSelect v-model="localForm.to_account_id" label="Destination Account" required placeholder="Select account" :items="accountOptions" />
-                            </div>
-                            <div class="col-span-12 md:col-span-4">
-                                <WfButton block :loading="isSearchingMatches" @click="emit('findMatches', localForm)">Scan Matches</WfButton>
-                            </div>
-                        </div>
-
-                        <div v-if="matchesSearched" class="mt-4">
-                            <p class="flex items-center gap-2 mb-2 text-xs font-semibold text-wf-text-muted">
-                                <Search :size="13" aria-hidden="true" />
-                                Found {{ potentialMatches.length }} matches within 3-day window
-                            </p>
-
-                            <div class="flex flex-col gap-2">
-                                <button v-for="match in potentialMatches" :key="match.id" type="button"
-                                    class="flex items-center justify-between gap-3 p-3 text-left rounded-wf-lg border transition-colors"
-                                    :class="localForm.linked_transaction_id === match.id
-                                        ? 'border-wf-primary bg-wf-primary/10'
-                                        : 'border-wf-border bg-wf-surface hover:border-wf-primary/40'"
-                                    :aria-pressed="localForm.linked_transaction_id === match.id"
-                                    @click="toggleMatch(match)">
-                                    <span class="flex items-center gap-3 min-w-0">
-                                        <span class="w-8 h-8 shrink-0 rounded-full bg-wf-primary text-white flex items-center justify-center"><Link :size="14" /></span>
-                                        <span class="min-w-0">
-                                            <span class="block text-sm font-semibold text-wf-text-primary truncate">{{ match.description }}</span>
-                                            <span class="block text-[11px] text-wf-text-muted">{{ match.date }}</span>
-                                        </span>
-                                    </span>
-                                    <span class="flex items-center gap-3 shrink-0">
-                                        <span class="font-mono tabular-nums text-sm font-bold text-wf-text-primary">{{ formatAmount(match.amount) }}</span>
-                                        <CheckCircle2 v-if="localForm.linked_transaction_id === match.id" :size="20" class="text-wf-primary" aria-label="Selected" />
-                                        <span v-else class="w-5 h-5 rounded-full border-2 border-wf-border" aria-hidden="true"></span>
-                                    </span>
-                                </button>
-
-                                <div v-if="potentialMatches.length === 0" class="text-center py-5 text-wf-text-muted">
-                                    <SearchX :size="28" class="mx-auto mb-1.5" aria-hidden="true" />
-                                    <div class="text-xs font-semibold">No matching txns found</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <WfAlert v-if="currentCategoryBudget" variant="info" class="mt-3">
-                        <div class="flex items-center justify-between w-full gap-3 text-xs font-semibold">
-                            <span class="flex items-center gap-1.5"><LineChart :size="14" aria-hidden="true" /> {{ currentCategoryBudget.name }} Budget Info</span>
-                            <span class="font-mono tabular-nums">Remaining: {{ formatAmount(currentCategoryBudget.remaining) }}</span>
-                        </div>
-                    </WfAlert>
-                </section>
-
-                <!-- Document Vault Integration -->
-                <section>
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center gap-2">
-                            <Paperclip :size="16" class="text-wf-primary" aria-hidden="true" />
-                            <h4 class="text-xs font-bold uppercase tracking-widest text-wf-primary">Documents</h4>
-                        </div>
-                        <div v-if="isEditing" class="flex items-center gap-1">
-                            <WfButton variant="ghost" size="sm" @click="($refs.txFileInput as HTMLInputElement).click()"><Plus :size="14" /> Upload New</WfButton>
-                            <WfButton variant="ghost" size="sm" @click="openVaultPicker"><Link2 :size="14" /> Link from Vault</WfButton>
-                        </div>
-                        <input type="file" ref="txFileInput" class="hidden" aria-label="Upload document" @change="handleFileUpload" />
-                    </div>
-
-                    <!-- Vault Picker panel -->
-                    <div v-if="vaultPickerOpen && isEditing" class="mb-3 p-3 rounded-wf-lg border border-wf-secondary/30 bg-wf-secondary/5">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-[11px] font-bold uppercase tracking-wider text-wf-text-muted">Pick from vault</span>
-                            <button type="button" aria-label="Close vault picker" class="p-1 rounded-wf-sm text-wf-text-muted hover:bg-wf-surface-variant" @click="vaultPickerOpen = false"><X :size="14" /></button>
-                        </div>
-                        <WfInput v-model="vaultPickerSearch" placeholder="Search vault documents…" class="mb-2"
-                            @update:model-value="onVaultPickerInput">
-                            <template #prepend><Search :size="14" /></template>
-                            <template #append><Loader2 v-if="vaultPickerLoading" :size="14" class="animate-spin" /></template>
-                        </WfInput>
-                        <div v-if="vaultPickerResults.length" class="max-h-[200px] overflow-y-auto rounded-wf-md border border-wf-border divide-y divide-wf-divider">
-                            <button v-for="doc in vaultPickerResults" :key="doc.id" type="button"
-                                class="w-full flex items-center gap-3 p-2.5 text-left hover:bg-wf-surface-variant" @click="linkVaultDoc(doc)">
-                                <span class="w-8 h-8 shrink-0 rounded-wf-md bg-wf-surface-variant overflow-hidden flex items-center justify-center">
-                                    <img v-if="doc.thumbnail_path" :src="financeApi.getDocumentThumbnailUrl(doc.id)" :alt="doc.filename" class="w-full h-full object-cover" />
-                                    <component v-else :is="getIcon(doc)" :size="16" class="text-wf-text-muted" />
-                                </span>
-                                <span class="flex-1 min-w-0">
-                                    <span class="block text-xs font-semibold text-wf-text-primary truncate">{{ doc.filename }}</span>
-                                    <span class="block text-[10px] text-wf-text-muted">{{ doc.file_type }} - {{ doc.transaction_id ? '(linked)' : 'Free' }}</span>
-                                </span>
-                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-wf-sm bg-wf-primary/10 text-wf-primary">LINK</span>
+            <!-- Row 4: Life Event & Location -->
+            <div class="grid grid-cols-12 gap-2.5">
+                <div class="col-span-12 sm:col-span-6">
+                    <WfSelect v-model="localForm.expense_group_id" label="Life Event / Group (Optional)" :items="expenseGroupOptions" :teleport="true" />
+                </div>
+                <div class="col-span-12 sm:col-span-6">
+                    <WfInput v-model="localForm.location_name" label="Location (Optional)" placeholder="e.g. Indiranagar, Bengaluru">
+                        <template #prepend><MapPin :size="14" class="text-wf-primary" /></template>
+                        <template #append>
+                            <button type="button" title="Detect current GPS location" @click="detectLocation"
+                                class="text-[11px] font-semibold text-wf-primary bg-wf-primary/10 hover:opacity-80 px-2 py-0.5 rounded-wf-sm">
+                                Auto GPS
                             </button>
-                        </div>
-                        <div v-else-if="!vaultPickerLoading" class="text-xs text-wf-text-muted text-center py-3">No documents found</div>
-                    </div>
+                        </template>
+                    </WfInput>
+                </div>
+            </div>
 
-                    <div class="p-1 rounded-wf-lg border border-wf-border bg-wf-surface">
-                        <ul v-if="attachedDocs.length > 0" class="space-y-0.5">
-                            <li v-for="doc in attachedDocs" :key="doc.id" class="flex items-center gap-3 p-2 rounded-wf-md hover:bg-wf-surface-variant">
-                                <span class="w-6 h-6 shrink-0 rounded-wf-sm bg-wf-surface-variant overflow-hidden flex items-center justify-center">
-                                    <img v-if="doc.thumbnail_path" :src="financeApi.getDocumentThumbnailUrl(doc.id)" :alt="doc.filename" class="w-full h-full object-cover" />
-                                    <component v-else :is="getIcon(doc)" :size="14" class="text-wf-text-muted" />
+            <!-- Row 5: Compact Toggles -->
+            <div class="flex flex-wrap items-center justify-between gap-3 p-2 rounded-wf-md border border-wf-border bg-wf-surface-variant/30 text-xs">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input v-model="localForm.is_transfer" type="checkbox" role="switch" class="accent-wf-primary h-3.5 w-3.5 rounded" />
+                    <span class="font-semibold text-wf-text-primary">Internal Transfer</span>
+                    <span class="text-[10px] text-wf-text-muted hidden sm:inline">(between own accounts)</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input v-model="localForm.exclude_from_reports" type="checkbox" role="switch" class="accent-wf-error h-3.5 w-3.5 rounded" />
+                    <span class="font-semibold text-wf-text-primary">Hide from Reports</span>
+                    <span class="text-[10px] text-wf-text-muted hidden sm:inline">(exclude from analytics)</span>
+                </label>
+            </div>
+
+            <!-- Transfer Matching -->
+            <div v-if="localForm.is_transfer" class="p-2.5 rounded-wf-md bg-wf-primary/5 border border-wf-primary/10 space-y-2.5">
+                <div class="flex items-center gap-2">
+                    <ArrowLeftRight :size="14" class="text-wf-primary" aria-hidden="true" />
+                    <span class="text-xs font-bold uppercase tracking-wider text-wf-primary">Match Transfer Pair</span>
+                </div>
+
+                <div class="grid grid-cols-12 gap-2.5 items-end">
+                    <div class="col-span-12 sm:col-span-8">
+                        <WfSelect v-model="localForm.to_account_id" label="Destination Account" required placeholder="Select account" :items="accountOptions" :teleport="true" />
+                    </div>
+                    <div class="col-span-12 sm:col-span-4">
+                        <WfButton block :loading="isSearchingMatches" @click="emit('findMatches', localForm)">Scan Matches</WfButton>
+                    </div>
+                </div>
+
+                <div v-if="matchesSearched" class="pt-1">
+                    <p class="flex items-center gap-1.5 mb-1.5 text-xs font-semibold text-wf-text-muted">
+                        <Search :size="13" aria-hidden="true" />
+                        Found {{ potentialMatches.length }} matches within 3-day window
+                    </p>
+
+                    <div class="flex flex-col gap-1.5 max-h-40 overflow-y-auto">
+                        <button v-for="match in potentialMatches" :key="match.id" type="button"
+                            class="flex items-center justify-between gap-3 p-2 text-left rounded-wf-md border transition-colors"
+                            :class="localForm.linked_transaction_id === match.id
+                                ? 'border-wf-primary bg-wf-primary/10'
+                                : 'border-wf-border bg-wf-surface hover:border-wf-primary/40'"
+                            :aria-pressed="localForm.linked_transaction_id === match.id"
+                            @click="toggleMatch(match)">
+                            <span class="flex items-center gap-2 min-w-0">
+                                <span class="w-6 h-6 shrink-0 rounded-full bg-wf-primary text-white flex items-center justify-center"><Link :size="12" /></span>
+                                <span class="min-w-0">
+                                    <span class="block text-xs font-semibold text-wf-text-primary truncate">{{ match.description }}</span>
+                                    <span class="block text-[10px] text-wf-text-muted">{{ match.date }}</span>
                                 </span>
-                                <span class="flex-1 min-w-0 text-xs font-semibold text-wf-text-primary truncate">{{ doc.filename }}</span>
-                                <button type="button" aria-label="Open document" class="p-1 rounded-wf-sm text-wf-primary hover:bg-wf-primary/10" @click="openDoc(doc.id)"><ExternalLink :size="14" /></button>
-                                <button type="button" aria-label="Detach document" class="p-1 rounded-wf-sm text-wf-error hover:bg-wf-error/10" @click="detachDoc(doc.id)"><Trash2 :size="14" /></button>
-                            </li>
-                        </ul>
-                        <div v-else class="p-5 text-center text-wf-text-muted">
-                            <p class="text-xs font-semibold">No documents attached</p>
-                            <p v-if="!isEditing" class="text-[10px] mt-0.5">Save transaction first to attach docs</p>
+                            </span>
+                            <span class="flex items-center gap-2 shrink-0">
+                                <span class="font-mono tabular-nums text-xs font-bold text-wf-text-primary">{{ formatAmount(match.amount) }}</span>
+                                <CheckCircle2 v-if="localForm.linked_transaction_id === match.id" :size="16" class="text-wf-primary" aria-label="Selected" />
+                                <span v-else class="w-4 h-4 rounded-full border border-wf-border" aria-hidden="true"></span>
+                            </span>
+                        </button>
+
+                        <div v-if="potentialMatches.length === 0" class="text-center py-2.5 text-wf-text-muted">
+                            <SearchX :size="18" class="mx-auto mb-1 text-wf-text-muted" aria-hidden="true" />
+                            <div class="text-xs font-semibold">No matching txns found</div>
                         </div>
                     </div>
-                </section>
+                </div>
+            </div>
+
+            <!-- Budget Alert -->
+            <WfAlert v-if="currentCategoryBudget" variant="info" class="py-1 px-2.5">
+                <div class="flex items-center justify-between w-full gap-3 text-xs font-semibold">
+                    <span class="flex items-center gap-1.5"><LineChart :size="13" aria-hidden="true" /> {{ currentCategoryBudget.name }} Budget</span>
+                    <span class="font-mono tabular-nums text-xs">Remaining: {{ formatAmount(currentCategoryBudget.remaining) }}</span>
+                </div>
+            </WfAlert>
+
+            <!-- Document Vault Section -->
+            <div v-if="isEditing" class="pt-2 border-t border-wf-border-subtle space-y-2">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                        <Paperclip :size="14" class="text-wf-text-secondary" aria-hidden="true" />
+                        <span class="text-xs font-bold uppercase tracking-wider text-wf-text-secondary">Receipts &amp; Documents</span>
+                        <span v-if="attachedDocs.length" class="text-[10px] font-bold px-1.5 py-0.2 rounded-wf-pill bg-wf-primary/10 text-wf-primary">
+                            {{ attachedDocs.length }}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button type="button" class="px-2 py-0.5 text-xs font-medium text-wf-primary hover:bg-wf-primary/10 rounded-wf-sm transition-colors flex items-center gap-1" @click="($refs.txFileInput as HTMLInputElement).click()">
+                            <Plus :size="12" /> Upload
+                        </button>
+                        <button type="button" class="px-2 py-0.5 text-xs font-medium text-wf-text-secondary hover:bg-wf-surface-variant rounded-wf-sm transition-colors flex items-center gap-1" @click="openVaultPicker">
+                            <Link2 :size="12" /> Link Vault
+                        </button>
+                    </div>
+                    <input type="file" ref="txFileInput" class="hidden" aria-label="Upload document" @change="handleFileUpload" />
+                </div>
+
+                <!-- Vault Picker panel -->
+                <div v-if="vaultPickerOpen" class="p-2.5 rounded-wf-md border border-wf-secondary/30 bg-wf-secondary/5">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted">Pick from vault</span>
+                        <button type="button" aria-label="Close vault picker" class="p-0.5 rounded text-wf-text-muted hover:bg-wf-surface-variant" @click="vaultPickerOpen = false"><X :size="13" /></button>
+                    </div>
+                    <WfInput v-model="vaultPickerSearch" placeholder="Search vault documents…" class="mb-2"
+                        @update:model-value="onVaultPickerInput">
+                        <template #prepend><Search :size="13" /></template>
+                        <template #append><Loader2 v-if="vaultPickerLoading" :size="13" class="animate-spin" /></template>
+                    </WfInput>
+                    <div v-if="vaultPickerResults.length" class="max-h-36 overflow-y-auto rounded-wf-sm border border-wf-border divide-y divide-wf-divider">
+                        <button v-for="doc in vaultPickerResults" :key="doc.id" type="button"
+                            class="w-full flex items-center gap-2 p-1.5 text-left hover:bg-wf-surface-variant" @click="linkVaultDoc(doc)">
+                            <span class="w-6 h-6 shrink-0 rounded bg-wf-surface-variant overflow-hidden flex items-center justify-center">
+                                <img v-if="doc.thumbnail_path" :src="financeApi.getDocumentThumbnailUrl(doc.id)" :alt="doc.filename" class="w-full h-full object-cover" />
+                                <component v-else :is="getIcon(doc)" :size="13" class="text-wf-text-muted" />
+                            </span>
+                            <span class="flex-1 min-w-0">
+                                <span class="block text-xs font-semibold text-wf-text-primary truncate">{{ doc.filename }}</span>
+                            </span>
+                            <span class="text-[10px] font-bold px-1 py-0.5 rounded bg-wf-primary/10 text-wf-primary">LINK</span>
+                        </button>
+                    </div>
+                    <div v-else-if="!vaultPickerLoading" class="text-[11px] text-wf-text-muted text-center py-2">No documents found</div>
+                </div>
+
+                <!-- Attached docs list -->
+                <div v-if="attachedDocs.length > 0" class="p-1 rounded-wf-md border border-wf-border bg-wf-surface">
+                    <ul class="space-y-0.5">
+                        <li v-for="doc in attachedDocs" :key="doc.id" class="flex items-center gap-2.5 p-1.5 rounded hover:bg-wf-surface-variant">
+                            <span class="w-6 h-6 shrink-0 rounded bg-wf-surface-variant overflow-hidden flex items-center justify-center">
+                                <img v-if="doc.thumbnail_path" :src="financeApi.getDocumentThumbnailUrl(doc.id)" :alt="doc.filename" class="w-full h-full object-cover" />
+                                <component v-else :is="getIcon(doc)" :size="13" class="text-wf-text-muted" />
+                            </span>
+                            <span class="flex-1 min-w-0 text-xs font-semibold text-wf-text-primary truncate">{{ doc.filename }}</span>
+                            <button type="button" aria-label="Open document" class="p-1 rounded text-wf-primary hover:bg-wf-primary/10" @click="openDoc(doc.id)"><ExternalLink :size="13" /></button>
+                            <button type="button" aria-label="Detach document" class="p-1 rounded text-wf-error hover:bg-wf-error/10" @click="detachDoc(doc.id)"><Trash2 :size="13" /></button>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </form>
 

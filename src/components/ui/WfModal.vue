@@ -6,7 +6,7 @@ interface Props {
   modelValue: boolean
   title?: string
   description?: string
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl'
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -72,6 +72,7 @@ watch(() => props.modelValue, (isOpen) => {
             maxWidth === 'md' ? 'max-w-md' : '',
             maxWidth === 'lg' ? 'max-w-lg' : '',
             maxWidth === 'xl' ? 'max-w-xl' : '',
+            maxWidth === '2xl' ? 'max-w-2xl' : '',
           ]"
         >
           <div v-if="title || $slots.header" class="flex items-center justify-between px-6 py-4 border-b border-wf-divider">
