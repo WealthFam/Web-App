@@ -135,12 +135,6 @@
                         </div>
                     </Transition>
 
-                    <!-- Records Count Badge -->
-                    <span class="text-xs font-mono font-medium px-2.5 h-8 rounded-wf-md bg-wf-surface-variant text-wf-text-secondary border border-wf-border-subtle whitespace-nowrap flex items-center">
-                        {{ total }} <span class="text-[11px] text-wf-text-muted ml-1">records</span>
-                    </span>
-
-                    <div class="h-5 w-px bg-wf-border-subtle hidden sm:block"></div>
 
                     <!-- Primary Action Buttons -->
                     <WfButton variant="outline" size="sm" @click="emit('importCsv')">
