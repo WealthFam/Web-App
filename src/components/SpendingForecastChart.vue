@@ -1,14 +1,14 @@
 <template>
     <div class="forecast-chart-wrapper relative" :style="{ height: (height + 30) + 'px' }">
         <!-- Overlay Tooltip -->
-        <div v-if="hoveredBar !== null" class="chart-tooltip glass-card p-3"
-            :style="{ left: tooltipPos.x + 'px', top: '-60px' }">
+        <div v-if="hoveredBar !== null" class="chart-tooltip rounded-wf-md p-2.5 shadow-lg border border-wf-border bg-wf-surface/95 backdrop-blur-md"
+            :style="{ left: tooltipPos.x + 'px', top: tooltipPos.y + 'px' }">
             <div class="text-xs font-bold mb-1">{{ formatDate(hoveredBar.date) }} <span
                     v-if="hoveredBar.is_forecast" class="text-wf-primary font-bold ml-1">(Forecast)</span></div>
             <div v-for="(val, key) in hoveredBar.stacks" :key="key" class="flex items-center gap-2 mb-1">
                 <div class="stack-indicator" :style="{ background: getStackColor(String(key)) }"></div>
                 <span class="text-tiny font-bold opacity-70">{{ getUserName(String(key)) }}:</span>
-                <span class="text-tiny font-bold">₹{{ Math.round(val) }}</span>
+                <span class="text-tiny font-bold">₹{{ Math.round(Number(val)) }}</span>
             </div>
             <div class="h-px bg-wf-border my-1"></div>
             <div class="flex items-center justify-between gap-4">
@@ -174,9 +174,18 @@ function onHover(day: any, idx: number) {
     }, 0)
     hoveredBar.value = { ...day, total }
 
-    // Calculate tooltip X
-    const x = axisPadding + idx * (barWidth.value + gap.value)
-    tooltipPos.value = { x: Math.min(props.width - 150, Math.max(0, x - 75)), y: 0 }
+    const tooltipWidth = 185
+    const barX = axisPadding + idx * (barWidth.value + gap.value)
+
+    let x: number
+    if (idx < (props.trend.length / 2)) {
+        x = barX + barWidth.value + 8
+    } else {
+        x = barX - tooltipWidth - 8
+    }
+    x = Math.max(axisPadding, Math.min(props.width - tooltipWidth - 8, x))
+
+    tooltipPos.value = { x, y: 4 }
 }
 </script>
 
@@ -203,12 +212,12 @@ function onHover(day: any, idx: number) {
 .chart-tooltip {
     position: absolute;
     z-index: 100;
-    min-width: 180px;
+    width: 185px;
     pointer-events: none;
     background: var(--wf-color-surface, #ffffff);
     backdrop-filter: blur(12px);
     border: 1px solid var(--wf-color-border, #e2e8f0);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .stack-indicator {

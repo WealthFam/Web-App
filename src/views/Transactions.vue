@@ -69,7 +69,8 @@
                     variant="flat"
                     padding="none"
                     radius="lg"
-                    class="overflow-hidden border border-wf-border"
+                    class="border border-wf-border transition-all"
+                    :class="showVelocityChart ? 'overflow-visible' : 'overflow-hidden'"
                 >
                     <div class="px-4 py-2 flex items-center justify-between cursor-pointer select-none hover:bg-wf-surface-variant transition-colors" @click="showVelocityChart = !showVelocityChart">
                         <div class="flex items-center gap-2">
@@ -86,9 +87,9 @@
                     </div>
 
                     <Transition enter-active-class="transition-opacity duration-200" enter-from-class="opacity-0" leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
-                        <div v-if="showVelocityChart && forecastData" ref="chartContainer" class="px-4 pb-2.5 pt-0" style="height: 110px; width: 100%;">
+                        <div v-if="showVelocityChart && forecastData" ref="chartContainer" class="px-4 pb-2.5 pt-0 overflow-visible relative" style="min-height: 125px; width: 100%;">
                             <SpendingForecastChart :trend="forecastData.trend" :user-names="forecastData.user_names"
-                                :height="90" :width="chartWidth" />
+                                :height="95" :width="chartWidth" />
                         </div>
                     </Transition>
                 </WfCard>
