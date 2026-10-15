@@ -37,11 +37,9 @@ export function useTransactionState(
     const selectedAccount = ref<string>('')
     const searchQuery = ref('')
     const categoryFilter = ref('')
-    const today = new Date()
-    const startDate = ref<string>(localDateString(today.getFullYear(), today.getMonth(), 1))
-    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-    const endDate = ref<string>(localDateString(lastDayOfMonth.getFullYear(), lastDayOfMonth.getMonth(), lastDayOfMonth.getDate()))
-    const selectedTimeRange = ref<string>('this-month')
+    const startDate = ref<string>('')
+    const endDate = ref<string>('')
+    const selectedTimeRange = ref<string>('all')
 
     const timeRangeOptions = [
         { title: 'All Time', value: 'all' },
