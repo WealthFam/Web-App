@@ -1,93 +1,98 @@
 <template>
     <MainLayout>
-        <v-container fluid class="page-container dashboard-page">
-            <!-- Animated Mesh Background -->
-            <div class="mesh-blob blob-1"
-                style="background: rgba(var(--v-theme-primary), 0.1); width: 600px; height: 600px; top: -200px; right: -100px;">
-            </div>
-            <div class="mesh-blob blob-2"
-                style="background: rgba(var(--v-theme-secondary), 0.05); width: 400px; height: 400px; bottom: -100px; left: -100px;">
-            </div>
-
-            <div class="relative-pos z-10">
-                <!-- Premium Header -->
-                <v-row class="mb-6 align-center">
-                    <v-col cols="12" md="4">
-                        <div class="d-flex align-center">
-                            <h1 class="text-h6 font-weight-black text-content">Transactions</h1>
-                        </div>
-                        <p class="text-subtitle-2 text-medium-emphasis font-weight-bold mt-1 opacity-70">
-                            Track and manage your family's spending
+        <div class="space-y-4">
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wf-border-subtle">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs shrink-0">
+                        <Wallet class="w-4.5 h-4.5 text-wf-primary" />
+                    </div>
+                    <div>
+                        <h1 class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary leading-tight">Transactions</h1>
+                        <p class="text-xs text-wf-text-secondary mt-0.5">
+                            Track and manage your family's spending ledger and automated categorization.
                         </p>
-                    </v-col>
+                    </div>
+                </div>
 
-                    <v-col cols="12" md="8" class="d-flex flex-column flex-md-row align-md-center justify-end gap-3">
-                        <!-- Navigation Tabs -->
-                        <div class="premium-pill-tabs flex-grow-1 flex-md-grow-0 d-flex overflow-x-auto">
-                            <v-tabs v-model="activeTab" color="primary" density="comfortable" hide-slider show-arrows
-                                class="rounded-xl">
-                                <v-tab value="list" class="premium-tab" rounded="xl" @click="fetchData">
-                                    <div class="d-flex align-center gap-2">
-                                        <LayoutList :size="16" />
-                                        <span>List</span>
-                                    </div>
-                                </v-tab>
-                                <v-tab value="pending" class="premium-tab" rounded="xl" @click="fetchTriage">
-                                    <div class="d-flex align-center gap-2">
-                                        <Inbox :size="16" />
-                                        <span>Inbox</span>
-                                        <v-chip v-if="triagePagination.total > 0" size="x-small" color="primary"
-                                            class="ml-1 font-weight-black">
-                                            {{ triagePagination.total }}
-                                        </v-chip>
-                                    </div>
-                                </v-tab>
-                                <v-tab value="training" class="premium-tab" rounded="xl" @click="fetchTriage">
-                                    <div class="d-flex align-center gap-2">
-                                        <Target :size="16" />
-                                        <span>Training</span>
-                                        <v-chip v-if="trainingPagination.total > 0" size="x-small" color="primary"
-                                            class="ml-1 font-weight-black">
-                                            {{ trainingPagination.total }}
-                                        </v-chip>
-                                    </div>
-                                </v-tab>
-                                <v-tab value="heatmap" class="premium-tab" rounded="xl">
-                                    <div class="d-flex align-center gap-2">
-                                        <MapIcon :size="16" />
-                                        <span>Heatmap</span>
-                                    </div>
-                                </v-tab>
-                            </v-tabs>
+                <!-- Navigation Tabs -->
+                <div class="flex items-center gap-2 self-start sm:self-auto">
+                    <div class="flex items-center p-0.5 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs">
+                        <button
+                            type="button"
+                            class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-wf-sm transition-all"
+                            :class="activeTab === 'list'
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'"
+                            @click="activeTab = 'list'; fetchData()"
+                        >
+                            <LayoutList :size="14" />
+                            <span>List</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-wf-sm transition-all"
+                            :class="activeTab === 'pending'
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'"
+                            @click="activeTab = 'pending'; fetchTriage()"
+                        >
+                            <Inbox :size="14" />
+                            <span>Inbox</span>
+                            <span
+                                v-if="triagePagination.total > 0"
+                                class="px-1.5 py-0.2 text-[10px] font-bold rounded-wf-pill bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50"
+                            >
+                                {{ triagePagination.total }}
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-wf-sm transition-all"
+                            :class="activeTab === 'heatmap'
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'"
+                            @click="activeTab = 'heatmap'"
+                        >
+                            <MapIcon :size="14" />
+                            <span>Heatmap</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTENT AREA -->
+            <div v-show="activeTab === 'list'" class="space-y-2.5">
+                <!-- QUICK CHART ROW (Compact & Collapsible) -->
+                <WfCard
+                    v-if="forecastData && forecastData.trend.length > 0"
+                    variant="flat"
+                    padding="none"
+                    radius="lg"
+                    class="border border-wf-border transition-all"
+                    :class="showVelocityChart ? 'overflow-visible' : 'overflow-hidden'"
+                >
+                    <div class="px-4 py-2 flex items-center justify-between cursor-pointer select-none hover:bg-wf-surface-variant transition-colors" @click="showVelocityChart = !showVelocityChart">
+                        <div class="flex items-center gap-2">
+                            <Activity :size="14" class="text-wf-primary" />
+                            <span class="text-xs sm:text-sm font-bold text-wf-text-primary">Spending Velocity & Forecast</span>
+                            <span class="text-[10px] font-bold font-mono bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50 px-2 py-0.5 rounded-wf-pill">
+                                AVG {{ formatAmount(metrics.avg_daily_spending || 0) }}/DAY
+                            </span>
                         </div>
-                    </v-col>
-                </v-row>
+                        <div class="flex items-center gap-1 text-xs text-wf-text-muted font-semibold">
+                            <span>{{ showVelocityChart ? 'Hide' : 'Show' }}</span>
+                            <ChevronDown :size="14" class="transition-transform duration-200" :class="{ 'rotate-180': showVelocityChart }" />
+                        </div>
+                    </div>
 
-                <!-- CONTENT AREA -->
-                <v-window v-model="activeTab" class="overflow-visible">
-                    <v-window-item value="list">
-                        <!-- QUICK CHART ROW -->
-                        <v-card v-if="forecastData && forecastData.trend.length > 0"
-                            class="glass-card mb-6 overflow-hidden" rounded="xl">
-                            <div class="pa-5 pb-0">
-                                <div class="d-flex align-center justify-space-between">
-                                    <h3 class="text-subtitle-1 font-weight-black d-flex align-center gap-2">
-                                        <Activity :size="20" class="text-primary" />
-                                        Spending Velocity & Forecast
-                                    </h3>
-                                    <div
-                                        class="text-tiny font-weight-black bg-primary-lighten-5 px-3 py-1 rounded-pill text-primary">
-                                        AVG ₹{{ Math.round(metrics.avg_daily_spending || 0) }}/DAY
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div v-if="forecastData" ref="chartContainer" class="py-8"
-                                style="height: 180px; width: 100%;">
-                                <SpendingForecastChart :trend="forecastData.trend" :user-names="forecastData.user_names"
-                                    :height="120" :width="chartWidth" />
-                            </div>
-                        </v-card>
+                    <Transition enter-active-class="transition-opacity duration-200" enter-from-class="opacity-0" leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
+                        <div v-if="showVelocityChart && forecastData" ref="chartContainer" class="px-4 pb-2.5 pt-0 overflow-visible relative" style="min-height: 125px; width: 100%;">
+                            <SpendingForecastChart :trend="forecastData.trend" :user-names="forecastData.user_names"
+                                :height="95" :width="chartWidth" />
+                        </div>
+                    </Transition>
+                </WfCard>
 
                         <TransactionList v-bind="{
                             transactions, accounts, categories, expenseGroups,
@@ -108,102 +113,35 @@
                             @deleteSelected="showDeleteConfirm = true" @importCsv="showImportModal = true"
                             @fetchData="fetchData" @showVendorInsights="openVendorInsights"
                             @resetFilters="selectedTimeRange = 'all'; startDate = ''; endDate = ''; searchQuery = ''; categoryFilter = ''; fetchData()" />
-                    </v-window-item>
-
-                    <v-window-item value="pending">
-                        <TransactionTriage v-bind="{
-                            activeSubTab: 'pending', accounts, categories,
-                            triageTransactions, triagePagination, triageSearchQuery,
-                            triageSourceFilter, triageSortKey, triageSortOrder,
-                            unparsedMessages, trainingPagination, trainingSearchQuery,
-                            trainingSortKey, trainingSortOrder,
-                            // Confirmation States
-                            showDiscardConfirm, showTrainingDiscardConfirm, createIgnoreRule,
-                            triageIdToDiscard, trainingIdToDiscard,
-                            showLabelForm, selectedMessage, labelForm
-                        }" v-model:selectedTriageIds="selectedTriageIds"
-                            v-model:selectedTrainingIds="selectedTrainingIds"
-                            @update:activeSubTab="activeTriageSubTab = $event"
-                            @update:triageSearchQuery="triageSearchQuery = $event"
-                            @update:triageSourceFilter="triageSourceFilter = $event as any"
-                            @update:triageSortKey="triageSortKey = $event"
-                            @update:triageSortOrder="triageSortOrder = $event"
-                            @update:triagePagination="triagePagination = $event; fetchTriage()"
-                            @update:trainingSearchQuery="trainingSearchQuery = $event"
-                            @update:trainingSortKey="trainingSortKey = $event"
-                            @update:trainingSortOrder="trainingSortOrder = $event"
-                            @update:trainingPagination="trainingPagination = $event; fetchTriage()"
-                            @update:showDiscardConfirm="showDiscardConfirm = $event"
-                            @update:showTrainingDiscardConfirm="showTrainingDiscardConfirm = $event"
-                            @update:createIgnoreRule="createIgnoreRule = $event" @approveTriage="approveTriage"
-                            @rejectTriage="rejectTriage" @bulkRejectTriage="handleBulkRejectTriage"
-                            @startLabeling="startLabeling" @dismissTraining="dismissTraining"
-                            @bulkDismissTraining="handleBulkDismissTraining" @confirmDiscard="confirmDiscard"
-                            @confirmTrainingDiscard="confirmTrainingDiscard"
-                            @confirmBulkDiscard="handleBulkRejectTriage"
-                            @confirmBulkTrainingDiscard="handleConfirmGlobalTrainingDismiss"
-                            @refreshTriage="() => { fetchTriage(); fetchData(); }"
-                            @update:showLabelForm="showLabelForm = $event" @handleLabelSubmit="handleLabelSubmit"
-                            :training-sender-filter="trainingSenderFilter" :training-subject-filter="trainingSubjectFilter"
-                            :spam-filters="spamFilters" :show-spam-manager="showSpamManager"
-                            @update:trainingSenderFilter="trainingSenderFilter = $event"
-                            @update:trainingSubjectFilter="trainingSubjectFilter = $event"
-                            @update:showSpamManager="showSpamManager = $event"
-                            @markAsSpam="markAsSpam" @findSimilar="findSimilar"
-                            @removeSpamFilter="removeSpamFilter" @fetchSpamFilters="fetchSpamFilters" />
-                    </v-window-item>
-
-                    <v-window-item value="training">
-                        <TransactionTriage v-bind="{
-                            activeSubTab: 'training', accounts, categories,
-                            triageTransactions, triagePagination, triageSearchQuery,
-                            triageSourceFilter, triageSortKey, triageSortOrder,
-                            unparsedMessages, trainingPagination, trainingSearchQuery,
-                            trainingSortKey, trainingSortOrder,
-                            // Confirmation States
-                            showDiscardConfirm, showTrainingDiscardConfirm, createIgnoreRule,
-                            triageIdToDiscard, trainingIdToDiscard,
-                            showLabelForm, selectedMessage, labelForm
-                        }" v-model:selectedTriageIds="selectedTriageIds"
-                            v-model:selectedTrainingIds="selectedTrainingIds"
-                            @update:activeSubTab="activeTriageSubTab = $event"
-                            @update:triageSearchQuery="triageSearchQuery = $event"
-                            @update:triageSourceFilter="triageSourceFilter = $event as any"
-                            @update:triageSortKey="triageSortKey = $event"
-                            @update:triageSortOrder="triageSortOrder = $event"
-                            @update:triagePagination="triagePagination = $event; fetchTriage()"
-                            @update:trainingSearchQuery="trainingSearchQuery = $event"
-                            @update:trainingSortKey="trainingSortKey = $event"
-                            @update:trainingSortOrder="trainingSortOrder = $event"
-                            @update:trainingPagination="trainingPagination = $event; fetchTriage()"
-                            @update:showDiscardConfirm="showDiscardConfirm = $event"
-                            @update:showTrainingDiscardConfirm="showTrainingDiscardConfirm = $event"
-                            @update:createIgnoreRule="createIgnoreRule = $event" @approveTriage="approveTriage"
-                            @rejectTriage="rejectTriage" @bulkRejectTriage="handleBulkRejectTriage"
-                            @startLabeling="startLabeling" @dismissTraining="dismissTraining"
-                            @bulkDismissTraining="handleBulkDismissTraining" @confirmDiscard="confirmDiscard"
-                            @confirmTrainingDiscard="confirmTrainingDiscard"
-                            @confirmBulkDiscard="handleBulkRejectTriage"
-                            @confirmBulkTrainingDiscard="handleConfirmGlobalTrainingDismiss"
-                            @refreshTriage="() => { fetchTriage(); fetchData(); }"
-                            @update:showLabelForm="showLabelForm = $event" @handleLabelSubmit="handleLabelSubmit"
-                            :training-sender-filter="trainingSenderFilter" :training-subject-filter="trainingSubjectFilter"
-                            :spam-filters="spamFilters" :show-spam-manager="showSpamManager"
-                            @update:trainingSenderFilter="trainingSenderFilter = $event"
-                            @update:trainingSubjectFilter="trainingSubjectFilter = $event"
-                            @update:showSpamManager="showSpamManager = $event"
-                            @markAsSpam="markAsSpam" @findSimilar="findSimilar"
-                            @removeSpamFilter="removeSpamFilter" @fetchSpamFilters="fetchSpamFilters" />
-                    </v-window-item>
-
-                    <v-window-item value="heatmap">
-                        <div class="content-card pa-6 glass-card">
-                            <SpendingHeatmap :start-date="startDate" :end-date="endDate" />
-                        </div>
-                    </v-window-item>
-                </v-window>
             </div>
-        </v-container>
+
+            <div v-show="activeTab === 'pending'">
+                <TransactionTriage v-bind="{
+                    activeSubTab: 'pending', accounts, categories,
+                    triageTransactions, triagePagination, triageSearchQuery,
+                    triageSourceFilter, triageSortKey, triageSortOrder,
+                    // Confirmation States
+                    showDiscardConfirm, createIgnoreRule,
+                    triageIdToDiscard
+                }" v-model:selectedTriageIds="selectedTriageIds"
+                    @update:activeSubTab="activeTriageSubTab = $event"
+                    @update:triageSearchQuery="triageSearchQuery = $event"
+                    @update:triageSourceFilter="triageSourceFilter = $event as any"
+                    @update:triageSortKey="triageSortKey = $event"
+                    @update:triageSortOrder="triageSortOrder = $event"
+                    @update:triagePagination="triagePagination = $event; fetchTriage()"
+                    @update:showDiscardConfirm="showDiscardConfirm = $event"
+                    @update:createIgnoreRule="createIgnoreRule = $event" @approveTriage="approveTriage"
+                    @rejectTriage="rejectTriage" @bulkRejectTriage="handleBulkRejectTriage"
+                    @confirmDiscard="confirmDiscard"
+                    @confirmBulkDiscard="handleBulkRejectTriage"
+                    @refreshTriage="() => { fetchTriage(); fetchData(); }" />
+            </div>
+
+            <div v-show="activeTab === 'heatmap'">
+                <SpendingHeatmap :start-date="startDate" :end-date="endDate" />
+            </div>
+        </div>
 
         <!-- Modals -->
         <ImportModal :isOpen="showImportModal" @close="showImportModal = false" @import-success="fetchData" />
@@ -217,33 +155,44 @@
 
         <VendorInsightsModal v-model="showVendorModal" :vendor-name="selectedVendorForInsights" />
 
-
-
-
         <!-- Delete Confirmation Dialog -->
-        <v-dialog v-model="showDeleteConfirm" max-width="450">
-            <v-card class="glass-card" rounded="xl">
-                <v-card-text class="text-center pa-6">
-                    <div class="text-h2 mb-4">🗑️</div>
-                    <div class="text-h5 font-weight-bold mb-2">Delete Transactions?</div>
-                    <p class="text-body-2 text-medium-emphasis mb-6">
-                        Are you sure you want to delete <span class="font-weight-bold text-primary">{{
-                            selectedIds.size }}</span> selected
-                        transactions? This action cannot be undone.
-                    </p>
-
-                    <div class="d-flex gap-3 justify-center">
-                        <v-btn variant="text" @click="showDeleteConfirm = false" :disabled="loading" rounded="lg">
-                            Cancel
-                        </v-btn>
-                        <v-btn color="error" @click="async () => { await confirmDelete(); fetchData() }"
-                            :loading="loading" rounded="lg" prepend-icon="Trash2">
-                            Delete Forever
-                        </v-btn>
-                    </div>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
+        <WfModal
+            v-model="showDeleteConfirm"
+            title="Delete Transactions"
+            description="Permanent action. This cannot be undone."
+            max-width="sm"
+        >
+            <div class="py-2 text-center">
+                <div class="w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto mb-3">
+                    <Trash2 :size="24" />
+                </div>
+                <p class="text-sm text-wf-text-secondary">
+                    Are you sure you want to delete <span class="font-bold text-wf-text-primary">{{ selectedIds.size }}</span> selected transactions?
+                </p>
+            </div>
+            <template #footer>
+                <div class="flex items-center justify-end gap-2 w-full">
+                    <WfButton
+                        variant="ghost"
+                        size="sm"
+                        :disabled="loading"
+                        @click="showDeleteConfirm = false"
+                    >
+                        Cancel
+                    </WfButton>
+                    <WfButton
+                        variant="danger"
+                        size="sm"
+                        :disabled="loading"
+                        :loading="loading"
+                        @click="async () => { await confirmDelete(); fetchData(); showDeleteConfirm = false }"
+                    >
+                        <Trash2 :size="14" class="mr-1" />
+                        <span>Delete Forever</span>
+                    </WfButton>
+                </div>
+            </template>
+        </WfModal>
     </MainLayout>
 </template>
 
@@ -253,6 +202,9 @@ import MainLayout from '@/layouts/MainLayout.vue'
 import { useRoute } from 'vue-router'
 import { financeApi } from '@/api/client'
 
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfModal from '@/components/ui/WfModal.vue'
 import ImportModal from '@/components/ImportModal.vue'
 import SmartPromptModal from '@/components/SmartPromptModal.vue'
 
@@ -266,9 +218,13 @@ import {
     Inbox,
     Map as MapIcon,
     Activity,
-    Target
+    Trash2,
+    ChevronDown,
+    Wallet
 } from 'lucide-vue-next'
 import SpendingForecastChart from '@/components/SpendingForecastChart.vue'
+
+const showVelocityChart = ref(false)
 
 
 // Composables
@@ -276,10 +232,13 @@ import SpendingForecastChart from '@/components/SpendingForecastChart.vue'
 import { useTransactionState } from '@/composables/useTransactionState'
 import { useTriageState } from '@/composables/useTriageState'
 import { useTransactionModals } from '@/composables/useTransactionModals'
+import { useCurrency } from '@/composables/useCurrency'
 import { useAuthStore } from '@/stores/auth'
 import { useFinanceStore } from '@/stores/finance'
 import { useBudgetStore } from '@/stores/finance/budgets'
 import { useExpenseGroupStore } from '@/stores/expenseGroups'
+
+const { formatAmount } = useCurrency()
 
 // Global State
 const route = useRoute()
@@ -295,8 +254,8 @@ const expenseGroups = computed(() => groupStore.groups)
 
 // UI State
 const showImportModal = ref(false)
-const activeTab = ref<'list' | 'analytics' | 'pending' | 'training' | 'heatmap'>('list')
-const activeTriageSubTab = ref<'pending' | 'training'>('pending')
+const activeTab = ref<'list' | 'analytics' | 'pending' | 'heatmap'>('list')
+const activeTriageSubTab = ref<string>('pending')
 
 
 
@@ -374,42 +333,16 @@ const {
     triageSortKey,
     triageSortOrder,
     selectedTriageIds,
-    unparsedMessages,
-    trainingPagination,
-    trainingSearchQuery,
-    trainingSortKey,
-    trainingSortOrder,
-    trainingSenderFilter,
-    trainingSubjectFilter,
-    selectedTrainingIds,
     fetchTriage,
     approveTriage,
     rejectTriage,
     handleBulkRejectTriage,
-    startLabeling,
-    dismissTraining,
-    handleBulkDismissTraining,
-    showLabelForm,
-    labelForm,
-    handleLabelSubmit,
-    selectedMessage,
-    // Spam
-    spamFilters,
-    showSpamManager,
-    markAsSpam,
-    fetchSpamFilters,
-    removeSpamFilter,
-    findSimilar,
     // Confirmation States
     showDiscardConfirm,
-    showTrainingDiscardConfirm,
     createIgnoreRule,
     triageIdToDiscard,
-    trainingIdToDiscard,
     // Methods
-    confirmDiscard,
-    confirmTrainingDiscard,
-    handleConfirmGlobalTrainingDismiss
+    confirmDiscard
 } = useTriageState(accounts, categories, showSmartPrompt, smartPromptData, fetchData)
 
 // Initialize Modals Composable
@@ -474,97 +407,3 @@ onMounted(() => {
     checkDeepLink()
 })
 </script>
-
-<style scoped>
-.dashboard-page {
-    min-height: calc(100vh - 64px);
-    background: rgb(var(--v-theme-background));
-    position: relative;
-    overflow: hidden;
-}
-
-.relative-pos {
-    position: relative;
-}
-
-.z-10 {
-    z-index: 10;
-}
-
-/* Mesh Background */
-.mesh-blob {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.15;
-    z-index: 1;
-    border-radius: 50%;
-    animation: blob-float 20s infinite alternate;
-}
-
-.blob-1 {
-    background: rgb(var(--v-theme-primary));
-    width: 600px;
-    height: 600px;
-    top: -200px;
-    right: -100px;
-}
-
-.blob-2 {
-    background: rgb(var(--v-theme-secondary));
-    width: 400px;
-    height: 400px;
-    bottom: -100px;
-    left: -100px;
-    animation-delay: -5s;
-}
-
-@keyframes blob-float {
-    0% {
-        transform: translate(0, 0) scale(1);
-    }
-
-    100% {
-        transform: translate(20px, -20px) scale(1.1);
-    }
-}
-
-/* Premium Tabs */
-.premium-pill-tabs {
-    background: rgba(var(--v-theme-surface), 0.6);
-    backdrop-filter: blur(10px);
-    padding: 6px;
-    border-radius: 24px;
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
-
-.premium-tab {
-    text-transform: none !important;
-    letter-spacing: 0;
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: rgb(var(--v-theme-on-surface), 0.6);
-    transition: all 0.3s ease;
-    min-width: 120px;
-}
-
-.premium-tab.v-tab--selected {
-    background: rgb(var(--v-theme-primary));
-    color: white !important;
-    box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3);
-}
-
-.gap-2 {
-    gap: 8px;
-}
-
-.gap-3 {
-    gap: 12px;
-}
-
-.glass-card {
-    background: rgba(var(--v-theme-surface), 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-    border-radius: 24px;
-}
-</style>

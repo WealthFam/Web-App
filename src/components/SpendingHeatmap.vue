@@ -1,39 +1,40 @@
 <template>
-    <v-card class="premium-glass-card heatmap-card h-100 overflow-hidden">
-        <div class="pa-4 d-flex align-center justify-space-between">
+    <WfCard variant="elevated" padding="none" class="heatmap-card h-full overflow-hidden">
+        <div class="p-4 flex items-center justify-between gap-3">
             <div>
-                <div class="d-flex align-center gap-2 mb-1">
-                    <MapPin :size="20" class="text-primary" />
-                    <h3 class="text-h6 font-weight-black">Spending Heatmap</h3>
+                <div class="flex items-center gap-2 mb-0.5">
+                    <MapPin :size="18" class="text-wf-primary" aria-hidden="true" />
+                    <h3 class="text-base font-semibold text-wf-text-primary">Spending Heatmap</h3>
                 </div>
-                <p class="text-caption font-weight-bold opacity-60">Visualizing expenses by location</p>
+                <p class="text-xs text-wf-text-muted">Visualizing expenses by location</p>
             </div>
 
-            <div class="intensity-legend-premium pa-2 px-4 rounded-pill d-flex align-center gap-3">
-                <span class="text-10 font-weight-black text-uppercase opacity-50">Low</span>
+            <div class="flex items-center gap-3 px-4 py-2 rounded-full bg-wf-surface-variant border border-wf-border">
+                <span class="text-[10px] font-semibold uppercase text-wf-text-muted">Low</span>
                 <div class="gradient-bar-premium"></div>
-                <span class="text-10 font-weight-black text-uppercase opacity-50">High</span>
-                <v-chip v-if="hasLocationData" size="x-small" color="primary" variant="tonal"
-                    class="ml-2 font-weight-black">
+                <span class="text-[10px] font-semibold uppercase text-wf-text-muted">High</span>
+                <span v-if="hasLocationData"
+                    class="ml-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-wf-primary/10 text-wf-primary">
                     {{ data.length }} Points
-                </v-chip>
+                </span>
             </div>
         </div>
 
-        <div class="map-wrapper border-t border-opacity-5">
+        <div class="map-wrapper border-t border-wf-border">
             <div id="map" class="heatmap-canvas" ref="mapContainer"></div>
 
-            <v-fade-transition>
-                <div v-if="!hasLocationData" class="no-data-overlay d-flex align-center justify-center">
+            <Transition enter-active-class="transition-opacity duration-200" enter-from-class="opacity-0"
+                leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
+                <div v-if="!hasLocationData" class="no-data-overlay flex items-center justify-center">
                     <div class="text-center">
-                        <div class="text-h1 mb-4">📍</div>
-                        <h3 class="text-h6 font-weight-bold mb-1">No Geolocation Data</h3>
-                        <p class="text-body-2 opacity-60">Transactions with location coordinates will appear here.</p>
+                        <MapPin :size="40" class="mx-auto mb-3 text-wf-text-muted" aria-hidden="true" />
+                        <h3 class="text-base font-semibold text-wf-text-primary mb-1">No Geolocation Data</h3>
+                        <p class="text-sm text-wf-text-muted">Transactions with location coordinates will appear here.</p>
                     </div>
                 </div>
-            </v-fade-transition>
+            </Transition>
         </div>
-    </v-card>
+    </WfCard>
 </template>
 
 <script setup lang="ts">
@@ -45,6 +46,10 @@ if (typeof window !== 'undefined') window.L = L
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.heat'
 import { useHeatmapData } from '@/composables/useHeatmapData'
+import WfCard from '@/components/ui/WfCard.vue'
+
+// Data-viz palette (documented exception to the no-raw-colour rule: Leaflet canvas cannot read CSS vars)
+const HEAT_GRADIENT = { 0.2: '#3b82f6', 0.4: '#10b981', 0.6: '#f59e0b', 0.8: '#ef4444', 1.0: '#7f1d1d' }
 
 const props = defineProps<{
     startDate: string
@@ -141,10 +146,10 @@ const updateHeatmap = () => {
             })
 
             const tooltipContent = `
-                <div class="pa-2">
-                    <div class="text-caption font-weight-bold mb-1">${p.category || 'Expense'}</div>
-                    <div class="text-subtitle-2 font-weight-black">₹${Math.abs(p.amount).toLocaleString()}</div>
-                    <div class="text-10 opacity-70 mt-1">${p.recipient || p.description || 'Raw Transaction'}</div>
+                <div class="p-2">
+                    <div class="text-xs font-semibold mb-1">${p.category || 'Expense'}</div>
+                    <div class="text-sm font-bold font-mono">₹${Math.abs(p.amount).toLocaleString('en-IN')}</div>
+                    <div class="text-[10px] opacity-70 mt-1">${p.recipient || p.description || 'Raw Transaction'}</div>
                 </div>
             `
             marker.bindPopup(tooltipContent, { closeButton: false })
@@ -169,13 +174,7 @@ const updateHeatmap = () => {
         blur: 15,
         maxZoom: 17,
         minOpacity: 0.5,
-        gradient: {
-            0.2: '#3b82f6',
-            0.4: '#10b981',
-            0.6: '#f59e0b',
-            0.8: '#ef4444',
-            1.0: '#7f1d1d'
-        }
+        gradient: HEAT_GRADIENT
     }).addTo(map)
 
     // Ensure map is visible and focused on the data
@@ -212,20 +211,11 @@ onUnmounted(() => {
     flex-direction: column;
 }
 
-.premium-glass-card {
-    background: rgba(var(--v-theme-surface), 0.7) !important;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-    border-radius: 20px !important;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07) !important;
-}
-
 .map-wrapper {
     position: relative;
     flex: 1;
     min-height: 500px;
-    background: rgba(var(--v-theme-surface), 1);
-    /* Fallback for map loading */
+    background: var(--wf-color-surface);
 }
 
 .heatmap-canvas {
@@ -235,80 +225,51 @@ onUnmounted(() => {
     z-index: 1;
 }
 
-.intensity-legend-premium {
-    background: rgba(var(--v-theme-on-surface), 0.05);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-}
-
 .gradient-bar-premium {
     width: 100px;
     height: 6px;
-    border-radius: 3px;
+    border-radius: var(--wf-radius-sm, 4px);
     background: linear-gradient(to right, #3b82f6, #10b981, #f59e0b, #ef4444, #7f1d1d);
 }
 
 .no-data-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(var(--v-theme-surface), 0.6);
-    backdrop-filter: blur(8px);
+    background: var(--wf-color-surface);
+    opacity: 0.92;
     z-index: 10;
-}
-
-.text-10 {
-    font-size: 10px;
-}
-
-.opacity-60 {
-    opacity: 0.6;
-}
-
-.opacity-50 {
-    opacity: 0.5;
-}
-
-.gap-2 {
-    gap: 8px;
-}
-
-.gap-3 {
-    gap: 12px;
 }
 
 /* Leaflet Overrides */
 :deep(.leaflet-container) {
-    background: rgba(var(--v-theme-surface), 1) !important;
+    background: var(--wf-color-surface) !important;
+}
+
+:deep(.leaflet-popup-content-wrapper),
+:deep(.leaflet-popup-tip) {
+    background: var(--wf-color-surface) !important;
+    color: var(--wf-color-text-primary) !important;
 }
 
 :deep(.leaflet-popup-content-wrapper) {
-    background: rgba(var(--v-theme-surface), 0.9) !important;
-    color: rgb(var(--v-theme-on-surface)) !important;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(var(--v-border-color), 0.1);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-:deep(.leaflet-popup-tip) {
-    background: rgba(var(--v-theme-surface), 0.9) !important;
+    border: 1px solid var(--wf-color-border);
+    border-radius: var(--wf-radius-lg, 12px);
 }
 
 :deep(.leaflet-control-zoom) {
     border: none !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
 
 :deep(.leaflet-control-zoom-in),
 :deep(.leaflet-control-zoom-out) {
-    background: rgba(var(--v-theme-surface), 0.8) !important;
-    color: rgb(var(--v-theme-on-surface)) !important;
-    border: 1px solid rgba(var(--v-border-color), 0.1) !important;
-    backdrop-filter: blur(4px);
+    background: var(--wf-color-surface) !important;
+    color: var(--wf-color-text-primary) !important;
+    border: 1px solid var(--wf-color-border) !important;
 }
 
 :deep(.leaflet-control-zoom-in:hover),
 :deep(.leaflet-control-zoom-out:hover) {
-    background: rgb(var(--v-theme-primary)) !important;
+    background: var(--wf-color-primary) !important;
     color: white !important;
 }
 </style>

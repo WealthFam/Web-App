@@ -1,7 +1,7 @@
 <template>
-  <div class="donut-chart-wrapper d-flex flex-column flex-md-row align-center gap-8 py-4">
+  <div class="donut-chart-wrapper flex flex-col md:flex-row items-center gap-5 py-2 w-full">
     <!-- Chart Container -->
-    <div class="chart-container" :style="{ width: size + 'px', height: size + 'px' }">
+    <div class="chart-container shrink-0" :style="{ width: size + 'px', height: size + 'px' }">
       <Doughnut
         v-if="chartData.datasets[0].data.length"
         :data="chartData"
@@ -16,7 +16,7 @@
     </div>
 
     <!-- Proper Space-Efficient Legend -->
-    <div v-if="showLegend" class="compact-legend flex-grow-1">
+    <div v-if="showLegend" class="compact-legend flex-1 min-w-0 w-full">
       <div class="legend-grid">
         <div 
           v-for="(item, index) in data" 
@@ -26,12 +26,12 @@
           @mouseenter="setActive(index)"
           @mouseleave="resetActive"
         >
-          <div class="item-visual d-flex align-center gap-3">
-            <div class="mini-indicator" :style="{ background: colors[index % colors.length] }"></div>
-            <div class="item-meta">
-              <span class="item-name text-truncate">{{ item.label }}</span>
+          <div class="item-visual flex items-center gap-2">
+            <div class="mini-indicator shrink-0" :style="{ background: colors[index % colors.length] }"></div>
+            <div class="item-meta min-w-0 flex-1">
+              <span class="item-name truncate block" :title="item.label">{{ item.label }}</span>
               <div class="item-details">
-                <span class="item-percent">{{ item.value.toFixed(1) }}%</span>
+                <span class="item-percent font-mono">{{ Number(item?.value || 0).toFixed(1) }}%</span>
               </div>
             </div>
           </div>
@@ -57,13 +57,15 @@ import {
 
 ChartJS.register(ArcElement, Tooltip, Legend, DoughnutController, CategoryScale)
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   data: Array<{ label: string, value: number }>
   label?: string
   size?: number
   strokeWidth?: number
   showLegend?: boolean
-}>()
+}>(), {
+  showLegend: true
+})
 
 const colors = [
   '#3b82f6', // Blue
@@ -184,22 +186,25 @@ function resetActive() {
 
 .legend-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .legend-row {
-  padding: 8px 12px;
-  border-radius: 12px;
-  background: rgba(var(--v-theme-on-surface), 0.03);
-  border: 1px solid rgba(var(--v-border-color), 0.05);
-  transition: all 0.3s ease;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .legend-row:hover {
-  background: rgba(var(--v-theme-on-surface), 0.06);
-  border-color: rgba(var(--v-theme-primary), 0.2);
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.3);
   transform: translateY(-1px);
 }
 

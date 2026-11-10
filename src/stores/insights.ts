@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { financeApi, aiApi } from '@/api/client'
+import { financeApi } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { useStorePersistence } from '@/utils/persistence'
 
@@ -25,13 +25,10 @@ export const useInsightsStore = defineStore('insights', () => {
         types: [],
         count: 0
     })
-    const aiInsights = ref<string>('')
     const loading = ref(false)
-    const generatingAI = ref(false)
 
     // Persistence (Standard WealthFam pattern)
     useStorePersistence('insights_analytics', analyticsData, memberId)
-    useStorePersistence('insights_ai', aiInsights, memberId)
 
     // Actions
     async function fetchAnalytics(params: {
@@ -60,29 +57,9 @@ export const useInsightsStore = defineStore('insights', () => {
         }
     }
 
-    async function generateAIInsights(promptData: any, forceRefresh: boolean = false) {
-        if (generatingAI.value) return
-        generatingAI.value = true
-        try {
-            const res = await aiApi.generateSummaryInsights(promptData, forceRefresh)
-            if (res.data && res.data.insights) {
-                aiInsights.value = res.data.insights
-            }
-            return aiInsights.value
-        } catch (e) {
-            console.error('[InsightsStore] Failed to generate AI insights', e)
-            throw e
-        } finally {
-            generatingAI.value = false
-        }
-    }
-
     return {
         analyticsData,
-        aiInsights,
         loading,
-        generatingAI,
-        fetchAnalytics,
-        generateAIInsights
+        fetchAnalytics
     }
 })

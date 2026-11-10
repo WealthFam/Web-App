@@ -40,7 +40,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     const sixMonthSpendingTrend = ref<number[]>([])
     const sixMonthInvestmentTrend = ref<number[]>([])
     const sixMonthLabels = ref<string[]>([])
-    const aiInsights = ref<any>(null)
+    const budgetInsights = ref<any>(null)
     const loading = ref(false)
 
     const projectedBudgetTrend = computed(() => {
@@ -85,7 +85,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     useStorePersistence('dashboard_portfolio', mfPortfolio, memberId)
     useStorePersistence('dashboard_net_worth_trend', netWorthTrend, memberId)
     useStorePersistence('dashboard_spending_trend', spendingTrend, memberId)
-    useStorePersistence('dashboard_ai_insights', aiInsights, memberId)
+    useStorePersistence('dashboard_budget_insights', budgetInsights, memberId)
 
     async function fetchDashboardData(userId?: string) {
         loading.value = true
@@ -149,9 +149,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
                 sixMonthLabels.value = bh.data.map((month: any) => month.month || '')
             }
 
-            // Fetch AI Insights if metrics are available
+            // Fetch budget insights if metrics are available
             if (metrics.value) {
-                fetchAiInsights(false)
+                fetchBudgetInsights(false)
             }
         } catch (error) {
             console.error('[DashboardStore] Failed to fetch data', error)
@@ -160,14 +160,14 @@ export const useDashboardStore = defineStore('dashboard', () => {
         }
     }
 
-    async function fetchAiInsights(forceRefresh: boolean = false) {
+    async function fetchBudgetInsights(forceRefresh: boolean = false) {
         const uId = memberId.value || undefined
         const now = new Date()
         try {
             const res = await financeApi.getBudgetsInsights(now.getFullYear(), now.getMonth() + 1, uId, forceRefresh)
-            aiInsights.value = res.data
+            budgetInsights.value = res.data
         } catch (error) {
-            console.error('[DashboardStore] Failed to fetch AI Insights', error)
+            console.error('[DashboardStore] Failed to fetch budget insights', error)
         }
     }
 
@@ -184,9 +184,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
         sixMonthLabels,
         projectedBudgetTrend,
         projectedBudgetLabels,
-        aiInsights,
+        budgetInsights,
         loading,
         fetchDashboardData,
-        fetchAiInsights
+        fetchBudgetInsights
     }
 })
