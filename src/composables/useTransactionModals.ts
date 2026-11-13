@@ -341,9 +341,9 @@ export function useTransactionModals(
         try {
             const txnDate = new Date(activeForm.date)
             const startDate = new Date(txnDate)
-            startDate.setDate(startDate.getDate() - 3)
+            startDate.setDate(startDate.getDate() - 5)
             const endDate = new Date(txnDate)
-            endDate.setDate(endDate.getDate() + 3)
+            endDate.setDate(endDate.getDate() + 5)
  
             const res = await financeApi.getTransactions(
                 activeForm.to_account_id,
@@ -353,17 +353,26 @@ export function useTransactionModals(
                 endDate.toISOString().slice(0, 10)
             )
  
-            // Calculate target amount with opposite sign
-            // If current is DEBIT (-100), target is CREDIT (+100)
-            // If current is CREDIT (+100), target is DEBIT (-100)
-            const targetAmount = Number(activeForm.amount) * (activeForm.type === 'DEBIT' ? 1 : -1)
+            // Target direction: If current is outflow (DEBIT), target should be inflow (CREDIT > 0)
+            const isTargetCredit = activeForm.type === 'DEBIT' || Number(activeForm.amount) < 0
+            const targetAmount = Math.abs(Number(activeForm.amount))
 
             const items = res.data.data || res.data.items || res.data || []
-            potentialMatches.value = items.filter((t: any) => {
-                return Math.abs(t.amount - targetAmount) < 1.0 &&
+            const candidates = items.filter((t: any) => {
+                const isItemCredit = Number(t.amount) > 0
+                return isItemCredit === isTargetCredit &&
                     t.id !== editingTxnId.value &&
                     (!t.linked_transaction_id || t.linked_transaction_id === editingTxnId.value)
             })
+
+            // Rank by amount proximity to targetAmount
+            candidates.sort((a: any, b: any) => {
+                const diffA = Math.abs(Math.abs(Number(a.amount)) - targetAmount)
+                const diffB = Math.abs(Math.abs(Number(b.amount)) - targetAmount)
+                return diffA - diffB
+            })
+
+            potentialMatches.value = candidates
 
             matchesSearched.value = true
         } catch (e) {

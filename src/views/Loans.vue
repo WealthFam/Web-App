@@ -126,7 +126,8 @@
                                             <div class="text-h6 font-weight-black text-content line-clamp-1">{{
                                                 loan.name }}</div>
                                             <div class="text-caption font-weight-bold text-medium-emphasis">
-                                                {{ loan.loan_type?.replace('_', ' ') || 'LOAN' }}
+                                                {{ loan.lender_name ? `${loan.lender_name} • ` : '' }}{{ loan.loan_type?.replace('_', ' ') || 'LOAN' }}
+                                                <span v-if="loan.loan_account_number" class="ml-1 opacity-70">#{{ loan.loan_account_number }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -199,6 +200,19 @@
                                 variant="outlined" density="comfortable" hide-details rounded="lg" bg-color="surface"
                                 class="mb-4 font-weight-bold" autofocus>
                             </v-text-field>
+
+                            <v-row dense class="mb-4">
+                                <v-col cols="12" sm="6">
+                                    <v-text-field v-model="form.lender_name" label="Lender / Bank" placeholder="e.g. HDFC Bank, SBI"
+                                        variant="outlined" density="comfortable" hide-details rounded="lg" bg-color="surface">
+                                    </v-text-field>
+                                </v-col>
+                                <v-col cols="12" sm="6">
+                                    <v-text-field v-model="form.loan_account_number" label="Loan Account No (LAN)" placeholder="e.g. HDFC-HL-109283"
+                                        variant="outlined" density="comfortable" hide-details rounded="lg" bg-color="surface">
+                                    </v-text-field>
+                                </v-col>
+                            </v-row>
 
                             <v-select v-model="form.loan_type" :items="loanTypeOptions" item-title="label"
                                 item-value="value" label="Loan Type" variant="outlined" density="comfortable"
@@ -342,6 +356,8 @@ const portfolioInsights = ref('')
 
 const form = reactive({
     name: '',
+    lender_name: '',
+    loan_account_number: '',
     principal_amount: 0,
     interest_rate: 0,
     tenure_months: 12,
@@ -415,6 +431,8 @@ const fetchLoans = async () => {
 
 const openAddModal = () => {
     form.name = ''
+    form.lender_name = ''
+    form.loan_account_number = ''
     form.principal_amount = 0
     form.interest_rate = 0
     form.tenure_months = 12

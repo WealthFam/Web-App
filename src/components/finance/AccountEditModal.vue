@@ -214,12 +214,22 @@ watch(() => props.account, (acc) => {
 async function handleSubmit() {
     saving.value = true
     try {
-        if (props.account?.id) {
-            await financeApi.updateAccount(props.account.id, form.value)
-            notify.success("Account updated")
+        if (form.value.type === 'CREDIT_CARD') {
+            if (props.account?.id) {
+                await financeApi.updateCreditCard(props.account.id, form.value)
+                notify.success("Credit card updated")
+            } else {
+                await financeApi.createCreditCard(form.value)
+                notify.success("Credit card created")
+            }
         } else {
-            await financeApi.createAccount(form.value)
-            notify.success("Account created")
+            if (props.account?.id) {
+                await financeApi.updateAccount(props.account.id, form.value)
+                notify.success("Account updated")
+            } else {
+                await financeApi.createAccount(form.value)
+                notify.success("Account created")
+            }
         }
         emit('saved')
         emit('update:modelValue', false)

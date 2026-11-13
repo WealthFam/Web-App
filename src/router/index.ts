@@ -27,6 +27,30 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/credit-cards',
+      name: 'credit-cards',
+      component: () => import('@/views/CreditCards.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/fixed-deposits',
+      name: 'fixed-deposits',
+      component: () => import('@/views/Deposits.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/provident-funds',
+      name: 'provident-funds',
+      component: () => import('@/views/ProvidentFunds.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/transfers',
+      name: 'transfers',
+      component: () => import('@/views/Transfers.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/transactions',
       name: 'transactions',
       component: () => import('@/views/Transactions.vue'),

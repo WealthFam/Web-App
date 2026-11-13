@@ -386,6 +386,41 @@ export const financeApi = {
     payCreditCardBill: (id: string, data: { source_account_id: string, amount: number, date: string, description?: string }) => 
         apiClient.post(`/finance/accounts/${id}/pay-bill`, data),
     getCreditIntelligence: (userId?: string) => apiClient.get('/finance/analytics/credit-intelligence', { params: { user_id: userId } }),
+
+    // Dedicated Credit Cards
+    getCreditCards: (userId?: string) => apiClient.get('/finance/credit-cards', { params: { user_id: userId } }),
+    getCreditCard: (id: string) => apiClient.get(`/finance/credit-cards/${id}`),
+    createCreditCard: (data: any) => apiClient.post('/finance/credit-cards', data),
+    updateCreditCard: (id: string, data: any) => apiClient.put(`/finance/credit-cards/${id}`, data),
+    deleteCreditCard: (id: string) => apiClient.delete(`/finance/credit-cards/${id}`),
+    getCreditCardCycleTransactions: (id: string, params?: { cycle?: string, limit?: number, offset?: number }) => 
+        apiClient.get(`/finance/credit-cards/${id}/cycle-transactions`, { params }),
+    payCardBill: (id: string, data: { source_account_id: string, amount: number, date: string, description?: string }) => 
+        apiClient.post(`/finance/credit-cards/${id}/pay-bill`, data),
+
+    // Fixed & Recurring Deposits
+    getFixedDeposits: (userId?: string) => apiClient.get('/finance/fixed-deposits', { params: { user_id: userId } }),
+    getFixedDeposit: (id: string) => apiClient.get(`/finance/fixed-deposits/${id}`),
+    createFixedDeposit: (data: any) => apiClient.post('/finance/fixed-deposits', data),
+    updateFixedDeposit: (id: string, data: any) => apiClient.put(`/finance/fixed-deposits/${id}`, data),
+    deleteFixedDeposit: (id: string) => apiClient.delete(`/finance/fixed-deposits/${id}`),
+
+    // Provident Funds & Retirement (EPF, PPF, NPS)
+    getProvidentFunds: (userId?: string) => apiClient.get('/finance/provident-funds', { params: { user_id: userId } }),
+    getProvidentFund: (id: string) => apiClient.get(`/finance/provident-funds/${id}`),
+    createProvidentFund: (data: any) => apiClient.post('/finance/provident-funds', data),
+    updateProvidentFund: (id: string, data: any) => apiClient.put(`/finance/provident-funds/${id}`, data),
+    deleteProvidentFund: (id: string) => apiClient.delete(`/finance/provident-funds/${id}`),
+
+    // Cross-Account Transfers & Pairing Hub
+    getTransferCandidates: (lookbackDays: number = 90) => apiClient.get('/finance/transfers/candidates', { params: { lookback_days: lookbackDays } }),
+    scanTransfers: (lookbackDays: number = 90) => apiClient.post('/finance/transfers/scan', null, { params: { lookback_days: lookbackDays } }),
+    pairTransfer: (data: { source_txn_id: string, target_txn_id: string, notes?: string }) => apiClient.post('/finance/transfers/pair', data),
+    batchPairTransfers: (pairs: Array<{ source_txn_id: string, target_txn_id: string }>) => apiClient.post('/finance/transfers/batch-pair', { pairs }),
+    unpairTransfer: (txnId: string) => apiClient.post(`/finance/transfers/unpair/${txnId}`),
+    createTransferCounterpart: (data: { source_txn_id: string, to_account_id: string, credited_amount?: number }) => apiClient.post('/finance/transfers/create-counterpart', data),
+    getTransferHistory: (params?: { limit?: number, offset?: number }) => apiClient.get('/finance/transfers/history', { params }),
+
     getStatements: (params?: { skip?: number, limit?: number, search?: string }) => apiClient.get('/finance/statements', { params }),
     getStatementTransactions: (id: string, params?: { skip?: number, limit?: number, search?: string }) => apiClient.get(`/finance/statements/${id}/transactions`, { params }),
     uploadStatement: (formData: FormData) => apiClient.post('/finance/statements/upload', formData, {

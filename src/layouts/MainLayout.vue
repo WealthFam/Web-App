@@ -26,6 +26,9 @@ import {
     EyeOff,
     Cpu,
     Briefcase,
+    CreditCard,
+    ArrowLeftRight,
+    FileText,
     X,
     Bot
 } from 'lucide-vue-next'
@@ -141,6 +144,8 @@ const navItems = computed(() => {
             icon: Landmark,
             children: [
                 { title: 'Accounts', icon: Briefcase, to: '/accounts', adultOnly: true },
+                { title: 'Credit Cards', icon: CreditCard, to: '/credit-cards', adultOnly: true },
+                { title: 'Transfers', icon: ArrowLeftRight, to: '/transfers', adultOnly: true },
                 { title: 'Statements', icon: RefreshCw, to: '/statements', adultOnly: true },
             ]
         },
@@ -159,6 +164,8 @@ const navItems = computed(() => {
             icon: Coins,
             children: [
                 { title: 'Mutual Funds', icon: Coins, to: '/mutual-funds' },
+                { title: 'Fixed Deposits', icon: Landmark, to: '/fixed-deposits', adultOnly: true },
+                { title: 'Provident Funds', icon: ShieldCheck, to: '/provident-funds', adultOnly: true },
                 { title: 'Financial Goals', icon: Target, to: '/investment-goals' },
                 { title: 'Loans', icon: Landmark, to: '/loans' },
             ]
