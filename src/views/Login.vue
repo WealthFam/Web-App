@@ -2,7 +2,20 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-vue-next'
+import {
+  Mail,
+  Lock,
+  ArrowRight,
+  ShieldCheck,
+  TrendingUp,
+  PieChart,
+  Users,
+  Sparkles
+} from 'lucide-vue-next'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfInput from '@/components/ui/WfInput.vue'
+import WfAlert from '@/components/ui/WfAlert.vue'
+import WfModal from '@/components/ui/WfModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -14,204 +27,227 @@ const loading = ref(false)
 const showForgotDialog = ref(false)
 
 async function handleLogin() {
-    loading.value = true
-    error.value = ''
-    try {
-        await authStore.login(email.value, password.value)
-        router.push('/')
-    } catch (e: any) {
-        error.value = 'Invalid credentials'
-    } finally {
-        loading.value = false
-    }
+  loading.value = true
+  error.value = ''
+  try {
+    await authStore.login(email.value, password.value)
+    router.push('/')
+  } catch (e: any) {
+    error.value = e.response?.data?.detail || 'Invalid credentials. Please verify your email and password.'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
 <template>
-    <v-app>
-        <v-main class="bg-grey-lighten-4 d-flex align-center position-relative overflow-hidden"
-            style="min-height: 100vh;">
-            <!-- Animated Background Mesh -->
-            <div class="mesh-background">
-                <div class="mesh-blob blob-1"></div>
-                <div class="mesh-blob blob-2"></div>
-                <div class="mesh-blob blob-3"></div>
+  <div class="min-h-screen flex flex-col lg:flex-row bg-wf-background text-wf-text-primary">
+    <!-- LEFT SECTION: Brand Showcase & Value Props (Hidden on mobile/tablet portrait) -->
+    <div class="relative hidden lg:flex lg:w-1/2 xl:w-7/12 flex-col justify-between p-12 xl:p-16 bg-slate-950 text-white overflow-hidden">
+      <!-- Ambient Glow Behind Elements -->
+      <div class="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div class="absolute -top-32 -left-32 w-96 h-96 bg-indigo-600/30 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/2 left-1/3 w-80 h-80 bg-sky-500/15 rounded-full blur-3xl"></div>
+        <!-- Grid pattern overlay -->
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:32px_32px]"></div>
+      </div>
+
+      <!-- Top Header / Logo -->
+      <div class="relative z-10 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-wf-lg bg-white/10 backdrop-blur-md border border-white/20 p-2 flex items-center justify-center">
+          <img src="/logo.png" alt="WealthFam Logo" class="w-full h-full object-contain" />
+        </div>
+        <div>
+          <span class="text-lg font-bold tracking-tight text-white">WealthFam</span>
+          <span class="text-xs text-indigo-400 font-mono ml-2 px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20">Aether V4</span>
+        </div>
+      </div>
+
+      <!-- Center Hero Visual & Features -->
+      <div class="relative z-10 max-w-xl my-auto py-12">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs text-indigo-200 mb-6">
+          <Sparkles class="w-3.5 h-3.5 text-indigo-400" />
+          <span>Sovereign Wealth Command Center</span>
+        </div>
+
+        <h2 class="text-3xl xl:text-4xl font-extrabold tracking-tight text-white leading-tight mb-4">
+          Master your family finances with precision & clarity.
+        </h2>
+
+        <p class="text-slate-400 text-sm xl:text-base leading-relaxed mb-10">
+          Unified multi-generational wealth tracking, intelligent portfolio insights, and automated cashflow categorization — built for privacy and performance.
+        </p>
+
+        <!-- Feature Highlights Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="p-4 rounded-wf-lg bg-white/5 border border-white/10 backdrop-blur-sm">
+            <div class="w-8 h-8 rounded-wf-md bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center mb-3">
+              <TrendingUp class="w-4 h-4 text-indigo-400" />
             </div>
+            <h4 class="text-sm font-semibold text-white mb-1">Real-Time Net Worth</h4>
+            <p class="text-xs text-slate-400 leading-normal">Live aggregation across bank accounts, mutual funds, loans & assets.</p>
+          </div>
 
-            <v-container class="position-relative" style="z-index: 10;" fluid>
-                <v-row align="center" justify="center">
-                    <v-col cols="12" sm="8" md="5" lg="4">
-                        <v-card class="pa-8 pa-sm-12 rounded-xl border elevation-0"
-                            style="background: rgba(var(--v-theme-surface), 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
-                            <div class="text-center mb-8">
-                                <v-avatar size="64" rounded="lg" class="elevation-2 mb-6 bg-white">
-                                    <v-img src="/logo.png" alt="WealthFam Logo" cover></v-img>
-                                </v-avatar>
-                                <h1 class="text-h5 font-weight-black text-slate-900 mb-2">Welcome Back</h1>
-                                <p class="text-body-1 text-grey-darken-1 font-weight-medium">Securely access your family
-                                    wealth dashboard</p>
-                            </div>
+          <div class="p-4 rounded-wf-lg bg-white/5 border border-white/10 backdrop-blur-sm">
+            <div class="w-8 h-8 rounded-wf-md bg-purple-500/20 border border-purple-500/30 flex items-center justify-center mb-3">
+              <PieChart class="w-4 h-4 text-purple-400" />
+            </div>
+            <h4 class="text-sm font-semibold text-white mb-1">Smart Analytics</h4>
+            <p class="text-xs text-slate-400 leading-normal">Granular category breakdown and forecasting without noisy clutter.</p>
+          </div>
 
-                            <v-form @submit.prevent="handleLogin">
-                                <v-text-field v-model="email" label="Email Address" placeholder="name@family.com"
-                                    variant="outlined" color="primary" required class="mb-4" rounded="lg"
-                                    hide-details="auto" density="comfortable">
-                                    <template v-slot:prepend-inner>
-                                        <Mail :size="20" class="text-grey-lighten-1 mr-2" />
-                                    </template>
-                                </v-text-field>
+          <div class="p-4 rounded-wf-lg bg-white/5 border border-white/10 backdrop-blur-sm">
+            <div class="w-8 h-8 rounded-wf-md bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-3">
+              <Users class="w-4 h-4 text-emerald-400" />
+            </div>
+            <h4 class="text-sm font-semibold text-white mb-1">Family Collaboration</h4>
+            <p class="text-xs text-slate-400 leading-normal">Role-based controls for members, trusts, and shared goals.</p>
+          </div>
 
-                                <div class="mb-4">
-                                    <div class="d-flex justify-space-between align-center mb-1 px-1">
-                                        <span
-                                            class="text-caption font-weight-bold text-uppercase tracking-wider text-grey-darken-2">Password</span>
-                                        <v-btn variant="text" color="primary" size="x-small"
-                                            class="font-weight-bold pa-0" @click="showForgotDialog = true">
-                                            Forgot?
-                                        </v-btn>
-                                    </div>
-                                    <v-text-field v-model="password" placeholder="••••••••" variant="outlined"
-                                        color="primary" type="password" required rounded="lg" hide-details="auto"
-                                        density="comfortable">
-                                        <template v-slot:prepend-inner>
-                                            <Lock :size="20" class="text-grey-lighten-1 mr-2" />
-                                        </template>
-                                    </v-text-field>
-                                </div>
+          <div class="p-4 rounded-wf-lg bg-white/5 border border-white/10 backdrop-blur-sm">
+            <div class="w-8 h-8 rounded-wf-md bg-sky-500/20 border border-sky-500/30 flex items-center justify-center mb-3">
+              <ShieldCheck class="w-4 h-4 text-sky-400" />
+            </div>
+            <h4 class="text-sm font-semibold text-white mb-1">Total Sovereignty</h4>
+            <p class="text-xs text-slate-400 leading-normal">Your financial data stays strictly under your control.</p>
+          </div>
+        </div>
+      </div>
 
-                                <v-expand-transition>
-                                    <v-alert v-if="error" type="error" variant="tonal" class="mb-4 rounded-lg"
-                                        density="comfortable">
-                                        {{ error }}
-                                    </v-alert>
-                                </v-expand-transition>
+      <!-- Bottom Status / Privacy Note -->
+      <div class="relative z-10 flex items-center justify-between text-xs text-slate-500 border-t border-white/10 pt-6">
+        <span>© 2026 WealthFam Enterprise</span>
+        <div class="flex items-center gap-1.5 text-slate-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>End-to-End Encrypted</span>
+        </div>
+      </div>
+    </div>
 
-                                <v-btn type="submit" color="primary" size="x-large" block
-                                    class="rounded-pill font-weight-black text-none elevation-4 mt-2" :loading="loading"
-                                    style="height: 56px;">
-                                    <div class="d-flex align-center gap-2">
-                                        Sign In
-                                        <ArrowRight :size="20" />
-                                    </div>
-                                    <template v-slot:loader>
-                                        <Loader2 :size="28" class="spinner" />
-                                    </template>
-                                </v-btn>
-                            </v-form>
+    <!-- RIGHT SECTION: Login Form -->
+    <div class="flex-1 flex flex-col justify-between p-6 sm:p-12 xl:p-16 relative z-10 bg-wf-surface">
+      <!-- Mobile Logo Header (Visible on small screens only) -->
+      <div class="lg:hidden flex items-center gap-3 mb-8">
+        <div class="w-9 h-9 rounded-wf-md bg-white border border-wf-border p-1.5 flex items-center justify-center shadow-sm">
+          <img src="/logo.png" alt="WealthFam Logo" class="w-full h-full object-contain" />
+        </div>
+        <span class="text-base font-bold tracking-tight text-wf-text-primary">WealthFam</span>
+      </div>
 
-                            <div class="text-center mt-10">
-                                <p class="text-body-2 text-grey-darken-1 font-weight-medium">
-                                    New to WealthFam?
-                                    <router-link to="/register"
-                                        class="text-primary text-decoration-none font-weight-bold">
-                                        Create Family Account
-                                    </router-link>
-                                </p>
-                            </div>
-                        </v-card>
+      <!-- Form Center Container -->
+      <div class="w-full max-w-md mx-auto my-auto py-8">
+        <div class="mb-8">
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-wf-text-primary mb-2">
+            Welcome back
+          </h1>
+          <p class="text-sm text-wf-text-secondary">
+            Enter your credentials to access your family workspace.
+          </p>
+        </div>
 
-                        <div class="text-center mt-8 overflow-hidden">
-                            <p class="text-overline tracking-widest text-grey-darken-1" style="opacity: 0.7;">
-                                Enterprise-grade security for your family's future
-                            </p>
-                        </div>
-                    </v-col>
-                </v-row>
-            </v-container>
+        <form @submit.prevent="handleLogin" class="space-y-4">
+          <WfInput
+            v-model="email"
+            label="Email Address"
+            placeholder="name@family.com"
+            type="email"
+            required
+            autocomplete="email"
+          >
+            <template #prepend>
+              <Mail class="w-4 h-4 text-wf-text-muted" />
+            </template>
+          </WfInput>
 
-            <!-- Forgot Password Dialog -->
-            <v-dialog v-model="showForgotDialog" max-width="400">
-                <v-card class="pa-6 rounded-xl overflow-hidden">
-                    <v-card-title class="text-h5 font-weight-bold px-0">Reset Password</v-card-title>
-                    <v-card-text class="text-body-1 px-0 py-4">
-                        For security reasons, please contact your <strong>Family Administrator</strong> to reset your
-                        password.
-                        <br /><br />
-                        If you are the administrator and lost access, please contact WealthFam support.
-                    </v-card-text>
-                    <v-card-actions class="px-0 pb-0">
-                        <v-spacer></v-spacer>
-                        <v-btn color="primary" variant="flat" rounded="lg" @click="showForgotDialog = false">Got
-                            it</v-btn>
-                    </v-card-actions>
-                </v-card>
-            </v-dialog>
-        </v-main>
-    </v-app>
+          <WfInput
+            v-model="password"
+            label="Password"
+            placeholder="••••••••"
+            type="password"
+            required
+            autocomplete="current-password"
+          >
+            <template #labelRight>
+              <button
+                type="button"
+                class="text-xs font-semibold text-wf-primary hover:text-wf-primary-hover transition-colors"
+                @click="showForgotDialog = true"
+              >
+                Forgot password?
+              </button>
+            </template>
+            <template #prepend>
+              <Lock class="w-4 h-4 text-wf-text-muted" />
+            </template>
+          </WfInput>
+
+          <!-- Error Alert -->
+          <div v-if="error" class="pt-1">
+            <WfAlert variant="error">
+              {{ error }}
+            </WfAlert>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="pt-2">
+            <WfButton
+              type="submit"
+              variant="primary"
+              size="lg"
+              block
+              :loading="loading"
+              class="h-11 font-semibold shadow-sm"
+            >
+              <span>Sign In</span>
+              <ArrowRight class="w-4 h-4" />
+            </WfButton>
+          </div>
+        </form>
+
+        <!-- Register Link -->
+        <div class="mt-8 pt-6 border-t border-wf-border text-center">
+          <p class="text-xs sm:text-sm text-wf-text-secondary">
+            Don't have a family account?
+            <router-link
+              to="/register"
+              class="font-semibold text-wf-primary hover:text-wf-primary-hover hover:underline ml-1"
+            >
+              Create Family Account
+            </router-link>
+          </p>
+        </div>
+      </div>
+
+      <!-- Trust Notice -->
+      <div class="w-full max-w-md mx-auto text-center pt-4">
+        <div class="inline-flex items-center gap-1.5 text-xs text-wf-text-muted">
+          <ShieldCheck class="w-3.5 h-3.5" />
+          <span>Protected by multi-tenant workspace isolation</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <WfModal
+      v-model="showForgotDialog"
+      title="Reset Password"
+      max-width="sm"
+    >
+      <div class="space-y-4 text-sm text-wf-text-secondary">
+        <p>
+          For security reasons, please contact your <strong class="text-wf-text-primary">Family Administrator</strong> to reset your password.
+        </p>
+        <p class="text-xs text-wf-text-muted">
+          If you are the administrator and lost access, please contact WealthFam support.
+        </p>
+      </div>
+
+      <template #footer>
+        <WfButton variant="primary" size="md" @click="showForgotDialog = false">
+          Got it
+        </WfButton>
+      </template>
+    </WfModal>
+  </div>
 </template>
-
-<style scoped>
-/* Mesh Background Animation preserved for premium feel */
-.mesh-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 0;
-    background: radial-gradient(circle at 50% 50%, rgb(var(--v-theme-surface)) 0%, rgba(var(--v-theme-on-surface), 0.05) 100%);
-}
-
-.mesh-blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.4;
-}
-
-.blob-1 {
-    width: 600px;
-    height: 600px;
-    background: rgb(var(--v-theme-primary));
-    top: -150px;
-    left: -150px;
-    animation: float 20s infinite alternate;
-}
-
-.blob-2 {
-    width: 500px;
-    height: 500px;
-    background: rgb(var(--v-theme-secondary));
-    bottom: -100px;
-    right: -100px;
-    animation: float 25s infinite alternate-reverse;
-}
-
-.blob-3 {
-    width: 400px;
-    height: 400px;
-    background: rgb(var(--v-theme-info));
-    top: 40%;
-    right: 15%;
-    animation: float 18s infinite alternate;
-}
-
-@keyframes float {
-    0% {
-        transform: translateY(0) scale(1);
-    }
-
-    100% {
-        transform: translateY(40px) scale(1.1);
-    }
-}
-
-.spinner {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Custom gap utility as Vuetify 3's gap is often restricted to flex/grid containers with classes */
-.gap-2 {
-    gap: 0.5rem;
-}
-</style>

@@ -1,111 +1,9 @@
-<template>
-    <div class="animate-in">
-        <v-card v-if="rulesStore.suggestions.length > 0" class="premium-glass-card overflow-hidden border-thin elevation-2" rounded="xl">
-            <v-data-table :headers="headers" :items="rulesStore.suggestions" density="comfortable"
-                class="premium-table" hide-default-footer items-per-page="-1" item-value="name">
-                <!-- Pattern/Name Column -->
-                <template v-slot:item.name="{ item }">
-                    <div class="d-flex align-center ga-3 py-2">
-                        <v-avatar color="secondary" variant="tonal" rounded="lg" size="36" class="elevation-1 border">
-                            <Sparkles :size="18" />
-                        </v-avatar>
-                        <div class="min-w-0">
-                            <div class="font-weight-black truncate" style="max-width: 180px;">{{ item.name }}</div>
-                            <div class="text-tiny font-weight-black opacity-40 truncate" :title="item.reason">{{ item.reason }}</div>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- Keywords Column -->
-                <template v-slot:item.keywords="{ item }">
-                    <div class="d-flex flex-wrap ga-1 py-1">
-                        <v-chip v-for="(k, idx) in item.keywords.slice(0, 3)" :key="idx" size="x-small" variant="flat"
-                            class="font-mono font-weight-black bg-surface elevation-1 border">
-                            {{ k }}
-                        </v-chip>
-                        <v-chip v-if="item.keywords.length > 3" size="x-small" variant="text"
-                            class="text-primary font-weight-black">
-                            +{{ item.keywords.length - 3 }}
-                        </v-chip>
-                    </div>
-                </template>
-
-                <!-- Category Column -->
-                <template v-slot:item.category="{ item }">
-                    <v-chip size="small" variant="flat" color="surface" class="font-weight-black border elevation-1"
-                        label>
-                        {{ categoriesStore.getCategoryDisplay(item.category) }}
-                    </v-chip>
-                </template>
-
-                <!-- Impact Column -->
-                <template v-slot:item.count="{ item }">
-                    <v-chip size="x-small" color="secondary" variant="tonal" class="font-weight-black border">
-                        {{ item.count }} matches
-                    </v-chip>
-                </template>
-
-                <!-- Confidence Column -->
-                <template v-slot:item.confidence_level="{ item }">
-                    <div class="d-flex align-center ga-1">
-                        <Zap :size="12"
-                            :class="['High', 'Very High'].includes(item.confidence_level || '') ? 'text-success' : 'text-warning'" />
-                        <span class="text-caption font-weight-black">{{ item.confidence_level }}</span>
-                    </div>
-                </template>
-
-                <!-- Actions Column -->
-                <template v-slot:item.actions="{ item }">
-                    <div class="d-flex ga-2 justify-center">
-                        <v-btn variant="tonal" size="small" color="medium-emphasis" rounded="pill"
-                            class="text-none font-weight-bold" @click="rulesStore.ignoreSuggestion(item)">
-                            <template v-slot:prepend>
-                                <XCircle :size="14" />
-                            </template>
-                            Ignore
-                        </v-btn>
-                        <v-btn color="primary" variant="flat" size="small" rounded="pill"
-                            class="text-none font-weight-black elevation-2" @click="acceptSuggestion(item)">
-                            <template v-slot:prepend>
-                                <Check :size="14" />
-                            </template>
-                            Approve
-                        </v-btn>
-                    </div>
-                </template>
-
-                <!-- Empty State -->
-                <template v-slot:no-data>
-                    <div class="text-center py-16">
-                        <v-avatar size="96" color="surface-variant" variant="tonal" class="mb-6 elevation-2 border">
-                            <Sparkles :size="48" class="opacity-20" />
-                        </v-avatar>
-                        <h3 class="text-h5 font-weight-black mb-2">No Suggestions</h3>
-                        <p class="text-subtitle-1 opacity-60 mb-8 font-weight-medium mx-auto" style="max-width: 400px">
-                            Add more transactions and the engine will generate classification suggestions automatically.
-                        </p>
-                    </div>
-                </template>
-            </v-data-table>
-        </v-card>
-
-        <!-- No data state (if empty list) -->
-        <div v-else class="text-center py-16">
-            <v-avatar size="96" color="surface-variant" variant="tonal" class="mb-6 elevation-2 border">
-                <Sparkles :size="48" class="opacity-20" />
-            </v-avatar>
-            <h3 class="text-h5 font-weight-black mb-2">Intelligence Idle</h3>
-            <p class="text-subtitle-1 opacity-60 mb-4 font-weight-medium mx-auto" style="max-width: 400px">
-                As you categorize more transactions, WealthFam will suggest automated rules here.
-            </p>
-        </div>
-    </div>
-</template>
-
 <script setup lang="ts">
 import { Sparkles, Zap, XCircle, Check } from 'lucide-vue-next'
 import { useRulesStore, type RuleSuggestion } from '@/stores/finance/rules'
 import { useCategoriesStore } from '@/stores/finance/categories'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
 
 const rulesStore = useRulesStore()
 const categoriesStore = useCategoriesStore()
@@ -114,45 +12,134 @@ const emit = defineEmits<{
     (e: 'accept-suggestion', suggestion: RuleSuggestion): void
 }>()
 
-const headers = [
-    { title: 'Suggested Pattern', key: 'name', sortable: true },
-    { title: 'Keywords', key: 'keywords', sortable: false },
-    { title: 'Target Category', key: 'category', sortable: true },
-    { title: 'Impact', key: 'count', sortable: true, align: 'center' as const },
-    { title: 'Confidence', key: 'confidence_level', sortable: true, align: 'center' as const },
-    { title: '', key: 'actions', sortable: false, align: 'center' as const, width: '200px' },
-]
-
 function acceptSuggestion(s: RuleSuggestion) {
     emit('accept-suggestion', s)
 }
 </script>
 
-<style scoped>
-.animate-in {
-    animation: fadeIn 0.4s ease-out;
-}
+<template>
+    <div class="space-y-4">
+        <!-- Suggestions Table -->
+        <WfCard
+            v-if="rulesStore.suggestions.length > 0"
+            variant="flat"
+            padding="none"
+            radius="lg"
+            class="border border-wf-border bg-wf-surface overflow-hidden"
+        >
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="border-b border-wf-border bg-wf-surface-variant/40 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
+                            <th class="py-3 px-4 w-[240px]">Suggested Pattern</th>
+                            <th class="py-3 px-3">Keywords</th>
+                            <th class="py-3 px-3 w-[160px]">Target Category</th>
+                            <th class="py-3 px-3 text-center w-[100px]">Impact</th>
+                            <th class="py-3 px-3 text-center w-[110px]">Confidence</th>
+                            <th class="py-3 px-4 text-right w-[180px]">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-wf-border-subtle">
+                        <tr
+                            v-for="item in rulesStore.suggestions"
+                            :key="item.name"
+                            class="hover:bg-wf-surface-variant/40 transition-colors"
+                        >
+                            <!-- Pattern Name -->
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-wf-primary shrink-0">
+                                        <Sparkles class="w-4 h-4" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="font-bold text-xs text-wf-text-primary block truncate max-w-[180px]">
+                                            {{ item.name }}
+                                        </span>
+                                        <span class="text-[10px] text-wf-text-muted block truncate max-w-[180px]" :title="item.reason">
+                                            {{ item.reason }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </td>
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
+                            <!-- Keywords -->
+                            <td class="py-3 px-3">
+                                <div class="flex flex-wrap items-center gap-1">
+                                    <span
+                                        v-for="(k, idx) in item.keywords.slice(0, 3)"
+                                        :key="idx"
+                                        class="px-1.5 py-0.5 rounded-wf-xs text-[10px] font-mono font-bold bg-wf-surface border border-wf-border text-wf-text-primary"
+                                    >
+                                        {{ k }}
+                                    </span>
+                                    <span
+                                        v-if="item.keywords.length > 3"
+                                        class="text-[10px] font-bold text-wf-primary px-1"
+                                    >
+                                        +{{ item.keywords.length - 3 }}
+                                    </span>
+                                </div>
+                            </td>
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+                            <!-- Target Category -->
+                            <td class="py-3 px-3">
+                                <span class="px-2 py-0.5 rounded-wf-sm text-[11px] font-semibold bg-wf-surface border border-wf-border text-wf-text-primary">
+                                    {{ categoriesStore.getCategoryDisplay(item.category) }}
+                                </span>
+                            </td>
 
-.truncate {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+                            <!-- Impact Count -->
+                            <td class="py-3 px-3 text-center">
+                                <span class="px-2 py-0.5 rounded-wf-sm text-[10px] font-bold bg-indigo-50 text-wf-primary dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50">
+                                    {{ item.count }} matches
+                                </span>
+                            </td>
 
-.text-tiny {
-    font-size: 0.65rem !important;
-    letter-spacing: 0.5px;
-}
-</style>
+                            <!-- Confidence -->
+                            <td class="py-3 px-3 text-center">
+                                <div class="inline-flex items-center gap-1 text-xs font-semibold">
+                                    <Zap class="w-3.5 h-3.5" :class="['High', 'Very High'].includes(item.confidence_level || '') ? 'text-wf-success' : 'text-amber-500'" />
+                                    <span>{{ item.confidence_level }}</span>
+                                </div>
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="py-3 px-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <WfButton
+                                        variant="ghost"
+                                        size="sm"
+                                        @click="rulesStore.ignoreSuggestion(item)"
+                                        class="h-7 px-2.5 text-xs text-wf-text-muted hover:text-wf-text-primary"
+                                    >
+                                        <XCircle class="w-3.5 h-3.5 mr-1" />
+                                        <span>Ignore</span>
+                                    </WfButton>
+
+                                    <WfButton
+                                        variant="primary"
+                                        size="sm"
+                                        @click="acceptSuggestion(item)"
+                                        class="h-7 px-3 text-xs font-semibold"
+                                    >
+                                        <Check class="w-3.5 h-3.5 mr-1" />
+                                        <span>Approve</span>
+                                    </WfButton>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </WfCard>
+
+        <!-- No data state -->
+        <div v-else class="p-16 text-center flex flex-col items-center justify-center text-wf-text-muted">
+            <Sparkles class="w-12 h-12 text-slate-300 dark:text-slate-600 mb-2 stroke-[1.5]" />
+            <h3 class="text-sm font-bold text-wf-text-primary">Intelligence Idle</h3>
+            <p class="text-xs text-wf-text-muted mt-1 max-w-sm">
+                As you categorize more transactions, WealthFam's pattern recognition engine will automatically generate smart classification suggestions here.
+            </p>
+        </div>
+    </div>
+</template>

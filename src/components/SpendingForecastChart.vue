@@ -1,34 +1,34 @@
 <template>
-    <div class="forecast-chart-wrapper position-relative" :style="{ height: (height + 30) + 'px' }">
+    <div class="forecast-chart-wrapper relative" :style="{ height: (height + 30) + 'px' }">
         <!-- Overlay Tooltip -->
-        <div v-if="hoveredBar !== null" class="chart-tooltip glass-card pa-3"
-            :style="{ left: tooltipPos.x + 'px', top: '-60px' }">
-            <div class="text-caption font-weight-black mb-1">{{ formatDate(hoveredBar.date) }} <span
-                    v-if="hoveredBar.is_forecast" class="text-primary font-weight-bold ml-1">(Forecast)</span></div>
-            <div v-for="(val, key) in hoveredBar.stacks" :key="key" class="d-flex align-center gap-2 mb-1">
+        <div v-if="hoveredBar !== null" class="chart-tooltip rounded-wf-md p-2.5 shadow-lg border border-wf-border bg-wf-surface/95 backdrop-blur-md"
+            :style="{ left: tooltipPos.x + 'px', top: tooltipPos.y + 'px' }">
+            <div class="text-xs font-bold mb-1">{{ formatDate(hoveredBar.date) }} <span
+                    v-if="hoveredBar.is_forecast" class="text-wf-primary font-bold ml-1">(Forecast)</span></div>
+            <div v-for="(val, key) in hoveredBar.stacks" :key="key" class="flex items-center gap-2 mb-1">
                 <div class="stack-indicator" :style="{ background: getStackColor(String(key)) }"></div>
-                <span class="text-tiny font-weight-bold opacity-70">{{ getUserName(String(key)) }}:</span>
-                <span class="text-tiny font-weight-black">₹{{ Math.round(val) }}</span>
+                <span class="text-tiny font-bold opacity-70">{{ getUserName(String(key)) }}:</span>
+                <span class="text-tiny font-bold">₹{{ Math.round(Number(val)) }}</span>
             </div>
-            <v-divider class="my-1"></v-divider>
-            <div class="d-flex align-center justify-space-between gap-4">
-                <span class="text-tiny font-weight-black">TOTAL</span>
-                <span class="text-tiny font-weight-black">₹{{ Math.round(hoveredBar.total) }}</span>
+            <div class="h-px bg-wf-border my-1"></div>
+            <div class="flex items-center justify-between gap-4">
+                <span class="text-tiny font-bold">TOTAL</span>
+                <span class="text-tiny font-bold">₹{{ Math.round(hoveredBar.total) }}</span>
             </div>
         </div>
 
         <svg :width="width" :height="height" :viewBox="`0 0 ${width} ${height}`" preserveAspectRatio="none"
-            @mouseleave="hoveredBar = null" style="overflow: visible;">
+            @mouseleave="hoveredBar = null" class="overflow-visible">
             <!-- Grid Lines -->
             <g class="grid-lines">
                 <line v-for="i in 5" :key="i" :x1="axisPadding" :y1="(height / 4) * (i - 1)" :x2="width - axisPadding"
-                    :y2="(height / 4) * (i - 1)" stroke="rgba(var(--v-border-color), 0.05)" />
+                    :y2="(height / 4) * (i - 1)" stroke="rgba(148, 163, 184, 0.15)" />
             </g>
 
             <!-- Y-Axis Labels -->
             <g class="y-axis-labels">
                 <text v-for="i in 5" :key="i" :x="axisPadding - 10" :y="(height / 4) * (i - 1) + 4" text-anchor="end"
-                    class="text-tiny opacity-40 font-weight-black fill-content" style="font-size: 9px;">
+                    class="text-[9px] opacity-40 font-bold fill-current">
                     ₹{{ formatYLabel((maxVal / 4) * (4 - (i - 1))) }}
                 </text>
             </g>
@@ -44,18 +44,18 @@
 
                 <!-- Hover interaction area -->
                 <rect :x="axisPadding + idx * (barWidth + gap)" y="0" :width="barWidth" :height="height"
-                    fill="transparent" style="cursor: pointer;" />
+                    fill="transparent" class="cursor-pointer" />
             </g>
 
             <!-- Today Marker Line -->
             <line v-if="todayIndex !== -1" :x1="axisPadding + (todayIndex + 1) * (barWidth + gap) - (gap / 2)" y1="0"
                 :x2="axisPadding + (todayIndex + 1) * (barWidth + gap) - (gap / 2)" :y2="height"
-                stroke="rgb(var(--v-theme-primary))" stroke-width="1" stroke-dasharray="4,2" />
+                stroke="var(--wf-color-primary, #6366f1)" stroke-width="1" stroke-dasharray="4,2" />
         </svg>
 
         <!-- X-Axis Labels -->
-        <div class="x-axis mt-3 opacity-50 font-weight-bold text-tiny position-relative" style="height: 20px;">
-            <div v-for="day in filteredLabels" :key="day.date" class="position-absolute"
+        <div class="x-axis mt-3 opacity-50 font-bold text-tiny relative h-5">
+            <div v-for="day in filteredLabels" :key="day.date" class="absolute"
                 :style="{ left: (axisPadding + getLabelX(day.date)) + 'px', transform: 'translateX(-50%)' }">
                 {{ day.label }}
             </div>
@@ -148,8 +148,8 @@ function getHeight(val: number | string) {
 }
 
 function getStackColor(key: string) {
-    if (key === 'Predicted') return 'rgb(var(--v-theme-primary))'
-    if (key === 'Upcoming Bills') return 'rgb(var(--v-theme-secondary))'
+    if (key === 'Predicted') return '#6366f1'
+    if (key === 'Upcoming Bills') return '#a855f7'
     if (key === 'None' || key === 'Shared/Other') return '#94a3b8'
 
     // Deterministic color based on user ID
@@ -174,9 +174,18 @@ function onHover(day: any, idx: number) {
     }, 0)
     hoveredBar.value = { ...day, total }
 
-    // Calculate tooltip X
-    const x = axisPadding + idx * (barWidth.value + gap.value)
-    tooltipPos.value = { x: Math.min(props.width - 150, Math.max(0, x - 75)), y: 0 }
+    const tooltipWidth = 185
+    const barX = axisPadding + idx * (barWidth.value + gap.value)
+
+    let x: number
+    if (idx < (props.trend.length / 2)) {
+        x = barX + barWidth.value + 8
+    } else {
+        x = barX - tooltipWidth - 8
+    }
+    x = Math.max(axisPadding, Math.min(props.width - tooltipWidth - 8, x))
+
+    tooltipPos.value = { x, y: 4 }
 }
 </script>
 
@@ -191,7 +200,7 @@ function onHover(day: any, idx: number) {
 
 .active-bar {
     filter: brightness(1.2);
-    stroke: rgba(var(--v-theme-on-surface), 0.2);
+    stroke: rgba(148, 163, 184, 0.4);
     stroke-width: 1;
 }
 
@@ -203,12 +212,12 @@ function onHover(day: any, idx: number) {
 .chart-tooltip {
     position: absolute;
     z-index: 100;
-    min-width: 180px;
+    width: 185px;
     pointer-events: none;
-    background: rgba(var(--v-theme-surface), 0.95);
+    background: var(--wf-color-surface, #ffffff);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(var(--v-border-color), 0.2);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--wf-color-border, #e2e8f0);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .stack-indicator {

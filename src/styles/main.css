@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@import './tokens.css';
+@import './themes.css';
+@import './base.css';
+
+@theme inline {
+  --color-wf-primary: var(--wf-color-primary);
+  --color-wf-primary-hover: var(--wf-color-primary-hover);
+  --color-wf-primary-light: var(--wf-color-primary-light);
+  --color-wf-secondary: var(--wf-color-secondary);
+  --color-wf-secondary-hover: var(--wf-color-secondary-hover);
+  --color-wf-background: var(--wf-color-background);
+  --color-wf-surface: var(--wf-color-surface);
+  --color-wf-surface-variant: var(--wf-color-surface-variant);
+  --color-wf-surface-muted: var(--wf-color-surface-muted);
+  --color-wf-text-primary: var(--wf-color-text-primary);
+  --color-wf-text-secondary: var(--wf-color-text-secondary);
+  --color-wf-text-muted: var(--wf-color-text-muted);
+  --color-wf-border: var(--wf-color-border);
+  --color-wf-border-subtle: var(--wf-color-border-subtle);
+  --color-wf-divider: var(--wf-color-divider);
+  --color-wf-success: var(--wf-color-success);
+  --color-wf-success-light: var(--wf-color-success-light);
+  --color-wf-error: var(--wf-color-error);
+  --color-wf-error-light: var(--wf-color-error-light);
+  --color-wf-warning: var(--wf-color-warning);
+  --color-wf-warning-light: var(--wf-color-warning-light);
+  --color-wf-info: var(--wf-color-info);
+  --color-wf-info-light: var(--wf-color-info-light);
+
+  --radius-wf-xs: var(--wf-radius-xs);
+  --radius-wf-sm: var(--wf-radius-sm);
+  --radius-wf-md: var(--wf-radius-md);
+  --radius-wf-lg: var(--wf-radius-lg);
+  --radius-wf-xl: var(--wf-radius-xl);
+  --radius-wf-2xl: var(--wf-radius-2xl);
+  --radius-wf-pill: var(--wf-radius-pill);
+
+  --shadow-wf-card: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  --shadow-wf-card-hover: 0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -2px rgba(0, 0, 0, 0.04);
+  --shadow-wf-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --shadow-wf-glass: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+}

@@ -1,792 +1,955 @@
-<template>
-    <MainLayout>
-        <v-container fluid class="page-container vault-page dashboard-page">
-            <!-- Animated Mesh Background -->
-            <div class="mesh-blob blob-1"></div>
-            <div class="mesh-blob blob-2"></div>
-
-            <div class="relative-pos z-10">
-                <!-- Header Actions -->
-                <v-row class="mb-6 align-center">
-                    <v-col cols="12" md="6">
-                        <div class="d-flex align-center ga-3">
-                            <div class="icon-box primary-glow">
-                                <ShieldCheck :size="24" class="text-primary" />
-                            </div>
-                            <div>
-                                <h1 class="text-h6 font-weight-black mb-0">Document Vault</h1>
-                                <p class="text-caption text-medium-emphasis font-weight-bold">Secure family storage with
-                                    versioning</p>
-                            </div>
-                        </div>
-                    </v-col>
-                    <v-col cols="12" md="6" class="d-flex justify-md-end ga-2">
-                        <!-- Cloud Sync hidden for now 
-                        <v-tooltip text="Sync History" location="top">
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" variant="tonal" color="slate-600" rounded="lg" height="44"
-                                    width="44" class="icon-btn-square" @click="openHistory">
-                                    <History :size="20" />
-                                </v-btn>
-                            </template>
-</v-tooltip>
-
-<v-tooltip text="Cloud Sync" location="top">
-    <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" variant="tonal" color="slate-600" rounded="lg" height="44"
-                                    width="44" class="icon-btn-square" :loading="syncLoading" @click="triggerSync">
-                                    <RefreshCw :size="20" :class="{ 'spin-sync': syncLoading }" />
-                                </v-btn>
-                            </template>
-</v-tooltip>
-
-<v-tooltip text="Vault Settings" location="top">
-    <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" variant="tonal" color="slate-600" rounded="lg" height="44"
-                                    width="44" class="icon-btn-square" @click="showSettingsModal = true">
-                                    <Settings :size="20" />
-                                </v-btn>
-                            </template>
-</v-tooltip>
--->
-
-                        <v-tooltip text="New Folder" location="top">
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" variant="tonal" color="primary" rounded="lg" height="44"
-                                    width="44" class="icon-btn-square" @click="showFolderModal = true">
-                                    <FolderPlus :size="20" />
-                                </v-btn>
-                            </template>
-                        </v-tooltip>
-
-                        <v-tooltip text="Upload File" location="top">
-                            <template v-slot:activator="{ props }">
-                                <v-btn v-bind="props" color="primary" rounded="lg" height="44" width="44"
-                                    class="icon-btn-square shadow-primary" @click="showUploadModal = true">
-                                    <Upload :size="20" />
-                                </v-btn>
-                            </template>
-                        </v-tooltip>
-                    </v-col>
-                </v-row>
-
-                <!-- Breadcrumbs -->
-                <v-row class="mb-4">
-                    <v-col cols="12">
-                        <div class="d-flex align-center ga-2 breadcrumb-container">
-                            <v-btn variant="text" density="compact" class="text-none px-2 font-weight-bold"
-                                @click="navigateTo('ROOT')">
-                                <Home :size="16" class="mr-1" /> Vault
-                            </v-btn>
-                            <template v-for="crumb in breadcrumbs" :key="crumb.id">
-                                <ChevronRight :size="14" class="opacity-30" />
-                                <v-btn variant="text" density="compact" class="text-none px-2 font-weight-bold"
-                                    @click="navigateTo(crumb.id)">
-                                    {{ crumb.name }}
-                                </v-btn>
-                            </template>
-                        </div>
-                    </v-col>
-                </v-row>
-
-                <!-- Filters & Search -->
-                <v-row class="mb-6">
-                    <v-col cols="12">
-                        <div class="glass-card pa-3 d-flex align-center flex-wrap ga-4">
-                            <v-btn-toggle v-model="filterType" mandatory color="primary" rounded="pill"
-                                density="compact" class="vault-toggle">
-                                <v-btn value="ALL" class="px-4">All Items</v-btn>
-                                <v-btn value="BILL" class="px-4 text-teal">Bills</v-btn>
-                                <v-btn value="INVOICE" class="px-4">Invoices</v-btn>
-                                <v-btn value="POLICY" class="px-4">Policies</v-btn>
-                                <v-btn value="TAX" class="px-4">Tax Docs</v-btn>
-                                <v-btn value="IDENTITY" class="px-4">Identity</v-btn>
-                            </v-btn-toggle>
-
-                            <v-spacer></v-spacer>
-
-                            <v-text-field v-model="search" placeholder="Search..." density="compact" variant="outlined"
-                                hide-details rounded="pill" class="search-premium" style="max-width: 300px;">
-                                <template v-slot:prepend-inner>
-                                    <Search :size="16" class="text-primary" />
-                                </template>
-                            </v-text-field>
-                        </div>
-                    </v-col>
-                </v-row>
-
-                <!-- Content Grid -->
-                <v-row v-if="loading">
-                    <v-col v-for="i in 8" :key="i" cols="12" sm="6" md="4" lg="3">
-                        <v-skeleton-loader type="card" class="glass-card" height="180"></v-skeleton-loader>
-                    </v-col>
-                </v-row>
-
-                <v-row v-else-if="items.length > 0">
-                    <v-col v-for="item in filteredItems" :key="item.id" cols="12" sm="6" md="4" lg="3">
-                        <v-card class="vault-card glass-card h-100" elevation="0"
-                            @click="item.is_folder ? navigateTo(item.id, item.filename) : openPreview(item)">
-                            <div class="card-preview d-flex align-center justify-center relative-pos overflow-hidden">
-                                <v-img v-if="item.thumbnail_path" :src="financeApi.getDocumentThumbnailUrl(item.id)"
-                                    cover class="absolute-full thumbnail-zoom" alt="thumbnail">
-                                    <template v-slot:placeholder>
-                                        <div class="d-flex align-center justify-center fill-height bg-primary-soft">
-                                            <v-progress-circular indeterminate size="20"
-                                                color="primary"></v-progress-circular>
-                                        </div>
-                                    </template>
-                                </v-img>
-                                <div v-else :class="['icon-wrap', getIconColor(item)]">
-                                    <component :is="getIcon(item)" :size="32" />
-                                </div>
-                            </div>
-
-                            <v-card-text class="pa-4">
-                                <div class="d-flex justify-space-between align-start mb-1">
-                                    <span class="text-subtitle-2 font-weight-black text-truncate"
-                                        style="max-width: 80%">
-                                        {{ item.filename }}
-                                    </span>
-                                    <v-menu location="bottom end">
-                                        <template v-slot:activator="{ props }">
-                                            <v-btn variant="text" density="compact" v-bind="props" icon size="small"
-                                                class="opacity-60 hover-opacity-100" @click.stop>
-                                                <MoreVertical :size="18" />
-                                            </v-btn>
-                                        </template>
-                                        <v-list class="glass-card py-1" density="compact">
-                                            <v-list-item v-if="!item.is_folder" @click="downloadItem(item)">
-                                                <template v-slot:prepend>
-                                                    <Download :size="14" class="mr-2" />
-                                                </template>
-                                                <v-list-item-title class="font-weight-bold">Download</v-list-item-title>
-                                            </v-list-item>
-                                            <v-list-item v-if="!item.is_folder" @click="openPreview(item, true)">
-                                                <template v-slot:prepend>
-                                                    <Link2 :size="14" class="mr-2" />
-                                                </template>
-                                                <v-list-item-title class="font-weight-bold">Link
-                                                    Transaction</v-list-item-title>
-                                            </v-list-item>
-                                            <v-list-item @click="deleteItem(item)" class="text-error">
-                                                <template v-slot:prepend>
-                                                    <Trash2 :size="14" class="mr-2" />
-                                                </template>
-                                                <v-list-item-title
-                                                    class="text-caption font-weight-bold">Delete</v-list-item-title>
-                                            </v-list-item>
-                                        </v-list>
-                                    </v-menu>
-                                </div>
-
-                                <div class="d-flex align-center justify-space-between mt-2">
-                                    <span class="text-tiny opacity-50 d-flex align-center">
-                                        <Clock :size="10" class="mr-1" /> {{ formatDate(item.updated_at ||
-                                            item.created_at) }}
-                                    </span>
-                                    <div class="d-flex align-center ga-2">
-                                        <span v-if="!item.is_folder" class="version-badge">v{{ item.current_version
-                                        }}</span>
-                                        <span v-else
-                                            class="text-tiny opacity-30 font-weight-bold uppercase">Folder</span>
-                                    </div>
-                                </div>
-                                <!-- Linked Transaction Info -->
-                                <div v-if="item.transaction" @click.stop="openPreview(item, false)"
-                                    class="mt-3 pa-2 rounded-lg border-primary-thin bg-primary-soft-bg d-flex align-center justify-space-between ga-2 cursor-pointer hover-bg-primary-soft min-w-0">
-                                    <div
-                                        class="text-tiny font-weight-bold text-truncate opacity-80 flex-grow-1 min-w-0">
-                                        {{ item.transaction.description }}
-                                    </div>
-                                    <span class="text-tiny font-weight-black flex-shrink-0"
-                                        :class="item.transaction.amount < 0 ? 'text-error' : 'text-success'">
-                                        {{ item.transaction.amount < 0 ? '-' : '+' }}₹{{
-                                            Math.abs(item.transaction.amount).toLocaleString() }} </span>
-                                </div>
-                                <div v-else-if="item.transaction_id"
-                                    class="mt-2 text-tiny text-primary font-weight-bold">
-                                    Linked
-                                </div>
-                            </v-card-text>
-                        </v-card>
-                    </v-col>
-                </v-row>
-
-                <div v-else class="text-center py-16">
-                    <div class="empty-icon mb-4">📂</div>
-                    <h3 class="text-h6 font-weight-bold">This folder is empty</h3>
-                    <p class="text-medium-emphasis mb-6">Start organizing your documents here.</p>
-                </div>
-            </div>
-
-            <!-- Upload Modal -->
-            <v-dialog v-model="showUploadModal" max-width="500">
-                <v-card class="glass-card" rounded="xl">
-                    <v-card-title class="pa-6 pb-2 d-flex justify-space-between align-center">
-                        <span class="font-weight-black">Upload Document</span>
-                        <v-btn icon variant="text" @click="showUploadModal = false">
-                            <X :size="20" />
-                        </v-btn>
-                    </v-card-title>
-                    <v-card-text class="pa-6">
-                        <div v-if="!selectedFile" class="dropzone" @click="fileInput?.click()" @dragover.prevent
-                            @drop.prevent="handleDrop">
-                            <UploadCloud :size="48" class="text-primary mb-3" />
-                            <div class="text-subtitle-1 font-weight-bold">Click or Drag File</div>
-                            <input type="file" ref="fileInput" class="d-none" @change="handleFileSelect" />
-                        </div>
-                        <div v-else class="file-preview pa-4 mb-4 d-flex align-center ga-4">
-                            <FileText :size="32" class="text-primary" />
-                            <div class="flex-grow-1 overflow-hidden">
-                                <div class="font-weight-bold text-truncate">{{ selectedFile.name }}</div>
-                                <div class="text-caption opacity-70">{{ formatSize(selectedFile.size) }}</div>
-                            </div>
-                            <v-btn icon variant="text" size="small" @click="selectedFile = null">
-                                <X :size="16" />
-                            </v-btn>
-                        </div>
-
-                        <v-autocomplete v-model="uploadForm.file_type" label="Category" :items="docTypes" variant="outlined"
-                            rounded="lg"></v-autocomplete>
-                        <v-checkbox v-model="uploadForm.is_shared" label="Shared with Family"
-                            color="primary"></v-checkbox>
-
-                        <v-btn block color="primary" height="48" rounded="pill" class="mt-4 font-weight-black"
-                            :loading="submitting" :disabled="!selectedFile" @click="uploadFile">
-                            UPLOAD TO {{ currentPathName }}
-                        </v-btn>
-                    </v-card-text>
-                </v-card>
-            </v-dialog>
-
-            <!-- Folder Modal -->
-            <v-dialog v-model="showFolderModal" max-width="400">
-                <v-card class="glass-card" rounded="xl">
-                    <v-card-title class="pa-6 pb-2 font-weight-black">New Folder</v-card-title>
-                    <v-card-text class="pa-6">
-                        <v-text-field v-model="folderName" label="Folder Name" variant="outlined" rounded="lg"
-                            hide-details class="mb-4"></v-text-field>
-                        <v-btn block color="primary" height="48" rounded="pill" class="font-weight-black"
-                            :loading="submitting" :disabled="!folderName" @click="createFolder">
-                            CREATE FOLDER
-                        </v-btn>
-                    </v-card-text>
-                </v-card>
-            </v-dialog>
-
-        </v-container>
-
-        <FilePreviewModal v-model="showPreviewModal" :item="selectedDoc" :initialEditMode="isPreviewEdit"
-            @refresh="fetchItems" />
-    </MainLayout>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { 
-    X, Download, Clock, Upload, FileText, Link2, FileImage, FileVideo, 
-    Music, FileCode, FileArchive, Fingerprint, ShieldCheck, Folder, 
-    Receipt, Scale, FileSpreadsheet, Presentation, FolderPlus, 
-    MoreVertical, UploadCloud, Home, ChevronRight, Search, Trash2 
+import {
+  ShieldCheck,
+  FolderPlus,
+  Upload,
+  Home,
+  ChevronRight,
+  Search,
+  X,
+  FolderOpen,
+  LayoutGrid,
+  List,
+  FileText,
+  Folder,
+  Receipt,
+  Scale,
+  Fingerprint,
+  Clock,
+  Users,
+  Link2,
+  Download,
+  Trash2,
+  ArrowLeft,
+  Eye,
+  FileSpreadsheet,
+  FileImage,
+  FileCode,
+  FileArchive,
+  Presentation,
+  Music,
+  FileVideo
 } from 'lucide-vue-next'
-
 import { financeApi } from '@/api/client'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { useConfirmStore } from '@/stores/confirm'
 import { useNotificationStore } from '@/stores/notification'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfPagination from '@/components/ui/WfPagination.vue'
+import VaultItemCard from '@/components/vault/VaultItemCard.vue'
+import UploadDocModal from '@/components/vault/UploadDocModal.vue'
+import CreateFolderModal from '@/components/vault/CreateFolderModal.vue'
+import FilePreviewModal from './vault/FilePreviewModal.vue'
 
 const notification = useNotificationStore()
 const confirmDialog = useConfirmStore()
 
-// Components
-import FilePreviewModal from './vault/FilePreviewModal.vue'
-
 // Navigation & State
 const currentFolderId = ref<string | null>(null)
 const currentPathName = ref('Vault')
-const breadcrumbs = ref<{ id: string, name: string }[]>([])
+const breadcrumbs = ref<{ id: string; name: string }[]>([])
 const items = ref<any[]>([])
 const loading = ref(false)
 const search = ref('')
 const filterType = ref('ALL')
+const sortBy = ref<'newest' | 'oldest' | 'name_asc' | 'name_desc'>('newest')
+const viewMode = ref<'grid' | 'list'>('grid')
+
+// Pagination
+const currentPage = ref(1)
+const pageSize = ref(24)
+const pageSizeOptions = [12, 24, 48, 96]
 
 // Modals
 const showUploadModal = ref(false)
 const showFolderModal = ref(false)
 const submitting = ref(false)
-const selectedFile = ref<File | null>(null)
 const folderName = ref('')
 const uploadForm = ref({ file_type: 'OTHER', is_shared: true })
-const fileInput = ref<HTMLInputElement | null>(null)
 
 const showPreviewModal = ref(false)
 const selectedDoc = ref<any>(null)
 const isPreviewEdit = ref(false)
 
-const docTypes = [
-    { title: 'Other', value: 'OTHER' },
-    { title: 'Utility Bill / Receipt', value: 'BILL' },
-    { title: 'Invoice', value: 'INVOICE' },
-    { title: 'Insurance Policy', value: 'POLICY' },
-    { title: 'Tax Document', value: 'TAX' },
-    { title: 'Identity Proof', value: 'IDENTITY' }
+const filterCategories = [
+  { label: 'All Items', value: 'ALL' },
+  { label: 'Bills', value: 'BILL' },
+  { label: 'Invoices', value: 'INVOICE' },
+  { label: 'Policies', value: 'POLICY' },
+  { label: 'Tax Docs', value: 'TAX' },
+  { label: 'Identity', value: 'IDENTITY' }
 ]
+
+const filterCategoriesItems = filterCategories.map(c => ({ title: c.label, value: c.value }))
+const sortOptions = [
+  { title: 'Sort: Newest', value: 'newest' },
+  { title: 'Sort: Oldest', value: 'oldest' },
+  { title: 'Sort: A-Z', value: 'name_asc' },
+  { title: 'Sort: Z-A', value: 'name_desc' }
+]
+
+// Stats Computation
+const totalDocsCount = computed(() => items.value.filter(i => !i.is_folder).length)
+const totalFoldersCount = computed(() => items.value.filter(i => i.is_folder).length)
+const linkedDocsCount = computed(() => items.value.filter(i => !i.is_folder && (i.transaction_id || i.transaction)).length)
+const sharedDocsCount = computed(() => items.value.filter(i => !i.is_folder && i.is_shared).length)
 
 // Fetching
 async function fetchItems() {
-    loading.value = true
-    const params: any = { 
-        parent_id: currentFolderId.value || 'ROOT',
-        limit: 100 // Fetch a larger chunk for now since we don't have infinite scroll yet
-    }
-    if (search.value) params.search = search.value
-    if (filterType.value !== 'ALL') params.file_type = filterType.value
+  loading.value = true
+  const params: any = {
+    parent_id: currentFolderId.value || 'ROOT',
+    limit: 500
+  }
+  if (search.value) params.search = search.value
+  if (filterType.value !== 'ALL') params.file_type = filterType.value
 
+  try {
+    const res = await financeApi.getDocuments(params)
+    items.value = res.data.data || []
+
+    if (showPreviewModal.value && selectedDoc.value) {
+      const fresh = items.value.find(i => i.id === selectedDoc.value.id)
+      if (fresh) selectedDoc.value = fresh
+    }
+  } catch (error) {
+    notification.error('Failed to load vault items')
+  } finally {
+    loading.value = false
+  }
+}
+
+// Sorting and Filtering
+const sortedItems = computed(() => {
+  const list = [...items.value]
+  // Always group folders first
+  list.sort((a, b) => {
+    if (a.is_folder && !b.is_folder) return -1
+    if (!a.is_folder && b.is_folder) return 1
+
+    if (sortBy.value === 'newest') {
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    }
+    if (sortBy.value === 'oldest') {
+      return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+    }
+    if (sortBy.value === 'name_asc') {
+      return (a.filename || '').localeCompare(b.filename || '')
+    }
+    if (sortBy.value === 'name_desc') {
+      return (b.filename || '').localeCompare(a.filename || '')
+    }
+    return 0
+  })
+  return list
+})
+
+// Pagination
+
+const paginatedItems = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return sortedItems.value.slice(start, start + pageSize.value)
+})
+
+// Multi-selection State
+const selectedIds = ref<Set<string>>(new Set())
+const tableImgErrors = ref<Set<string>>(new Set())
+
+const isAllPageSelected = computed(() => {
+  if (paginatedItems.value.length === 0) return false
+  return paginatedItems.value.every(item => selectedIds.value.has(item.id))
+})
+
+function toggleSelect(id: string) {
+  const next = new Set(selectedIds.value)
+  if (next.has(id)) {
+    next.delete(id)
+  } else {
+    next.add(id)
+  }
+  selectedIds.value = next
+}
+
+function toggleSelectAllPage() {
+  const next = new Set(selectedIds.value)
+  if (isAllPageSelected.value) {
+    paginatedItems.value.forEach(item => next.delete(item.id))
+  } else {
+    paginatedItems.value.forEach(item => next.add(item.id))
+  }
+  selectedIds.value = next
+}
+
+function selectAllItems() {
+  selectedIds.value = new Set(sortedItems.value.map(i => i.id))
+}
+
+function clearSelection() {
+  selectedIds.value = new Set()
+}
+
+async function deleteSelected() {
+  const count = selectedIds.value.size
+  if (count === 0) return
+
+  const isConfirmed = await confirmDialog.prompt(
+    `Are you sure you want to permanently delete ${count} selected item${count === 1 ? '' : 's'} and any contents?`,
+    'Confirm Batch Delete',
+    'Delete All',
+    'Cancel'
+  )
+  if (!isConfirmed) return
+
+  try {
+    const ids = Array.from(selectedIds.value)
+    await financeApi.batchDeleteDocuments(ids)
+    notification.success(`Successfully deleted ${count} item${count === 1 ? '' : 's'}`)
+    selectedIds.value = new Set()
+    fetchItems()
+  } catch (e) {
     try {
-        const res = await financeApi.getDocuments(params)
-        items.value = res.data.data
-
-        // Sync selectedDoc if modal is open to ensure details tab stays fresh
-        if (showPreviewModal.value && selectedDoc.value) {
-            const fresh = items.value.find(i => i.id === selectedDoc.value.id)
-            if (fresh) selectedDoc.value = fresh
-        }
-    } catch (error) {
-        notification.error('Failed to load vault items')
-    } finally {
-        loading.value = false
+      const ids = Array.from(selectedIds.value)
+      await Promise.allSettled(ids.map(id => financeApi.deleteDocument(id)))
+      notification.success(`Deleted ${count} item${count === 1 ? '' : 's'}`)
+      selectedIds.value = new Set()
+      fetchItems()
+    } catch {
+      notification.error('Failed to delete selected items')
     }
+  }
+}
+
+function canHaveThumbnail(item: any) {
+  if (item.is_folder || tableImgErrors.value.has(item.id)) return false
+  if (item.thumbnail_path) return true
+  const filename = (item.filename || '').toLowerCase()
+  const mt = (item.mime_type || '').toLowerCase()
+  return mt.startsWith('image/') || mt === 'application/pdf' || /\.(jpe?g|png|gif|webp|svg|pdf)$/i.test(filename)
+}
+
+function onTableRowImgError(id: string) {
+  tableImgErrors.value.add(id)
 }
 
 function navigateTo(id: string | null, name?: string) {
-    if (id === 'ROOT' || !id) {
-        currentFolderId.value = null
-        currentPathName.value = 'Vault'
-        breadcrumbs.value = []
-    } else {
-        // If not already in breadcrumbs, add it
-        const exists = breadcrumbs.value.find(b => b.id === id)
-        if (!exists && name) {
-            breadcrumbs.value.push({ id: id as string, name })
-        } else if (exists) {
-            // Trim breadcrumbs up to this folder
-            const crumbIdx = breadcrumbs.value.findIndex(b => b.id === id)
-            breadcrumbs.value = breadcrumbs.value.slice(0, crumbIdx + 1)
-        }
-        currentFolderId.value = id
-        currentPathName.value = name || 'Folder'
+  selectedIds.value = new Set()
+  currentPage.value = 1
+  if (id === 'ROOT' || !id) {
+    currentFolderId.value = null
+    currentPathName.value = 'Vault'
+    breadcrumbs.value = []
+  } else {
+    const exists = breadcrumbs.value.find(b => b.id === id)
+    if (!exists && name) {
+      breadcrumbs.value.push({ id, name })
+    } else if (exists) {
+      const crumbIdx = breadcrumbs.value.findIndex(b => b.id === id)
+      breadcrumbs.value = breadcrumbs.value.slice(0, crumbIdx + 1)
     }
+    currentFolderId.value = id
+    currentPathName.value = name || 'Folder'
+  }
+}
+
+function navigateUp() {
+  if (breadcrumbs.value.length <= 1) {
+    navigateTo('ROOT')
+  } else {
+    const parent = breadcrumbs.value[breadcrumbs.value.length - 2]
+    navigateTo(parent.id, parent.name)
+  }
 }
 
 function openPreview(item: any, isEdit = false) {
-    selectedDoc.value = item
-    isPreviewEdit.value = isEdit
-    showPreviewModal.value = true
+  selectedDoc.value = item
+  isPreviewEdit.value = isEdit
+  showPreviewModal.value = true
 }
 
+function handleCardClick(item: any) {
+  if (item.is_folder) {
+    navigateTo(item.id, item.filename)
+  } else {
+    openPreview(item)
+  }
+}
 
 // Upload & Folder creation
-function handleFileSelect(e: any) {
-    const file = e.target.files[0]
-    if (file) selectedFile.value = file
+async function handleUpload(file: File) {
+  submitting.value = true
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('file_type', uploadForm.value.file_type)
+  formData.append('is_shared', String(uploadForm.value.is_shared))
+  if (currentFolderId.value) formData.append('parent_id', currentFolderId.value)
+
+  try {
+    await financeApi.uploadDocument(formData)
+    notification.success('File uploaded successfully')
+    showUploadModal.value = false
+    fetchItems()
+  } catch (e) {
+    notification.error('Upload failed')
+  } finally {
+    submitting.value = false
+  }
 }
 
-function handleDrop(e: DragEvent) {
-    const file = e.dataTransfer?.files[0]
-    if (file) selectedFile.value = file
-}
+async function handleCreateFolder() {
+  if (!folderName.value.trim()) return
+  submitting.value = true
+  const formData = new FormData()
+  formData.append('name', folderName.value.trim())
+  if (currentFolderId.value) formData.append('parent_id', currentFolderId.value)
 
-async function uploadFile() {
-    if (!selectedFile.value) return
-    submitting.value = true
-    const formData = new FormData()
-    formData.append('file', selectedFile.value)
-    formData.append('file_type', uploadForm.value.file_type)
-    formData.append('is_shared', String(uploadForm.value.is_shared))
-    if (currentFolderId.value) formData.append('parent_id', currentFolderId.value)
-
-    try {
-        await financeApi.uploadDocument(formData)
-        notification.success('File uploaded')
-        showUploadModal.value = false
-        selectedFile.value = null
-        fetchItems()
-    } catch (e) {
-        notification.error('Upload failed')
-    } finally {
-        submitting.value = false
-    }
-}
-
-async function createFolder() {
-    if (!folderName.value) return
-    submitting.value = true
-    const formData = new FormData()
-    formData.append('name', folderName.value)
-    if (currentFolderId.value) formData.append('parent_id', currentFolderId.value)
-
-    try {
-        await financeApi.createFolder(formData)
-        notification.success('Folder created')
-        showFolderModal.value = false
-        folderName.value = ''
-        fetchItems()
-    } catch (e) {
-        notification.error('Failed to create folder')
-    } finally {
-        submitting.value = false
-    }
+  try {
+    await financeApi.createFolder(formData)
+    notification.success('Folder created')
+    showFolderModal.value = false
+    folderName.value = ''
+    fetchItems()
+  } catch (e) {
+    notification.error('Failed to create folder')
+  } finally {
+    submitting.value = false
+  }
 }
 
 // Actions
 async function downloadItem(item: any) {
-    try {
-        const res = await financeApi.getDocumentBlob(item.id)
-        const blob = new Blob([res.data], { type: item.mime_type })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = item.filename
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-    } catch (e) {
-        notification.error('Download failed')
-    }
+  try {
+    const res = await financeApi.getDocumentBlob(item.id)
+    const blob = new Blob([res.data], { type: item.mime_type })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = item.filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    notification.error('Download failed')
+  }
 }
 
 async function deleteItem(item: any) {
-    const isConfirmed = await confirmDialog.prompt(`Delete ${item.is_folder ? 'folder and its contents' : 'file'}?`, 'Confirm Delete', 'Delete', 'Cancel')
-    if (!isConfirmed) return
-    try {
-        await financeApi.deleteDocument(item.id)
-        notification.success('Deleted')
-        fetchItems()
-    } catch (e) {
-        notification.error('Delete failed')
-    }
+  const isConfirmed = await confirmDialog.prompt(
+    `Delete ${item.is_folder ? 'folder and all its contents' : 'file'}?`,
+    'Confirm Delete',
+    'Delete',
+    'Cancel'
+  )
+  if (!isConfirmed) return
+  try {
+    await financeApi.deleteDocument(item.id)
+    notification.success('Deleted successfully')
+    fetchItems()
+  } catch (e) {
+    notification.error('Delete failed')
+  }
 }
 
-// Helpers
-const filteredItems = computed(() => items.value)
+function getItemIcon(item: any) {
+  if (!item) return FileText
+  if (item.is_folder) return Folder
+  const filename = (item.filename || '').toLowerCase()
+  const mt = (item.mime_type || '').toLowerCase()
 
-function getIcon(item: any) {
-    if (!item) return FileText
-    if (item.is_folder) return Folder
-    const filename = (item.filename || '').toLowerCase()
-    const mt = (item.mime_type || '').toLowerCase()
+  if (item.file_type === 'BILL' || item.file_type === 'INVOICE') return Receipt
+  if (item.file_type === 'POLICY') return ShieldCheck
+  if (item.file_type === 'TAX') return Scale
+  if (item.file_type === 'IDENTITY') return Fingerprint
 
-    // 1. By Category (Highest Priority)
-    if (item.file_type === 'BILL') return Receipt
-    if (item.file_type === 'INVOICE') return Receipt
-    if (item.file_type === 'POLICY') return ShieldCheck
-    if (item.file_type === 'TAX') return Scale
-    if (item.file_type === 'IDENTITY') return Fingerprint
+  if (filename.endsWith('.pdf') || mt === 'application/pdf') return FileText
+  if (filename.endsWith('.xls') || filename.endsWith('.xlsx') || filename.endsWith('.csv') || mt.includes('sheet') || mt.includes('excel')) return FileSpreadsheet
+  if (filename.endsWith('.ppt') || filename.endsWith('.pptx') || mt.includes('presentation')) return Presentation
+  if (filename.endsWith('.doc') || filename.endsWith('.docx') || mt.includes('word')) return FileText
 
-    // 2. By Extension / Specific Type
-    if (filename.endsWith('.pdf') || mt === 'application/pdf') return FileText
-    if (filename.endsWith('.xls') || filename.endsWith('.xlsx') || filename.endsWith('.csv') ||
-        mt.includes('spreadsheet') || mt.includes('excel') || mt.includes('csv') || mt.includes('sheet')) return FileSpreadsheet
-    if (filename.endsWith('.ppt') || filename.endsWith('.pptx') ||
-        mt.includes('presentation') || mt.includes('powerpoint')) return Presentation
-    if (filename.endsWith('.doc') || filename.endsWith('.docx') || mt.includes('word') || mt.includes('msword')) return FileText
+  if (mt.startsWith('image/')) return FileImage
+  if (mt.startsWith('video/')) return FileVideo
+  if (mt.startsWith('audio/')) return Music
+  if (mt.includes('javascript') || mt.includes('json') || mt.includes('html') || mt.includes('css')) return FileCode
+  if (mt.includes('zip') || mt.includes('rar') || mt.includes('tar') || mt.includes('archive')) return FileArchive
 
-    // 3. By General Mime Type
-    if (mt.startsWith('image/')) return FileImage
-    if (mt.startsWith('video/')) return FileVideo
-    if (mt.startsWith('audio/')) return Music
-    if (mt.includes('javascript') || mt.includes('json') || mt.includes('html') || mt.includes('css')) return FileCode
-    if (mt.includes('zip') || mt.includes('rar') || mt.includes('tar') || mt.includes('gz') || mt.includes('7z') || mt.includes('archive')) return FileArchive
-
-    return FileText
+  return FileText
 }
 
-function getIconColor(item: any) {
-    if (!item) return 'text-grey'
-    if (item.is_folder) return 'text-primary'
-    const filename = (item.filename || '').toLowerCase()
-    const mt = (item.mime_type || '').toLowerCase()
-
-    // 1. By Category
-    if (item.file_type === 'BILL') return 'text-teal-darken-2'
-    if (item.file_type === 'INVOICE') return 'text-orange-darken-2'
-    if (item.file_type === 'POLICY') return 'text-blue-darken-2'
-    if (item.file_type === 'TAX') return 'text-red-darken-2'
-    if (item.file_type === 'IDENTITY') return 'text-green-darken-2'
-
-    // 2. By Specific File Type
-    if (filename.endsWith('.pdf') || mt === 'application/pdf') return 'text-red-darken-1'
-    if (filename.endsWith('.xls') || filename.endsWith('.xlsx') || filename.endsWith('.csv') || mt.includes('sheet')) return 'text-green-darken-3'
-    if (mt.includes('presentation') || mt.includes('powerpoint')) return 'text-deep-orange-darken-2'
-
-    // 3. By General Mime Type
-    if (mt.startsWith('image/')) return 'text-purple-darken-1'
-    if (mt.startsWith('video/')) return 'text-deep-purple'
-    if (mt.startsWith('audio/')) return 'text-pink'
-    if (mt.includes('zip') || mt.includes('rar') || mt.includes('archive')) return 'text-amber-darken-3'
-
-    return 'text-grey-darken-1'
-}
-
-function formatSize(bytes: number) {
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+function getItemIconColorClass(item: any) {
+  if (item.is_folder) return 'text-wf-primary bg-wf-primary-light border-indigo-200 dark:border-indigo-900/50'
+  switch (item.file_type) {
+    case 'BILL':
+    case 'INVOICE':
+      return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
+    case 'POLICY':
+      return 'text-blue-500 bg-blue-500/10 border-blue-500/20'
+    case 'TAX':
+      return 'text-rose-500 bg-rose-500/10 border-rose-500/20'
+    case 'IDENTITY':
+      return 'text-purple-500 bg-purple-500/10 border-purple-500/20'
+    default:
+      return 'text-wf-text-secondary bg-wf-surface-variant border-wf-border-subtle'
+  }
 }
 
 function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString()
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  })
+}
+
+function formatCategory(type: string) {
+  switch (type) {
+    case 'BILL': return 'Bill'
+    case 'INVOICE': return 'Invoice'
+    case 'POLICY': return 'Policy'
+    case 'TAX': return 'Tax Doc'
+    case 'IDENTITY': return 'Identity'
+    default: return 'General'
+  }
 }
 
 let searchDebounce: any = null
 watch(search, () => {
-    if (searchDebounce) clearTimeout(searchDebounce)
-    searchDebounce = setTimeout(() => {
-        fetchItems()
-    }, 400) // 400ms debounce
+  currentPage.value = 1
+  if (searchDebounce) clearTimeout(searchDebounce)
+  searchDebounce = setTimeout(() => {
+    fetchItems()
+  }, 350)
 })
 
-watch([filterType, currentFolderId], () => {
-    fetchItems()
+watch([filterType, currentFolderId, pageSize], () => {
+  currentPage.value = 1
+  fetchItems()
 })
 
 onMounted(() => {
-    fetchItems()
+  fetchItems()
 })
 </script>
 
-<style scoped>
-.vault-page {
-    position: relative;
-    min-height: calc(100vh - 64px);
-    overflow: hidden;
-}
+<template>
+  <MainLayout>
+    <div class="space-y-5 pb-8">
+      <!-- 1. PAGE HEADER -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs shrink-0">
+            <ShieldCheck class="w-4.5 h-4.5 text-wf-primary" />
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary">
+                Document Vault
+              </h1>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
+                {{ sortedItems.length }} {{ sortedItems.length === 1 ? 'Item' : 'Items' }}
+              </span>
+            </div>
+            <p class="text-xs text-wf-text-secondary">
+              Secure family repository with version history, OCR categorization, and transaction attachments.
+            </p>
+          </div>
+        </div>
 
-.relative-pos {
-    position: relative;
-}
+        <div class="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+          <WfButton
+            variant="secondary"
+            size="sm"
+            @click="showFolderModal = true"
+          >
+            <FolderPlus class="w-4 h-4 mr-1.5" />
+            <span>New Folder</span>
+          </WfButton>
 
-.z-10 {
-    z-index: 10;
-}
+          <WfButton
+            variant="primary"
+            size="sm"
+            @click="showUploadModal = true"
+          >
+            <Upload class="w-4 h-4 mr-1.5" />
+            <span>Upload Document</span>
+          </WfButton>
+        </div>
+      </div>
 
-/* Mesh Background */
-.mesh-blob {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.15;
-    z-index: 1;
-    border-radius: 50%;
-    animation: blob-float 20s infinite alternate;
-}
+      <!-- 2. SUMMARY KPI STATS BANNER -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- Metric 1: Total Documents -->
+        <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[11px] font-bold text-wf-text-muted uppercase tracking-wider">Vault Storage</p>
+              <p class="text-xl font-bold text-wf-text-primary mt-1">{{ totalDocsCount }} Files</p>
+              <p class="text-[11px] text-wf-text-secondary mt-0.5">{{ totalFoldersCount }} Folders organized</p>
+            </div>
+            <div class="w-10 h-10 rounded-wf-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500">
+              <Folder class="w-5 h-5" />
+            </div>
+          </div>
+        </WfCard>
 
-.blob-1 {
-    background: rgba(var(--v-theme-primary), 0.1);
-    width: 600px;
-    height: 600px;
-    top: -200px;
-    right: -100px;
-}
+        <!-- Metric 2: Linked to Transactions -->
+        <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[11px] font-bold text-wf-text-muted uppercase tracking-wider">Transaction Links</p>
+              <p class="text-xl font-bold text-wf-text-primary mt-1">{{ linkedDocsCount }} Linked</p>
+              <p class="text-[11px] text-wf-text-secondary mt-0.5">Attached to financial entries</p>
+            </div>
+            <div class="w-10 h-10 rounded-wf-md bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+              <Link2 class="w-5 h-5" />
+            </div>
+          </div>
+        </WfCard>
 
-.blob-2 {
-    background: rgba(var(--v-theme-secondary), 0.05);
-    width: 400px;
-    height: 400px;
-    bottom: -100px;
-    left: -100px;
-    animation-delay: -5s;
-}
+        <!-- Metric 3: Shared with Family -->
+        <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[11px] font-bold text-wf-text-muted uppercase tracking-wider">Family Access</p>
+              <p class="text-xl font-bold text-wf-text-primary mt-1">{{ sharedDocsCount }} Shared</p>
+              <p class="text-[11px] text-wf-text-secondary mt-0.5">Visible to family members</p>
+            </div>
+            <div class="w-10 h-10 rounded-wf-md bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
+              <Users class="w-5 h-5" />
+            </div>
+          </div>
+        </WfCard>
+      </div>
 
-@keyframes blob-float {
-    0% {
-        transform: translate(0, 0) scale(1);
-    }
+      <!-- 3. SINGLE UNIFIED TOOLBAR -->
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3 bg-wf-surface rounded-wf-lg border border-wf-border shadow-2xs">
+        <!-- Left Section: Breadcrumb Trail (when in folder) OR Category Pills (when in root) -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
+          <!-- When in a Folder: Show Breadcrumbs + Back Button -->
+          <div v-if="currentFolderId" class="flex items-center gap-1.5 text-xs font-semibold">
+            <button
+              type="button"
+              @click="navigateUp"
+              title="Up one folder"
+              aria-label="Up one folder"
+              class="p-1.5 rounded-wf-xs text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors border border-wf-border-subtle"
+            >
+              <ArrowLeft class="w-3.5 h-3.5" />
+            </button>
 
-    100% {
-        transform: translate(20px, -20px) scale(1.1);
-    }
-}
+            <button
+              type="button"
+              @click="navigateTo('ROOT')"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-wf-xs text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant font-bold transition-colors"
+            >
+              <Home class="w-3.5 h-3.5" />
+              <span>Vault</span>
+            </button>
 
-.icon-box {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+            <template v-for="(crumb, idx) in breadcrumbs" :key="crumb.id">
+              <ChevronRight class="w-3.5 h-3.5 text-wf-text-muted shrink-0" />
+              <button
+                type="button"
+                @click="navigateTo(crumb.id)"
+                class="px-2.5 py-1 rounded-wf-xs font-bold transition-colors truncate max-w-[160px]"
+                :class="idx === breadcrumbs.length - 1 ? 'bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50' : 'text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant'"
+              >
+                {{ crumb.name }}
+              </button>
+            </template>
+          </div>
 
-.primary-glow {
-    background: rgba(var(--v-theme-primary), 0.1);
-    box-shadow: 0 4px 20px rgba(var(--v-theme-primary), 0.15);
-}
+          <!-- When in Root: Show Category Filter Pills in Segmented Container -->
+          <div v-else class="flex items-center p-1 bg-wf-surface-variant/80 border border-wf-border-subtle rounded-wf-md shadow-2xs overflow-x-auto">
+            <button
+              v-for="cat in filterCategories"
+              :key="cat.value"
+              type="button"
+              @click="filterType = cat.value"
+              class="px-3 py-1.5 rounded-wf-sm text-xs font-semibold transition-all shrink-0"
+              :class="filterType === cat.value
+                ? 'bg-wf-surface text-wf-primary font-bold shadow-xs border border-wf-border/60'
+                : 'text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface/50'"
+            >
+              {{ cat.label }}
+            </button>
+          </div>
+        </div>
 
-.breadcrumb-container {
-    background: rgba(var(--v-theme-on-surface), 0.03);
-    padding: 8px 16px;
-    border-radius: 12px;
-    width: fit-content;
-}
+        <!-- Right Section: Search, Category (if in folder), Sort & View Mode Switcher -->
+        <div class="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          <!-- Search Input Box -->
+          <div class="relative flex items-center h-9 px-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle focus-within:border-wf-primary w-full sm:w-64 shrink-0">
+            <Search class="w-3.5 h-3.5 text-wf-text-muted mr-2 shrink-0" />
+            <input
+              v-model="search"
+              type="text"
+              placeholder="Search documents..."
+              class="w-full bg-transparent text-xs text-wf-text-primary focus:outline-none"
+            />
+            <button
+              v-if="search"
+              @click="search = ''"
+              type="button"
+              class="text-wf-text-muted hover:text-wf-text-primary ml-1"
+            >
+              <X class="w-3.5 h-3.5" />
+            </button>
+          </div>
 
-.vault-card {
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+          <!-- Category Selector (when inside folder) -->
+          <WfSelect
+            v-if="currentFolderId"
+            size="sm"
+            v-model="filterType"
+            :items="filterCategoriesItems"
+            class="w-36 shrink-0"
+          />
 
-.vault-card:hover {
-    transform: translateY(-4px);
-    background: rgba(var(--v-theme-surface), 0.9);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1) !important;
-}
+          <!-- Sort Dropdown -->
+          <WfSelect
+            size="sm"
+            v-model="sortBy"
+            :items="sortOptions"
+            class="w-36 shrink-0"
+          />
 
-.card-preview {
-    height: 100px;
-    background: rgba(var(--v-theme-on-surface), 0.02);
-}
+          <!-- View Mode Toggle -->
+          <div class="flex items-center p-0.5 bg-wf-surface-variant/70 border border-wf-border-subtle rounded-wf-md shrink-0">
+            <button
+              type="button"
+              @click="viewMode = 'grid'"
+              title="Grid View"
+              aria-label="Grid View"
+              class="p-1.5 rounded-wf-xs transition-colors"
+              :class="viewMode === 'grid' ? 'bg-wf-surface text-wf-primary shadow-2xs' : 'text-wf-text-muted hover:text-wf-text-primary'"
+            >
+              <LayoutGrid class="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              @click="viewMode = 'list'"
+              title="List / Table View"
+              aria-label="List / Table View"
+              class="p-1.5 rounded-wf-xs transition-colors"
+              :class="viewMode === 'list' ? 'bg-wf-surface text-wf-primary shadow-2xs' : 'text-wf-text-muted hover:text-wf-text-primary'"
+            >
+              <List class="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
 
-.thumbnail-zoom {
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
+      <!-- Contextual Batch Action Bar when items are selected -->
+      <Transition enter-active-class="transition duration-150 ease-out" enter-from-class="opacity-0 -translate-y-1">
+        <div
+          v-if="selectedIds.size > 0"
+          class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-wf-primary/10 border border-wf-primary/25 rounded-wf-lg shadow-2xs"
+        >
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-bold font-mono text-wf-primary">
+              {{ selectedIds.size }} selected
+            </span>
+            <div class="h-4 w-px bg-wf-primary/20"></div>
+            <button
+              type="button"
+              @click="selectAllItems"
+              class="text-xs text-wf-text-secondary hover:text-wf-primary underline font-medium"
+            >
+              Select all {{ sortedItems.length }}
+            </button>
+            <button
+              type="button"
+              @click="clearSelection"
+              class="text-xs text-wf-text-muted hover:text-wf-text-primary underline"
+            >
+              Deselect
+            </button>
+          </div>
 
-.vault-card:hover .thumbnail-zoom {
-    transform: scale(1.08);
-}
+          <div class="flex items-center gap-2">
+            <WfButton
+              variant="danger"
+              size="sm"
+              @click="deleteSelected"
+              class="shadow-xs font-semibold"
+            >
+              <Trash2 class="w-3.5 h-3.5 mr-1" />
+              <span>Delete Selected ({{ selectedIds.size }})</span>
+            </WfButton>
+          </div>
+        </div>
+      </Transition>
 
-.absolute-full {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-}
+      <!-- 4. CONTENT VIEW: GRID OR LIST/TABLE -->
+      <!-- Loading Skeleton State -->
+      <div v-if="loading && items.length === 0" class="py-20 text-center space-y-3">
+        <div class="w-10 h-10 border-2 border-wf-primary border-t-transparent rounded-full animate-spin mx-auto" />
+        <p class="text-xs font-medium text-wf-text-secondary">Loading vault contents...</p>
+      </div>
 
-.icon-wrap {
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
-    background: rgba(var(--v-theme-surface), 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-}
+      <!-- Empty State -->
+      <div
+        v-else-if="sortedItems.length === 0"
+        class="p-12 text-center bg-wf-surface rounded-wf-lg border border-wf-border shadow-2xs space-y-3"
+      >
+        <div class="w-14 h-14 rounded-full bg-wf-surface-variant flex items-center justify-center text-wf-text-muted mx-auto border border-wf-border-subtle">
+          <FolderOpen class="w-7 h-7" />
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-wf-text-primary">No documents found</h3>
+          <p class="text-xs text-wf-text-muted mt-1 max-w-sm mx-auto">
+            {{ search ? `No results matching "${search}". Try clearing search filter.` : 'This folder is currently empty. Upload files or create folders to organize your records.' }}
+          </p>
+        </div>
+        <div class="flex items-center justify-center gap-2 pt-2">
+          <WfButton
+            v-if="search || filterType !== 'ALL'"
+            variant="secondary"
+            size="sm"
+            @click="search = ''; filterType = 'ALL'"
+          >
+            Reset Filters
+          </WfButton>
+          <WfButton
+            variant="primary"
+            size="sm"
+            @click="showUploadModal = true"
+          >
+            <Upload class="w-3.5 h-3.5 mr-1" />
+            <span>Upload File</span>
+          </WfButton>
+        </div>
+      </div>
 
-.dropzone {
-    border: 2px dashed rgba(var(--v-theme-primary), 0.3);
-    border-radius: 16px;
-    padding: 32px;
-    text-align: center;
-    cursor: pointer;
-    background: rgba(var(--v-theme-primary), 0.02);
-}
+      <!-- A. CARD / GRID VIEW -->
+      <div
+        v-else-if="viewMode === 'grid'"
+        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+      >
+        <VaultItemCard
+          v-for="item in paginatedItems"
+          :key="item.id"
+          :item="item"
+          :selected="selectedIds.has(item.id)"
+          :selection-mode="selectedIds.size > 0"
+          @toggle-select="toggleSelect"
+          @click="handleCardClick"
+          @preview="openPreview"
+          @download="downloadItem"
+          @delete="deleteItem"
+        />
+      </div>
 
-.dropzone:hover {
-    border-color: rgb(var(--v-theme-primary));
-}
+      <!-- B. LIST / TABLE VIEW -->
+      <div v-else class="overflow-x-auto bg-wf-surface rounded-wf-lg border border-wf-border shadow-2xs">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="border-b border-wf-border-subtle bg-wf-surface-variant/30 text-[11px] font-bold text-wf-text-muted uppercase tracking-wider">
+              <th scope="col" class="w-10 py-3 px-4 text-center">
+                <input
+                  type="checkbox"
+                  :checked="isAllPageSelected"
+                  @change="toggleSelectAllPage"
+                  class="w-4 h-4 rounded border-wf-border text-wf-primary accent-wf-primary cursor-pointer"
+                  aria-label="Select all items on current page"
+                />
+              </th>
+              <th class="py-3 px-4">Name</th>
+              <th class="py-3 px-3">Category</th>
+              <th class="py-3 px-3">Version</th>
+              <th class="py-3 px-3">Linked Transaction</th>
+              <th class="py-3 px-3">Access</th>
+              <th class="py-3 px-3">Modified</th>
+              <th class="py-3 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-wf-border-subtle font-normal">
+            <tr
+              v-for="item in paginatedItems"
+              :key="item.id"
+              @click="handleCardClick(item)"
+              class="transition-colors cursor-pointer group"
+              :class="selectedIds.has(item.id) ? 'bg-wf-primary/5 hover:bg-wf-primary/10' : 'hover:bg-wf-surface-variant/40'"
+            >
+              <!-- Multi-select Checkbox -->
+              <td class="w-10 py-3 px-4 text-center" @click.stop>
+                <input
+                  type="checkbox"
+                  :checked="selectedIds.has(item.id)"
+                  @change="toggleSelect(item.id)"
+                  class="w-4 h-4 rounded border-wf-border text-wf-primary accent-wf-primary cursor-pointer"
+                  :aria-label="`Select ${item.filename}`"
+                />
+              </td>
 
-.shadow-primary {
-    box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3);
-}
+              <!-- Name & Content Thumbnail -->
+              <td class="py-3 px-4">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-9 h-9 rounded-wf-md flex items-center justify-center border shrink-0 overflow-hidden relative"
+                    :class="getItemIconColorClass(item)"
+                  >
+                    <img
+                      v-if="canHaveThumbnail(item)"
+                      :src="financeApi.getDocumentThumbnailUrl(item.id)"
+                      alt=""
+                      loading="lazy"
+                      class="w-full h-full object-cover"
+                      @error="onTableRowImgError(item.id)"
+                    />
+                    <component
+                      v-if="!canHaveThumbnail(item) || tableImgErrors.has(item.id)"
+                      :is="getItemIcon(item)"
+                      class="w-4 h-4"
+                    />
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-bold text-wf-text-primary truncate max-w-xs md:max-w-md" :title="item.filename">
+                      {{ item.filename }}
+                    </p>
+                    <p class="text-[10px] text-wf-text-muted truncate">
+                      {{ item.is_folder ? 'Folder' : (item.mime_type || 'Document') }}
+                    </p>
+                  </div>
+                </div>
+              </td>
 
-.vault-toggle :deep(.v-btn) {
-    font-weight: 700 !important;
-    text-transform: none;
-    font-size: 0.75rem;
-}
+              <!-- Category -->
+              <td class="py-3 px-3 whitespace-nowrap">
+                <span
+                  v-if="!item.is_folder"
+                  class="inline-flex items-center px-2 py-0.5 rounded-wf-pill text-[10px] font-bold border"
+                  :class="getItemIconColorClass(item)"
+                >
+                  {{ formatCategory(item.file_type) }}
+                </span>
+                <span v-else class="text-wf-text-muted font-medium text-[11px]">—</span>
+              </td>
 
-.version-badge {
-    padding: 2px 8px;
-    background: rgba(var(--v-theme-on-surface), 0.1);
-    border-radius: 6px;
-    font-size: 0.65rem;
-    font-weight: 900;
-}
+              <!-- Version -->
+              <td class="py-3 px-3 whitespace-nowrap font-mono text-[11px]">
+                <span v-if="!item.is_folder" class="px-1.5 py-0.5 rounded-wf-xs bg-wf-surface-variant font-bold text-wf-text-secondary border border-wf-border-subtle">
+                  v{{ item.current_version || 1 }}
+                </span>
+                <span v-else class="text-wf-text-muted">—</span>
+              </td>
 
-.version-badge.current {
-    background: rgb(var(--v-theme-primary));
-    color: white;
-}
+              <!-- Linked Transaction -->
+              <td class="py-3 px-3">
+                <div v-if="item.transaction" class="inline-flex items-center gap-1.5 px-2 py-1 rounded-wf-xs bg-wf-primary-light/50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/50 max-w-[200px] truncate">
+                  <Link2 class="w-3 h-3 text-wf-primary shrink-0" />
+                  <span class="truncate font-semibold text-[11px] text-wf-text-secondary">
+                    {{ item.transaction.description }}
+                  </span>
+                </div>
+                <div v-else-if="item.transaction_id" class="text-wf-primary font-semibold text-[11px]">
+                  Linked
+                </div>
+                <span v-else class="text-wf-text-muted text-[11px]">—</span>
+              </td>
 
-.settings-json-area :deep(textarea) {
-    font-family: 'Fira Code', monospace !important;
-    font-size: 0.8rem;
-}
+              <!-- Shared Status -->
+              <td class="py-3 px-3 whitespace-nowrap">
+                <span
+                  v-if="item.is_shared"
+                  class="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-500"
+                >
+                  <Users class="w-3 h-3" />
+                  <span>Shared</span>
+                </span>
+                <span v-else class="text-[11px] text-wf-text-muted">Private</span>
+              </td>
 
-.status-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
+              <!-- Date -->
+              <td class="py-3 px-3 whitespace-nowrap text-wf-text-secondary text-[11px]">
+                <div class="flex items-center gap-1">
+                  <Clock class="w-3 h-3 text-wf-text-muted" />
+                  <span>{{ formatDate(item.updated_at || item.created_at) }}</span>
+                </div>
+              </td>
 
-.status-dot.success {
-    background-color: #22c55e;
-    box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
-}
+              <!-- Actions -->
+              <td class="py-3 px-4 text-right whitespace-nowrap">
+                <div class="flex items-center justify-end gap-1" @click.stop>
+                  <button
+                    v-if="!item.is_folder"
+                    type="button"
+                    @click="openPreview(item)"
+                    title="Preview Document"
+                    class="p-1.5 rounded-wf-xs text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
+                  >
+                    <Eye class="w-4 h-4" />
+                  </button>
 
-.status-dot.error {
-    background-color: #ef4444;
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
-}
+                  <button
+                    v-if="!item.is_folder"
+                    type="button"
+                    @click="downloadItem(item)"
+                    title="Download File"
+                    class="p-1.5 rounded-wf-xs text-wf-text-muted hover:text-emerald-500 hover:bg-wf-surface-variant transition-colors"
+                  >
+                    <Download class="w-4 h-4" />
+                  </button>
 
-.status-dot.running {
-    background-color: #3b82f6;
-    animation: pulse 1.5s infinite;
-}
+                  <button
+                    type="button"
+                    @click="deleteItem(item)"
+                    title="Delete"
+                    class="p-1.5 rounded-wf-xs text-wf-text-muted hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                  >
+                    <Trash2 class="w-4 h-4" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
+      <!-- 5. PAGINATION TOOLBAR -->
+      <div v-if="sortedItems.length > 0" class="pt-2">
+        <WfPagination
+          :page="currentPage"
+          :page-size="pageSize"
+          :total="sortedItems.length"
+          :page-sizes="pageSizeOptions"
+          @update:page="currentPage = $event"
+          @update:page-size="pageSize = $event"
+          class="rounded-wf-md border border-wf-border-subtle"
+        />
+      </div>
+    </div>
 
-    50% {
-        transform: scale(1.2);
-        opacity: 0.7;
-    }
+    <!-- MODALS -->
+    <UploadDocModal
+      v-model="showUploadModal"
+      :current-path-name="currentPathName"
+      :submitting="submitting"
+      :upload-form="uploadForm"
+      @close="showUploadModal = false"
+      @upload="handleUpload"
+    />
 
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
+    <CreateFolderModal
+      v-model="showFolderModal"
+      :submitting="submitting"
+      :folder-name="folderName"
+      @close="showFolderModal = false"
+      @update:folder-name="folderName = $event"
+      @create="handleCreateFolder"
+    />
 
-.modal-header-premium {
-    background: transparent;
-    position: relative;
-    overflow: hidden;
-    border-bottom: 1px solid rgba(var(--v-border-color), 0.05);
-}
-
-.header-icon-wrapper {
-    background: rgba(var(--v-theme-primary), 0.1);
-    padding: 10px;
-    border-radius: 16px;
-    border: 1px solid rgba(var(--v-theme-primary), 0.1);
-}
-
-.text-tiny {
-    font-size: 10px;
-}
-
-.icon-btn-square {
-    min-width: 44px !important;
-    padding: 0 !important;
-}
-
-.help-panels :deep(.v-expansion-panel-text__wrapper) {
-    padding: 0;
-}
-
-.setup-steps {
-    padding-left: 15px;
-    line-height: 1.6;
-}
-
-.setup-steps li {
-    margin-bottom: 4px;
-}
-</style>
+    <FilePreviewModal
+      v-if="showPreviewModal && selectedDoc"
+      v-model="showPreviewModal"
+      :item="selectedDoc"
+      :initial-edit-mode="isPreviewEdit"
+      @close="showPreviewModal = false; selectedDoc = null"
+      @refresh="fetchItems"
+    />
+  </MainLayout>
+</template>

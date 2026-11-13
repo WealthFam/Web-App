@@ -1,7 +1,6 @@
 // @ts-nocheck
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import vuetify from 'vite-plugin-vuetify'
 import path from 'path'
 import { execSync } from 'child_process'
 import fs from 'fs'
@@ -37,7 +36,6 @@ console.log(`--- Building WealthFam v${version} (Build: ${build}) ---`)
 export default defineConfig({
   plugins: [
     vue(),
-    vuetify({ autoImport: true }),
   ],
   define: {
     '__APP_VERSION__': JSON.stringify(version),
