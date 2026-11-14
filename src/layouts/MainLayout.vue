@@ -8,7 +8,6 @@ import {
   Settings,
   Bell,
   LogOut,
-  User as UserIcon,
   Target,
   Layers,
   Landmark,
@@ -25,16 +24,13 @@ import {
   Zap,
   Eye,
   EyeOff,
-  Cpu,
   Briefcase,
   CreditCard,
   ArrowLeftRight,
-  FileText,
   X,
   Check,
   PanelLeftClose,
-  PanelLeftOpen,
-  Bot
+  PanelLeftOpen
 } from 'lucide-vue-next'
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
