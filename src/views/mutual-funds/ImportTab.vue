@@ -1,57 +1,34 @@
 <template>
     <div class="space-y-3.5">
-        <!-- Retrieval Instruction Note -->
-        <div class="p-2.5 rounded-wf-md border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 text-xs text-wf-text-secondary flex items-center gap-2.5">
-            <Info :size="16" class="text-wf-primary shrink-0" />
-            <div class="leading-relaxed">
-                Need your statement? Download your <strong class="text-wf-text-primary">Consolidated Account Statement (CAS)</strong> from
-                <a href="https://www.camsonline.com/Investors/Statements/Consolidated-Account-Statement" target="_blank"
-                    class="text-wf-primary font-semibold hover:underline">
-                    CAMS Online
-                </a>
-                to either upload directly or scan via your Inbox Intelligence.
+        <!-- Automated Email Ingestion Banner -->
+        <div class="p-3 rounded-wf-md border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 text-xs text-wf-text-secondary flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-2.5">
+                <Info :size="16" class="text-wf-primary shrink-0" />
+                <div class="leading-relaxed">
+                    <strong class="text-wf-text-primary">Automated Ingestion Active:</strong> All eCAS statements received in your linked email inbox are automatically discovered, decrypted, and staged for one-click import in <router-link to="/statements" class="text-wf-primary font-bold hover:underline">Statements & Reconciliations</router-link>.
+                </div>
             </div>
+            <router-link to="/statements" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-wf-sm bg-wf-surface border border-wf-border text-wf-primary hover:bg-wf-surface-variant transition-colors shadow-2xs">
+                <span>View Staged Statements</span>
+                <ArrowRight :size="13" />
+            </router-link>
         </div>
 
-        <!-- Main Card -->
+        <!-- Main Manual Upload Card -->
         <div class="rounded-wf-md border border-wf-border bg-wf-surface shadow-2xs overflow-hidden">
-            <!-- Segmented Mode Switcher -->
-            <div class="px-3.5 py-2 border-b border-wf-border bg-wf-surface flex items-center justify-between">
+            <div class="px-3.5 py-2.5 border-b border-wf-border bg-wf-surface flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <div class="w-7 h-7 rounded-wf-sm bg-wf-surface-variant flex items-center justify-center"
-                        :class="importMode === 'pdf' ? 'text-wf-primary' : 'text-purple-600 dark:text-purple-400'">
-                        <component :is="activeIcon" :size="15" />
+                    <div class="w-7 h-7 rounded-wf-sm bg-wf-surface-variant flex items-center justify-center text-wf-primary">
+                        <FileText :size="15" />
                     </div>
                     <div>
                         <h2 class="text-xs sm:text-sm font-bold text-wf-text-primary">
-                            {{ importMode === 'pdf' ? 'Consolidate via PDF' : 'Email Inbox Intelligence' }}
+                            Consolidate via PDF Statement
                         </h2>
                         <p class="text-[11px] text-wf-text-secondary">
-                            {{ importMode === 'pdf' ? 'Upload comprehensive portfolio statement to sync historical transactions.'
-                                : 'Scan linked email inbox to automatically detect and import investments.' }}
+                            Upload a CAMS / KFintech Consolidated Account Statement (CAS) directly to sync transactions.
                         </p>
                     </div>
-                </div>
-
-                <div class="flex items-center p-0.5 bg-wf-surface-variant/80 border border-wf-border rounded-wf-md shadow-2xs">
-                    <button
-                        type="button"
-                        @click="importMode = 'pdf'"
-                        class="px-2.5 py-1 rounded-wf-sm text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
-                        :class="importMode === 'pdf' ? 'bg-wf-surface text-wf-primary shadow-2xs border border-wf-border/60' : 'text-wf-text-secondary hover:text-wf-text-primary'"
-                    >
-                        <FileText :size="13" />
-                        <span>PDF Statement</span>
-                    </button>
-                    <button
-                        type="button"
-                        @click="importMode = 'email'"
-                        class="px-2.5 py-1 rounded-wf-sm text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
-                        :class="importMode === 'email' ? 'bg-wf-surface text-purple-600 dark:text-purple-400 shadow-2xs border border-wf-border/60' : 'text-wf-text-secondary hover:text-wf-text-primary'"
-                    >
-                        <Mail :size="13" />
-                        <span>Email Inbox</span>
-                    </button>
                 </div>
             </div>
 
@@ -96,7 +73,7 @@
                                     </div>
                                 </div>
                                 <span class="text-[10px] text-wf-text-muted mt-1 block">
-                                    {{ importMode === 'pdf' ? 'Statement password for decryption' : 'Password for attachment decryption' }}
+                                    Statement password for decryption (auto-filled from target user profile)
                                 </span>
                             </div>
                         </div>
@@ -104,7 +81,7 @@
 
                     <!-- Column 2: Action Area -->
                     <div class="md:col-span-7 flex flex-col justify-center">
-                        <div v-if="importMode === 'pdf'"
+                        <div
                             class="p-6 rounded-wf-md border-2 border-dashed border-wf-primary/40 bg-indigo-50/20 dark:bg-indigo-950/10 flex flex-col items-center justify-center text-center cursor-pointer hover:border-wf-primary transition-all h-full"
                             @click="fileInput?.click()">
 
@@ -122,34 +99,12 @@
                                     'or click to browse from your device' }}
                             </p>
                         </div>
-
-                        <div v-else-if="importMode === 'email'"
-                            class="p-6 rounded-wf-md border-2 border-dashed border-purple-500/40 bg-purple-50/20 dark:bg-purple-950/10 flex flex-col items-center justify-center text-center h-full">
-
-                            <div class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-2">
-                                <Mail :size="20" />
-                            </div>
-                            <h3 class="text-xs sm:text-sm font-bold text-wf-text-primary mb-0.5">
-                                Automated Inbox Intelligence
-                            </h3>
-                            <p class="text-[11px] text-wf-text-secondary mb-3">
-                                Scanning inbox for: <span class="font-semibold text-wf-text-primary">{{ selectedMemberEmail }}</span>
-                            </p>
-
-                            <div class="w-48">
-                                <WfSelect
-                                    v-model="emailSyncPeriod"
-                                    :items="periodOptions"
-                                    size="sm"
-                                />
-                            </div>
-                        </div>
                     </div>
                 </div>
 
                 <!-- Footer Action Row -->
                 <div class="flex justify-end mt-3 pt-3 border-t border-wf-border-subtle">
-                    <button v-if="importMode === 'pdf'"
+                    <button
                         type="button"
                         :disabled="!file || isProcessing"
                         @click="handlePreview"
@@ -157,15 +112,6 @@
                     >
                         <span>{{ isProcessing ? 'ANALYZING...' : 'ANALYZE STATEMENT' }}</span>
                         <ArrowRight :size="14" />
-                    </button>
-                    <button v-else
-                        type="button"
-                        :disabled="isProcessing"
-                        @click="handlePreview"
-                        class="h-8 px-4 text-xs font-bold rounded-wf-sm bg-purple-600 text-white hover:bg-purple-700 transition-colors flex items-center gap-1.5 shadow-2xs disabled:opacity-50 cursor-pointer"
-                    >
-                        <span>{{ isProcessing ? 'SCANNING...' : 'START SCAN' }}</span>
-                        <Search :size="14" />
                     </button>
                 </div>
             </div>
@@ -190,8 +136,7 @@
                     type="button"
                     :disabled="isProcessing"
                     @click="handleConfirm"
-                    class="h-9 px-5 text-xs font-bold rounded-wf-md text-white transition-all flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                    :class="importMode === 'pdf' ? 'bg-wf-primary hover:bg-wf-primary-hover' : 'bg-purple-600 hover:bg-purple-700'"
+                    class="h-9 px-5 text-xs font-bold rounded-wf-md text-white bg-wf-primary hover:bg-wf-primary-hover transition-all flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
                 >
                     <span>CONFIRM IMPORT</span>
                     <CheckCircle :size="16" />
@@ -272,8 +217,7 @@
                                             Folio: {{ t.folio_number || '---' }}
                                         </div>
                                         <div v-if="t.mapped_name && t.mapped_name !== t.scheme_name"
-                                            class="text-[11px] font-semibold flex items-center gap-1"
-                                            :class="importMode === 'pdf' ? 'text-wf-primary' : 'text-purple-600 dark:text-purple-400'">
+                                            class="text-[11px] font-semibold flex items-center gap-1 text-wf-primary">
                                             <CornerDownRight :size="12" />
                                             <span>{{ t.mapped_name }}</span>
                                         </div>
@@ -285,8 +229,7 @@
                                 <td class="py-2.5 px-3 text-right font-mono font-bold text-wf-text-primary tabular-nums">
                                     {{ t.units }}
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-mono font-bold tabular-nums"
-                                    :class="importMode === 'pdf' ? 'text-wf-primary' : 'text-purple-600 dark:text-purple-400'">
+                                <td class="py-2.5 px-3 text-right font-mono font-bold tabular-nums text-wf-primary">
                                     ₹{{ t.amount }}
                                 </td>
                             </tr>
@@ -349,7 +292,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import {
-    FileText, Mail, CheckCircle, ArrowRight, AlertTriangle,
+    FileText, CheckCircle, ArrowRight, AlertTriangle,
     HelpCircle, Search, CornerDownRight, Info,
     Eye, EyeOff
 } from 'lucide-vue-next'
@@ -370,33 +313,15 @@ const authStore = useAuthStore()
 const dashboardStore = useDashboardStore()
 const mfStore = useMutualFundStore()
 
-const importMode = ref<'pdf' | 'email'>('pdf')
 const selectedMemberId = ref<string | null>(authStore.selectedMemberId)
-
-const selectedMemberEmail = computed(() => {
-    const member = memberOptions.value.find(m => String(m.value) === String(selectedMemberId.value))
-    return member?.email || authStore.user?.email || 'No email linked'
-})
-
 const panNumber = ref('')
 const file = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
-const emailSyncPeriod = ref('1m')
 const isProcessing = ref(false)
 const previewResults = ref<any[]>([])
 const uploadMessage = ref('')
 const showSuccessDialog = ref(false)
 const showPan = ref(false)
-
-const activeIcon = computed(() => importMode.value === 'pdf' ? FileText : Mail)
-
-const periodOptions = [
-    { title: 'Last 1 Month', value: '1m' },
-    { title: 'Last 3 Months', value: '3m' },
-    { title: 'Last 6 Months', value: '6m' },
-    { title: 'Last 1 Year', value: '1y' },
-    { title: 'All Time', value: 'all' }
-]
 
 const itemsPerPage = ref(10)
 const currentPage = ref(1)
@@ -443,29 +368,18 @@ onMounted(() => {
 })
 
 async function handlePreview() {
+    if (!file.value) return
     isProcessing.value = true
     previewResults.value = []
 
     try {
-        let res
-        if (importMode.value === 'pdf') {
-            if (!file.value) return
-            const formData = new FormData()
-            formData.append('file', file.value)
-            formData.append('password', panNumber.value)
-            if (selectedMemberId.value) {
-                formData.append('user_id', selectedMemberId.value)
-            }
-            res = await financeApi.previewCAS(formData)
-        } else {
-            const formData = new FormData()
-            formData.append('password', panNumber.value)
-            formData.append('period', emailSyncPeriod.value)
-            if (selectedMemberId.value) {
-                formData.append('user_id', selectedMemberId.value)
-            }
-            res = await financeApi.previewCASEmail(formData)
+        const formData = new FormData()
+        formData.append('file', file.value)
+        formData.append('password', panNumber.value)
+        if (selectedMemberId.value) {
+            formData.append('user_id', selectedMemberId.value)
         }
+        const res = await financeApi.previewCAS(formData)
 
         previewResults.value = (res.data.transactions || []).map((t: any) => ({
             ...t,

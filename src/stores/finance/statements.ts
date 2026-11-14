@@ -11,6 +11,7 @@ export interface StatementTransaction {
     description: string
     ref_id?: string
     category_suggestion?: string
+    extra_data?: any
     is_reconciled: boolean
     matched_transaction_id?: string
 }
@@ -18,6 +19,7 @@ export interface StatementTransaction {
 export interface Statement {
     id: string
     account_id: string
+    statement_type?: string
     vault_id?: string
     filename: string
     status: 'PENDING' | 'PARSED' | 'FAILED'
@@ -160,6 +162,21 @@ export const useStatementStore = defineStore('statements', () => {
         }
     }
 
+    async function bulkImportMfTransactions(statementId: string, transactionIds: string[], userId?: string) {
+        try {
+            const res = await financeApi.reconcileCasStatement(statementId, transactionIds, userId)
+            for (const txn of currentTransactions.value) {
+                if (transactionIds.includes(txn.id)) {
+                    txn.is_reconciled = true
+                }
+            }
+            return res.data
+        } catch (error) {
+            console.error('[StatementStore] Mutual fund import failed', error)
+            throw error
+        }
+    }
+
     async function updateStatement(id: string, data: { account_id?: string, is_deleted?: boolean }) {
         try {
             const res = await financeApi.updateStatement(id, data)
@@ -189,6 +206,7 @@ export const useStatementStore = defineStore('statements', () => {
         triggerSync,
         ingestTransaction,
         bulkIngestTransactions,
+        bulkImportMfTransactions,
         reconcileStatement,
         updateStatement,
         reprocessStatement

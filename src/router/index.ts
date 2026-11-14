@@ -27,6 +27,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/credit-cards/:id',
+      name: 'credit-card-details',
+      component: () => import('@/views/CreditCardDetails.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/credit-cards',
       name: 'credit-cards',
       component: () => import('@/views/CreditCards.vue'),

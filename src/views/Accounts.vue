@@ -10,14 +10,14 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h1 class="text-lg sm:text-xl font-bold text-wf-text-primary tracking-tight leading-tight">
-                                Accounts
+                                Bank Accounts
                             </h1>
                             <span class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
                                 {{ verifiedAccounts.length }} Active
                             </span>
                         </div>
                         <p class="text-xs text-wf-text-secondary mt-0.5">
-                            Manage linked bank accounts, credit cards, digital wallets, and balance anchoring.
+                            Manage linked savings, current accounts, digital wallets, and cash reserves.
                         </p>
                     </div>
                 </div>
@@ -66,7 +66,7 @@
                     </div>
                     <div class="mt-4">
                         <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
-                            Net Liquid Assets
+                            Total Liquid Balance
                         </div>
                         <div
                             class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight mt-0.5"
@@ -75,7 +75,7 @@
                             {{ formatAmount(accountMetrics.total) }}
                         </div>
                         <div class="text-[11px] text-wf-text-secondary mt-1">
-                            Total available capital
+                            Available cash across all liquid accounts
                         </div>
                     </div>
                 </WfCard>
@@ -89,102 +89,84 @@
                     </div>
                     <div class="mt-4">
                         <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
-                            Bank Balances
+                            Savings & Current
                         </div>
                         <div class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight text-wf-success mt-0.5">
                             {{ formatAmount(accountMetrics.bank) }}
                         </div>
                         <div class="text-[11px] text-wf-text-secondary mt-1">
-                            Cash in hand
+                            Core institutional deposits
                         </div>
                     </div>
                 </WfCard>
 
-                <!-- Active Credit Debt -->
+                <!-- Digital Wallets & Cash -->
                 <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
                     <div class="flex items-start justify-between">
-                        <div class="w-10 h-10 rounded-wf-lg bg-wf-error-light text-wf-error border border-rose-500/20 flex items-center justify-center shrink-0">
-                            <CreditCard :size="20" />
+                        <div class="w-10 h-10 rounded-wf-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center shrink-0">
+                            <Wallet :size="20" />
                         </div>
                     </div>
                     <div class="mt-4">
                         <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
-                            Active Credit Debt
+                            Wallets & Cash
                         </div>
-                        <div class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight text-wf-error mt-0.5">
-                            {{ formatAmount(accountMetrics.credit) }}
+                        <div class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight text-purple-600 dark:text-purple-400 mt-0.5">
+                            {{ formatAmount(accountMetrics.wallet) }}
                         </div>
                         <div class="text-[11px] text-wf-text-secondary mt-1">
-                            Utilized limits
+                            Fast payment liquidity
                         </div>
                     </div>
                 </WfCard>
 
-                <!-- Credit Utilization -->
+                <!-- Active Accounts Count -->
                 <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
                     <div class="flex items-start justify-between">
                         <div class="w-10 h-10 rounded-wf-lg bg-wf-warning-light text-wf-warning border border-amber-500/20 flex items-center justify-center shrink-0">
-                            <Zap :size="20" />
+                            <Building2 :size="20" />
                         </div>
-                        <div
-                            class="text-lg font-bold font-mono tabular-nums"
-                            :class="totalUtilization > 80 ? 'text-wf-error' : 'text-wf-warning'"
-                        >
-                            {{ Math.round(totalUtilization) }}%
+                        <div class="text-lg font-bold font-mono tabular-nums text-wf-text-primary">
+                            {{ verifiedAccounts.length }}
                         </div>
                     </div>
                     <div class="mt-4">
                         <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
-                            Credit Utilization
+                            Active Accounts
                         </div>
-                        <div class="w-full h-2 bg-wf-surface-variant rounded-full overflow-hidden mt-2">
-                            <div
-                                class="h-full rounded-full transition-all duration-300"
-                                :class="totalUtilization > 80 ? 'bg-wf-error' : 'bg-wf-warning'"
-                                :style="{ width: `${Math.min(100, Math.max(0, totalUtilization))}%` }"
-                            ></div>
+                        <div class="text-base sm:text-lg font-bold font-mono tabular-nums tracking-tight text-wf-text-primary mt-0.5">
+                            Avg: {{ formatAmount(averageBalance) }}
                         </div>
                         <div class="text-[11px] text-wf-text-muted mt-1">
-                            Weighted average
+                            Average balance per account
                         </div>
                     </div>
                 </WfCard>
             </div>
 
-            <!-- Unified Toolbar (36px control heights) -->
+            <!-- Unified Toolbar (36px control heights - Top Filter Removed) -->
             <WfCard variant="flat" padding="sm" radius="lg" class="border border-wf-border">
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                    <div class="flex flex-1 items-center gap-2.5 flex-wrap">
-                        <!-- Asset Type Selector -->
-                        <WfSelect
-                            v-model="selectedType"
-                            size="sm"
-                            aria-label="Filter by asset type"
-                            :items="accountTypeItems"
-                            class="w-full sm:w-44"
+                    <!-- Global Search Input -->
+                    <div class="relative flex-1 min-w-[200px]">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <Search :size="14" class="text-wf-text-muted shrink-0" />
+                        </div>
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Search by bank name, institution or mask..."
+                            class="w-full h-8 pl-9 pr-8 text-xs bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-colors"
                         />
-
-                        <!-- Global Search Input -->
-                        <div class="relative flex-1 min-w-[200px]">
-                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                <Search :size="14" class="text-wf-text-muted shrink-0" />
-                            </div>
-                            <input
-                                v-model="searchQuery"
-                                type="text"
-                                placeholder="Search by name, institution or mask..."
-                                class="w-full h-8 pl-9 pr-8 text-xs bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-colors"
-                            />
-                            <div v-if="searchQuery" class="absolute inset-y-0 right-0 flex items-center pr-2.5">
-                                <button
-                                    type="button"
-                                    class="text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded cursor-pointer flex items-center justify-center"
-                                    aria-label="Clear search"
-                                    @click="searchQuery = ''"
-                                >
-                                    <X :size="13" />
-                                </button>
-                            </div>
+                        <div v-if="searchQuery" class="absolute inset-y-0 right-0 flex items-center pr-2.5">
+                            <button
+                                type="button"
+                                class="text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded cursor-pointer flex items-center justify-center"
+                                aria-label="Clear search"
+                                @click="searchQuery = ''"
+                            >
+                                <X :size="13" />
+                            </button>
                         </div>
                     </div>
 
@@ -196,7 +178,7 @@
                         @click="openCreateAccountModal"
                     >
                         <Plus :size="14" class="mr-1" />
-                        <span>Add Source</span>
+                        <span>Add Bank Account</span>
                     </WfButton>
                 </div>
             </WfCard>
@@ -208,27 +190,25 @@
                         v-for="acc in filteredAccounts"
                         :key="acc.id"
                         :account="acc"
-                        :intelligence="getIntelligenceForAccount(acc.id)"
                         @view="handleViewAccount"
                         @edit="openEditAccountModal"
-                        @pay-bill="openPayBillModal"
                         @delete="deleteAccountRequest"
                     />
 
                     <!-- Compact Add Source Placeholder Card -->
                     <div
-                        v-if="!searchQuery && !auth.selectedMemberId && (selectedType === 'all' || selectedType === 'bank')"
-                        class="border-2 border-dashed border-wf-border hover:border-wf-primary/50 rounded-wf-lg p-5 flex flex-col items-center justify-center transition-all cursor-pointer group hover:bg-wf-primary/[0.02] min-h-[110px]"
+                        v-if="!searchQuery && !auth.selectedMemberId"
+                        class="border-2 border-dashed border-wf-border hover:border-wf-primary/50 rounded-wf-lg p-5 flex flex-col items-center justify-center transition-all cursor-pointer group hover:bg-wf-primary/[0.02] min-h-[140px]"
                         @click="openCreateAccountModal"
                     >
                         <div class="w-8 h-8 rounded-full bg-wf-primary/10 text-wf-primary flex items-center justify-center mb-1.5 transition-transform group-hover:scale-110">
                             <Plus :size="18" />
                         </div>
                         <div class="text-xs font-bold text-wf-text-primary">
-                            Add Source
+                            Add Bank Account
                         </div>
                         <div class="text-[11px] text-wf-text-muted mt-0.5 text-center">
-                            Link a bank, card or loan
+                            Link a savings, current or wallet account
                         </div>
                     </div>
                 </div>
@@ -238,11 +218,11 @@
                     <div class="w-16 h-16 rounded-full bg-wf-surface-variant text-wf-text-muted flex items-center justify-center mx-auto mb-4">
                         <Search :size="32" class="opacity-40" />
                     </div>
-                    <h3 class="text-base font-bold text-wf-text-primary">No matching sources</h3>
-                    <p class="text-xs text-wf-text-muted mt-1 mb-4">Try adjusting your search query or asset type filter</p>
-                    <WfButton variant="outline" size="sm" @click="resetFilters">
+                    <h3 class="text-base font-bold text-wf-text-primary">No matching accounts</h3>
+                    <p class="text-xs text-wf-text-muted mt-1 mb-4">Try adjusting your search query</p>
+                    <WfButton variant="outline" size="sm" @click="searchQuery = ''">
                         <RotateCcw :size="13" class="mr-1.5" />
-                        <span>Clear all filters</span>
+                        <span>Clear search</span>
                     </WfButton>
                 </div>
             </div>
@@ -395,70 +375,6 @@
                     </div>
                 </template>
             </WfModal>
-
-            <!-- 3. Pay Credit Bill Modal -->
-            <WfModal
-                v-model="showPayBillModal"
-                max-width="md"
-                title="Pay Credit Bill"
-                :description="`${payBillTarget?.name} · Outstanding ${formatAmount(payBillTarget?.balance || 0)}`"
-            >
-                <form @submit.prevent="handlePayBillSubmit" class="space-y-4 py-1">
-                    <WfSelect
-                        v-model="payBillForm.source_account_id"
-                        label="Pay From Bank Account"
-                        :items="bankAccountsItems"
-                        placeholder="Select source bank account"
-                    />
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <WfInput
-                            v-model.number="payBillForm.amount"
-                            type="number"
-                            label="Amount (₹)"
-                            placeholder="0.00"
-                        />
-                        <WfInput
-                            v-model="payBillForm.date"
-                            type="date"
-                            label="Payment Date"
-                        />
-                    </div>
-
-                    <!-- Record Transaction Toggle -->
-                    <div class="flex items-center justify-between p-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle">
-                        <div>
-                            <div class="text-xs font-semibold text-wf-text-primary">Record Transaction</div>
-                            <div class="text-[11px] text-wf-text-muted">Automatically debit from source bank account</div>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" v-model="payBillForm.record_transaction" class="sr-only peer" />
-                            <div class="w-9 h-5 bg-wf-surface-muted peer-focus:outline-none rounded-wf-pill peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-wf-pill after:h-4 after:w-4 after:transition-all peer-checked:bg-wf-primary"></div>
-                        </label>
-                    </div>
-                </form>
-
-                <template #footer>
-                    <div class="flex items-center justify-end gap-2 w-full">
-                        <WfButton
-                            variant="outline"
-                            size="sm"
-                            @click="showPayBillModal = false"
-                        >
-                            Cancel
-                        </WfButton>
-                        <WfButton
-                            variant="primary"
-                            size="sm"
-                            :loading="submittingPayBill"
-                            :disabled="!payBillForm.source_account_id || !payBillForm.amount"
-                            @click="handlePayBillSubmit"
-                        >
-                            Confirm Payment
-                        </WfButton>
-                    </div>
-                </template>
-            </WfModal>
         </div>
     </MainLayout>
 </template>
@@ -472,13 +388,11 @@ import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
 import { useAuthStore } from '@/stores/auth'
 import { 
-    Scale, Landmark, CreditCard, Plus, Check, X, AlertCircle, 
-    Zap, Trash2, Search, RotateCcw
+    Scale, Landmark, Wallet, Building2, Plus, Check, X, AlertCircle, 
+    Trash2, Search, RotateCcw
 } from 'lucide-vue-next'
 import WfCard from '@/components/ui/WfCard.vue'
 import WfButton from '@/components/ui/WfButton.vue'
-import WfSelect from '@/components/ui/WfSelect.vue'
-import WfInput from '@/components/ui/WfInput.vue'
 import WfModal from '@/components/ui/WfModal.vue'
 import AccountCard from '@/components/finance/AccountCard.vue'
 import AccountEditModal from '@/components/finance/AccountEditModal.vue'
@@ -489,11 +403,9 @@ const { formatAmount } = useCurrency()
 
 // --- State ---
 const accounts = ref<any[]>([])
-const creditIntelligence = ref<any[]>([])
 const auth = useAuthStore()
 const loading = ref(false)
 const activeTab = ref<'approved' | 'triage'>('approved')
-const selectedType = ref('all')
 const searchQuery = ref('')
 
 // Modals
@@ -504,28 +416,14 @@ const accountToDelete = ref<any>(null)
 const accountTxCount = ref(0)
 const isDeletingAccount = ref(false)
 
-const showPayBillModal = ref(false)
-const payBillTarget = ref<any>(null)
-const payBillForm = ref({
-    source_account_id: '',
-    amount: 0,
-    date: new Date().toISOString().split('T')[0],
-    description: '',
-    record_transaction: true
-})
-const submittingPayBill = ref(false)
-
 // --- Computed ---
+// Credit cards are excluded from Accounts view - handled in dedicated /credit-cards view
+const nonCreditAccounts = computed(() => {
+    return accounts.value.filter(a => a.type !== 'CREDIT_CARD')
+})
+
 const filteredAccounts = computed(() => {
-    let list = accounts.value.filter(a => a.is_verified !== false)
-    
-    // Type filtering
-    if (selectedType.value === 'bank') list = list.filter(a => a.type === 'BANK')
-    if (selectedType.value === 'credit') list = list.filter(a => a.type === 'CREDIT_CARD')
-    if (selectedType.value === 'loan') list = list.filter(a => a.type === 'LOAN')
-    if (selectedType.value === 'investment') list = list.filter(a => a.type === 'INVESTMENT')
-    if (selectedType.value === 'wallet') list = list.filter(a => a.type === 'WALLET')
-    if (selectedType.value === 'other') list = list.filter(a => !['BANK', 'CREDIT_CARD', 'INVESTMENT', 'LOAN', 'WALLET'].includes(a.type))
+    let list = nonCreditAccounts.value.filter(a => a.is_verified !== false)
     
     // Search filtering
     if (searchQuery.value) {
@@ -540,62 +438,39 @@ const filteredAccounts = computed(() => {
     return list
 })
 
-const untrustedAccounts = computed(() => accounts.value.filter(a => a.is_verified === false))
+const untrustedAccounts = computed(() => nonCreditAccounts.value.filter(a => a.is_verified === false))
+const verifiedAccounts = computed(() => nonCreditAccounts.value.filter(a => a.is_verified !== false))
 
 const accountMetrics = computed(() => {
-    let total = 0; let bank = 0; let credit = 0
-    accounts.value.forEach(a => {
+    let total = 0
+    let bank = 0
+    let wallet = 0
+
+    verifiedAccounts.value.forEach(a => {
         const bal = Number(a.balance || 0)
-        if (a.type === 'CREDIT_CARD' || a.type === 'LOAN') {
-            credit += bal
-            total -= bal
-        } else {
-            total += bal
-            if (a.type === 'BANK') bank += bal
+        total += bal
+        if (a.type === 'BANK') {
+            bank += bal
+        } else if (a.type === 'WALLET' || a.type === 'CASH') {
+            wallet += bal
         }
     })
-    return { total, bank, credit }
+    return { total, bank, wallet }
 })
 
-const totalUtilization = computed(() => {
-    let totalLimit = 0; let totalUsed = 0
-    accounts.value.filter(a => a.type === 'CREDIT_CARD').forEach(a => {
-        totalLimit += Number(a.credit_limit || 0)
-        totalUsed += Number(a.balance || 0)
-    })
-    return totalLimit > 0 ? (totalUsed / totalLimit) * 100 : 0
-})
-
-const bankAccountsItems = computed(() => {
-    return accounts.value
-        .filter(a => a.type === 'BANK' && a.is_verified !== false)
-        .map(a => ({ title: `${a.name} (${formatAmount(a.balance)})`, value: a.id }))
+const averageBalance = computed(() => {
+    if (verifiedAccounts.value.length === 0) return 0
+    return accountMetrics.value.total / verifiedAccounts.value.length
 })
 
 const familyMembers = computed(() => auth.familyMembers)
-
-const verifiedAccounts = computed(() => accounts.value.filter(a => a.is_verified !== false))
-
-const accountTypeItems = computed(() => [
-    { title: 'All Asset Types', value: 'all' },
-    { title: '🏦 Bank Accounts', value: 'bank' },
-    { title: '💳 Credit Cards', value: 'credit' },
-    { title: '💸 Loans / EMIs', value: 'loan' },
-    { title: '📈 Investments', value: 'investment' },
-    { title: '👛 Wallets', value: 'wallet' },
-    { title: '📁 Other', value: 'other' }
-])
 
 // --- Methods ---
 async function fetchData() {
     loading.value = true
     try {
-        const [accRes, intelRes] = await Promise.all([
-            financeApi.getAccounts(auth.selectedMemberId || undefined, true),
-            financeApi.getCreditIntelligence(auth.selectedMemberId || undefined)
-        ])
+        const accRes = await financeApi.getAccounts(auth.selectedMemberId || undefined, true)
         accounts.value = accRes.data
-        creditIntelligence.value = intelRes.data
     } catch (err) {
         notify.error("Failed to load accounts")
     } finally {
@@ -603,16 +478,16 @@ async function fetchData() {
     }
 }
 
-function getIntelligenceForAccount(id: string) {
-    return creditIntelligence.value.find(i => i.id === id)
-}
-
 function getAccountTypeLabel(type: string) {
-    const labels: any = { BANK: 'Bank Account', CREDIT_CARD: 'Credit Card', LOAN: 'Loan', WALLET: 'Wallet', INVESTMENT: 'Investment' }
+    const labels: any = { BANK: 'Bank Account', WALLET: 'Wallet', CASH: 'Cash', INVESTMENT: 'Investment', LOAN: 'Loan' }
     return labels[type] || type
 }
 
 function handleViewAccount(account: any) {
+    if (account.type === 'LOAN') {
+        router.push('/loans')
+        return
+    }
     router.push(`/accounts/${account.id}`)
 }
 
@@ -649,39 +524,6 @@ async function confirmAccountDelete() {
     } finally {
         isDeletingAccount.value = false
     }
-}
-
-function openPayBillModal(account: any) {
-    payBillTarget.value = account
-    const intel = getIntelligenceForAccount(account.id)
-    payBillForm.value = {
-        source_account_id: '',
-        amount: intel?.statement_balance || 0,
-        date: new Date().toISOString().split('T')[0],
-        description: `Bill Payment: ${account.name}`,
-        record_transaction: true
-    }
-    showPayBillModal.value = true
-}
-
-async function handlePayBillSubmit() {
-    if (!payBillTarget.value || !payBillForm.value.source_account_id) return
-    submittingPayBill.value = true
-    try {
-        await financeApi.payCreditCardBill(payBillTarget.value.id, payBillForm.value)
-        notify.success("Payment recorded successfully")
-        showPayBillModal.value = false
-        fetchData()
-    } catch (e: any) {
-        notify.error(e.response?.data?.detail || "Payment failed")
-    } finally {
-        submittingPayBill.value = false
-    }
-}
-
-function resetFilters() {
-    searchQuery.value = ''
-    selectedType.value = 'all'
 }
 
 watch(() => auth.selectedMemberId, () => {

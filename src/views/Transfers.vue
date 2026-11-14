@@ -1,364 +1,488 @@
 <template>
-    <div class="transfers-view">
-        <v-container fluid class="pa-6 pa-md-8 max-width-1400">
-            <!-- Header Section -->
-            <div class="d-flex flex-column flex-md-row justify-space-between align-start align-md-center mb-6 gap-4">
-                <div>
-                    <div class="d-flex align-center gap-3">
-                        <v-avatar color="primary" variant="tonal" size="48" rounded="lg">
-                            <ArrowLeftRight :size="24" class="text-primary" />
-                        </v-avatar>
-                        <div>
-                            <h1 class="text-h4 font-weight-black text-content letter-spacing-tight mb-1">
-                                Cross-Account Transfers
-                            </h1>
-                            <p class="text-subtitle-2 text-medium-emphasis mb-0 font-weight-bold">
-                                Auto-detect money moved between bank accounts, credit card payments, loans, and family members.
-                            </p>
-                        </div>
-                    </div>
-                </div>
+  <MainLayout>
+    <div class="space-y-6">
+      <!-- Header Section -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wf-border-subtle">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50 shadow-2xs shrink-0">
+            <ArrowLeftRight class="w-5 h-5" />
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg sm:text-xl font-bold text-wf-text-primary tracking-tight leading-tight">
+                Cross-Account Transfers
+              </h1>
+              <span v-if="candidates.paired_candidates?.length" class="inline-flex items-center px-2 py-0.5 rounded-wf-pill text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50">
+                {{ candidates.paired_candidates.length }} Pending
+              </span>
+            </div>
+            <p class="text-xs text-wf-text-secondary mt-0.5">
+              Auto-detect money moved between bank accounts, credit card bill payments, loan EMIs, and investments.
+            </p>
+          </div>
+        </div>
 
-                <div class="d-flex align-center gap-3">
-                    <v-btn variant="outlined" rounded="pill" height="42" class="px-4 font-weight-bold"
-                        :loading="isScanning" @click="triggerScan">
-                        <RefreshCw :size="16" class="mr-2" :class="{ 'spin-animation': isScanning }" />
-                        Scan Ledger
-                    </v-btn>
-                    <v-btn v-if="highConfidencePairs.length > 0" color="primary" variant="flat" rounded="pill" height="42"
-                        class="px-5 font-weight-black shadow-primary" :loading="isBatchPairing" @click="approveAllHighConfidence">
-                        <CheckCheck :size="18" class="mr-2" />
-                        Approve {{ highConfidencePairs.length }} High-Confidence Pairs
-                    </v-btn>
+        <div class="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+          <WfButton
+            variant="secondary"
+            size="md"
+            :loading="isScanning"
+            @click="triggerScan"
+            class="h-9 px-3.5 text-xs font-semibold"
+          >
+            <RefreshCw class="w-3.5 h-3.5 mr-1.5" :class="{ 'animate-spin': isScanning }" />
+            <span>Scan Ledger</span>
+          </WfButton>
+
+          <WfButton
+            v-if="highConfidencePairs.length > 0"
+            variant="primary"
+            size="md"
+            :loading="isBatchPairing"
+            @click="approveAllHighConfidence"
+            class="h-9 px-4 text-xs font-semibold"
+          >
+            <CheckCheck class="w-4 h-4 mr-1.5" />
+            <span>Approve {{ highConfidencePairs.length }} High-Confidence Pairs</span>
+          </WfButton>
+        </div>
+      </div>
+
+      <!-- KPI Summary Row -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Detected Pairs -->
+        <div class="p-4 rounded-wf-lg bg-wf-surface border border-wf-border shadow-2xs">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-wf-text-muted">Detected Pairs</span>
+            <div class="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <Sparkles class="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div class="text-2xl font-black text-wf-primary tabular-nums tracking-tight">
+            {{ candidates.paired_candidates?.length || 0 }}
+          </div>
+          <div class="text-[11px] text-wf-text-muted font-medium mt-1">
+            {{ highConfidencePairs.length }} high confidence matches
+          </div>
+        </div>
+
+        <!-- Unpaired Outflows -->
+        <div class="p-4 rounded-wf-lg bg-wf-surface border border-wf-border shadow-2xs">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-wf-text-muted">Unpaired Outflows</span>
+            <div class="w-7 h-7 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <AlertCircle class="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div class="text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums tracking-tight">
+            {{ candidates.unpaired_candidates?.length || 0 }}
+          </div>
+          <div class="text-[11px] text-wf-text-muted font-medium mt-1">
+            Missing counterpart credits
+          </div>
+        </div>
+
+        <!-- Active Paired Transfers -->
+        <div class="p-4 rounded-wf-lg bg-wf-surface border border-wf-border shadow-2xs">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-wf-text-muted">Active Paired Transfers</span>
+            <div class="w-7 h-7 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <CheckCircle2 class="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight">
+            {{ transferHistory.total || 0 }}
+          </div>
+          <div class="text-[11px] text-wf-text-muted font-medium mt-1">
+            Excluded from duplicate expenses
+          </div>
+        </div>
+
+        <!-- Scan Coverage -->
+        <div class="p-4 rounded-wf-lg bg-wf-surface border border-wf-border shadow-2xs">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-wf-text-muted">Scan Coverage</span>
+            <div class="w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <Clock class="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div class="text-xl font-black text-wf-text-primary tracking-tight">
+            Last 90 Days
+          </div>
+          <div class="text-[11px] text-wf-text-muted font-medium mt-1">
+            Scanned: {{ formatTimestamp(candidates.scan_timestamp) }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <div class="flex items-center gap-1 p-1 bg-wf-surface-variant/60 rounded-wf-lg border border-wf-border-subtle w-fit">
+        <button
+          type="button"
+          @click="activeTab = 'suggestions'"
+          :class="[
+            'flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-wf-md transition-all',
+            activeTab === 'suggestions'
+              ? 'bg-wf-surface text-wf-text-primary shadow-2xs border border-wf-border'
+              : 'text-wf-text-secondary hover:text-wf-text-primary'
+          ]"
+        >
+          <Sparkles class="w-3.5 h-3.5 text-indigo-500" />
+          <span>Detected Pairs</span>
+          <span
+            v-if="candidates.paired_candidates?.length"
+            class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+          >
+            {{ candidates.paired_candidates.length }}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          @click="activeTab = 'unpaired'"
+          :class="[
+            'flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-wf-md transition-all',
+            activeTab === 'unpaired'
+              ? 'bg-wf-surface text-wf-text-primary shadow-2xs border border-wf-border'
+              : 'text-wf-text-secondary hover:text-wf-text-primary'
+          ]"
+        >
+          <HelpCircle class="w-3.5 h-3.5 text-amber-500" />
+          <span>Unpaired Outflows</span>
+          <span
+            v-if="candidates.unpaired_candidates?.length"
+            class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+          >
+            {{ candidates.unpaired_candidates.length }}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          @click="activeTab = 'history'"
+          :class="[
+            'flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-wf-md transition-all',
+            activeTab === 'history'
+              ? 'bg-wf-surface text-wf-text-primary shadow-2xs border border-wf-border'
+              : 'text-wf-text-secondary hover:text-wf-text-primary'
+          ]"
+        >
+          <History class="w-3.5 h-3.5 text-wf-text-muted" />
+          <span>Transfer History</span>
+          <span
+            v-if="transferHistory.total"
+            class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-wf-surface-variant text-wf-text-secondary"
+          >
+            {{ transferHistory.total }}
+          </span>
+        </button>
+      </div>
+
+      <!-- Tab Content 1: Detected Pairs -->
+      <div v-if="activeTab === 'suggestions'">
+        <!-- Empty State -->
+        <div
+          v-if="!isScanning && (!candidates.paired_candidates || candidates.paired_candidates.length === 0)"
+          class="p-12 text-center rounded-wf-xl bg-wf-surface border border-wf-border shadow-2xs max-w-xl mx-auto"
+        >
+          <div class="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 class="w-7 h-7" />
+          </div>
+          <h3 class="text-base font-bold text-wf-text-primary mb-1">All Caught Up!</h3>
+          <p class="text-xs text-wf-text-secondary max-w-sm mx-auto mb-5 leading-relaxed">
+            No unlinked cross-account transfers found in the last 90 days. All detected movements between accounts are paired.
+          </p>
+          <WfButton variant="secondary" size="sm" @click="triggerScan" :loading="isScanning" class="text-xs font-semibold">
+            <RefreshCw class="w-3.5 h-3.5 mr-1.5" />
+            <span>Re-scan Transactions</span>
+          </WfButton>
+        </div>
+
+        <!-- Pairs List -->
+        <div v-else class="space-y-4">
+          <div
+            v-for="pair in candidates.paired_candidates"
+            :key="pair.id"
+            class="p-4 sm:p-5 rounded-wf-xl bg-wf-surface border border-wf-border shadow-2xs hover:shadow-sm transition-all"
+          >
+            <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+              <!-- Source Leg (Debit) -->
+              <div class="flex-1 p-3.5 rounded-wf-lg bg-wf-surface-variant/40 border border-wf-border-subtle">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <span :class="['px-2 py-0.5 rounded-wf-pill text-[10px] font-bold uppercase tracking-wider', getTypeBadgeClass(pair.source_transaction.account_type)]">
+                      {{ pair.source_transaction.account_type }}
+                    </span>
+                    <span class="text-xs font-bold text-wf-text-primary">{{ pair.source_transaction.account_name }}</span>
+                    <span v-if="pair.source_transaction.account_mask" class="text-[11px] font-mono text-wf-text-muted">
+                      *{{ pair.source_transaction.account_mask.slice(-4) }}
+                    </span>
+                  </div>
+                  <span class="text-[11px] font-medium text-wf-text-muted">{{ formatDate(pair.source_transaction.date) }}</span>
                 </div>
+                <div class="text-base font-black text-rose-600 dark:text-rose-400 mb-1 tabular-nums">
+                  - {{ formatAmount(pair.source_transaction.amount) }}
+                </div>
+                <div class="text-xs text-wf-text-secondary line-clamp-1">
+                  {{ pair.source_transaction.description || pair.source_transaction.recipient || 'Outflow' }}
+                </div>
+              </div>
+
+              <!-- Match Reason & Arrow -->
+              <div class="flex flex-col items-center justify-center px-2 py-1 text-center shrink-0 min-w-[200px]">
+                <div class="flex items-center gap-1.5 mb-2">
+                  <span :class="['px-2 py-0.5 rounded-wf-pill text-[10px] font-bold', getConfidenceBadgeClass(pair.confidence)]">
+                    {{ pair.confidence }}% Match
+                  </span>
+                  <span v-if="pair.amount_difference > 0" class="px-1.5 py-0.5 rounded-wf-pill text-[10px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                    ₹{{ pair.amount_difference.toFixed(2) }} Diff
+                  </span>
+                </div>
+                <div class="flex items-center gap-2 text-wf-primary mb-1 w-full justify-center">
+                  <div class="h-px bg-wf-border-subtle flex-1"></div>
+                  <ArrowLeftRight class="w-4 h-4 text-wf-primary" />
+                  <div class="h-px bg-wf-border-subtle flex-1"></div>
+                </div>
+                <div class="text-[11px] font-medium text-wf-text-muted max-w-[220px] line-clamp-2">
+                  {{ pair.reason }}
+                </div>
+              </div>
+
+              <!-- Destination Leg (Credit) -->
+              <div class="flex-1 p-3.5 rounded-wf-lg bg-wf-surface-variant/40 border border-wf-border-subtle">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <span :class="['px-2 py-0.5 rounded-wf-pill text-[10px] font-bold uppercase tracking-wider', getTypeBadgeClass(pair.destination_transaction.account_type)]">
+                      {{ pair.destination_transaction.account_type }}
+                    </span>
+                    <span class="text-xs font-bold text-wf-text-primary">{{ pair.destination_transaction.account_name }}</span>
+                    <span v-if="pair.destination_transaction.account_mask" class="text-[11px] font-mono text-wf-text-muted">
+                      *{{ pair.destination_transaction.account_mask.slice(-4) }}
+                    </span>
+                  </div>
+                  <span class="text-[11px] font-medium text-wf-text-muted">{{ formatDate(pair.destination_transaction.date) }}</span>
+                </div>
+                <div class="text-base font-black text-emerald-600 dark:text-emerald-400 mb-1 tabular-nums">
+                  + {{ formatAmount(pair.destination_transaction.amount) }}
+                </div>
+                <div class="text-xs text-wf-text-secondary line-clamp-1">
+                  {{ pair.destination_transaction.description || pair.destination_transaction.recipient || 'Inflow' }}
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex sm:flex-col items-center justify-center gap-2 shrink-0 pt-2 lg:pt-0">
+                <WfButton
+                  variant="primary"
+                  size="sm"
+                  :loading="pairingId === pair.id"
+                  @click="pairSingle(pair)"
+                  class="h-8 px-3 text-xs font-semibold w-full sm:w-auto"
+                >
+                  <Check class="w-3.5 h-3.5 mr-1" />
+                  <span>Link Pair</span>
+                </WfButton>
+                <button
+                  type="button"
+                  @click="dismissPair(pair.id)"
+                  class="text-xs font-semibold text-wf-text-muted hover:text-wf-text-primary px-2 py-1 transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content 2: Unpaired Outflows -->
+      <div v-else-if="activeTab === 'unpaired'">
+        <div
+          v-if="!candidates.unpaired_candidates || candidates.unpaired_candidates.length === 0"
+          class="p-12 text-center rounded-wf-xl bg-wf-surface border border-wf-border shadow-2xs max-w-xl mx-auto"
+        >
+          <div class="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 class="w-7 h-7" />
+          </div>
+          <h3 class="text-base font-bold text-wf-text-primary mb-1">No Unpaired Outflows</h3>
+          <p class="text-xs text-wf-text-secondary max-w-sm mx-auto leading-relaxed">
+            All debit transactions that appear to target internal credit cards, loan accounts, or investments have either been linked or confirmed.
+          </p>
+        </div>
+
+        <div v-else class="space-y-3">
+          <div
+            v-for="item in candidates.unpaired_candidates"
+            :key="item.transaction.id"
+            class="p-4 sm:p-5 rounded-wf-xl bg-wf-surface border border-wf-border shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+          >
+            <div class="space-y-1.5 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="px-2 py-0.5 rounded-wf-pill text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                  {{ item.transaction.account_name }}
+                </span>
+                <span class="text-[11px] font-medium text-wf-text-muted">{{ formatDate(item.transaction.date) }}</span>
+                <span class="px-2 py-0.5 rounded-wf-pill text-[10px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                  {{ item.reason }}
+                </span>
+              </div>
+              <div class="text-base font-black text-rose-600 dark:text-rose-400 tabular-nums">
+                - {{ formatAmount(item.transaction.amount) }}
+              </div>
+              <div class="text-xs font-medium text-wf-text-primary">
+                {{ item.transaction.description }}
+              </div>
             </div>
 
-            <!-- KPI Row -->
-            <v-row class="mb-6">
-                <v-col cols="12" sm="6" lg="3">
-                    <v-card class="premium-glass-card pa-5 h-100" elevation="0">
-                        <div class="d-flex justify-space-between align-center mb-2">
-                            <span class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Detected Pairs</span>
-                            <Sparkles :size="18" class="text-primary opacity-70" />
-                        </div>
-                        <div class="text-h4 font-weight-black text-primary">{{ candidates.paired_candidates?.length || 0 }}</div>
-                        <div class="text-caption font-weight-bold text-medium-emphasis mt-1">
-                            {{ highConfidencePairs.length }} high confidence matches
-                        </div>
-                    </v-card>
-                </v-col>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
+              <div class="text-xs text-wf-text-muted">
+                Suggested Destination: <strong class="text-wf-text-primary">{{ item.suggested_destination?.name || 'Unknown' }}</strong>
+              </div>
+              <WfButton
+                variant="primary"
+                size="sm"
+                :loading="creatingCounterpartId === item.transaction.id"
+                @click="openCreateCounterpartModal(item)"
+                class="h-8 px-3 text-xs font-semibold"
+              >
+                <PlusCircle class="w-3.5 h-3.5 mr-1.5" />
+                <span>Create Counterpart & Link</span>
+              </WfButton>
+            </div>
+          </div>
+        </div>
+      </div>
 
-                <v-col cols="12" sm="6" lg="3">
-                    <v-card class="premium-glass-card pa-5 h-100" elevation="0">
-                        <div class="d-flex justify-space-between align-center mb-2">
-                            <span class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Unpaired Outflows</span>
-                            <AlertCircle :size="18" class="text-warning opacity-70" />
-                        </div>
-                        <div class="text-h4 font-weight-black text-warning">{{ candidates.unpaired_candidates?.length || 0 }}</div>
-                        <div class="text-caption font-weight-bold text-medium-emphasis mt-1">
-                            Missing counterpart credits
-                        </div>
-                    </v-card>
-                </v-col>
+      <!-- Tab Content 3: History -->
+      <div v-else-if="activeTab === 'history'">
+        <div
+          v-if="transferHistory.items.length === 0"
+          class="p-12 text-center rounded-wf-xl bg-wf-surface border border-wf-border shadow-2xs max-w-xl mx-auto"
+        >
+          <p class="text-xs font-medium text-wf-text-muted">No active paired transfers recorded yet.</p>
+        </div>
 
-                <v-col cols="12" sm="6" lg="3">
-                    <v-card class="premium-glass-card pa-5 h-100" elevation="0">
-                        <div class="d-flex justify-space-between align-center mb-2">
-                            <span class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Active Paired Transfers</span>
-                            <CheckCircle2 :size="18" class="text-success opacity-70" />
-                        </div>
-                        <div class="text-h4 font-weight-black text-success">{{ transferHistory.total || 0 }}</div>
-                        <div class="text-caption font-weight-bold text-medium-emphasis mt-1">
-                            Excluded from duplicate expenses
-                        </div>
-                    </v-card>
-                </v-col>
-
-                <v-col cols="12" sm="6" lg="3">
-                    <v-card class="premium-glass-card pa-5 h-100" elevation="0">
-                        <div class="d-flex justify-space-between align-center mb-2">
-                            <span class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Scan Coverage</span>
-                            <Clock :size="18" class="text-info opacity-70" />
-                        </div>
-                        <div class="text-h4 font-weight-black text-content">Last 90 Days</div>
-                        <div class="text-caption font-weight-bold text-medium-emphasis mt-1">
-                            {{ formatTimestamp(candidates.scan_timestamp) }}
-                        </div>
-                    </v-card>
-                </v-col>
-            </v-row>
-
-            <!-- Navigation Tabs -->
-            <v-tabs v-model="activeTab" color="primary" class="mb-6 font-weight-black" density="comfortable">
-                <v-tab value="suggestions" class="text-capitalize">
-                    <Sparkles :size="16" class="mr-2" />
-                    Detected Pairs
-                    <v-chip v-if="candidates.paired_candidates?.length" size="x-small" color="primary" class="ml-2 font-weight-black">
-                        {{ candidates.paired_candidates.length }}
-                    </v-chip>
-                </v-tab>
-                <v-tab value="unpaired" class="text-capitalize">
-                    <HelpCircle :size="16" class="mr-2" />
-                    Unpaired Outflows
-                    <v-chip v-if="candidates.unpaired_candidates?.length" size="x-small" color="warning" class="ml-2 font-weight-black">
-                        {{ candidates.unpaired_candidates.length }}
-                    </v-chip>
-                </v-tab>
-                <v-tab value="history" class="text-capitalize">
-                    <History :size="16" class="mr-2" />
-                    Transfers History
-                </v-tab>
-            </v-tabs>
-
-            <!-- Tab 1: Detected Pairs -->
-            <div v-if="activeTab === 'suggestions'">
-                <!-- Empty State -->
-                <div v-if="!isScanning && (!candidates.paired_candidates || candidates.paired_candidates.length === 0)"
-                    class="premium-glass-card text-center py-16 px-8 mx-auto" style="max-width: 600px;">
-                    <v-avatar color="success" variant="tonal" size="72" class="mb-4">
-                        <CheckCircle2 :size="36" class="text-success" />
-                    </v-avatar>
-                    <h3 class="text-h5 font-weight-black mb-1">All Caught Up!</h3>
-                    <p class="text-subtitle-2 text-medium-emphasis mb-6">
-                        No unlinked cross-account transfers found in the last 90 days. All detected movements are paired.
-                    </p>
-                    <v-btn variant="outlined" rounded="pill" @click="triggerScan" :loading="isScanning">
-                        <RefreshCw :size="14" class="mr-2" />
-                        Re-scan Transactions
-                    </v-btn>
+        <div v-else class="space-y-3">
+          <div
+            v-for="item in transferHistory.items"
+            :key="item.source_id"
+            class="p-4 rounded-wf-xl bg-wf-surface border border-wf-border shadow-2xs flex items-center justify-between gap-4"
+          >
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <ArrowLeftRight class="w-4 h-4" />
+              </div>
+              <div>
+                <div class="flex items-center gap-2 mb-0.5">
+                  <span class="text-xs font-bold text-wf-text-primary">{{ item.source_account_name }}</span>
+                  <ArrowRight class="w-3 h-3 text-wf-text-muted" />
+                  <span class="text-xs font-bold text-wf-text-primary">{{ item.partner_account_name }}</span>
                 </div>
-
-                <!-- Pairs List -->
-                <div v-else class="d-flex flex-column gap-4">
-                    <v-card v-for="pair in candidates.paired_candidates" :key="pair.id"
-                        class="premium-glass-card pair-card pa-5" elevation="0">
-                        <div class="d-flex flex-column flex-md-row justify-space-between align-stretch align-md-center gap-4">
-                            <!-- Source Leg (Debit) -->
-                            <div class="leg-box flex-grow-1 pa-4 rounded-xl">
-                                <div class="d-flex justify-space-between align-center mb-2">
-                                    <div class="d-flex align-center gap-2">
-                                        <v-chip size="x-small" :color="getTypeColor(pair.source_transaction.account_type)" variant="flat" class="font-weight-black">
-                                            {{ pair.source_transaction.account_type }}
-                                        </v-chip>
-                                        <span class="text-subtitle-2 font-weight-black text-content">{{ pair.source_transaction.account_name }}</span>
-                                        <span v-if="pair.source_transaction.account_mask" class="text-caption font-mono opacity-60">
-                                            *{{ pair.source_transaction.account_mask.slice(-4) }}
-                                        </span>
-                                    </div>
-                                    <span class="text-caption text-medium-emphasis font-weight-bold">{{ formatDate(pair.source_transaction.date) }}</span>
-                                </div>
-                                <div class="text-h5 font-weight-black text-error mb-1">
-                                    - {{ formatAmount(pair.source_transaction.amount) }}
-                                </div>
-                                <div class="text-caption text-medium-emphasis line-clamp-1">
-                                    {{ pair.source_transaction.description || pair.source_transaction.recipient || 'Outflow' }}
-                                </div>
-                            </div>
-
-                            <!-- Middle Indicator / Match Reasons -->
-                            <div class="d-flex flex-column align-center justify-center text-center px-4" style="min-width: 220px;">
-                                <div class="d-flex align-center gap-2 mb-2">
-                                    <v-chip size="small" :color="getConfidenceColor(pair.confidence)" variant="flat" class="font-weight-black">
-                                        {{ pair.confidence }}% Match
-                                    </v-chip>
-                                    <v-chip v-if="pair.amount_difference > 0" size="x-small" color="info" variant="tonal" class="font-weight-bold">
-                                        ₹{{ pair.amount_difference.toFixed(2) }} Diff
-                                    </v-chip>
-                                </div>
-                                <div class="d-flex align-center gap-2 text-primary mb-2">
-                                    <v-divider class="flex-grow-1" />
-                                    <ArrowLeftRight :size="20" />
-                                    <v-divider class="flex-grow-1" />
-                                </div>
-                                <div class="text-tiny font-weight-bold text-medium-emphasis">
-                                    {{ pair.reason }}
-                                </div>
-                            </div>
-
-                            <!-- Destination Leg (Credit) -->
-                            <div class="leg-box flex-grow-1 pa-4 rounded-xl">
-                                <div class="d-flex justify-space-between align-center mb-2">
-                                    <div class="d-flex align-center gap-2">
-                                        <v-chip size="x-small" :color="getTypeColor(pair.destination_transaction.account_type)" variant="flat" class="font-weight-black">
-                                            {{ pair.destination_transaction.account_type }}
-                                        </v-chip>
-                                        <span class="text-subtitle-2 font-weight-black text-content">{{ pair.destination_transaction.account_name }}</span>
-                                        <span v-if="pair.destination_transaction.account_mask" class="text-caption font-mono opacity-60">
-                                            *{{ pair.destination_transaction.account_mask.slice(-4) }}
-                                        </span>
-                                    </div>
-                                    <span class="text-caption text-medium-emphasis font-weight-bold">{{ formatDate(pair.destination_transaction.date) }}</span>
-                                </div>
-                                <div class="text-h5 font-weight-black text-success mb-1">
-                                    + {{ formatAmount(pair.destination_transaction.amount) }}
-                                </div>
-                                <div class="text-caption text-medium-emphasis line-clamp-1">
-                                    {{ pair.destination_transaction.description || pair.destination_transaction.recipient || 'Inflow' }}
-                                </div>
-                            </div>
-
-                            <!-- Actions -->
-                            <div class="d-flex flex-md-column justify-center gap-2">
-                                <v-btn color="primary" variant="flat" rounded="pill" height="40" class="px-5 font-weight-black"
-                                    :loading="pairingId === pair.id" @click="pairSingle(pair)">
-                                    <Check :size="16" class="mr-1" />
-                                    Link Pair
-                                </v-btn>
-                                <v-btn variant="text" size="small" rounded="pill" color="medium-emphasis" class="font-weight-bold"
-                                    @click="dismissPair(pair.id)">
-                                    Dismiss
-                                </v-btn>
-                            </div>
-                        </div>
-                    </v-card>
+                <div class="text-[11px] text-wf-text-muted font-medium">
+                  {{ formatDate(item.date) }} · {{ item.description }}
                 </div>
+              </div>
             </div>
 
-            <!-- Tab 2: Unpaired Outflows -->
-            <div v-else-if="activeTab === 'unpaired'">
-                <div v-if="!candidates.unpaired_candidates || candidates.unpaired_candidates.length === 0"
-                    class="premium-glass-card text-center py-16 px-8 mx-auto" style="max-width: 600px;">
-                    <v-avatar color="success" variant="tonal" size="72" class="mb-4">
-                        <CheckCircle2 :size="36" class="text-success" />
-                    </v-avatar>
-                    <h3 class="text-h5 font-weight-black mb-1">No Unpaired Outflows</h3>
-                    <p class="text-subtitle-2 text-medium-emphasis mb-0">
-                        All transactions mentioning internal accounts have either been linked or confirmed.
-                    </p>
-                </div>
-
-                <div v-else class="d-flex flex-column gap-4">
-                    <v-card v-for="item in candidates.unpaired_candidates" :key="item.transaction.id"
-                        class="premium-glass-card pa-5" elevation="0">
-                        <div class="d-flex flex-column flex-md-row justify-space-between align-stretch align-md-center gap-4">
-                            <div>
-                                <div class="d-flex align-center gap-2 mb-2">
-                                    <v-chip size="x-small" color="primary" variant="flat" class="font-weight-black">
-                                        {{ item.transaction.account_name }}
-                                    </v-chip>
-                                    <span class="text-caption font-weight-bold text-medium-emphasis">{{ formatDate(item.transaction.date) }}</span>
-                                    <v-chip size="x-small" color="warning" variant="tonal" class="font-weight-bold">
-                                        {{ item.reason }}
-                                    </v-chip>
-                                </div>
-                                <div class="text-h5 font-weight-black text-error mb-1">
-                                    - {{ formatAmount(item.transaction.amount) }}
-                                </div>
-                                <div class="text-body-2 font-weight-bold text-content">
-                                    {{ item.transaction.description }}
-                                </div>
-                            </div>
-
-                            <div class="d-flex flex-column flex-md-row align-start align-md-center gap-3">
-                                <div class="text-caption font-weight-bold text-medium-emphasis">
-                                    Suggested Destination: <strong>{{ item.suggested_destination.name }}</strong>
-                                </div>
-                                <v-btn color="primary" variant="flat" rounded="pill" height="40" class="px-5 font-weight-black"
-                                    :loading="creatingCounterpartId === item.transaction.id"
-                                    @click="openCreateCounterpartModal(item)">
-                                    <PlusCircle :size="16" class="mr-1" />
-                                    Create Counterpart & Link
-                                </v-btn>
-                            </div>
-                        </div>
-                    </v-card>
-                </div>
+            <div class="flex items-center gap-4">
+              <div class="text-sm font-black text-wf-primary tabular-nums">
+                {{ formatAmount(item.amount) }}
+              </div>
+              <WfButton
+                variant="danger"
+                size="sm"
+                :loading="unpairingId === item.source_id"
+                @click="unpair(item.source_id)"
+                class="h-7 px-2.5 text-[11px] font-semibold"
+              >
+                Unlink
+              </WfButton>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <!-- Tab 3: History -->
-            <div v-else-if="activeTab === 'history'">
-                <div v-if="transferHistory.items.length === 0"
-                    class="premium-glass-card text-center py-16 px-8 mx-auto" style="max-width: 600px;">
-                    <p class="text-subtitle-1 font-weight-bold text-medium-emphasis mb-0">No active transfers recorded yet.</p>
-                </div>
+      <!-- Create Counterpart Modal -->
+      <WfModal
+        v-model="counterpartModal"
+        title="Create Counterpart Leg"
+        maxWidth="md"
+      >
+        <div class="space-y-4">
+          <p class="text-xs text-wf-text-secondary leading-relaxed">
+            Create an incoming credit on the destination account so both legs match and the ledger is balanced.
+          </p>
 
-                <div v-else class="d-flex flex-column gap-3">
-                    <v-card v-for="item in transferHistory.items" :key="item.source_id"
-                        class="premium-glass-card pa-4" elevation="0">
-                        <div class="d-flex justify-space-between align-center">
-                            <div class="d-flex align-center gap-4">
-                                <v-avatar color="primary" variant="tonal" size="40">
-                                    <ArrowLeftRight :size="18" class="text-primary" />
-                                </v-avatar>
-                                <div>
-                                    <div class="d-flex align-center gap-2 mb-1">
-                                        <span class="text-subtitle-2 font-weight-black text-content">{{ item.source_account_name }}</span>
-                                        <ArrowRight :size="14" class="text-medium-emphasis" />
-                                        <span class="text-subtitle-2 font-weight-black text-content">{{ item.partner_account_name }}</span>
-                                    </div>
-                                    <div class="text-caption text-medium-emphasis font-weight-bold">
-                                        {{ formatDate(item.date) }} · {{ item.description }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="d-flex align-center gap-4">
-                                <div class="text-h6 font-weight-black text-primary">
-                                    {{ formatAmount(item.amount) }}
-                                </div>
-                                <v-btn variant="text" size="small" color="error" rounded="pill" class="font-weight-bold"
-                                    :loading="unpairingId === item.source_id" @click="unpair(item.source_id)">
-                                    Unlink
-                                </v-btn>
-                            </div>
-                        </div>
-                    </v-card>
-                </div>
+          <div v-if="selectedUnpaired" class="p-3.5 rounded-wf-lg bg-wf-surface-variant/70 border border-wf-border-subtle space-y-1">
+            <div class="text-[11px] font-semibold text-wf-text-muted">
+              Outflow from {{ selectedUnpaired.transaction.account_name }}
             </div>
+            <div class="text-base font-black text-rose-600 dark:text-rose-400 tabular-nums">
+              - {{ formatAmount(selectedUnpaired.transaction.amount) }}
+            </div>
+            <div class="text-xs text-wf-text-secondary line-clamp-1">
+              {{ selectedUnpaired.transaction.description }}
+            </div>
+          </div>
 
-            <!-- Create Counterpart Modal -->
-            <v-dialog v-model="counterpartModal" max-width="480">
-                <v-card class="premium-glass-card pa-6" elevation="24">
-                    <div class="d-flex align-center gap-3 mb-4">
-                        <v-avatar color="primary" variant="tonal" size="44">
-                            <PlusCircle :size="22" class="text-primary" />
-                        </v-avatar>
-                        <div>
-                            <h3 class="text-h6 font-weight-black mb-0">Create Counterpart Leg</h3>
-                            <p class="text-caption text-medium-emphasis mb-0">Credit destination account to balance ledger</p>
-                        </div>
-                    </div>
+          <form @submit.prevent="submitCreateCounterpart" class="space-y-4">
+            <WfInput
+              v-model="counterpartForm.credited_amount"
+              label="Credited Amount (₹)"
+              type="number"
+              step="any"
+              placeholder="0.00"
+              hint="Adjust if payment discount or offer applied (e.g. ₹9,900 paid from bank, ₹10,000 credited on card)"
+              required
+            />
 
-                    <div v-if="selectedUnpaired" class="mb-4 pa-4 rounded-lg bg-surface-variant">
-                        <div class="text-caption font-weight-bold text-medium-emphasis mb-1">Outflow from {{ selectedUnpaired.transaction.account_name }}</div>
-                        <div class="text-h5 font-weight-black text-error mb-1">- {{ formatAmount(selectedUnpaired.transaction.amount) }}</div>
-                        <div class="text-caption">{{ selectedUnpaired.transaction.description }}</div>
-                    </div>
-
-                    <v-form @submit.prevent="submitCreateCounterpart">
-                        <v-text-field v-model="counterpartForm.credited_amount" label="Credited Amount (₹)" type="number" step="any"
-                            variant="outlined" rounded="lg" class="mb-3 font-weight-bold"
-                            hint="Adjust if offer or discount applied (e.g. ₹9,900 paid from bank, ₹10,000 credited on card)" persistent-hint />
-
-                        <div class="d-flex justify-end gap-2 mt-4">
-                            <v-btn variant="text" rounded="pill" @click="counterpartModal = false">Cancel</v-btn>
-                            <v-btn color="primary" variant="flat" rounded="pill" type="submit" :loading="isCreatingCounterpart" class="font-weight-black">
-                                Create & Link
-                            </v-btn>
-                        </div>
-                    </v-form>
-                </v-card>
-            </v-dialog>
-        </v-container>
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-wf-border-subtle">
+              <WfButton
+                type="button"
+                variant="secondary"
+                size="md"
+                @click="counterpartModal = false"
+                class="text-xs font-semibold"
+              >
+                Cancel
+              </WfButton>
+              <WfButton
+                type="submit"
+                variant="primary"
+                size="md"
+                :loading="isCreatingCounterpart"
+                class="text-xs font-semibold"
+              >
+                Create & Link
+              </WfButton>
+            </div>
+          </form>
+        </div>
+      </WfModal>
     </div>
+  </MainLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
-    ArrowLeftRight,
-    ArrowRight,
-    Sparkles,
-    CheckCheck,
-    CheckCircle2,
-    Check,
-    AlertCircle,
-    Clock,
-    RefreshCw,
-    HelpCircle,
-    History,
-    PlusCircle
+  ArrowLeftRight,
+  ArrowRight,
+  Sparkles,
+  CheckCheck,
+  CheckCircle2,
+  Check,
+  AlertCircle,
+  Clock,
+  RefreshCw,
+  HelpCircle,
+  History,
+  PlusCircle
 } from 'lucide-vue-next'
+import MainLayout from '@/layouts/MainLayout.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfModal from '@/components/ui/WfModal.vue'
+import WfInput from '@/components/ui/WfInput.vue'
 import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
 import { useCurrency } from '@/composables/useCurrency'
@@ -374,217 +498,200 @@ const unpairingId = ref<string | null>(null)
 const creatingCounterpartId = ref<string | null>(null)
 
 const candidates = ref<{
-    paired_candidates?: any[]
-    paired_count?: number
-    unpaired_candidates?: any[]
-    unpaired_count?: number
-    scan_timestamp?: string
+  paired_candidates?: any[]
+  paired_count?: number
+  unpaired_candidates?: any[]
+  unpaired_count?: number
+  scan_timestamp?: string
 }>({})
 
 const transferHistory = ref<{
-    items: any[]
-    total: number
+  items: any[]
+  total: number
 }>({ items: [], total: 0 })
 
 const highConfidencePairs = computed(() => {
-    return (candidates.value.paired_candidates || []).filter(p => p.confidence >= 85)
+  return (candidates.value.paired_candidates || []).filter(p => p.confidence >= 85)
 })
 
 const counterpartModal = ref(false)
 const selectedUnpaired = ref<any>(null)
 const isCreatingCounterpart = ref(false)
 const counterpartForm = ref({
-    credited_amount: 0
+  credited_amount: 0
 })
 
 function formatDate(iso?: string) {
-    if (!iso) return 'N/A'
-    try {
-        const d = new Date(iso)
-        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-    } catch {
-        return iso
-    }
+  if (!iso) return 'N/A'
+  try {
+    const d = new Date(iso)
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  } catch {
+    return iso
+  }
 }
 
 function formatTimestamp(iso?: string) {
-    if (!iso) return 'Never'
-    try {
-        const d = new Date(iso)
-        return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-    } catch {
-        return iso
-    }
+  if (!iso) return 'Never'
+  try {
+    const d = new Date(iso)
+    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return iso
+  }
 }
 
-function getTypeColor(type?: string) {
-    switch ((type || '').toUpperCase()) {
-        case 'BANK': return 'primary'
-        case 'CREDIT_CARD': return 'error'
-        case 'LOAN': return 'warning'
-        case 'WALLET': return 'info'
-        default: return 'secondary'
-    }
+function getTypeBadgeClass(type?: string) {
+  switch ((type || '').toUpperCase()) {
+    case 'BANK':
+      return 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-900/40'
+    case 'CREDIT_CARD':
+      return 'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-900/40'
+    case 'LOAN':
+      return 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-900/40'
+    case 'INVESTMENT':
+    case 'PROVIDENT_FUND':
+      return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40'
+    default:
+      return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+  }
 }
 
-function getConfidenceColor(conf: number) {
-    if (conf >= 85) return 'success'
-    if (conf >= 75) return 'primary'
-    return 'warning'
+function getConfidenceBadgeClass(conf: number) {
+  if (conf >= 85) {
+    return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50'
+  }
+  if (conf >= 70) {
+    return 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50'
+  }
+  return 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50'
 }
 
 async function triggerScan() {
-    isScanning.value = true
-    try {
-        const res = await financeApi.scanTransfers(90)
-        candidates.value = res.data || {}
-        notification.success(`Scan complete: found ${candidates.value.paired_candidates?.length || 0} suggested pairs`)
-    } catch (e) {
-        console.error('Scan failed', e)
-        notification.error('Failed to scan for transfers')
-    } finally {
-        isScanning.value = false
-    }
+  isScanning.value = true
+  try {
+    const res = await financeApi.scanTransfers(90)
+    candidates.value = res.data || {}
+    notification.success(`Scan complete: found ${candidates.value.paired_candidates?.length || 0} suggested pairs`)
+  } catch (e) {
+    console.error('Scan failed', e)
+    notification.error('Failed to scan for transfers')
+  } finally {
+    isScanning.value = false
+  }
 }
 
 async function fetchCandidates() {
-    isScanning.value = true
-    try {
-        const res = await financeApi.getTransferCandidates(90)
-        candidates.value = res.data || {}
-    } catch (e) {
-        console.error('Failed to load transfer candidates', e)
-    } finally {
-        isScanning.value = false
-    }
+  isScanning.value = true
+  try {
+    const res = await financeApi.getTransferCandidates(90)
+    candidates.value = res.data || {}
+  } catch (e) {
+    console.error('Failed to load transfer candidates', e)
+  } finally {
+    isScanning.value = false
+  }
 }
 
 async function fetchHistory() {
-    try {
-        const res = await financeApi.getTransferHistory({ limit: 50, offset: 0 })
-        transferHistory.value = res.data || { items: [], total: 0 }
-    } catch (e) {
-        console.error('Failed to load transfer history', e)
-    }
+  try {
+    const res = await financeApi.getTransferHistory({ limit: 50, offset: 0 })
+    transferHistory.value = res.data || { items: [], total: 0 }
+  } catch (e) {
+    console.error('Failed to load transfer history', e)
+  }
 }
 
 async function pairSingle(pair: any) {
-    pairingId.value = pair.id
-    try {
-        await financeApi.pairTransfer({
-            source_txn_id: pair.source_transaction.id,
-            target_txn_id: pair.destination_transaction.id,
-            notes: pair.reason
-        })
-        notification.success('Transfers successfully paired!')
-        // Remove from list
-        candidates.value.paired_candidates = (candidates.value.paired_candidates || []).filter(p => p.id !== pair.id)
-        fetchHistory()
-    } catch (e: any) {
-        console.error('Pairing failed', e)
-        notification.error(e.response?.data?.detail || 'Failed to link pair')
-    } finally {
-        pairingId.value = null
-    }
+  pairingId.value = pair.id
+  try {
+    await financeApi.pairTransfer({
+      source_txn_id: pair.source_transaction.id,
+      target_txn_id: pair.destination_transaction.id,
+      notes: pair.reason
+    })
+    notification.success('Transfers successfully paired!')
+    candidates.value.paired_candidates = (candidates.value.paired_candidates || []).filter(p => p.id !== pair.id)
+    fetchHistory()
+  } catch (e: any) {
+    console.error('Pairing failed', e)
+    notification.error(e.response?.data?.detail || 'Failed to link pair')
+  } finally {
+    pairingId.value = null
+  }
 }
 
 async function approveAllHighConfidence() {
-    isBatchPairing.value = true
-    const pairsToLink = highConfidencePairs.value.map(p => ({
-        source_txn_id: p.source_transaction.id,
-        target_txn_id: p.destination_transaction.id
-    }))
+  isBatchPairing.value = true
+  const pairsToLink = highConfidencePairs.value.map(p => ({
+    source_txn_id: p.source_transaction.id,
+    target_txn_id: p.destination_transaction.id
+  }))
 
-    try {
-        const res = await financeApi.batchPairTransfers(pairsToLink)
-        notification.success(`Paired ${res.data.paired_count} transfers successfully!`)
-        await fetchCandidates()
-        await fetchHistory()
-    } catch (e) {
-        console.error('Batch pairing failed', e)
-        notification.error('Failed to batch pair transfers')
-    } finally {
-        isBatchPairing.value = false
-    }
+  try {
+    const res = await financeApi.batchPairTransfers(pairsToLink)
+    notification.success(`Paired ${res.data.paired_count} transfers successfully!`)
+    await fetchCandidates()
+    await fetchHistory()
+  } catch (e) {
+    console.error('Batch pairing failed', e)
+    notification.error('Failed to batch pair transfers')
+  } finally {
+    isBatchPairing.value = false
+  }
 }
 
 function dismissPair(pairId: string) {
-    candidates.value.paired_candidates = (candidates.value.paired_candidates || []).filter(p => p.id !== pairId)
-    notification.info('Suggestion dismissed')
+  candidates.value.paired_candidates = (candidates.value.paired_candidates || []).filter(p => p.id !== pairId)
+  notification.info('Suggestion dismissed')
 }
 
 function openCreateCounterpartModal(unpaired: any) {
-    selectedUnpaired.value = unpaired
-    counterpartForm.value.credited_amount = Number(unpaired.transaction.amount || 0)
-    counterpartModal.value = true
+  selectedUnpaired.value = unpaired
+  counterpartForm.value.credited_amount = Number(unpaired.transaction.amount || 0)
+  counterpartModal.value = true
 }
 
 async function submitCreateCounterpart() {
-    if (!selectedUnpaired.value) return
-    isCreatingCounterpart.value = true
-    try {
-        await financeApi.createTransferCounterpart({
-            source_txn_id: selectedUnpaired.value.transaction.id,
-            to_account_id: selectedUnpaired.value.suggested_destination.id,
-            credited_amount: Number(counterpartForm.value.credited_amount)
-        })
-        notification.success('Counterpart created and linked!')
-        counterpartModal.value = false
-        candidates.value.unpaired_candidates = (candidates.value.unpaired_candidates || []).filter(
-            u => u.transaction.id !== selectedUnpaired.value.transaction.id
-        )
-        fetchHistory()
-    } catch (e: any) {
-        console.error('Failed to create counterpart', e)
-        notification.error(e.response?.data?.detail || 'Failed to create counterpart')
-    } finally {
-        isCreatingCounterpart.value = false
-    }
+  if (!selectedUnpaired.value) return
+  isCreatingCounterpart.value = true
+  try {
+    await financeApi.createTransferCounterpart({
+      source_txn_id: selectedUnpaired.value.transaction.id,
+      to_account_id: selectedUnpaired.value.suggested_destination.id,
+      credited_amount: Number(counterpartForm.value.credited_amount)
+    })
+    notification.success('Counterpart created and linked!')
+    counterpartModal.value = false
+    candidates.value.unpaired_candidates = (candidates.value.unpaired_candidates || []).filter(
+      u => u.transaction.id !== selectedUnpaired.value.transaction.id
+    )
+    fetchHistory()
+  } catch (e: any) {
+    console.error('Failed to create counterpart', e)
+    notification.error(e.response?.data?.detail || 'Failed to create counterpart')
+  } finally {
+    isCreatingCounterpart.value = false
+  }
 }
 
 async function unpair(txnId: string) {
-    unpairingId.value = txnId
-    try {
-        await financeApi.unpairTransfer(txnId)
-        notification.success('Transfer unlinked')
-        await fetchHistory()
-        await fetchCandidates()
-    } catch (e) {
-        console.error('Failed to unlink transfer', e)
-        notification.error('Failed to unlink transfer')
-    } finally {
-        unpairingId.value = null
-    }
+  unpairingId.value = txnId
+  try {
+    await financeApi.unpairTransfer(txnId)
+    notification.success('Transfer unlinked')
+    await fetchHistory()
+    await fetchCandidates()
+  } catch (e) {
+    console.error('Failed to unlink transfer', e)
+    notification.error('Failed to unlink transfer')
+  } finally {
+    unpairingId.value = null
+  }
 }
 
 onMounted(() => {
-    fetchCandidates()
-    fetchHistory()
+  fetchCandidates()
+  fetchHistory()
 })
 </script>
-
-<style scoped>
-.leg-box {
-    background: rgba(var(--v-theme-surface-variant), 0.25);
-    border: 1px solid rgba(var(--v-theme-outline), 0.15);
-}
-
-.pair-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.pair-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-.spin-animation {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    100% {
-        transform: rotate(360deg);
-    }
-}
-</style>

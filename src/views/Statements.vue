@@ -18,7 +18,9 @@ import {
     Mail,
     Table,
     Search as SearchIcon,
-    FileSpreadsheet
+    FileSpreadsheet,
+    TrendingUp,
+    CreditCard
 } from 'lucide-vue-next'
 
 import MainLayout from '@/layouts/MainLayout.vue'
@@ -258,6 +260,56 @@ async function selectStatement(s: Statement) {
     
     txnPage.value = 1
     await store.fetchTransactions(s.id, 0, txnLimit.value)
+
+    if (s.statement_type === 'MUTUAL_FUND_CAS') {
+        selectedTransactions.value = store.currentTransactions
+            .filter(t => !t.is_reconciled && !t.extra_data?.is_duplicate)
+            .map(t => t.id)
+    }
+}
+
+const isImportingMf = ref(false)
+
+async function handleBulkImportMf() {
+    if (!selectedStatement.value || selectedTransactions.value.length === 0) return
+    isImportingMf.value = true
+    try {
+        const res = await store.bulkImportMfTransactions(
+            selectedStatement.value.id,
+            selectedTransactions.value
+        )
+        const count = res?.processed || selectedTransactions.value.length
+        notification.success(`Successfully imported ${count} mutual fund transactions into your portfolio!`)
+        selectedTransactions.value = []
+        await store.fetchTransactions(selectedStatement.value.id, (txnPage.value - 1) * txnLimit.value, txnLimit.value)
+    } catch (e: any) {
+        notification.error(e.response?.data?.detail || 'Failed to import mutual fund transactions')
+    } finally {
+        isImportingMf.value = false
+    }
+}
+
+function getStatementTypeBadge(type?: string) {
+    switch (type) {
+        case 'MUTUAL_FUND_CAS':
+            return {
+                label: 'Mutual Fund',
+                icon: TrendingUp,
+                bg: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-400 dark:border-purple-800/60'
+            }
+        case 'CREDIT_CARD':
+            return {
+                label: 'Credit Card',
+                icon: CreditCard,
+                bg: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800/60'
+            }
+        default:
+            return {
+                label: 'Bank',
+                icon: Landmark,
+                bg: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800/60'
+            }
+    }
 }
 
 async function handleUpload() {
@@ -481,6 +533,11 @@ function getAccountName(account_id: string) {
 // Checkbox select all logic for transactions table
 const isAllSelected = computed(() => {
     if (store.currentTransactions.length === 0) return false
+    if (selectedStatement.value?.statement_type === 'MUTUAL_FUND_CAS') {
+        const selectable = store.currentTransactions.filter(t => !t.is_reconciled)
+        if (selectable.length === 0) return false
+        return selectable.every(t => selectedTransactions.value.includes(t.id))
+    }
     return store.currentTransactions.every(t => selectedTransactions.value.includes(t.id))
 })
 
@@ -488,7 +545,13 @@ function toggleSelectAll() {
     if (isAllSelected.value) {
         selectedTransactions.value = []
     } else {
-        selectedTransactions.value = store.currentTransactions.map(t => t.id)
+        if (selectedStatement.value?.statement_type === 'MUTUAL_FUND_CAS') {
+            selectedTransactions.value = store.currentTransactions
+                .filter(t => !t.is_reconciled)
+                .map(t => t.id)
+        } else {
+            selectedTransactions.value = store.currentTransactions.map(t => t.id)
+        }
     }
 }
 
@@ -634,6 +697,14 @@ function toggleSelectTransaction(id: string) {
                                         </div>
 
                                         <div class="flex items-center gap-2 text-[11px] text-wf-text-muted mt-1 flex-wrap">
+                                            <span 
+                                                class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-wf-xs text-[9px] font-bold border"
+                                                :class="getStatementTypeBadge(s.statement_type).bg"
+                                            >
+                                                <component :is="getStatementTypeBadge(s.statement_type).icon" class="w-2.5 h-2.5" />
+                                                {{ getStatementTypeBadge(s.statement_type).label }}
+                                            </span>
+
                                             <span class="inline-flex items-center gap-1">
                                                 <Clock class="w-3 h-3 text-slate-400" />
                                                 {{ formatDate(s.created_at) }}
@@ -690,6 +761,14 @@ function toggleSelectTransaction(id: string) {
                                         <div class="flex items-center gap-2 mb-1 flex-wrap">
                                             <span 
                                                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-sm text-[10px] font-bold border"
+                                                :class="getStatementTypeBadge(selectedStatement.statement_type).bg"
+                                            >
+                                                <component :is="getStatementTypeBadge(selectedStatement.statement_type).icon" class="w-3 h-3" />
+                                                {{ getStatementTypeBadge(selectedStatement.statement_type).label }}
+                                            </span>
+
+                                            <span 
+                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-sm text-[10px] font-bold border"
                                                 :class="getStatusBadge(selectedStatement.status).bg"
                                             >
                                                 <span class="w-1.5 h-1.5 rounded-wf-pill" :class="getStatusBadge(selectedStatement.status).dot"></span>
@@ -716,20 +795,34 @@ function toggleSelectTransaction(id: string) {
 
                                 <!-- Header Action Buttons -->
                                 <div class="flex items-center gap-2 shrink-0">
-                                    <WfButton
-                                        v-if="selectedTransactions.length > 0"
-                                        variant="primary"
-                                        size="sm"
-                                        @click="openBulkIngestDialog"
-                                        class="h-8 px-3 text-xs font-semibold shadow-sm"
-                                    >
-                                        <CheckCircle2 class="w-3.5 h-3.5 mr-1" />
-                                        <span>Ingest ({{ selectedTransactions.length }})</span>
-                                    </WfButton>
+                                    <template v-if="selectedTransactions.length > 0">
+                                        <WfButton
+                                            v-if="selectedStatement.statement_type === 'MUTUAL_FUND_CAS'"
+                                            variant="primary"
+                                            size="sm"
+                                            @click="handleBulkImportMf"
+                                            :loading="isImportingMf"
+                                            class="h-8 px-3 text-xs font-semibold shadow-sm bg-purple-600 hover:bg-purple-700 text-white"
+                                        >
+                                            <TrendingUp class="w-3.5 h-3.5 mr-1" />
+                                            <span>Import to Portfolio ({{ selectedTransactions.length }})</span>
+                                        </WfButton>
+
+                                        <WfButton
+                                            v-else
+                                            variant="primary"
+                                            size="sm"
+                                            @click="openBulkIngestDialog"
+                                            class="h-8 px-3 text-xs font-semibold shadow-sm"
+                                        >
+                                            <CheckCircle2 class="w-3.5 h-3.5 mr-1" />
+                                            <span>Ingest ({{ selectedTransactions.length }})</span>
+                                        </WfButton>
+                                    </template>
 
                                     <button
                                         @click="reevaluateStatement(selectedStatement.id)"
-                                        class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant hover:border-wf-primary/40 transition-colors"
+                                        class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant hover:border-wf-primary/40 transition-colors cursor-pointer"
                                         title="Re-evaluate Statement"
                                     >
                                         <RefreshCw class="w-4 h-4" />
@@ -737,7 +830,7 @@ function toggleSelectTransaction(id: string) {
 
                                     <button
                                         @click="promptDeleteStatement(selectedStatement.id)"
-                                        class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 transition-colors"
+                                        class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 transition-colors cursor-pointer"
                                         title="Delete Statement"
                                     >
                                         <Trash2 class="w-4 h-4" />
@@ -747,13 +840,18 @@ function toggleSelectTransaction(id: string) {
 
                             <!-- Metadata Row -->
                             <div class="flex items-center gap-4 text-xs font-medium text-wf-text-secondary pt-2 border-t border-wf-border-subtle flex-wrap">
-                                <div class="flex items-center gap-1.5">
+                                <div v-if="selectedStatement.statement_type === 'MUTUAL_FUND_CAS'" class="flex items-center gap-1.5">
+                                    <TrendingUp class="w-3.5 h-3.5 text-purple-500" />
+                                    <span class="text-wf-text-muted">Domain:</span>
+                                    <span class="font-semibold text-wf-text-primary">Consolidated Account Statement (eCAS)</span>
+                                </div>
+                                <div v-else class="flex items-center gap-1.5">
                                     <Landmark class="w-3.5 h-3.5 text-wf-text-muted" />
                                     <span class="text-wf-text-muted">Account:</span>
                                     <span class="font-semibold text-wf-text-primary">{{ getAccountName(selectedStatement.account_id) }}</span>
                                     <button 
                                         @click="reassignDialog = true" 
-                                        class="text-[11px] font-bold text-wf-primary hover:underline ml-1 px-1.5 py-0.5 rounded-wf-sm bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900/50"
+                                        class="text-[11px] font-bold text-wf-primary hover:underline ml-1 px-1.5 py-0.5 rounded-wf-sm bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900/50 cursor-pointer"
                                     >
                                         Change
                                     </button>
@@ -902,7 +1000,121 @@ function toggleSelectTransaction(id: string) {
                                 <!-- PARSED STATE: High-Density Reconciliation Ledger Table -->
                                 <div v-else-if="selectedStatement.status === 'PARSED'" class="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
                                     <div class="overflow-y-auto overflow-x-auto flex-1 min-h-0">
-                                        <table class="w-full text-left border-collapse text-xs">
+                                        <!-- MUTUAL FUND CAS LEDGER TABLE -->
+                                        <table v-if="selectedStatement.statement_type === 'MUTUAL_FUND_CAS'" class="w-full text-left border-collapse text-xs">
+                                            <thead class="sticky top-0 z-10">
+                                                <tr class="border-b border-wf-border bg-wf-surface-variant/90 backdrop-blur-xs text-[11px] font-bold text-wf-text-muted uppercase tracking-wider">
+                                                    <th class="py-2.5 px-3 w-10 text-center">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            :checked="isAllSelected" 
+                                                            @change="toggleSelectAll"
+                                                            class="rounded-wf-xs border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer w-3.5 h-3.5"
+                                                        />
+                                                    </th>
+                                                    <th class="py-2.5 px-3">Date</th>
+                                                    <th class="py-2.5 px-3 min-w-[220px]">Scheme / Folio</th>
+                                                    <th class="py-2.5 px-3">Type</th>
+                                                    <th class="py-2.5 px-3 text-right">Units</th>
+                                                    <th class="py-2.5 px-3 text-right">NAV</th>
+                                                    <th class="py-2.5 px-3 text-right">Amount</th>
+                                                    <th class="py-2.5 px-3 text-center">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-wf-border-subtle bg-wf-surface">
+                                                <tr 
+                                                    v-for="txn in store.currentTransactions" 
+                                                    :key="txn.id"
+                                                    class="hover:bg-wf-surface-variant/40 transition-colors"
+                                                    :class="{ 'bg-purple-50/40 dark:bg-purple-950/20': selectedTransactions.includes(txn.id) }"
+                                                >
+                                                    <td class="py-2 px-3 text-center">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            :checked="selectedTransactions.includes(txn.id)"
+                                                            :disabled="txn.is_reconciled"
+                                                            @change="toggleSelectTransaction(txn.id)"
+                                                            class="rounded-wf-xs border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer w-3.5 h-3.5 disabled:opacity-40"
+                                                        />
+                                                    </td>
+
+                                                    <td class="py-2 px-3 whitespace-nowrap text-wf-text-secondary font-medium tabular-nums">
+                                                        {{ formatTxnDate(txn.date) }}
+                                                    </td>
+
+                                                    <td class="py-2 px-3">
+                                                        <div class="font-semibold text-wf-text-primary line-clamp-1" :title="txn.description">
+                                                            {{ txn.description }}
+                                                        </div>
+                                                        <div class="text-[10px] text-wf-text-muted flex items-center gap-2 mt-0.5">
+                                                            <span v-if="txn.extra_data?.folio" class="font-mono">Folio: {{ txn.extra_data.folio }}</span>
+                                                            <span v-if="txn.extra_data?.isin" class="font-mono text-slate-400">{{ txn.extra_data.isin }}</span>
+                                                        </div>
+                                                    </td>
+
+                                                    <td class="py-2 px-3 whitespace-nowrap">
+                                                        <span 
+                                                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold"
+                                                            :class="txn.type === 'DEBIT' || (txn.extra_data?.type && /redemption|switch.out|sell/i.test(txn.extra_data.type))
+                                                                ? 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-900/50' 
+                                                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-900/50'"
+                                                        >
+                                                            {{ txn.extra_data?.type || txn.type }}
+                                                        </span>
+                                                    </td>
+
+                                                    <td class="py-2 px-3 text-right whitespace-nowrap font-mono tabular-nums text-wf-text-secondary">
+                                                        {{ txn.extra_data?.units != null ? Number(txn.extra_data.units).toFixed(3) : '-' }}
+                                                    </td>
+
+                                                    <td class="py-2 px-3 text-right whitespace-nowrap font-mono tabular-nums text-wf-text-secondary">
+                                                        {{ txn.extra_data?.nav != null ? '₹' + Number(txn.extra_data.nav).toFixed(2) : '-' }}
+                                                    </td>
+
+                                                    <td class="py-2 px-3 text-right whitespace-nowrap font-bold tabular-nums" :class="txn.type === 'DEBIT' ? 'text-wf-error' : 'text-wf-success'">
+                                                        {{ txn.type === 'DEBIT' ? '-' : '+' }}{{ formatCurrency(txn.amount) }}
+                                                    </td>
+
+                                                    <td class="py-2 px-3 text-center whitespace-nowrap">
+                                                        <span 
+                                                            v-if="txn.is_reconciled" 
+                                                            class="inline-flex items-center gap-1 text-[11px] font-semibold text-wf-success"
+                                                            title="Imported into portfolio"
+                                                        >
+                                                            <CheckCircle2 class="w-3.5 h-3.5" />
+                                                            <span>Imported</span>
+                                                        </span>
+                                                        <span 
+                                                            v-else-if="txn.extra_data?.is_duplicate" 
+                                                            class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400"
+                                                            title="Already exists in portfolio"
+                                                        >
+                                                            <span>Duplicate</span>
+                                                        </span>
+                                                        <span 
+                                                            v-else 
+                                                            class="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-600 dark:text-purple-400"
+                                                            title="Ready to import"
+                                                        >
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                                                            <span>Ready</span>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+
+                                                <tr v-if="store.currentTransactions.length === 0">
+                                                    <td colspan="8" class="py-8 text-center text-wf-text-muted">
+                                                        <div class="flex flex-col items-center justify-center">
+                                                            <Table class="w-8 h-8 text-slate-300 dark:text-slate-600 mb-1" />
+                                                            <span class="text-xs font-semibold">No mutual fund transactions extracted</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+
+                                        <!-- STANDARD BANK / CREDIT CARD TRANSACTION TABLE -->
+                                        <table v-else class="w-full text-left border-collapse text-xs">
                                             <thead class="sticky top-0 z-10">
                                                 <tr class="border-b border-wf-border bg-wf-surface-variant/90 backdrop-blur-xs text-[11px] font-bold text-wf-text-muted uppercase tracking-wider">
                                                     <th class="py-2.5 px-3 w-10 text-center">

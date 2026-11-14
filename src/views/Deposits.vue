@@ -1,282 +1,511 @@
 <template>
     <MainLayout>
-        <v-container fluid class="page-container dashboard-page">
-            <!-- Animated Mesh Background -->
-            <div class="mesh-blob blob-1"
-                style="background: rgba(var(--v-theme-primary), 0.08); width: 600px; height: 600px; top: -200px; right: -100px;">
-            </div>
-            <div class="mesh-blob blob-2"
-                style="background: rgba(var(--v-theme-secondary), 0.05); width: 450px; height: 450px; bottom: -100px; left: -100px;">
-            </div>
-
-            <div class="relative-pos z-10">
-                <!-- Header -->
-                <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-8">
-                    <div class="mb-4 mb-md-0">
-                        <h1 class="text-h6 font-weight-black text-content mb-1">Fixed & Recurring Deposits</h1>
-                        <p class="text-subtitle-2 text-on-surface opacity-70 font-weight-bold d-flex align-center">
-                            Track guaranteed-return deposits, compounding interest & maturity schedules
+        <div class="space-y-5">
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wf-border-subtle">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs shrink-0">
+                        <Landmark class="w-4.5 h-4.5 text-wf-primary" />
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-lg sm:text-xl font-bold text-wf-text-primary tracking-tight leading-tight">
+                                Fixed & Recurring Deposits
+                            </h1>
+                            <span class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
+                                {{ deposits.length }} Active
+                            </span>
+                        </div>
+                        <p class="text-xs text-wf-text-secondary mt-0.5">
+                            Track guaranteed-return deposits, compounding interest & maturity schedules.
                         </p>
                     </div>
-                    <div class="d-flex gap-3 align-center">
-                        <v-btn color="primary" variant="flat" rounded="pill" height="44" class="px-6 font-weight-bold"
-                            @click="openAddModal">
-                            <Plus :size="18" class="mr-2" />
+                </div>
+
+                <div class="flex items-center gap-2 self-start sm:self-auto">
+                    <WfButton
+                        variant="primary"
+                        size="sm"
+                        @click="openAddModal"
+                        class="h-8 px-3 text-xs font-semibold"
+                    >
+                        <Plus :size="14" class="mr-1" />
+                        <span>Add Deposit</span>
+                    </WfButton>
+                </div>
+            </div>
+
+            <!-- Summary Stats Strip -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Principal Invested -->
+                <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
+                    <div class="flex items-start justify-between">
+                        <div class="w-10 h-10 rounded-wf-lg bg-wf-info-light text-wf-info border border-blue-500/20 flex items-center justify-center shrink-0">
+                            <Landmark :size="20" />
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
+                            Principal Invested
+                        </div>
+                        <div class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight text-wf-text-primary mt-0.5">
+                            {{ formatAmount(totalPrincipal) }}
+                        </div>
+                        <div class="text-[11px] text-wf-text-secondary mt-1">
+                            Across {{ deposits.length }} active deposit{{ deposits.length === 1 ? '' : 's' }}
+                        </div>
+                    </div>
+                </WfCard>
+
+                <!-- Projected Maturity -->
+                <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
+                    <div class="flex items-start justify-between">
+                        <div class="w-10 h-10 rounded-wf-lg bg-wf-success-light text-wf-success border border-emerald-500/20 flex items-center justify-center shrink-0">
+                            <TrendingUp :size="20" />
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
+                            Projected Maturity
+                        </div>
+                        <div class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight text-wf-success mt-0.5">
+                            {{ formatAmount(totalMaturity) }}
+                        </div>
+                        <div class="text-[11px] text-wf-success font-semibold mt-1">
+                            +{{ formatAmount(totalProjectedInterest) }} Guaranteed Returns
+                        </div>
+                    </div>
+                </WfCard>
+
+                <!-- Accrued Interest -->
+                <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
+                    <div class="flex items-start justify-between">
+                        <div class="w-10 h-10 rounded-wf-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                            <Coins :size="20" />
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
+                            Accrued Interest
+                        </div>
+                        <div class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight text-indigo-600 dark:text-indigo-400 mt-0.5">
+                            {{ formatAmount(totalAccrued) }}
+                        </div>
+                        <div class="text-[11px] text-wf-text-secondary mt-1">
+                            Interest earned to date
+                        </div>
+                    </div>
+                </WfCard>
+
+                <!-- Next Maturity -->
+                <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
+                    <div class="flex items-start justify-between">
+                        <div class="w-10 h-10 rounded-wf-lg bg-wf-warning-light text-wf-warning border border-amber-500/20 flex items-center justify-center shrink-0">
+                            <Calendar :size="20" />
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
+                            Next Maturity
+                        </div>
+                        <div class="text-base sm:text-lg font-bold font-mono tracking-tight text-wf-text-primary truncate mt-0.5">
+                            {{ nextMaturityNotice }}
+                        </div>
+                        <div class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 mt-1 truncate">
+                            {{ nextMaturityDays }}
+                        </div>
+                    </div>
+                </WfCard>
+            </div>
+
+            <!-- Unified Toolbar (Matching Accounts.vue) -->
+            <WfCard variant="flat" padding="sm" radius="lg" class="border border-wf-border">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                    <!-- Global Search Input -->
+                    <div class="relative flex-1 min-w-[200px]">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <Search :size="14" class="text-wf-text-muted shrink-0" />
+                        </div>
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Search by deposit name, bank or certificate #..."
+                            class="w-full h-8 pl-9 pr-8 text-xs bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-colors"
+                        />
+                        <div v-if="searchQuery" class="absolute inset-y-0 right-0 flex items-center pr-2.5">
+                            <button
+                                type="button"
+                                class="text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded cursor-pointer flex items-center justify-center"
+                                aria-label="Clear search"
+                                @click="searchQuery = ''"
+                            >
+                                <X :size="13" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Add Deposit CTA -->
+                    <WfButton
+                        variant="primary"
+                        size="sm"
+                        class="shrink-0"
+                        @click="openAddModal"
+                    >
+                        <Plus :size="14" class="mr-1" />
+                        <span>Add Deposit</span>
+                    </WfButton>
+                </div>
+            </WfCard>
+
+            <!-- Loading State -->
+            <div v-if="loading" class="p-12 text-center flex flex-col items-center justify-center text-wf-text-muted">
+                <div class="w-8 h-8 border-2 border-wf-primary border-t-transparent rounded-full animate-spin mb-3"></div>
+                <span class="text-xs font-semibold">Loading fixed deposits...</span>
+            </div>
+
+            <!-- Empty State (No Deposits Added) -->
+            <div 
+                v-else-if="deposits.length === 0"
+                class="p-12 rounded-wf-xl bg-wf-surface border border-wf-border text-center max-w-lg mx-auto shadow-sm"
+            >
+                <div class="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-wf-primary flex items-center justify-center mx-auto mb-4 border border-indigo-200 dark:border-indigo-900/60">
+                    <Landmark :size="32" />
+                </div>
+                <h3 class="text-base font-bold text-wf-text-primary mb-1">No Deposits Added</h3>
+                <p class="text-xs text-wf-text-secondary mb-6 leading-relaxed">
+                    Track bank Fixed Deposits (FDs) and Recurring Deposits (RDs) with automatic compounding math and maturity schedules.
+                </p>
+                <WfButton
+                    variant="primary"
+                    size="md"
+                    @click="openAddModal"
+                    class="h-9 px-5 text-xs font-semibold"
+                >
+                    <Plus :size="14" class="mr-1.5" />
+                    <span>Add Your First Deposit</span>
+                </WfButton>
+            </div>
+
+            <!-- Deposits Grid -->
+            <div v-else class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    <WfCard 
+                        v-for="dep in filteredDeposits" 
+                        :key="dep.id"
+                        variant="flat"
+                        padding="sm"
+                        radius="lg"
+                        class="group h-full flex flex-col justify-between transition-all duration-150 hover:shadow-wf-card-hover border border-wf-border hover:border-wf-primary/40 cursor-pointer"
+                        @click="openEditModal(dep)"
+                    >
+                        <div>
+                            <!-- Header -->
+                            <div class="flex items-start justify-between gap-2 mb-2">
+                                <div class="flex items-start gap-2.5 min-w-0 flex-1">
+                                    <div class="w-8 h-8 rounded-wf-md flex items-center justify-center shrink-0 mt-0.5 transition-transform group-hover:scale-105 bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                        <Landmark :size="16" />
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-xs sm:text-sm font-bold text-wf-text-primary truncate" :title="dep.name">
+                                            {{ dep.name }}
+                                        </div>
+                                        <div class="flex items-center gap-1.5 text-xs text-wf-text-muted mt-0.5">
+                                            <span class="text-[10px] font-semibold uppercase tracking-wider">
+                                                {{ dep.deposit_type === 'RECURRING' ? 'RD' : 'FD' }}
+                                            </span>
+                                            <span v-if="dep.bank_name" class="truncate text-[10px] text-wf-text-muted">
+                                                • {{ dep.bank_name }}
+                                            </span>
+                                            <span v-if="dep.is_tax_saver" class="font-bold text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1 py-0.2 rounded-wf-xs">
+                                                80C
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-1 shrink-0" @click.stop>
+                                    <span class="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50">
+                                        {{ dep.interest_rate }}%
+                                    </span>
+
+                                    <!-- Dropdown Menu (Using WfMenu) -->
+                                    <WfMenu align="right">
+                                        <template #trigger>
+                                            <MoreVertical :size="14" />
+                                        </template>
+                                        <div class="py-1">
+                                            <button 
+                                                type="button" 
+                                                class="w-full text-left px-3 py-1.5 text-xs font-semibold text-wf-text-primary hover:bg-wf-surface-variant flex items-center gap-2 cursor-pointer"
+                                                @click="openEditModal(dep)"
+                                            >
+                                                <Edit2 :size="13" class="text-wf-text-muted" />
+                                                <span>Edit</span>
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                class="w-full text-left px-3 py-1.5 text-xs font-semibold text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2 cursor-pointer"
+                                                @click="requestDeleteDeposit(dep)"
+                                            >
+                                                <Trash2 :size="13" class="text-wf-error" />
+                                                <span>Delete</span>
+                                            </button>
+                                        </div>
+                                    </WfMenu>
+                                </div>
+                            </div>
+
+                            <!-- Progress to Maturity -->
+                            <div class="space-y-1 my-2">
+                                <div class="flex items-center justify-between text-[11px]">
+                                    <span class="text-wf-text-muted">Matures: {{ formatDate(dep.maturity_date) }}</span>
+                                    <span class="font-bold text-wf-primary font-mono">{{ dep.progress_percentage }}%</span>
+                                </div>
+                                <div class="w-full bg-wf-surface-variant rounded-full h-1.5 overflow-hidden">
+                                    <div 
+                                        class="h-1.5 rounded-full bg-wf-primary transition-all duration-300"
+                                        :style="{ width: `${Math.min(100, Math.max(0, dep.progress_percentage))}%` }"
+                                    ></div>
+                                </div>
+                            </div>
+
+                            <!-- Financial Breakdown Strip -->
+                            <div class="p-2 rounded-wf-sm bg-wf-surface-variant/40 border border-wf-border-subtle grid grid-cols-2 gap-2 text-[11px]">
+                                <div>
+                                    <div class="text-[9px] font-bold uppercase tracking-wider text-wf-text-muted">Maturity Value</div>
+                                    <div class="text-xs font-black text-wf-success tabular-nums mt-0.5">
+                                        {{ formatAmount(dep.maturity_amount) }}
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-[9px] font-bold uppercase tracking-wider text-wf-text-muted">Time Left</div>
+                                    <div 
+                                        class="text-xs font-bold mt-0.5"
+                                        :class="dep.days_to_maturity <= 30 ? 'text-amber-500' : 'text-wf-text-primary'"
+                                    >
+                                        {{ dep.is_matured ? 'Matured 🎉' : `${dep.days_to_maturity}d` }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Footer -->
+                        <div class="pt-2 border-t border-wf-border-subtle flex items-baseline justify-between mt-3">
+                            <div>
+                                <div class="text-[10px] font-semibold text-wf-text-muted uppercase tracking-wider">Principal Invested</div>
+                                <div class="text-sm sm:text-base font-bold font-mono tracking-tight text-wf-text-primary mt-0.5">
+                                    {{ formatAmount(dep.principal_amount) }}
+                                </div>
+                            </div>
+                            <span class="text-[11px] font-semibold text-wf-primary group-hover:underline">
+                                Details
+                            </span>
+                        </div>
+                    </WfCard>
+
+                    <!-- Compact Add Deposit Placeholder Card (Matching Accounts.vue) -->
+                    <div
+                        v-if="!searchQuery"
+                        class="border-2 border-dashed border-wf-border hover:border-wf-primary/50 rounded-wf-lg p-5 flex flex-col items-center justify-center transition-all cursor-pointer group hover:bg-wf-primary/[0.02] min-h-[140px]"
+                        @click="openAddModal"
+                    >
+                        <div class="w-8 h-8 rounded-full bg-wf-primary/10 text-wf-primary flex items-center justify-center mb-1.5 transition-transform group-hover:scale-110">
+                            <Plus :size="18" />
+                        </div>
+                        <div class="text-xs font-bold text-wf-text-primary">
                             Add Deposit
-                        </v-btn>
+                        </div>
+                        <div class="text-[11px] text-wf-text-muted mt-0.5 text-center">
+                            Create a fixed or recurring deposit
+                        </div>
                     </div>
                 </div>
 
-                <!-- Summary Stats -->
-                <v-row class="mb-8">
-                    <v-col cols="12" sm="6" lg="3">
-                        <v-card class="premium-glass-card pa-6 h-100" elevation="0">
-                            <div class="d-flex justify-space-between align-center mb-2">
-                                <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Principal Invested</div>
-                                <Landmark :size="18" class="text-primary opacity-70" />
-                            </div>
-                            <div class="text-h4 font-weight-black text-content">{{ formatAmount(totalPrincipal) }}</div>
-                            <div class="text-caption text-medium-emphasis mt-1">{{ deposits.length }} active deposit{{ deposits.length === 1 ? '' : 's' }}</div>
-                        </v-card>
-                    </v-col>
-
-                    <v-col cols="12" sm="6" lg="3">
-                        <v-card class="premium-glass-card pa-6 h-100" elevation="0">
-                            <div class="d-flex justify-space-between align-center mb-2">
-                                <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Projected Maturity</div>
-                                <TrendingUp :size="18" class="text-success opacity-70" />
-                            </div>
-                            <div class="text-h4 font-weight-black text-success">{{ formatAmount(totalMaturity) }}</div>
-                            <div class="text-caption text-success font-weight-bold mt-1">
-                                +{{ formatAmount(totalProjectedInterest) }} Returns
-                            </div>
-                        </v-card>
-                    </v-col>
-
-                    <v-col cols="12" sm="6" lg="3">
-                        <v-card class="premium-glass-card pa-6 h-100" elevation="0">
-                            <div class="d-flex justify-space-between align-center mb-2">
-                                <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Accrued Interest</div>
-                                <Coins :size="18" class="text-info opacity-70" />
-                            </div>
-                            <div class="text-h4 font-weight-black text-info">{{ formatAmount(totalAccrued) }}</div>
-                            <div class="text-caption text-medium-emphasis mt-1">Earned to date</div>
-                        </v-card>
-                    </v-col>
-
-                    <v-col cols="12" sm="6" lg="3">
-                        <v-card class="premium-glass-card pa-6 h-100" elevation="0">
-                            <div class="d-flex justify-space-between align-center mb-2">
-                                <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Next Maturity</div>
-                                <Calendar :size="18" class="text-warning opacity-70" />
-                            </div>
-                            <div class="text-h5 font-weight-black text-content">{{ nextMaturityNotice }}</div>
-                            <div class="text-caption font-weight-bold text-warning mt-1">{{ nextMaturityDays }}</div>
-                        </v-card>
-                    </v-col>
-                </v-row>
-
-                <!-- Empty State -->
-                <div v-if="!loading && deposits.length === 0"
-                    class="premium-glass-card d-flex flex-column align-center justify-center py-16 px-10 text-center mx-auto"
-                    style="max-width: 600px; margin-top: 50px;">
-                    <v-avatar color="primary" variant="tonal" size="100" class="mb-8">
-                        <Landmark :size="50" class="text-primary" />
-                    </v-avatar>
-                    <h3 class="text-h4 font-weight-black mb-1">No Deposits Added</h3>
-                    <p class="text-subtitle-1 text-on-surface opacity-70 font-weight-bold mb-8">
-                        Track bank FDs and RDs with auto-calculated compounding growth and maturity dates.
-                    </p>
-                    <v-btn color="primary" variant="flat" rounded="pill" height="52"
-                        class="px-10 font-weight-black elevation-2" @click="openAddModal">
-                        Add Your First Deposit
-                    </v-btn>
-                </div>
-
-                <!-- Deposits Grid -->
-                <div v-else>
-                    <v-row>
-                        <v-col v-for="dep in deposits" :key="dep.id" cols="12" md="6" lg="4">
-                            <v-card class="premium-glass-card pa-5 h-100 d-flex flex-column justify-space-between" elevation="0">
-                                <div>
-                                    <!-- Header -->
-                                    <div class="d-flex justify-space-between align-start mb-3">
-                                        <div>
-                                            <div class="d-flex align-center gap-2 mb-1">
-                                                <v-chip size="x-small" :color="dep.deposit_type === 'RECURRING' ? 'info' : 'primary'" variant="flat" class="font-weight-black">
-                                                    {{ dep.deposit_type === 'RECURRING' ? 'RECURRING (RD)' : 'FIXED (FD)' }}
-                                                </v-chip>
-                                                <v-chip v-if="dep.is_tax_saver" size="x-small" color="success" variant="tonal" class="font-weight-bold">
-                                                    80C Tax Saver
-                                                </v-chip>
-                                            </div>
-                                            <div class="text-h6 font-weight-black text-content line-clamp-1">{{ dep.name }}</div>
-                                            <div class="text-caption text-medium-emphasis">
-                                                {{ dep.bank_name }} <span v-if="dep.deposit_number">• Certificate #{{ dep.deposit_number }}</span>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex align-center gap-1">
-                                            <v-chip size="small" color="primary" variant="tonal" class="font-weight-black">
-                                                {{ dep.interest_rate }}% p.a.
-                                            </v-chip>
-                                            <v-menu location="bottom end">
-                                                <template v-slot:activator="{ props }">
-                                                    <v-btn icon size="x-small" variant="text" v-bind="props">
-                                                        <MoreVertical :size="16" />
-                                                    </v-btn>
-                                                </template>
-                                                <v-list density="compact" rounded="lg">
-                                                    <v-list-item @click="openEditModal(dep)">
-                                                        <template v-slot:prepend><Edit2 :size="14" class="mr-2" /></template>
-                                                        <v-list-item-title class="font-weight-bold">Edit</v-list-item-title>
-                                                    </v-list-item>
-                                                    <v-list-item @click="confirmDeleteDeposit(dep)" class="text-error">
-                                                        <template v-slot:prepend><Trash2 :size="14" class="mr-2 text-error" /></template>
-                                                        <v-list-item-title class="font-weight-bold">Delete</v-list-item-title>
-                                                    </v-list-item>
-                                                </v-list>
-                                            </v-menu>
-                                        </div>
-                                    </div>
-
-                                    <!-- Progress to Maturity -->
-                                    <div class="mb-4">
-                                        <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
-                                            <span class="text-medium-emphasis">Maturity Progress</span>
-                                            <span class="text-primary">{{ dep.progress_percentage }}%</span>
-                                        </div>
-                                        <v-progress-linear :model-value="dep.progress_percentage" color="primary" height="6" rounded="pill" />
-                                        <div class="d-flex justify-space-between text-caption text-medium-emphasis mt-1">
-                                            <span>Starts: {{ formatDate(dep.start_date) }}</span>
-                                            <span class="font-weight-bold text-content">Matures: {{ formatDate(dep.maturity_date) }}</span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Metrics Grid -->
-                                    <v-row dense class="pa-2 rounded-lg bg-surface-variant bg-opacity-20 mb-3">
-                                        <v-col cols="6">
-                                            <div class="text-caption text-medium-emphasis font-weight-bold text-uppercase">Principal</div>
-                                            <div class="text-body-1 font-weight-black text-content">{{ formatAmount(dep.principal_amount) }}</div>
-                                        </v-col>
-                                        <v-col cols="6" class="text-right">
-                                            <div class="text-caption text-medium-emphasis font-weight-bold text-uppercase">Maturity Value</div>
-                                            <div class="text-body-1 font-weight-black text-success">{{ formatAmount(dep.maturity_amount) }}</div>
-                                        </v-col>
-                                        <v-col cols="6" class="mt-2">
-                                            <div class="text-caption text-medium-emphasis">Accrued Interest</div>
-                                            <div class="text-body-2 font-weight-bold text-info">+{{ formatAmount(dep.accrued_interest) }}</div>
-                                        </v-col>
-                                        <v-col cols="6" class="mt-2 text-right">
-                                            <div class="text-caption text-medium-emphasis">Days Remaining</div>
-                                            <div class="text-body-2 font-weight-bold" :class="dep.days_to_maturity <= 30 ? 'text-warning font-weight-black' : 'text-content'">
-                                                {{ dep.is_matured ? 'Matured 🎉' : `${dep.days_to_maturity} days` }}
-                                            </div>
-                                        </v-col>
-                                    </v-row>
-                                </div>
-                            </v-card>
-                        </v-col>
-                    </v-row>
+                <!-- Empty Search State -->
+                <div v-if="filteredDeposits.length === 0 && !loading" class="text-center py-16 animate-in">
+                    <div class="w-16 h-16 rounded-full bg-wf-surface-variant text-wf-text-muted flex items-center justify-center mx-auto mb-4">
+                        <Search :size="32" class="opacity-40" />
+                    </div>
+                    <h3 class="text-base font-bold text-wf-text-primary">No matching deposits</h3>
+                    <p class="text-xs text-wf-text-muted mt-1 mb-4">Try adjusting your search query</p>
+                    <WfButton variant="outline" size="sm" @click="searchQuery = ''">
+                        <RotateCcw :size="13" class="mr-1.5" />
+                        <span>Clear search</span>
+                    </WfButton>
                 </div>
             </div>
 
             <!-- Add / Edit Modal -->
-            <v-dialog v-model="depositModal" max-width="600" persistent>
-                <v-card class="premium-glass-card pa-6 rounded-2xl" elevation="0">
-                    <div class="d-flex justify-space-between align-center mb-6">
-                        <div class="text-h6 font-weight-black text-content">
-                            {{ isEditing ? 'Edit Deposit' : 'Add Deposit' }}
-                        </div>
-                        <v-btn icon size="small" variant="text" @click="depositModal = false">
-                            <X :size="18" />
-                        </v-btn>
+            <WfModal
+                v-model="depositModal"
+                max-width="md"
+                :title="isEditing ? 'Edit Deposit' : 'Add Deposit'"
+                description="Configure principal amount, interest rate, tenure, and compounding"
+            >
+                <form @submit.prevent="saveDeposit" class="space-y-4 py-1">
+                    <WfInput
+                        v-model="depositForm.name"
+                        label="Deposit Name"
+                        placeholder="e.g. HDFC 1-Year Tax Saver FD, SBI 5-Year Recurring"
+                        required
+                    />
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <WfInput
+                            v-model="depositForm.bank_name"
+                            label="Bank / Institution"
+                            placeholder="e.g. SBI, HDFC Bank, ICICI"
+                            required
+                        />
+                        <WfSelect
+                            v-model="depositForm.deposit_type"
+                            label="Deposit Type"
+                            :items="typeOptions"
+                            required
+                        />
                     </div>
 
-                    <v-form @submit.prevent="saveDeposit">
-                        <v-text-field v-model="depositForm.name" label="Deposit Name *" placeholder="e.g. HDFC 1-Year Tax Saver FD"
-                            variant="outlined" density="comfortable" rounded="lg" class="mb-4 font-weight-bold"
-                            :rules="[rules.required]" />
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <WfInput
+                            v-model.number="depositForm.principal_amount"
+                            label="Principal Amount (₹)"
+                            type="number"
+                            required
+                            @input="recalculateMaturity"
+                        />
+                        <WfInput
+                            v-model.number="depositForm.interest_rate"
+                            label="Interest Rate (% p.a.)"
+                            type="number"
+                            step="0.05"
+                            required
+                            @input="recalculateMaturity"
+                        />
+                    </div>
 
-                        <v-row dense class="mb-2">
-                            <v-col cols="12" sm="6">
-                                <v-text-field v-model="depositForm.bank_name" label="Bank / Institution *" placeholder="e.g. SBI, HDFC Bank"
-                                    variant="outlined" density="comfortable" rounded="lg"
-                                    :rules="[rules.required]" />
-                            </v-col>
-                            <v-col cols="12" sm="6">
-                                <v-select v-model="depositForm.deposit_type" :items="typeOptions" item-title="label" item-value="value"
-                                    label="Deposit Type *" variant="outlined" density="comfortable" rounded="lg" />
-                            </v-col>
-                        </v-row>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <WfInput
+                            v-model="depositForm.start_date"
+                            label="Start Date"
+                            type="date"
+                            required
+                            @change="recalculateMaturity"
+                        />
+                        <WfInput
+                            v-model="depositForm.maturity_date"
+                            label="Maturity Date"
+                            type="date"
+                            required
+                            @change="recalculateMaturity"
+                        />
+                    </div>
 
-                        <v-row dense class="mb-2">
-                            <v-col cols="12" sm="6">
-                                <v-text-field v-model.number="depositForm.principal_amount" label="Principal Amount (₹) *"
-                                    type="number" prefix="₹" variant="outlined" density="comfortable" rounded="lg" class="font-weight-black"
-                                    @update:model-value="calculateMaturity"
-                                    :rules="[rules.positive]" />
-                            </v-col>
-                            <v-col cols="12" sm="6">
-                                <v-text-field v-model.number="depositForm.interest_rate" label="Interest Rate (% p.a.) *"
-                                    type="number" suffix="%" variant="outlined" density="comfortable" rounded="lg" class="font-weight-bold"
-                                    @update:model-value="calculateMaturity"
-                                    :rules="[rules.positive]" />
-                            </v-col>
-                        </v-row>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <WfInput
+                            v-model.number="depositForm.maturity_amount"
+                            label="Projected Maturity Amount (₹)"
+                            type="number"
+                            required
+                        />
+                        <WfInput
+                            v-model="depositForm.deposit_number"
+                            label="Certificate / Account Number"
+                            placeholder="Optional certificate #"
+                        />
+                    </div>
 
-                        <v-row dense class="mb-2">
-                            <v-col cols="12" sm="6">
-                                <v-text-field v-model="depositForm.start_date" label="Start Date *" type="date"
-                                    variant="outlined" density="comfortable" rounded="lg"
-                                    @update:model-value="calculateMaturity" />
-                            </v-col>
-                            <v-col cols="12" sm="6">
-                                <v-text-field v-model.number="depositForm.tenure_months" label="Tenure (Months) *" type="number"
-                                    variant="outlined" density="comfortable" rounded="lg"
-                                    @update:model-value="calculateMaturity" />
-                            </v-col>
-                        </v-row>
+                    <!-- Tax Saver Checkbox -->
+                    <div class="flex items-center gap-2 p-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle">
+                        <input
+                            type="checkbox"
+                            id="is_tax_saver"
+                            v-model="depositForm.is_tax_saver"
+                            class="rounded border-wf-border text-wf-primary focus:ring-wf-primary cursor-pointer"
+                        />
+                        <label for="is_tax_saver" class="text-xs font-semibold text-wf-text-primary cursor-pointer select-none">
+                            Section 80C Tax Saver Deposit (5-Year Lock-in)
+                        </label>
+                    </div>
 
-                        <v-row dense class="mb-2">
-                            <v-col cols="12" sm="6">
-                                <v-text-field v-model="depositForm.maturity_date" label="Maturity Date *" type="date"
-                                    variant="outlined" density="comfortable" rounded="lg" />
-                            </v-col>
-                            <v-col cols="12" sm="6">
-                                <v-text-field v-model.number="depositForm.maturity_amount" label="Projected Maturity Amount (₹) *"
-                                    type="number" prefix="₹" variant="outlined" density="comfortable" rounded="lg" class="font-weight-black" />
-                            </v-col>
-                        </v-row>
+                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-wf-border">
+                        <WfButton
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            @click="depositModal = false"
+                        >
+                            Cancel
+                        </WfButton>
+                        <WfButton
+                            variant="primary"
+                            size="sm"
+                            type="submit"
+                            :loading="savingDeposit"
+                        >
+                            {{ isEditing ? 'Save Changes' : 'Create Deposit' }}
+                        </WfButton>
+                    </div>
+                </form>
+            </WfModal>
 
-                        <v-row dense class="mb-2">
-                            <v-col cols="12" sm="6">
-                                <v-text-field v-model="depositForm.deposit_number" label="Certificate / FDR Number" placeholder="Optional"
-                                    variant="outlined" density="comfortable" rounded="lg" />
-                            </v-col>
-                            <v-col cols="12" sm="6">
-                                <v-checkbox v-model="depositForm.is_tax_saver" label="5-Year 80C Tax Saver" density="comfortable" hide-details />
-                            </v-col>
-                        </v-row>
-
-                        <div class="d-flex justify-end gap-3 mt-6">
-                            <v-btn variant="text" rounded="pill" @click="depositModal = false">Cancel</v-btn>
-                            <v-btn color="primary" variant="flat" rounded="pill" class="px-8 font-weight-black" type="submit" :loading="saving">
-                                {{ isEditing ? 'Save Changes' : 'Create Deposit' }}
-                            </v-btn>
+            <!-- Delete Confirmation Modal (Matching Accounts.vue) -->
+            <WfModal
+                v-model="showDeleteConfirm"
+                max-width="sm"
+                title="Delete Deposit?"
+                description="Irreversible Action"
+            >
+                <div class="space-y-4 py-1">
+                    <div class="p-3.5 rounded-wf-md bg-rose-500/10 border border-rose-500/20 flex items-start gap-3">
+                        <Trash2 :size="20" class="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                        <div class="text-xs text-wf-text-primary">
+                            You are about to permanently delete <strong class="text-rose-600 dark:text-rose-400">{{ depositToDelete?.name }}</strong>.
                         </div>
-                    </v-form>
-                </v-card>
-            </v-dialog>
-        </v-container>
+                    </div>
+
+                    <div class="text-[11px] text-wf-text-muted italic bg-wf-surface-variant/20 p-2.5 rounded-wf-sm border border-wf-border-subtle">
+                        Warning: This will remove the deposit and projected interest from portfolio net worth calculations.
+                    </div>
+                </div>
+
+                <template #footer>
+                    <div class="flex items-center justify-end gap-2 w-full">
+                        <WfButton
+                            variant="outline"
+                            size="sm"
+                            @click="showDeleteConfirm = false"
+                        >
+                            Keep Deposit
+                        </WfButton>
+                        <WfButton
+                            variant="danger"
+                            size="sm"
+                            :loading="isDeletingDeposit"
+                            @click="confirmDeleteDepositAction"
+                        >
+                            <Trash2 :size="13" class="mr-1" />
+                            <span>Confirm Delete</span>
+                        </WfButton>
+                    </div>
+                </template>
+            </WfModal>
+        </div>
     </MainLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import {
-    Landmark, Plus, TrendingUp, Coins, Calendar, MoreVertical, Edit2, Trash2, X
+    Landmark, Plus, TrendingUp, Coins, Calendar, MoreVertical, Edit2, Trash2,
+    Search, X, RotateCcw
 } from 'lucide-vue-next'
 import MainLayout from '@/layouts/MainLayout.vue'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfModal from '@/components/ui/WfModal.vue'
+import WfInput from '@/components/ui/WfInput.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfMenu from '@/components/ui/WfMenu.vue'
 import { financeApi } from '@/api/client'
 import { useCurrency } from '@/composables/useCurrency'
 import { useNotificationStore } from '@/stores/notification'
@@ -284,60 +513,72 @@ import { useNotificationStore } from '@/stores/notification'
 const { formatAmount } = useCurrency()
 const notification = useNotificationStore()
 
-const rules = {
-    required: (v: any) => !!v || 'This field is required',
-    positive: (v: any) => Number(v) > 0 || 'Must be greater than 0'
-}
-
 const loading = ref(true)
 const deposits = ref<any[]>([])
+const activeMenuId = ref<string | null>(null)
+const searchQuery = ref('')
 
-const typeOptions = [
-    { label: 'Fixed Deposit (FD)', value: 'FIXED' },
-    { label: 'Recurring Deposit (RD)', value: 'RECURRING' }
-]
+// Delete modal state
+const showDeleteConfirm = ref(false)
+const depositToDelete = ref<any>(null)
+const isDeletingDeposit = ref(false)
 
+// Deposit Modal State
 const depositModal = ref(false)
 const isEditing = ref(false)
-const saving = ref(false)
-
+const savingDeposit = ref(false)
 const depositForm = reactive({
     id: '',
     name: '',
     bank_name: '',
     deposit_type: 'FIXED',
-    deposit_number: '',
     principal_amount: 100000,
     interest_rate: 7.25,
     compounding_frequency: 'QUARTERLY',
     start_date: new Date().toISOString().substring(0, 10),
-    tenure_months: 12,
-    maturity_date: new Date(Date.now() + 365 * 86400000).toISOString().substring(0, 10),
+    maturity_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10),
     maturity_amount: 107450,
-    monthly_deposit: 0,
-    deposit_day_of_month: 5,
-    is_tax_saver: false
+    is_tax_saver: false,
+    deposit_number: ''
 })
 
+const typeOptions = [
+    { title: 'Fixed Deposit (FD)', value: 'FIXED' },
+    { title: 'Recurring Deposit (RD)', value: 'RECURRING' }
+]
+
+// Filtered deposits based on search
+const filteredDeposits = computed(() => {
+    if (!searchQuery.value) return deposits.value
+    const q = searchQuery.value.toLowerCase()
+    return deposits.value.filter(d => 
+        (d.name && d.name.toLowerCase().includes(q)) ||
+        (d.bank_name && d.bank_name.toLowerCase().includes(q)) ||
+        (d.deposit_number && d.deposit_number.toLowerCase().includes(q))
+    )
+})
+
+// Metrics computed
 const totalPrincipal = computed(() => deposits.value.reduce((s, d) => s + Number(d.principal_amount || 0), 0))
 const totalMaturity = computed(() => deposits.value.reduce((s, d) => s + Number(d.maturity_amount || 0), 0))
-const totalProjectedInterest = computed(() => Math.max(0, totalMaturity.value - totalPrincipal.value))
 const totalAccrued = computed(() => deposits.value.reduce((s, d) => s + Number(d.accrued_interest || 0), 0))
+const totalProjectedInterest = computed(() => Math.max(0, totalMaturity.value - totalPrincipal.value))
 
 const nextMaturityDeposit = computed(() => {
-    const unMatured = deposits.value.filter(d => !d.is_matured)
-    if (!unMatured.length) return null
-    return unMatured.sort((a, b) => (a.days_to_maturity || 999) - (b.days_to_maturity || 999))[0]
+    const active = deposits.value.filter(d => !d.is_matured && d.days_to_maturity >= 0)
+    if (!active.length) return null
+    return active.sort((a, b) => a.days_to_maturity - b.days_to_maturity)[0]
 })
 
 const nextMaturityNotice = computed(() => {
     if (!nextMaturityDeposit.value) return 'No upcoming maturities'
-    return formatDate(nextMaturityDeposit.value.maturity_date)
+    return nextMaturityDeposit.value.name
 })
 
 const nextMaturityDays = computed(() => {
-    if (!nextMaturityDeposit.value) return ''
-    return `In ${nextMaturityDeposit.value.days_to_maturity} days (${nextMaturityDeposit.value.name})`
+    if (!nextMaturityDeposit.value) return 'All deposits matured or none active'
+    const d = nextMaturityDeposit.value.days_to_maturity
+    return `Matures in ${d} day${d === 1 ? '' : 's'} (${formatDate(nextMaturityDeposit.value.maturity_date)})`
 })
 
 function formatDate(iso?: string) {
@@ -347,23 +588,6 @@ function formatDate(iso?: string) {
         return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
     } catch {
         return iso
-    }
-}
-
-function calculateMaturity() {
-    const p = depositForm.principal_amount
-    const r = depositForm.interest_rate / 100
-    const m = depositForm.tenure_months
-    if (p > 0 && r > 0 && m > 0) {
-        // Quarterly compounding: A = P * (1 + r/4)^(4 * m/12)
-        const t = m / 12
-        const a = p * Math.pow(1 + r / 4, 4 * t)
-        depositForm.maturity_amount = Math.round(a)
-
-        // Calculate maturity date from start date
-        const s = new Date(depositForm.start_date)
-        s.setMonth(s.getMonth() + m)
-        depositForm.maturity_date = s.toISOString().substring(0, 10)
     }
 }
 
@@ -386,57 +610,79 @@ function openAddModal() {
     depositForm.name = ''
     depositForm.bank_name = ''
     depositForm.deposit_type = 'FIXED'
-    depositForm.deposit_number = ''
     depositForm.principal_amount = 100000
     depositForm.interest_rate = 7.25
+    depositForm.compounding_frequency = 'QUARTERLY'
     depositForm.start_date = new Date().toISOString().substring(0, 10)
-    depositForm.tenure_months = 12
-    calculateMaturity()
+    depositForm.maturity_date = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10)
     depositForm.is_tax_saver = false
+    depositForm.deposit_number = ''
+    recalculateMaturity()
     depositModal.value = true
 }
 
 function openEditModal(dep: any) {
     isEditing.value = true
-    depositForm.id = dep.account_id || dep.id
+    depositForm.id = dep.id
     depositForm.name = dep.name
     depositForm.bank_name = dep.bank_name
     depositForm.deposit_type = dep.deposit_type
-    depositForm.deposit_number = dep.deposit_number || ''
-    depositForm.principal_amount = Number(dep.principal_amount)
-    depositForm.interest_rate = Number(dep.interest_rate)
+    depositForm.principal_amount = Number(dep.principal_amount || 0)
+    depositForm.interest_rate = Number(dep.interest_rate || 0)
+    depositForm.compounding_frequency = dep.compounding_frequency || 'QUARTERLY'
     depositForm.start_date = dep.start_date ? new Date(dep.start_date).toISOString().substring(0, 10) : ''
-    depositForm.tenure_months = dep.tenure_months || 12
     depositForm.maturity_date = dep.maturity_date ? new Date(dep.maturity_date).toISOString().substring(0, 10) : ''
-    depositForm.maturity_amount = Number(dep.maturity_amount)
-    depositForm.is_tax_saver = dep.is_tax_saver || false
+    depositForm.maturity_amount = Number(dep.maturity_amount || 0)
+    depositForm.is_tax_saver = Boolean(dep.is_tax_saver)
+    depositForm.deposit_number = dep.deposit_number || ''
     depositModal.value = true
 }
 
-async function saveDeposit() {
-    saving.value = true
-    try {
-        const payload = {
-            name: depositForm.name,
-            bank_name: depositForm.bank_name,
-            deposit_type: depositForm.deposit_type,
-            deposit_number: depositForm.deposit_number || null,
-            principal_amount: depositForm.principal_amount,
-            interest_rate: depositForm.interest_rate,
-            compounding_frequency: depositForm.compounding_frequency,
-            start_date: new Date(depositForm.start_date).toISOString(),
-            tenure_months: depositForm.tenure_months,
-            maturity_date: new Date(depositForm.maturity_date).toISOString(),
-            maturity_amount: depositForm.maturity_amount,
-            is_tax_saver: depositForm.is_tax_saver
-        }
+function recalculateMaturity() {
+    if (isEditing.value) return
+    const p = Number(depositForm.principal_amount || 0)
+    const r = Number(depositForm.interest_rate || 0) / 100
+    const start = new Date(depositForm.start_date).getTime()
+    const end = new Date(depositForm.maturity_date).getTime()
+    const years = Math.max(0.1, (end - start) / (365.25 * 24 * 60 * 60 * 1000))
 
+    if (depositForm.deposit_type === 'FIXED') {
+        // A = P * (1 + r/4)^(4*t)
+        const amt = p * Math.pow(1 + r / 4, 4 * years)
+        depositForm.maturity_amount = Math.round(amt)
+    } else {
+        // RD compound approximation
+        const months = Math.round(years * 12)
+        const monthlyRate = r / 12
+        let amt = 0
+        for (let m = 1; m <= months; m++) {
+            amt += p * Math.pow(1 + monthlyRate, m)
+        }
+        depositForm.maturity_amount = Math.round(amt)
+    }
+}
+
+async function saveDeposit() {
+    savingDeposit.value = true
+    try {
         if (isEditing.value) {
-            await financeApi.updateFixedDeposit(depositForm.id, payload)
-            notification.success('Deposit updated')
+            await financeApi.updateFixedDeposit(depositForm.id, {
+                name: depositForm.name,
+                bank_name: depositForm.bank_name,
+                deposit_type: depositForm.deposit_type,
+                principal_amount: depositForm.principal_amount,
+                interest_rate: depositForm.interest_rate,
+                compounding_frequency: depositForm.compounding_frequency,
+                start_date: depositForm.start_date,
+                maturity_date: depositForm.maturity_date,
+                maturity_amount: depositForm.maturity_amount,
+                is_tax_saver: depositForm.is_tax_saver,
+                deposit_number: depositForm.deposit_number
+            })
+            notification.success('Deposit updated successfully')
         } else {
-            await financeApi.createFixedDeposit(payload)
-            notification.success('Deposit created')
+            await financeApi.createFixedDeposit(depositForm)
+            notification.success('Deposit created successfully')
         }
         depositModal.value = false
         await fetchDeposits()
@@ -444,23 +690,41 @@ async function saveDeposit() {
         console.error('Failed to save deposit', e)
         notification.error('Failed to save deposit')
     } finally {
-        saving.value = false
+        savingDeposit.value = false
     }
 }
 
-async function confirmDeleteDeposit(dep: any) {
-    if (!confirm(`Delete deposit "${dep.name}"?`)) return
+function requestDeleteDeposit(dep: any) {
+    depositToDelete.value = dep
+    showDeleteConfirm.value = true
+}
+
+async function confirmDeleteDepositAction() {
+    if (!depositToDelete.value) return
+    isDeletingDeposit.value = true
     try {
-        await financeApi.deleteFixedDeposit(dep.account_id || dep.id)
+        await financeApi.deleteFixedDeposit(depositToDelete.value.id)
         notification.success('Deposit deleted')
+        showDeleteConfirm.value = false
         await fetchDeposits()
     } catch (e) {
         console.error('Failed to delete deposit', e)
         notification.error('Failed to delete deposit')
+    } finally {
+        isDeletingDeposit.value = false
     }
+}
+
+function closeDropdowns() {
+    activeMenuId.value = null
 }
 
 onMounted(() => {
     fetchDeposits()
+    window.addEventListener('click', closeDropdowns)
+})
+
+onUnmounted(() => {
+    window.removeEventListener('click', closeDropdowns)
 })
 </script>

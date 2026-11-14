@@ -1,451 +1,756 @@
 <template>
     <MainLayout>
-        <v-container fluid class="page-container dashboard-page">
-            <!-- Animated Mesh Background -->
-            <div class="mesh-blob blob-1"
-                style="background: rgba(var(--v-theme-primary), 0.08); width: 600px; height: 600px; top: -200px; right: -100px;">
-            </div>
-            <div class="mesh-blob blob-2"
-                style="background: rgba(var(--v-theme-secondary), 0.05); width: 450px; height: 450px; bottom: -100px; left: -100px;">
-            </div>
-
-            <div class="relative-pos z-10">
-                <!-- Header -->
-                <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-8">
-                    <div class="mb-4 mb-md-0">
-                        <h1 class="text-h6 font-weight-black text-content mb-1">Credit Cards</h1>
-                        <p class="text-subtitle-2 text-on-surface opacity-70 font-weight-bold d-flex align-center">
-                            Track billing cycles, unbilled spends, due dates & credit utilization
+        <div class="space-y-5">
+            <!-- Header Section (Matching Accounts.vue) -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-wf-border-subtle">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-wf-md bg-wf-surface-variant flex items-center justify-center text-wf-primary border border-wf-border-subtle shadow-2xs shrink-0">
+                        <CreditCard class="w-4.5 h-4.5 text-wf-primary" />
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-lg sm:text-xl font-bold text-wf-text-primary tracking-tight leading-tight">
+                                Credit Cards
+                            </h1>
+                            <span class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
+                                {{ verifiedCards.length }} Active
+                            </span>
+                        </div>
+                        <p class="text-xs text-wf-text-secondary mt-0.5">
+                            Manage credit cards, track statement billing cycles, unbilled spends, and credit utilization.
                         </p>
                     </div>
-                    <div class="d-flex gap-3 align-center">
-                        <v-btn color="primary" variant="flat" rounded="pill" height="44" class="px-6 font-weight-bold"
-                            @click="openAddModal">
-                            <Plus :size="18" class="mr-2" />
-                            Add Credit Card
-                        </v-btn>
+                </div>
+
+                <!-- Navigation Tabs (Pill Segmented Switcher Matching Accounts.vue) -->
+                <div class="flex items-center p-0.5 bg-wf-surface-variant/80 rounded-wf-md border border-wf-border shadow-2xs text-xs font-semibold self-start sm:self-auto">
+                    <button
+                        type="button"
+                        class="flex items-center gap-1.5 px-3 py-1 rounded-wf-sm transition-all cursor-pointer"
+                        :class="activeTab === 'approved'
+                            ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                            : 'text-wf-text-secondary hover:text-wf-text-primary'"
+                        @click="activeTab = 'approved'"
+                    >
+                        <CreditCard :size="14" />
+                        <span>Approved</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="flex items-center gap-1.5 px-3 py-1 rounded-wf-sm transition-all cursor-pointer"
+                        :class="activeTab === 'triage'
+                            ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                            : 'text-wf-text-secondary hover:text-wf-text-primary'"
+                        @click="activeTab = 'triage'"
+                    >
+                        <AlertCircle :size="14" class="text-amber-500" />
+                        <span>Triage</span>
+                        <span
+                            v-if="untrustedCards.length > 0"
+                            class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                        >
+                            {{ untrustedCards.length }}
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary Stats Strip (Matching Accounts.vue) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Total Outstanding -->
+                <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
+                    <div class="flex items-start justify-between">
+                        <div class="w-10 h-10 rounded-wf-lg bg-wf-error-light text-wf-error border border-rose-500/20 flex items-center justify-center shrink-0">
+                            <CreditCard :size="20" />
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
+                            Total Outstanding
+                        </div>
+                        <div class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight text-wf-error mt-0.5">
+                            {{ formatAmount(totalOutstanding) }}
+                        </div>
+                        <div class="text-[11px] text-wf-text-secondary mt-1">
+                            Across {{ verifiedCards.length }} active card{{ verifiedCards.length === 1 ? '' : 's' }}
+                        </div>
+                    </div>
+                </WfCard>
+
+                <!-- Available Limit -->
+                <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
+                    <div class="flex items-start justify-between">
+                        <div class="w-10 h-10 rounded-wf-lg bg-wf-success-light text-wf-success border border-emerald-500/20 flex items-center justify-center shrink-0">
+                            <ShieldCheck :size="20" />
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
+                            Available Limit
+                        </div>
+                        <div class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight text-wf-success mt-0.5">
+                            {{ formatAmount(totalAvailableLimit) }}
+                        </div>
+                        <div class="text-[11px] text-wf-text-secondary mt-1">
+                            Total Limit: {{ formatAmount(totalLimit) }}
+                        </div>
+                    </div>
+                </WfCard>
+
+                <!-- Credit Utilization -->
+                <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
+                    <div class="flex items-start justify-between">
+                        <div class="w-10 h-10 rounded-wf-lg bg-wf-warning-light text-wf-warning border border-amber-500/20 flex items-center justify-center shrink-0">
+                            <Zap :size="20" />
+                        </div>
+                        <span 
+                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold"
+                            :class="utilizationBadgeClass"
+                        >
+                            {{ utilizationStatus }}
+                        </span>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
+                            Credit Utilization
+                        </div>
+                        <div class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight mt-0.5" :class="utilizationTextClass">
+                            {{ overallUtilization.toFixed(1) }}%
+                        </div>
+                        <div class="w-full bg-wf-surface-variant rounded-full h-1.5 mt-2 overflow-hidden">
+                            <div 
+                                class="h-1.5 rounded-full transition-all duration-300" 
+                                :class="utilizationBarClass"
+                                :style="{ width: `${overallUtilization}%` }"
+                            ></div>
+                        </div>
+                    </div>
+                </WfCard>
+
+                <!-- Upcoming Payment -->
+                <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
+                    <div class="flex items-start justify-between">
+                        <div class="w-10 h-10 rounded-wf-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center shrink-0">
+                            <Clock :size="20" />
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
+                            Upcoming Bill
+                        </div>
+                        <div class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight text-wf-text-primary mt-0.5">
+                            {{ formatAmount(nextDueAmount) }}
+                        </div>
+                        <div class="text-[11px] font-semibold mt-1" :class="nextDueStatusClass">
+                            {{ nextDueNotice }}
+                        </div>
+                    </div>
+                </WfCard>
+            </div>
+
+            <!-- Unified Toolbar (Matching Accounts.vue) -->
+            <WfCard variant="flat" padding="sm" radius="lg" class="border border-wf-border">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                    <!-- Global Search Input -->
+                    <div class="relative flex-1 min-w-[200px]">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <Search :size="14" class="text-wf-text-muted shrink-0" />
+                        </div>
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Search by card name, bank or mask..."
+                            class="w-full h-8 pl-9 pr-8 text-xs bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-colors"
+                        />
+                        <div v-if="searchQuery" class="absolute inset-y-0 right-0 flex items-center pr-2.5">
+                            <button
+                                type="button"
+                                class="text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded cursor-pointer flex items-center justify-center"
+                                aria-label="Clear search"
+                                @click="searchQuery = ''"
+                            >
+                                <X :size="13" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Add Card CTA -->
+                    <WfButton
+                        variant="primary"
+                        size="sm"
+                        class="shrink-0"
+                        @click="openAddModal"
+                    >
+                        <Plus :size="14" class="mr-1" />
+                        <span>Add Credit Card</span>
+                    </WfButton>
+                </div>
+            </WfCard>
+
+            <!-- Loading State -->
+            <div v-if="loading" class="p-12 text-center flex flex-col items-center justify-center text-wf-text-muted">
+                <div class="w-8 h-8 border-2 border-wf-primary border-t-transparent rounded-full animate-spin mb-3"></div>
+                <span class="text-xs font-semibold">Loading credit cards...</span>
+            </div>
+
+            <!-- TAB 1: Approved Credit Cards -->
+            <div v-show="activeTab === 'approved'" class="space-y-6">
+                <!-- Empty State (No Cards At All) -->
+                <div 
+                    v-if="!loading && cards.length === 0"
+                    class="p-12 rounded-wf-xl bg-wf-surface border border-wf-border text-center max-w-lg mx-auto shadow-sm"
+                >
+                    <div class="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-wf-primary flex items-center justify-center mx-auto mb-4 border border-indigo-200 dark:border-indigo-900/60">
+                        <CreditCard :size="32" />
+                    </div>
+                    <h3 class="text-base font-bold text-wf-text-primary mb-1">No Credit Cards Added</h3>
+                    <p class="text-xs text-wf-text-secondary mb-6 leading-relaxed">
+                        Add your credit cards to track billing periods, unbilled purchases, payment due dates, and real-time utilization.
+                    </p>
+                    <WfButton
+                        variant="primary"
+                        size="md"
+                        @click="openAddModal"
+                        class="h-9 px-5 text-xs font-semibold"
+                    >
+                        <Plus :size="14" class="mr-1.5" />
+                        <span>Add Your First Card</span>
+                    </WfButton>
+                </div>
+
+                <div v-else-if="!loading" class="space-y-6">
+                    <!-- Cards Grid (Matching Accounts.vue layout) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        <WfCard 
+                            v-for="card in filteredCards" 
+                            :key="card.id"
+                            variant="flat"
+                            padding="sm"
+                            radius="lg"
+                            class="group h-full flex flex-col justify-between transition-all duration-150 hover:shadow-wf-card-hover border border-wf-border hover:border-wf-primary/40 cursor-pointer"
+                            @click="navigateToCard(card)"
+                        >
+                            <div>
+                                <!-- Header: Icon + Name + Actions in single row (Matching AccountCard.vue) -->
+                                <div class="flex items-start justify-between gap-2 mb-1.5">
+                                    <div class="flex items-start gap-2.5 min-w-0 flex-1">
+                                        <div class="w-8 h-8 rounded-wf-md flex items-center justify-center shrink-0 mt-0.5 transition-transform group-hover:scale-105 bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                                            <CreditCard :size="16" />
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-xs sm:text-sm font-bold text-wf-text-primary truncate" :title="card.name">
+                                                {{ card.name }}
+                                            </div>
+                                            <div class="flex items-center gap-1.5 text-xs text-wf-text-muted mt-0.5">
+                                                <span class="text-[10px] font-semibold uppercase tracking-wider">
+                                                    {{ card.card_network || 'Card' }}
+                                                </span>
+                                                <span v-if="card.card_last_4" class="font-mono text-[9px] bg-wf-surface-variant text-wf-text-secondary px-1 py-0.2 rounded-wf-xs">
+                                                    ••{{ card.card_last_4 }}
+                                                </span>
+                                                <span v-if="card.card_tier" class="truncate text-[10px] text-wf-text-muted hidden sm:inline">
+                                                    • {{ card.card_tier }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Actions: Pay Bill + WfMenu (Matching AccountCard.vue) -->
+                                    <div class="flex items-center gap-1 shrink-0" @click.stop>
+                                        <button
+                                            v-if="Number(card.balance || 0) > 0"
+                                            type="button"
+                                            class="px-2 py-0.5 text-[10px] font-semibold rounded-wf-sm bg-wf-primary/10 text-wf-primary hover:bg-wf-primary/20 transition-colors cursor-pointer"
+                                            @click.stop="openPayModal(card)"
+                                        >
+                                            Pay
+                                        </button>
+
+                                        <WfMenu align="right">
+                                            <template #trigger>
+                                                <MoreVertical :size="14" />
+                                            </template>
+                                            <div class="py-1">
+                                                <button 
+                                                    type="button" 
+                                                    class="w-full text-left px-3 py-1.5 text-xs text-wf-text-primary hover:bg-wf-surface-variant flex items-center gap-2 cursor-pointer"
+                                                    @click="navigateToCard(card)"
+                                                >
+                                                    <Receipt :size="13" class="text-wf-primary" />
+                                                    <span>View Details & Cycle</span>
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    class="w-full text-left px-3 py-1.5 text-xs text-wf-text-primary hover:bg-wf-surface-variant flex items-center gap-2 cursor-pointer"
+                                                    @click="openPayModal(card)"
+                                                >
+                                                    <DollarSign :size="13" class="text-emerald-500" />
+                                                    <span>Pay Bill</span>
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    class="w-full text-left px-3 py-1.5 text-xs text-wf-text-primary hover:bg-wf-surface-variant flex items-center gap-2 cursor-pointer"
+                                                    @click="openEditModal(card)"
+                                                >
+                                                    <Edit2 :size="13" class="text-wf-text-muted" />
+                                                    <span>Edit Details</span>
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    class="w-full text-left px-3 py-1.5 text-xs text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2 cursor-pointer"
+                                                    @click="requestDeleteCard(card)"
+                                                >
+                                                    <Trash2 :size="13" class="text-wf-error" />
+                                                    <span>Delete Card</span>
+                                                </button>
+                                            </div>
+                                        </WfMenu>
+                                    </div>
+                                </div>
+
+                                <!-- Compact Statement Intelligence Snippet (Matching AccountCard.vue) -->
+                                <div class="bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/15 rounded-wf-sm px-2.5 py-1.5 my-1.5 text-xs">
+                                    <div class="flex items-center justify-between text-[11px]">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Stmt</span>
+                                            <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400">{{ formatAmount(card.statement_balance || 0) }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-1 text-[10px] text-wf-text-muted font-medium">
+                                            <span>{{ card.days_until_due != null ? `Due ${card.days_until_due}d` : 'Billing Day ' + (card.billing_day || 'N/A') }}</span>
+                                            <span v-if="card.days_until_due != null && card.days_until_due < 0" class="px-1 py-0.2 text-[9px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 rounded">
+                                                Overdue
+                                            </span>
+                                            <span v-else-if="card.days_until_due != null && card.days_until_due <= 3" class="px-1 py-0.2 text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded">
+                                                Soon
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Utilization Bar -->
+                                <div class="space-y-1 my-1.5">
+                                    <div class="flex items-center justify-between text-[10px] text-wf-text-muted">
+                                        <span>Utilized ({{ card.utilization }}%)</span>
+                                        <span class="font-medium text-wf-success">Avail: {{ formatAmount(card.available_limit) }}</span>
+                                    </div>
+                                    <div class="w-full bg-wf-surface-variant rounded-full h-1.5 overflow-hidden">
+                                        <div 
+                                            class="h-1.5 rounded-full transition-all duration-300" 
+                                            :class="card.utilization > 70 ? 'bg-rose-500' : (card.utilization > 30 ? 'bg-amber-500' : 'bg-wf-primary')"
+                                            :style="{ width: `${Math.min(100, Math.max(0, card.utilization))}%` }"
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Footer: Current Balance & Cycle Link (Matching AccountCard.vue) -->
+                            <div class="pt-2 border-t border-wf-border-subtle mt-2 flex items-baseline justify-between">
+                                <div>
+                                    <div class="text-[10px] font-semibold text-wf-text-muted uppercase tracking-wider">
+                                        Current Owed
+                                    </div>
+                                    <div class="text-sm sm:text-base font-bold font-mono tracking-tight text-rose-600 dark:text-rose-400 mt-0.5">
+                                        {{ formatAmount(card.balance) }}
+                                    </div>
+                                </div>
+                                <span class="text-[11px] font-semibold text-wf-primary group-hover:underline flex items-center gap-1">
+                                    <span>Details & Cycle</span>
+                                    <ArrowRight :size="12" />
+                                </span>
+                            </div>
+                        </WfCard>
+
+                        <!-- Compact Add Card Placeholder Card (Matching Accounts.vue) -->
+                        <div
+                            v-if="!searchQuery"
+                            class="border-2 border-dashed border-wf-border hover:border-wf-primary/50 rounded-wf-lg p-5 flex flex-col items-center justify-center transition-all cursor-pointer group hover:bg-wf-primary/[0.02] min-h-[140px]"
+                            @click="openAddModal"
+                        >
+                            <div class="w-8 h-8 rounded-full bg-wf-primary/10 text-wf-primary flex items-center justify-center mb-1.5 transition-transform group-hover:scale-110">
+                                <Plus :size="18" />
+                            </div>
+                            <div class="text-xs font-bold text-wf-text-primary">
+                                Add Credit Card
+                            </div>
+                            <div class="text-[11px] text-wf-text-muted mt-0.5 text-center">
+                                Link a card & set billing cycle
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Empty Search State (Matching Accounts.vue) -->
+                    <div v-if="filteredCards.length === 0 && !loading" class="text-center py-16 animate-in">
+                        <div class="w-16 h-16 rounded-full bg-wf-surface-variant text-wf-text-muted flex items-center justify-center mx-auto mb-4">
+                            <Search :size="32" class="opacity-40" />
+                        </div>
+                        <h3 class="text-base font-bold text-wf-text-primary">No matching cards</h3>
+                        <p class="text-xs text-wf-text-muted mt-1 mb-4">Try adjusting your search query</p>
+                        <WfButton variant="outline" size="sm" @click="searchQuery = ''">
+                            <RotateCcw :size="13" class="mr-1.5" />
+                            <span>Clear search</span>
+                        </WfButton>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Triage Cards (Matching Accounts.vue) -->
+            <div v-show="activeTab === 'triage'" class="space-y-4">
+                <!-- Triage Intake Info Banner -->
+                <div class="flex items-start gap-3 p-3.5 rounded-wf-md bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20">
+                    <div class="w-9 h-9 rounded-wf-md bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                        <AlertCircle :size="18" />
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-wf-text-primary">Detected Credit Cards</h3>
+                        <p class="text-xs text-wf-text-muted mt-0.5">Verify and configure credit cards automatically detected from transaction streams or statement ingestion before adding to cycle tracking.</p>
                     </div>
                 </div>
 
-                <!-- Summary Stats -->
-                <v-row class="mb-8">
-                    <v-col cols="12" sm="6" lg="3">
-                        <v-card class="premium-glass-card pa-6 h-100" elevation="0">
-                            <div class="d-flex justify-space-between align-center mb-2">
-                                <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Total Outstanding</div>
-                                <CreditCard :size="18" class="text-error opacity-70" />
-                            </div>
-                            <div class="text-h4 font-weight-black text-error">{{ formatAmount(totalOutstanding) }}</div>
-                            <div class="text-caption text-medium-emphasis mt-1">Across {{ cards.length }} active card{{ cards.length === 1 ? '' : 's' }}</div>
-                        </v-card>
-                    </v-col>
-
-                    <v-col cols="12" sm="6" lg="3">
-                        <v-card class="premium-glass-card pa-6 h-100" elevation="0">
-                            <div class="d-flex justify-space-between align-center mb-2">
-                                <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Available Limit</div>
-                                <ShieldCheck :size="18" class="text-success opacity-70" />
-                            </div>
-                            <div class="text-h4 font-weight-black text-success">{{ formatAmount(totalAvailableLimit) }}</div>
-                            <div class="text-caption text-medium-emphasis mt-1">Total Limit: {{ formatAmount(totalLimit) }}</div>
-                        </v-card>
-                    </v-col>
-
-                    <v-col cols="12" sm="6" lg="3">
-                        <v-card class="premium-glass-card pa-6 h-100" elevation="0">
-                            <div class="d-flex justify-space-between align-center mb-2">
-                                <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Credit Utilization</div>
-                                <v-chip size="x-small" :color="utilizationColor" variant="tonal" class="font-weight-black">
-                                    {{ utilizationStatus }}
-                                </v-chip>
-                            </div>
-                            <div class="text-h4 font-weight-black" :class="`text-${utilizationColor}`">
-                                {{ overallUtilization.toFixed(1) }}%
-                            </div>
-                            <v-progress-linear :model-value="overallUtilization" :color="utilizationColor" height="6" rounded="pill" class="mt-2" />
-                        </v-card>
-                    </v-col>
-
-                    <v-col cols="12" sm="6" lg="3">
-                        <v-card class="premium-glass-card pa-6 h-100" elevation="0">
-                            <div class="d-flex justify-space-between align-center mb-2">
-                                <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Upcoming Payment</div>
-                                <Clock :size="18" class="text-warning opacity-70" />
-                            </div>
-                            <div class="text-h4 font-weight-black text-content">{{ formatAmount(nextDueAmount) }}</div>
-                            <div class="text-caption font-weight-bold mt-1" :class="nextDueStatusClass">
-                                {{ nextDueNotice }}
-                            </div>
-                        </v-card>
-                    </v-col>
-                </v-row>
-
-                <!-- Empty State -->
-                <div v-if="!loading && cards.length === 0"
-                    class="premium-glass-card d-flex flex-column align-center justify-center py-16 px-10 text-center mx-auto"
-                    style="max-width: 600px; margin-top: 50px;">
-                    <v-avatar color="primary" variant="tonal" size="100" class="mb-8">
-                        <CreditCard :size="50" class="text-primary" />
-                    </v-avatar>
-                    <h3 class="text-h4 font-weight-black mb-1">No Credit Cards</h3>
-                    <p class="text-subtitle-1 text-on-surface opacity-70 font-weight-bold mb-8">
-                        Add a credit card to track billing periods, unbilled purchases, and payment due dates.
-                    </p>
-                    <v-btn color="primary" variant="flat" rounded="pill" height="52"
-                        class="px-10 font-weight-black elevation-2" @click="openAddModal">
-                        Add Your First Card
-                    </v-btn>
-                </div>
-
-                <!-- Cards & Cycles Content -->
-                <div v-else>
-                    <!-- Cards Grid -->
-                    <h2 class="text-subtitle-1 font-weight-black text-uppercase text-medium-emphasis letter-spacing-1 mb-4">
-                        Your Cards ({{ cards.length }})
-                    </h2>
-                    <v-row class="mb-8">
-                        <v-col v-for="card in cards" :key="card.id" cols="12" md="6" lg="4">
-                            <v-card class="premium-glass-card card-item pa-5 h-100 d-flex flex-column justify-space-between"
-                                :class="{ 'is-active-card': selectedCard?.id === card.id }"
-                                @click="selectCard(card)"
-                                elevation="0">
-                                <div>
-                                    <!-- Card Header: Network + Name + More -->
-                                    <div class="d-flex justify-space-between align-start mb-4">
-                                        <div>
-                                            <div class="d-flex align-center gap-2 mb-1">
-                                                <v-chip size="x-small" :color="getNetworkColor(card.card_network)" variant="flat" class="font-weight-black">
-                                                    {{ card.card_network || 'CARD' }}
-                                                </v-chip>
-                                                <span v-if="card.card_tier" class="text-caption font-weight-bold text-medium-emphasis">
-                                                    {{ card.card_tier }}
-                                                </span>
-                                            </div>
-                                            <div class="text-h6 font-weight-black text-content line-clamp-1">{{ card.name }}</div>
-                                            <div class="text-caption font-mono text-medium-emphasis">
-                                                •••• {{ card.card_last_4 || 'XXXX' }}
-                                            </div>
-                                        </div>
-                                        <div class="d-flex align-center gap-1">
-                                            <v-chip size="x-small" :color="getStatusColor(card.status)" variant="tonal" class="font-weight-black">
-                                                {{ card.status }}
-                                            </v-chip>
-                                            <v-menu location="bottom end">
-                                                <template v-slot:activator="{ props }">
-                                                    <v-btn icon size="x-small" variant="text" v-bind="props" @click.stop>
-                                                        <MoreVertical :size="16" />
-                                                    </v-btn>
-                                                </template>
-                                                <v-list density="compact" rounded="lg">
-                                                    <v-list-item @click="openPayModal(card)">
-                                                        <template v-slot:prepend><DollarSign :size="14" class="mr-2 text-primary" /></template>
-                                                        <v-list-item-title class="font-weight-bold">Pay Bill</v-list-item-title>
-                                                    </v-list-item>
-                                                    <v-list-item @click="openEditModal(card)">
-                                                        <template v-slot:prepend><Edit2 :size="14" class="mr-2" /></template>
-                                                        <v-list-item-title class="font-weight-bold">Edit Details</v-list-item-title>
-                                                    </v-list-item>
-                                                    <v-list-item @click="confirmDeleteCard(card)" class="text-error">
-                                                        <template v-slot:prepend><Trash2 :size="14" class="mr-2 text-error" /></template>
-                                                        <v-list-item-title class="font-weight-bold">Delete Card</v-list-item-title>
-                                                    </v-list-item>
-                                                </v-list>
-                                            </v-menu>
-                                        </div>
-                                    </div>
-
-                                    <!-- Outstanding & Limit -->
-                                    <div class="mb-4">
-                                        <div class="d-flex justify-space-between align-end mb-1">
-                                            <div>
-                                                <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">Current Outstanding</div>
-                                                <div class="text-h5 font-weight-black text-error">{{ formatAmount(card.balance) }}</div>
-                                            </div>
-                                            <div class="text-right">
-                                                <div class="text-caption font-weight-bold text-medium-emphasis">LIMIT: {{ formatAmount(card.credit_limit) }}</div>
-                                                <div class="text-caption font-weight-bold text-success">Avail: {{ formatAmount(card.available_limit) }}</div>
-                                            </div>
-                                        </div>
-                                        <v-progress-linear :model-value="card.utilization" :color="card.utilization > 70 ? 'error' : (card.utilization > 30 ? 'warning' : 'primary')" height="6" rounded="pill" />
-                                        <div class="d-flex justify-space-between text-caption text-medium-emphasis mt-1">
-                                            <span>{{ card.utilization }}% utilized</span>
-                                            <span>Statement Day: {{ card.billing_day || 'N/A' }}</span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Cycle Timeline Stepper -->
-                                    <div class="cycle-timeline-box pa-3 rounded-lg mb-4">
-                                        <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
-                                            <span class="text-medium-emphasis">Last Bill: {{ formatDate(card.last_statement_date) }}</span>
-                                            <span :class="card.days_until_due != null && card.days_until_due <= 3 ? 'text-error font-weight-black' : 'text-primary'">
-                                                {{ card.days_until_due != null ? (card.days_until_due < 0 ? 'Overdue!' : `Due in ${card.days_until_due}d`) : 'Due Date' }}
-                                            </span>
-                                        </div>
-                                        <div class="d-flex justify-space-between align-center text-caption">
-                                            <span>Bill Due: <strong>{{ formatAmount(card.statement_balance) }}</strong></span>
-                                            <span class="text-secondary">Unbilled: <strong>{{ formatAmount(card.unbilled_spend) }}</strong></span>
-                                        </div>
-                                    </div>
+                <!-- Triage Cards Grid (Compact 4-column) -->
+                <div v-if="untrustedCards.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    <WfCard
+                        v-for="card in untrustedCards"
+                        :key="card.id"
+                        variant="flat"
+                        padding="sm"
+                        radius="lg"
+                        class="border border-wf-border hover:shadow-wf-card-hover transition-all flex flex-col justify-between"
+                    >
+                        <div>
+                            <div class="flex items-start justify-between gap-2 mb-2">
+                                <div class="w-8 h-8 rounded-wf-md bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                                    <AlertCircle :size="16" />
                                 </div>
-
-                                <!-- Card Actions -->
-                                <div class="d-flex gap-2 mt-2">
-                                    <v-btn color="primary" variant="flat" size="small" rounded="pill" class="flex-grow-1 font-weight-bold" @click.stop="openPayModal(card)">
-                                        <CheckCircle2 :size="14" class="mr-1" />
-                                        Pay Bill
-                                    </v-btn>
-                                    <v-btn variant="tonal" size="small" rounded="pill" class="font-weight-bold" @click.stop="selectCard(card)">
-                                        <Layers :size="14" class="mr-1" />
-                                        View Cycle
-                                    </v-btn>
+                                <div class="flex items-center gap-1">
+                                    <WfButton
+                                        variant="primary"
+                                        size="sm"
+                                        class="h-6 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white"
+                                        @click="openEditModal(card, true)"
+                                    >
+                                        <Check :size="12" class="mr-0.5" />
+                                        <span>Verify</span>
+                                    </WfButton>
+                                    <WfButton
+                                        variant="ghost"
+                                        size="sm"
+                                        class="h-6 px-1.5 text-[11px] text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                                        @click="requestDeleteCard(card)"
+                                    >
+                                        <X :size="13" />
+                                    </WfButton>
                                 </div>
-                            </v-card>
-                        </v-col>
-                    </v-row>
-
-                    <!-- Cycle Transactions Section -->
-                    <div v-if="selectedCard" class="mt-8">
-                        <div class="d-flex flex-column flex-md-row justify-space-between align-md-center mb-4">
-                            <div>
-                                <h2 class="text-h6 font-weight-black text-content d-flex align-center">
-                                    <Receipt :size="20" class="mr-2 text-primary" />
-                                    {{ selectedCard.name }} — Cycle Ledger
-                                </h2>
-                                <p class="text-caption text-medium-emphasis">
-                                    Transactions filtered strictly by billing cycle rather than calendar month.
-                                </p>
                             </div>
 
-                            <!-- Cycle Horizon Switcher -->
-                            <div class="d-flex gap-2 mt-3 mt-md-0">
-                                <v-btn-toggle v-model="selectedCycle" mandatory rounded="pill" density="comfortable" color="primary" variant="tonal">
-                                    <v-btn value="current_unbilled" class="text-none font-weight-bold">
-                                        Unbilled Spends
-                                    </v-btn>
-                                    <v-btn value="last_statement" class="text-none font-weight-bold">
-                                        Last Statement
-                                    </v-btn>
-                                    <v-btn value="all" class="text-none font-weight-bold">
-                                        All History
-                                    </v-btn>
-                                </v-btn-toggle>
-                            </div>
-                        </div>
-
-                        <!-- Cycle Summary Snippet -->
-                        <div class="premium-glass-card pa-4 mb-4 rounded-xl d-flex flex-wrap justify-space-between align-center">
-                            <div class="d-flex align-center gap-4">
-                                <div>
-                                    <span class="text-caption text-medium-emphasis text-uppercase font-weight-bold">Horizon:</span>
-                                    <span class="font-weight-black text-primary ml-2">{{ cycleHorizonLabel }}</span>
+                            <div class="mb-2">
+                                <div class="text-xs sm:text-sm font-bold text-wf-text-primary truncate" :title="card.name">
+                                    {{ card.name }}
                                 </div>
-                                <v-divider vertical class="mx-2" />
-                                <div>
-                                    <span class="text-caption text-medium-emphasis text-uppercase font-weight-bold">Cycle Total:</span>
-                                    <span class="font-weight-black ml-2" :class="selectedCycle === 'current_unbilled' ? 'text-secondary' : 'text-error'">
-                                        {{ formatAmount(selectedCycle === 'current_unbilled' ? selectedCard.unbilled_spend : selectedCard.statement_balance) }}
+                                <div class="flex items-center gap-1.5 text-xs text-wf-text-muted mt-0.5">
+                                    <span class="text-[10px] font-semibold uppercase tracking-wider">
+                                        {{ card.card_network || 'Card' }}
+                                    </span>
+                                    <span v-if="card.card_last_4" class="font-mono text-[9px] bg-wf-surface-variant text-wf-text-secondary px-1 py-0.2 rounded-wf-xs">
+                                        ••{{ card.card_last_4 }}
                                     </span>
                                 </div>
                             </div>
-                            <div class="text-caption text-medium-emphasis font-weight-bold">
-                                Statement Day: {{ selectedCard.billing_day || 'N/A' }} | Next Due: {{ formatDate(selectedCard.next_due_date) }}
-                            </div>
                         </div>
 
-                        <!-- Transactions Table -->
-                        <v-card class="premium-glass-card pa-0 overflow-hidden" elevation="0">
-                            <v-data-table
-                                :headers="txHeaders"
-                                :items="cycleTransactions"
-                                :loading="loadingTransactions"
-                                density="comfortable"
-                                class="bg-transparent"
-                                hide-default-footer
+                        <div class="pt-2 border-t border-wf-border-subtle flex items-baseline justify-between mt-auto">
+                            <div>
+                                <div class="text-[10px] font-semibold text-wf-text-muted uppercase tracking-wider">Reported Balance</div>
+                                <div class="text-sm sm:text-base font-bold font-mono tracking-tight text-wf-error mt-0.5">
+                                    {{ formatAmount(card.balance) }}
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                class="text-[11px] font-semibold text-wf-primary hover:underline cursor-pointer"
+                                @click="openEditModal(card)"
                             >
-                                <template v-slot:item.date="{ item }">
-                                    <div class="font-weight-bold text-caption">{{ formatDate(item.date) }}</div>
-                                </template>
-                                <template v-slot:item.description="{ item }">
-                                    <div class="font-weight-bold text-body-2">{{ item.recipient || item.description || 'Transaction' }}</div>
-                                    <div class="text-caption text-medium-emphasis line-clamp-1">{{ item.description }}</div>
-                                </template>
-                                <template v-slot:item.category="{ item }">
-                                    <v-chip size="x-small" variant="tonal" color="primary" class="font-weight-bold">
-                                        {{ item.category || 'Uncategorized' }}
-                                    </v-chip>
-                                </template>
-                                <template v-slot:item.amount="{ item }">
-                                    <div class="font-weight-black text-body-1" :class="Number(item.amount) >= 0 ? 'text-success' : 'text-error'">
-                                        {{ Number(item.amount) >= 0 ? '+' : '-' }}{{ formatAmount(Math.abs(item.amount)) }}
-                                    </div>
-                                </template>
-                                <template v-slot:no-data>
-                                    <div class="py-12 text-center text-medium-emphasis">
-                                        <CheckCircle2 :size="32" class="mb-2 text-success opacity-50" />
-                                        <div class="font-weight-bold">No transactions found in this cycle</div>
-                                        <div class="text-caption">Transactions made after the statement closing date will appear here.</div>
-                                    </div>
-                                </template>
-                            </v-data-table>
-                        </v-card>
+                                Details
+                            </button>
+                        </div>
+                    </WfCard>
+                </div>
+
+                <!-- Empty Triage (Inbox Zero) -->
+                <div v-else class="text-center py-16 animate-in">
+                    <div class="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-4">
+                        <Check :size="32" />
                     </div>
+                    <h3 class="text-base font-bold text-wf-text-primary">All clear!</h3>
+                    <p class="text-xs text-wf-text-muted mt-1">No unverified credit cards require attention</p>
                 </div>
             </div>
 
             <!-- Add / Edit Card Modal -->
-            <v-dialog v-model="cardModal" max-width="600" persistent>
-                <v-card class="premium-glass-card pa-6 rounded-2xl" elevation="0">
-                    <div class="d-flex justify-space-between align-center mb-6">
-                        <div class="text-h6 font-weight-black text-content">
-                            {{ isEditingCard ? 'Edit Credit Card' : 'Add Credit Card' }}
-                        </div>
-                        <v-btn icon size="small" variant="text" @click="cardModal = false">
-                            <X :size="18" />
-                        </v-btn>
+            <WfModal
+                v-model="cardModal"
+                max-width="md"
+                :title="isEditingCard ? 'Edit Credit Card' : 'Add Credit Card'"
+                description="Configure card limit, billing cycle dates, and card program"
+            >
+                <form @submit.prevent="saveCard" class="space-y-4 py-1">
+                    <WfInput
+                        v-model="cardForm.name"
+                        label="Card Name"
+                        placeholder="e.g. HDFC Swiggy, ICICI Sapphiro, Axis Magnus"
+                        required
+                    />
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <WfInput
+                            v-model.number="cardForm.credit_limit"
+                            label="Total Credit Limit (₹)"
+                            type="number"
+                            required
+                        />
+                        <WfInput
+                            v-model="cardForm.card_last_4"
+                            label="Last 4 Digits"
+                            placeholder="7119"
+                            maxlength="4"
+                        />
                     </div>
 
-                    <v-form @submit.prevent="saveCard">
-                        <v-text-field v-model="cardForm.name" label="Card Name *" placeholder="e.g. HDFC Swiggy, ICICI Sapphiro"
-                            variant="outlined" density="comfortable" rounded="lg" class="mb-4 font-weight-bold"
-                            :rules="[rules.required]" />
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <WfInput
+                            v-model.number="cardForm.billing_day"
+                            label="Statement / Billing Day (1-31)"
+                            type="number"
+                            min="1"
+                            max="31"
+                        />
+                        <WfInput
+                            v-model.number="cardForm.due_day"
+                            label="Payment Due Day (1-31)"
+                            type="number"
+                            min="1"
+                            max="31"
+                        />
+                    </div>
 
-                        <v-row dense class="mb-2">
-                            <v-col cols="12" sm="6">
-                                <v-text-field v-model.number="cardForm.credit_limit" label="Total Credit Limit (₹) *"
-                                    type="number" prefix="₹" variant="outlined" density="comfortable" rounded="lg" class="font-weight-bold"
-                                    :rules="[rules.positive]" />
-                            </v-col>
-                            <v-col cols="12" sm="6">
-                                <v-text-field v-model="cardForm.card_last_4" label="Last 4 Digits" placeholder="7119" maxlength="4"
-                                    variant="outlined" density="comfortable" rounded="lg" class="font-weight-bold" />
-                            </v-col>
-                        </v-row>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <WfSelect
+                            v-model="cardForm.card_network"
+                            label="Card Network"
+                            :items="networkOptions"
+                        />
+                        <WfInput
+                            v-model="cardForm.card_tier"
+                            label="Card Tier / Program"
+                            placeholder="e.g. Rewards, Cashback, Miles"
+                        />
+                    </div>
 
-                        <v-row dense class="mb-2">
-                            <v-col cols="12" sm="6">
-                                <v-text-field v-model.number="cardForm.billing_day" label="Statement / Billing Day (1-31)"
-                                    type="number" min="1" max="31" variant="outlined" density="comfortable" rounded="lg" />
-                            </v-col>
-                            <v-col cols="12" sm="6">
-                                <v-text-field v-model.number="cardForm.due_day" label="Payment Due Day (1-31)"
-                                    type="number" min="1" max="31" variant="outlined" density="comfortable" rounded="lg" />
-                            </v-col>
-                        </v-row>
+                    <WfInput
+                        v-if="!isEditingCard"
+                        v-model.number="cardForm.initial_balance"
+                        label="Current Outstanding Balance (₹)"
+                        type="number"
+                        hint="Amount you currently owe on this card (opening liability)"
+                    />
 
-                        <v-row dense class="mb-2">
-                            <v-col cols="12" sm="6">
-                                <v-select v-model="cardForm.card_network" :items="networkOptions" label="Card Network"
-                                    variant="outlined" density="comfortable" rounded="lg" />
-                            </v-col>
-                            <v-col cols="12" sm="6">
-                                <v-text-field v-model="cardForm.card_tier" label="Card Tier / Program" placeholder="e.g. Rewards, Cashback, Miles"
-                                    variant="outlined" density="comfortable" rounded="lg" />
-                            </v-col>
-                        </v-row>
-
-                        <v-text-field v-if="!isEditingCard" v-model.number="cardForm.initial_balance" label="Current Outstanding Balance (₹)"
-                            type="number" prefix="₹" variant="outlined" density="comfortable" rounded="lg" class="mb-4 font-weight-bold"
-                            hint="Amount you currently owe on this card" persistent-hint />
-
-                        <div class="d-flex justify-end gap-3 mt-6">
-                            <v-btn variant="text" rounded="pill" @click="cardModal = false">Cancel</v-btn>
-                            <v-btn color="primary" variant="flat" rounded="pill" class="px-8 font-weight-black" type="submit" :loading="savingCard">
-                                {{ isEditingCard ? 'Save Changes' : 'Create Card' }}
-                            </v-btn>
-                        </div>
-                    </v-form>
-                </v-card>
-            </v-dialog>
+                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-wf-border">
+                        <WfButton
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            @click="cardModal = false"
+                        >
+                            Cancel
+                        </WfButton>
+                        <WfButton
+                            variant="primary"
+                            size="sm"
+                            type="submit"
+                            :loading="savingCard"
+                        >
+                            {{ isEditingCard ? 'Save Changes' : 'Create Card' }}
+                        </WfButton>
+                    </div>
+                </form>
+            </WfModal>
 
             <!-- Pay Bill Modal -->
-            <v-dialog v-model="payModal" max-width="500" persistent>
-                <v-card class="premium-glass-card pa-6 rounded-2xl" elevation="0">
-                    <div class="d-flex justify-space-between align-center mb-6">
-                        <div>
-                            <div class="text-h6 font-weight-black text-content">Pay Credit Card Bill</div>
-                            <div class="text-caption text-medium-emphasis">{{ payingCard?.name }}</div>
+            <WfModal
+                v-model="payModal"
+                max-width="md"
+                title="Pay Credit Card Bill"
+                :description="payingCard ? `${payingCard.name} · Outstanding ${formatAmount(payingCard.balance || 0)}` : ''"
+            >
+                <form @submit.prevent="submitBillPayment" class="space-y-4 py-1">
+                    <WfSelect
+                        v-model="payForm.source_account_id"
+                        label="Pay From Bank Account"
+                        :items="bankAccountOptions"
+                        required
+                    />
+
+                    <!-- Quick Amount Selectors -->
+                    <div>
+                        <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block mb-1.5">
+                            Quick Select Amount
+                        </label>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button
+                                type="button"
+                                class="px-2.5 py-1 rounded-wf-sm text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/60 transition-colors cursor-pointer"
+                                @click="setPayAmount(payingCard?.statement_balance)"
+                            >
+                                Statement Due: {{ formatAmount(payingCard?.statement_balance || 0) }}
+                            </button>
+                            <button
+                                type="button"
+                                class="px-2.5 py-1 rounded-wf-sm text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60 transition-colors cursor-pointer"
+                                @click="setPayAmount(payingCard?.minimum_due)"
+                            >
+                                Min Due: {{ formatAmount(payingCard?.minimum_due || 0) }}
+                            </button>
+                            <button
+                                type="button"
+                                class="px-2.5 py-1 rounded-wf-sm text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 transition-colors cursor-pointer"
+                                @click="setPayAmount(payingCard?.balance)"
+                            >
+                                Total Owed: {{ formatAmount(payingCard?.balance || 0) }}
+                            </button>
                         </div>
-                        <v-btn icon size="small" variant="text" @click="payModal = false">
-                            <X :size="18" />
-                        </v-btn>
                     </div>
 
-                    <v-form @submit.prevent="submitBillPayment">
-                        <v-select v-model="payForm.source_account_id" :items="bankAccountOptions" item-title="title" item-value="value"
-                            label="Pay From (Bank Account) *" variant="outlined" density="comfortable" rounded="lg" class="mb-4 font-weight-bold"
-                            :rules="[rules.required]" />
+                    <WfInput
+                        v-model.number="payForm.amount"
+                        label="Payment Amount (₹)"
+                        type="number"
+                        required
+                    />
 
-                        <div class="d-flex gap-2 mb-3">
-                            <v-btn size="x-small" variant="tonal" rounded="pill" color="primary" @click="setPayAmount(payingCard?.statement_balance)">
-                                Statement Due: {{ formatAmount(payingCard?.statement_balance || 0) }}
-                            </v-btn>
-                            <v-btn size="x-small" variant="tonal" rounded="pill" color="warning" @click="setPayAmount(payingCard?.minimum_due)">
-                                Min Due: {{ formatAmount(payingCard?.minimum_due || 0) }}
-                            </v-btn>
-                            <v-btn size="x-small" variant="tonal" rounded="pill" color="error" @click="setPayAmount(payingCard?.balance)">
-                                Total Owed: {{ formatAmount(payingCard?.balance || 0) }}
-                            </v-btn>
+                    <WfInput
+                        v-model="payForm.date"
+                        label="Payment Date"
+                        type="date"
+                        required
+                    />
+
+                    <WfInput
+                        v-model="payForm.description"
+                        label="Remarks / Note"
+                        placeholder="Credit Card Bill Payment"
+                    />
+
+                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-wf-border">
+                        <WfButton
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            @click="payModal = false"
+                        >
+                            Cancel
+                        </WfButton>
+                        <WfButton
+                            variant="primary"
+                            size="sm"
+                            type="submit"
+                            :loading="payingBill"
+                        >
+                            Record Payment
+                        </WfButton>
+                    </div>
+                </form>
+            </WfModal>
+
+            <!-- Delete Confirmation Modal (Matching Accounts.vue) -->
+            <WfModal
+                v-model="showDeleteConfirm"
+                max-width="sm"
+                title="Delete Credit Card?"
+                description="Irreversible Action"
+            >
+                <div class="space-y-4 py-1">
+                    <div class="p-3.5 rounded-wf-md bg-rose-500/10 border border-rose-500/20 flex items-start gap-3">
+                        <Trash2 :size="20" class="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                        <div class="text-xs text-wf-text-primary">
+                            You are about to permanently delete <strong class="text-rose-600 dark:text-rose-400">{{ cardToDelete?.name }}</strong>.
                         </div>
+                    </div>
 
-                        <v-text-field v-model.number="payForm.amount" label="Payment Amount (₹) *" type="number" prefix="₹"
-                            variant="outlined" density="comfortable" rounded="lg" class="mb-4 font-weight-black"
-                            :rules="[rules.positive]" />
+                    <div class="text-[11px] text-wf-text-muted italic bg-wf-surface-variant/20 p-2.5 rounded-wf-sm border border-wf-border-subtle">
+                        Warning: Card cycle details will be removed from future billing calculations. Historical ledger transactions will be preserved.
+                    </div>
+                </div>
 
-                        <v-text-field v-model="payForm.date" label="Payment Date *" type="date"
-                            variant="outlined" density="comfortable" rounded="lg" class="mb-4 font-weight-bold" />
-
-                        <v-text-field v-model="payForm.description" label="Remarks / Note" placeholder="Bill Payment"
-                            variant="outlined" density="comfortable" rounded="lg" class="mb-4" />
-
-                        <div class="d-flex justify-end gap-3 mt-6">
-                            <v-btn variant="text" rounded="pill" @click="payModal = false">Cancel</v-btn>
-                            <v-btn color="primary" variant="flat" rounded="pill" class="px-8 font-weight-black" type="submit" :loading="payingBill">
-                                Record Payment
-                            </v-btn>
-                        </div>
-                    </v-form>
-                </v-card>
-            </v-dialog>
-        </v-container>
+                <template #footer>
+                    <div class="flex items-center justify-end gap-2 w-full">
+                        <WfButton
+                            variant="outline"
+                            size="sm"
+                            @click="showDeleteConfirm = false"
+                        >
+                            Keep Card
+                        </WfButton>
+                        <WfButton
+                            variant="danger"
+                            size="sm"
+                            :loading="isDeletingCard"
+                            @click="confirmDeleteCardAction"
+                        >
+                            <Trash2 :size="13" class="mr-1" />
+                            <span>Confirm Delete</span>
+                        </WfButton>
+                    </div>
+                </template>
+            </WfModal>
+        </div>
     </MainLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import {
-    CreditCard, Plus, ShieldCheck, Clock, Layers, Receipt, CheckCircle2,
-    MoreVertical, Edit2, Trash2, DollarSign, X
+    CreditCard, Plus, ShieldCheck, Clock, Receipt,
+    MoreVertical, Edit2, Trash2, DollarSign, Zap, Search, X, RotateCcw,
+    AlertCircle, Check, ArrowRight
 } from 'lucide-vue-next'
 import MainLayout from '@/layouts/MainLayout.vue'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
+import WfModal from '@/components/ui/WfModal.vue'
+import WfInput from '@/components/ui/WfInput.vue'
+import WfSelect from '@/components/ui/WfSelect.vue'
+import WfMenu from '@/components/ui/WfMenu.vue'
 import { financeApi } from '@/api/client'
 import { useCurrency } from '@/composables/useCurrency'
 import { useNotificationStore } from '@/stores/notification'
 
+const router = useRouter()
 const { formatAmount } = useCurrency()
 const notification = useNotificationStore()
 
-const rules = {
-    required: (v: any) => !!v || 'This field is required',
-    positive: (v: any) => Number(v) > 0 || 'Must be greater than 0'
-}
-
 const loading = ref(true)
 const cards = ref<any[]>([])
-const selectedCard = ref<any>(null)
+const activeTab = ref<'approved' | 'triage'>('approved')
+const searchQuery = ref('')
 
-// Cycle transactions state
-const selectedCycle = ref('current_unbilled')
-const cycleTransactions = ref<any[]>([])
-const loadingTransactions = ref(false)
+function navigateToCard(card: any) {
+    const id = card.account_id || card.id
+    router.push(`/credit-cards/${id}`)
+}
 
-const txHeaders = [
-    { title: 'Date', key: 'date', sortable: true, width: '120px' },
-    { title: 'Merchant / Description', key: 'description' },
-    { title: 'Category', key: 'category', width: '150px' },
-    { title: 'Amount', key: 'amount', align: 'end' as const, width: '150px' }
+// Delete confirm modal state
+const showDeleteConfirm = ref(false)
+const cardToDelete = ref<any>(null)
+const isDeletingCard = ref(false)
+
+const networkOptions = [
+    { title: 'VISA', value: 'VISA' },
+    { title: 'Mastercard', value: 'MASTERCARD' },
+    { title: 'RuPay', value: 'RUPAY' },
+    { title: 'American Express', value: 'AMEX' },
+    { title: 'Diners Club', value: 'DINERS' },
+    { title: 'Other', value: 'OTHER' }
 ]
-
-const networkOptions = ['VISA', 'MASTERCARD', 'RUPAY', 'AMEX', 'DINERS', 'OTHER']
 
 // Bank accounts for bill pay
 const bankAccounts = ref<any[]>([])
@@ -463,7 +768,8 @@ const cardForm = reactive({
     due_day: 5,
     card_network: 'VISA',
     card_tier: '',
-    initial_balance: 0
+    initial_balance: 0,
+    is_verified: true
 })
 
 // Pay Modal State
@@ -477,20 +783,49 @@ const payForm = reactive({
     description: 'Credit Card Bill Payment'
 })
 
-// Metrics computed
-const totalOutstanding = computed(() => cards.value.reduce((s, c) => s + Number(c.balance || 0), 0))
-const totalLimit = computed(() => cards.value.reduce((s, c) => s + Number(c.credit_limit || 0), 0))
-const totalAvailableLimit = computed(() => cards.value.reduce((s, c) => s + Number(c.available_limit || 0), 0))
+// Triage vs Approved Cards (Matching Accounts.vue)
+const verifiedCards = computed(() => cards.value.filter(c => c.is_verified !== false))
+const untrustedCards = computed(() => cards.value.filter(c => c.is_verified === false))
+
+// Search filtered cards
+const filteredCards = computed(() => {
+    let list = verifiedCards.value
+    if (!searchQuery.value) return list
+    const q = searchQuery.value.toLowerCase()
+    return list.filter(c => 
+        (c.name && c.name.toLowerCase().includes(q)) ||
+        (c.card_last_4 && c.card_last_4.includes(q)) ||
+        (c.card_network && c.card_network.toLowerCase().includes(q)) ||
+        (c.institution_name && c.institution_name.toLowerCase().includes(q))
+    )
+})
+
+// Metrics computed (from verified cards)
+const totalOutstanding = computed(() => verifiedCards.value.reduce((s, c) => s + Number(c.balance || 0), 0))
+const totalLimit = computed(() => verifiedCards.value.reduce((s, c) => s + Number(c.credit_limit || 0), 0))
+const totalAvailableLimit = computed(() => verifiedCards.value.reduce((s, c) => s + Number(c.available_limit || 0), 0))
 
 const overallUtilization = computed(() => {
     if (totalLimit.value <= 0) return 0
     return Math.min(100, Math.max(0, (totalOutstanding.value / totalLimit.value) * 100))
 })
 
-const utilizationColor = computed(() => {
-    if (overallUtilization.value > 70) return 'error'
-    if (overallUtilization.value > 30) return 'warning'
-    return 'success'
+const utilizationBadgeClass = computed(() => {
+    if (overallUtilization.value > 70) return 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60'
+    if (overallUtilization.value > 30) return 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60'
+    return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60'
+})
+
+const utilizationTextClass = computed(() => {
+    if (overallUtilization.value > 70) return 'text-wf-error'
+    if (overallUtilization.value > 30) return 'text-amber-500'
+    return 'text-wf-success'
+})
+
+const utilizationBarClass = computed(() => {
+    if (overallUtilization.value > 70) return 'bg-rose-500'
+    if (overallUtilization.value > 30) return 'bg-amber-500'
+    return 'bg-emerald-500'
 })
 
 const utilizationStatus = computed(() => {
@@ -500,7 +835,7 @@ const utilizationStatus = computed(() => {
 })
 
 const nextDueCard = computed(() => {
-    const withDue = cards.value.filter(c => c.days_until_due != null && Number(c.statement_balance || 0) > 0)
+    const withDue = verifiedCards.value.filter(c => c.days_until_due != null && Number(c.statement_balance || 0) > 0)
     if (!withDue.length) return null
     return withDue.sort((a, b) => (a.days_until_due || 999) - (b.days_until_due || 999))[0]
 })
@@ -517,16 +852,10 @@ const nextDueNotice = computed(() => {
 })
 
 const nextDueStatusClass = computed(() => {
-    if (!nextDueCard.value) return 'text-medium-emphasis'
+    if (!nextDueCard.value) return 'text-wf-text-muted'
     const days = nextDueCard.value.days_until_due
-    if (days <= 3) return 'text-error font-weight-black'
-    return 'text-warning'
-})
-
-const cycleHorizonLabel = computed(() => {
-    if (selectedCycle.value === 'current_unbilled') return 'Current Unbilled Cycle (Live Spends)'
-    if (selectedCycle.value === 'last_statement') return 'Last Closed Statement Period'
-    return 'All Lifetime Transactions'
+    if (days <= 3) return 'text-wf-error font-bold'
+    return 'text-amber-500 font-semibold'
 })
 
 const bankAccountOptions = computed(() => {
@@ -546,35 +875,11 @@ function formatDate(iso?: string) {
     }
 }
 
-function getNetworkColor(network?: string) {
-    switch ((network || '').toUpperCase()) {
-        case 'VISA': return 'primary'
-        case 'MASTERCARD': return 'warning'
-        case 'RUPAY': return 'success'
-        case 'AMEX': return 'info'
-        default: return 'secondary'
-    }
-}
-
-function getStatusColor(status?: string) {
-    switch (status) {
-        case 'Healthy': return 'success'
-        case 'Moderate': return 'warning'
-        case 'High Utilization': return 'error'
-        case 'Due Soon': return 'warning'
-        case 'Overdue': return 'error'
-        default: return 'primary'
-    }
-}
-
 async function fetchCards() {
     loading.value = true
     try {
         const res = await financeApi.getCreditCards()
         cards.value = res.data || []
-        if (cards.value.length > 0 && !selectedCard.value) {
-            selectCard(cards.value[0])
-        }
     } catch (e) {
         console.error('Failed to fetch credit cards', e)
         notification.error('Failed to load credit cards')
@@ -593,31 +898,6 @@ async function fetchBankAccounts() {
     }
 }
 
-async function selectCard(card: any) {
-    selectedCard.value = card
-    await fetchCycleTransactions()
-}
-
-async function fetchCycleTransactions() {
-    if (!selectedCard.value) return
-    loadingTransactions.value = true
-    try {
-        const res = await financeApi.getCreditCardCycleTransactions(selectedCard.value.account_id, {
-            cycle: selectedCycle.value,
-            limit: 50
-        })
-        cycleTransactions.value = res.data?.items || []
-    } catch (e) {
-        console.error('Failed to fetch cycle transactions', e)
-    } finally {
-        loadingTransactions.value = false
-    }
-}
-
-watch(selectedCycle, () => {
-    fetchCycleTransactions()
-})
-
 function openAddModal() {
     isEditingCard.value = false
     cardForm.id = ''
@@ -629,10 +909,11 @@ function openAddModal() {
     cardForm.card_network = 'VISA'
     cardForm.card_tier = ''
     cardForm.initial_balance = 0
+    cardForm.is_verified = true
     cardModal.value = true
 }
 
-function openEditModal(card: any) {
+function openEditModal(card: any, autoVerify = false) {
     isEditingCard.value = true
     cardForm.id = card.account_id || card.id
     cardForm.name = card.name
@@ -642,6 +923,7 @@ function openEditModal(card: any) {
     cardForm.due_day = card.due_day || 5
     cardForm.card_network = card.card_network || 'VISA'
     cardForm.card_tier = card.card_tier || ''
+    cardForm.is_verified = autoVerify ? true : card.is_verified !== false
     cardModal.value = true
 }
 
@@ -656,7 +938,8 @@ async function saveCard() {
                 due_day: cardForm.due_day,
                 card_network: cardForm.card_network,
                 card_tier: cardForm.card_tier,
-                card_last_4: cardForm.card_last_4
+                card_last_4: cardForm.card_last_4,
+                is_verified: cardForm.is_verified
             })
             notification.success('Credit card updated successfully')
         } else {
@@ -673,16 +956,24 @@ async function saveCard() {
     }
 }
 
-async function confirmDeleteCard(card: any) {
-    if (!confirm(`Are you sure you want to delete ${card.name}? All transaction history will be preserved.`)) return
+function requestDeleteCard(card: any) {
+    cardToDelete.value = card
+    showDeleteConfirm.value = true
+}
+
+async function confirmDeleteCardAction() {
+    if (!cardToDelete.value) return
+    isDeletingCard.value = true
     try {
-        await financeApi.deleteCreditCard(card.account_id || card.id)
+        await financeApi.deleteCreditCard(cardToDelete.value.account_id || cardToDelete.value.id)
         notification.success('Card deleted')
-        if (selectedCard.value?.id === card.id) selectedCard.value = null
+        showDeleteConfirm.value = false
         await fetchCards()
     } catch (e) {
         console.error('Failed to delete card', e)
         notification.error('Failed to delete card')
+    } finally {
+        isDeletingCard.value = false
     }
 }
 
@@ -712,9 +1003,6 @@ async function submitBillPayment() {
         notification.success('Payment recorded successfully!')
         payModal.value = false
         await fetchCards()
-        if (selectedCard.value?.id === payingCard.value.id) {
-            await fetchCycleTransactions()
-        }
     } catch (e) {
         console.error('Failed to record payment', e)
         notification.error('Payment record failed')
@@ -728,15 +1016,3 @@ onMounted(() => {
     fetchBankAccounts()
 })
 </script>
-
-<style scoped>
-.is-active-card {
-    border: 2px solid rgb(var(--v-theme-primary)) !important;
-    background: rgba(var(--v-theme-primary), 0.04) !important;
-}
-
-.cycle-timeline-box {
-    background: rgba(var(--v-theme-surface-variant), 0.3);
-    border: 1px solid rgba(var(--v-theme-outline), 0.15);
-}
-</style>
