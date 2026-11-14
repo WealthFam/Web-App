@@ -195,13 +195,13 @@
                     <v-form @submit.prevent="saveDeposit">
                         <v-text-field v-model="depositForm.name" label="Deposit Name *" placeholder="e.g. HDFC 1-Year Tax Saver FD"
                             variant="outlined" density="comfortable" rounded="lg" class="mb-4 font-weight-bold"
-                            :rules="[v => !!v || 'Name is required']" />
+                            :rules="[rules.required]" />
 
                         <v-row dense class="mb-2">
                             <v-col cols="12" sm="6">
                                 <v-text-field v-model="depositForm.bank_name" label="Bank / Institution *" placeholder="e.g. SBI, HDFC Bank"
                                     variant="outlined" density="comfortable" rounded="lg"
-                                    :rules="[v => !!v || 'Bank name is required']" />
+                                    :rules="[rules.required]" />
                             </v-col>
                             <v-col cols="12" sm="6">
                                 <v-select v-model="depositForm.deposit_type" :items="typeOptions" item-title="label" item-value="value"
@@ -214,13 +214,13 @@
                                 <v-text-field v-model.number="depositForm.principal_amount" label="Principal Amount (₹) *"
                                     type="number" prefix="₹" variant="outlined" density="comfortable" rounded="lg" class="font-weight-black"
                                     @update:model-value="calculateMaturity"
-                                    :rules="[v => v > 0 || 'Principal must be > 0']" />
+                                    :rules="[rules.positive]" />
                             </v-col>
                             <v-col cols="12" sm="6">
                                 <v-text-field v-model.number="depositForm.interest_rate" label="Interest Rate (% p.a.) *"
                                     type="number" suffix="%" variant="outlined" density="comfortable" rounded="lg" class="font-weight-bold"
                                     @update:model-value="calculateMaturity"
-                                    :rules="[v => v > 0 || 'Rate must be > 0']" />
+                                    :rules="[rules.positive]" />
                             </v-col>
                         </v-row>
 
@@ -283,6 +283,11 @@ import { useNotificationStore } from '@/stores/notification'
 
 const { formatAmount } = useCurrency()
 const notification = useNotificationStore()
+
+const rules = {
+    required: (v: any) => !!v || 'This field is required',
+    positive: (v: any) => Number(v) > 0 || 'Must be greater than 0'
+}
 
 const loading = ref(true)
 const deposits = ref<any[]>([])

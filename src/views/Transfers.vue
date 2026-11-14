@@ -360,10 +360,10 @@ import {
     PlusCircle
 } from 'lucide-vue-next'
 import { financeApi } from '@/api/client'
-import { useNotification } from '@/composables/useNotification'
+import { useNotificationStore } from '@/stores/notification'
 import { useCurrency } from '@/composables/useCurrency'
 
-const notification = useNotification()
+const notification = useNotificationStore()
 const { formatAmount } = useCurrency()
 
 const activeTab = ref('suggestions')

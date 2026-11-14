@@ -204,7 +204,7 @@
                     <v-form @submit.prevent="saveFund">
                         <v-text-field v-model="fundForm.name" label="Account Nickname *" placeholder="e.g. Current Company EPF, SBI PPF"
                             variant="outlined" density="comfortable" rounded="lg" class="mb-4 font-weight-bold"
-                            :rules="[v => !!v || 'Name is required']" />
+                            :rules="[rules.required]" />
 
                         <v-row dense class="mb-2">
                             <v-col cols="12" sm="6">
@@ -291,6 +291,10 @@ import { useNotificationStore } from '@/stores/notification'
 
 const { formatAmount } = useCurrency()
 const notification = useNotificationStore()
+
+const rules = {
+    required: (v: any) => !!v || 'This field is required'
+}
 
 const loading = ref(true)
 const funds = ref<any[]>([])

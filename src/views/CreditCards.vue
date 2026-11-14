@@ -307,13 +307,13 @@
                     <v-form @submit.prevent="saveCard">
                         <v-text-field v-model="cardForm.name" label="Card Name *" placeholder="e.g. HDFC Swiggy, ICICI Sapphiro"
                             variant="outlined" density="comfortable" rounded="lg" class="mb-4 font-weight-bold"
-                            :rules="[v => !!v || 'Card name is required']" />
+                            :rules="[rules.required]" />
 
                         <v-row dense class="mb-2">
                             <v-col cols="12" sm="6">
                                 <v-text-field v-model.number="cardForm.credit_limit" label="Total Credit Limit (₹) *"
                                     type="number" prefix="₹" variant="outlined" density="comfortable" rounded="lg" class="font-weight-bold"
-                                    :rules="[v => v > 0 || 'Limit must be greater than 0']" />
+                                    :rules="[rules.positive]" />
                             </v-col>
                             <v-col cols="12" sm="6">
                                 <v-text-field v-model="cardForm.card_last_4" label="Last 4 Digits" placeholder="7119" maxlength="4"
@@ -373,7 +373,7 @@
                     <v-form @submit.prevent="submitBillPayment">
                         <v-select v-model="payForm.source_account_id" :items="bankAccountOptions" item-title="title" item-value="value"
                             label="Pay From (Bank Account) *" variant="outlined" density="comfortable" rounded="lg" class="mb-4 font-weight-bold"
-                            :rules="[v => !!v || 'Source bank account required']" />
+                            :rules="[rules.required]" />
 
                         <div class="d-flex gap-2 mb-3">
                             <v-btn size="x-small" variant="tonal" rounded="pill" color="primary" @click="setPayAmount(payingCard?.statement_balance)">
@@ -389,7 +389,7 @@
 
                         <v-text-field v-model.number="payForm.amount" label="Payment Amount (₹) *" type="number" prefix="₹"
                             variant="outlined" density="comfortable" rounded="lg" class="mb-4 font-weight-black"
-                            :rules="[v => v > 0 || 'Amount must be greater than 0']" />
+                            :rules="[rules.positive]" />
 
                         <v-text-field v-model="payForm.date" label="Payment Date *" type="date"
                             variant="outlined" density="comfortable" rounded="lg" class="mb-4 font-weight-bold" />
@@ -423,6 +423,11 @@ import { useNotificationStore } from '@/stores/notification'
 
 const { formatAmount } = useCurrency()
 const notification = useNotificationStore()
+
+const rules = {
+    required: (v: any) => !!v || 'This field is required',
+    positive: (v: any) => Number(v) > 0 || 'Must be greater than 0'
+}
 
 const loading = ref(true)
 const cards = ref<any[]>([])
