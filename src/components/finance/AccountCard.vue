@@ -24,12 +24,30 @@ defineEmits<{
 const { formatAmount } = useCurrency()
 
 function getAccountTypeIcon(type: string) {
-    const icons: any = { BANK: Landmark, CREDIT_CARD: CreditCard, LOAN: Banknote, WALLET: Wallet, INVESTMENT: TrendingUp }
+    const icons: any = { 
+        BANK: Landmark, 
+        CREDIT_CARD: CreditCard, 
+        LOAN: Banknote, 
+        WALLET: Wallet, 
+        INVESTMENT: TrendingUp,
+        FIXED_DEPOSIT: Landmark,
+        RECURRING_DEPOSIT: Landmark,
+        PROVIDENT_FUND: Landmark
+    }
     return icons[type] || Wallet
 }
 
 function getAccountTypeLabel(type: string) {
-    const labels: any = { BANK: 'Bank', CREDIT_CARD: 'Credit Card', LOAN: 'Loan', WALLET: 'Wallet', INVESTMENT: 'Investment' }
+    const labels: any = { 
+        BANK: 'Bank', 
+        CREDIT_CARD: 'Credit Card', 
+        LOAN: 'Loan', 
+        WALLET: 'Wallet', 
+        INVESTMENT: 'Investment',
+        FIXED_DEPOSIT: 'Fixed Deposit',
+        RECURRING_DEPOSIT: 'Recurring Deposit',
+        PROVIDENT_FUND: 'Provident Fund'
+    }
     return labels[type] || type
 }
 
@@ -42,9 +60,14 @@ const iconBadgeStyle = computed(() => {
         case 'LOAN':
             return 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
         case 'WALLET':
-            return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-        case 'INVESTMENT':
             return 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+        case 'INVESTMENT':
+            return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+        case 'FIXED_DEPOSIT':
+        case 'RECURRING_DEPOSIT':
+            return 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
+        case 'PROVIDENT_FUND':
+            return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
         default:
             return 'bg-wf-surface-variant text-wf-text-secondary'
     }

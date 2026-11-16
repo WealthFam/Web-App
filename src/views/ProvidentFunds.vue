@@ -17,7 +17,7 @@
                             </span>
                         </div>
                         <p class="text-xs text-wf-text-secondary mt-0.5">
-                            Track EPF, PPF, NPS & statutory retirement corpus with Section 80C monitoring.
+                            Track EPF, PPF, NPS & statutory retirement corpus with annual investment caps & compounding schedules.
                         </p>
                     </div>
                 </div>
@@ -57,7 +57,7 @@
                     </div>
                 </WfCard>
 
-                <!-- Section 80C Tracker -->
+                <!-- Annual Deposit Limit Tracker -->
                 <WfCard variant="flat" padding="md" radius="lg" class="border border-wf-border flex flex-col justify-between">
                     <div class="flex items-start justify-between">
                         <div class="w-10 h-10 rounded-wf-lg bg-wf-success-light text-wf-success border border-emerald-500/20 flex items-center justify-center shrink-0">
@@ -74,7 +74,7 @@
                     </div>
                     <div class="mt-4">
                         <div class="text-[11px] font-semibold text-wf-text-muted uppercase tracking-wider">
-                            80C FY Tracker
+                            Annual FY Deposits
                         </div>
                         <div class="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-tight text-wf-success mt-0.5">
                             {{ formatAmount(totalFyContrib) }}
@@ -185,7 +185,7 @@
                 </div>
                 <h3 class="text-base font-bold text-wf-text-primary mb-1">No Provident Funds Added</h3>
                 <p class="text-xs text-wf-text-secondary mb-6 leading-relaxed">
-                    Add your EPF passbook, PPF account, or NPS Tier-1 to monitor long-term retirement wealth and Section 80C tax limits.
+                    Add your EPF passbook, PPF account, or NPS Tier-1 to monitor long-term retirement wealth and annual deposit ceilings.
                 </p>
                 <WfButton
                     variant="primary"
@@ -299,9 +299,9 @@
                                 </span>
                             </div>
 
-                            <!-- FY 80C Contribution -->
+                            <!-- FY Deposit Contribution -->
                             <div class="flex items-center justify-between text-[11px] text-wf-text-muted pt-1">
-                                <span>Current FY (80C):</span>
+                                <span>Current FY Deposits:</span>
                                 <span class="font-semibold text-wf-primary tabular-nums">{{ formatAmount(fund.fy_contributions) }}</span>
                             </div>
                         </div>
@@ -409,7 +409,7 @@
                             v-model.number="fundForm.fy_contributions"
                             label="Current FY Deposits (₹)"
                             type="number"
-                            hint="Counts towards ₹1.5L Section 80C annual ceiling"
+                            hint="Statutory maximum deposit limit is ₹1.5L per financial year per PPF account"
                         />
                     </div>
 
@@ -486,7 +486,7 @@
                     </div>
 
                     <div class="text-[11px] text-wf-text-muted italic bg-wf-surface-variant/20 p-2.5 rounded-wf-sm border border-wf-border-subtle">
-                        Warning: This will remove the accumulated retirement corpus from your family wealth calculation and Section 80C tracking.
+                        Warning: This will remove the accumulated retirement corpus from your family wealth calculation.
                     </div>
                 </div>
 

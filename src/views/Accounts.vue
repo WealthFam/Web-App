@@ -417,13 +417,19 @@ const accountTxCount = ref(0)
 const isDeletingAccount = ref(false)
 
 // --- Computed ---
-// Credit cards are excluded from Accounts view - handled in dedicated /credit-cards view
-const nonCreditAccounts = computed(() => {
-    return accounts.value.filter(a => a.type !== 'CREDIT_CARD')
+// Strict liquid accounts bifurcation: Only Bank accounts, Wallets, and Cash belong on the Bank Accounts view.
+// Specialized instruments are managed in their dedicated views:
+// Credit Cards -> /credit-cards
+// Fixed & Recurring Deposits -> /fixed-deposits
+// Provident Funds (PPF/EPF) -> /provident-funds
+// Loans & Liabilities -> /loans
+// Mutual Funds -> /mutual-funds
+const liquidAccounts = computed(() => {
+    return accounts.value.filter(a => ['BANK', 'WALLET', 'CASH'].includes(a.type))
 })
 
 const filteredAccounts = computed(() => {
-    let list = nonCreditAccounts.value.filter(a => a.is_verified !== false)
+    let list = liquidAccounts.value.filter(a => a.is_verified !== false)
     
     // Search filtering
     if (searchQuery.value) {
@@ -438,8 +444,9 @@ const filteredAccounts = computed(() => {
     return list
 })
 
-const untrustedAccounts = computed(() => nonCreditAccounts.value.filter(a => a.is_verified === false))
-const verifiedAccounts = computed(() => nonCreditAccounts.value.filter(a => a.is_verified !== false))
+// Triage shows all unverified non-credit accounts pending review
+const untrustedAccounts = computed(() => accounts.value.filter(a => a.type !== 'CREDIT_CARD' && a.is_verified === false))
+const verifiedAccounts = computed(() => liquidAccounts.value.filter(a => a.is_verified !== false))
 
 const accountMetrics = computed(() => {
     let total = 0
@@ -479,13 +486,34 @@ async function fetchData() {
 }
 
 function getAccountTypeLabel(type: string) {
-    const labels: any = { BANK: 'Bank Account', WALLET: 'Wallet', CASH: 'Cash', INVESTMENT: 'Investment', LOAN: 'Loan' }
+    const labels: any = { 
+        BANK: 'Bank Account', 
+        WALLET: 'Wallet', 
+        CASH: 'Cash', 
+        INVESTMENT: 'Investment', 
+        LOAN: 'Loan',
+        FIXED_DEPOSIT: 'Fixed Deposit',
+        RECURRING_DEPOSIT: 'Recurring Deposit',
+        PROVIDENT_FUND: 'Provident Fund'
+    }
     return labels[type] || type
 }
 
 function handleViewAccount(account: any) {
     if (account.type === 'LOAN') {
         router.push('/loans')
+        return
+    }
+    if (account.type === 'CREDIT_CARD') {
+        router.push(`/credit-cards/${account.id}`)
+        return
+    }
+    if (account.type === 'FIXED_DEPOSIT' || account.type === 'RECURRING_DEPOSIT') {
+        router.push('/fixed-deposits')
+        return
+    }
+    if (account.type === 'PROVIDENT_FUND') {
+        router.push('/provident-funds')
         return
     }
     router.push(`/accounts/${account.id}`)

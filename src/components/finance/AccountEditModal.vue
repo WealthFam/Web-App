@@ -45,11 +45,14 @@ const saving = ref(false)
 const overriding = ref(false)
 
 const typeItems = [
-    { title: '🏦 Bank Account', value: 'BANK' },
+    { title: '🏦 Bank Account (Savings / Current)', value: 'BANK' },
+    { title: '👛 Digital Wallet / Cash', value: 'WALLET' },
+    { title: '🏛️ Provident Fund (PPF / EPF / NPS)', value: 'PROVIDENT_FUND' },
+    { title: '📜 Fixed Deposit (FD)', value: 'FIXED_DEPOSIT' },
+    { title: '🔁 Recurring Deposit (RD)', value: 'RECURRING_DEPOSIT' },
     { title: '💳 Credit Card', value: 'CREDIT_CARD' },
-    { title: '💸 Loan / EMI', value: 'LOAN' },
-    { title: '👛 Wallet / Cash', value: 'WALLET' },
-    { title: '📈 Investment', value: 'INVESTMENT' }
+    { title: '💸 Loan / Liability', value: 'LOAN' },
+    { title: '📈 Investment / Demat', value: 'INVESTMENT' }
 ]
 
 const currencyItems = [
@@ -90,21 +93,16 @@ async function handleSubmit() {
     }
     saving.value = true
     try {
-        if (form.value.type === 'CREDIT_CARD') {
-            if (props.account?.id) {
-                await financeApi.updateCreditCard(props.account.id, form.value)
-                notify.success("Credit card updated")
-            } else {
-                await financeApi.createCreditCard(form.value)
-                notify.success("Credit card created")
-            }
+        if (props.account?.id) {
+            await financeApi.updateAccount(props.account.id, form.value)
+            notify.success("Account updated successfully")
         } else {
-            if (props.account?.id) {
-                await financeApi.updateAccount(props.account.id, form.value)
-                notify.success("Account updated")
+            if (form.value.type === 'CREDIT_CARD') {
+                await financeApi.createCreditCard(form.value)
+                notify.success("Credit card created successfully")
             } else {
                 await financeApi.createAccount(form.value)
-                notify.success("Account created")
+                notify.success("Account created successfully")
             }
         }
         emit('saved')
