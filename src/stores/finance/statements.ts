@@ -146,9 +146,9 @@ export const useStatementStore = defineStore('statements', () => {
         }
     }
 
-    async function bulkIngestTransactions(items: { transaction_id: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[]) {
+    async function bulkIngestTransactions(items: { transaction_id: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[], accountId?: string) {
         try {
-            await financeApi.bulkIngestStatementTransactions({ items })
+            await financeApi.bulkIngestStatementTransactions({ items, account_id: accountId })
             // Update local state to show reconciled
             const ingestedIds = items.map(i => i.transaction_id)
             for (const txn of currentTransactions.value) {

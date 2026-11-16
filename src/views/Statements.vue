@@ -159,17 +159,37 @@ const accountSelectOptions = computed(() => [
 ])
 
 function openBulkIngestDialog() {
+    if (!selectedStatement.value?.account_id) {
+        notification.error('Please link an account to this statement before ingesting transactions.')
+        reassignAccountId.value = null
+        reassignDialog.value = true
+        return
+    }
+
     bulkIngestItems.value = store.currentTransactions
         .filter(t => selectedTransactions.value.includes(t.id))
-        .map(t => ({
-            transaction_id: t.id,
-            description: t.description,
-            amount: t.amount,
-            date: t.date,
-            category: t.category_suggestion && t.category_suggestion !== 'Uncategorized' ? t.category_suggestion : null,
-            create_rule: !(t.category_suggestion && t.category_suggestion !== 'Uncategorized'),
-            exclude_from_reports: false
-        }))
+        .map(t => {
+            let cat: string | null = null
+            if (t.category_suggestion && t.category_suggestion !== 'Uncategorized') {
+                const raw = t.category_suggestion
+                const leaf = raw.includes(' › ') ? raw.split(' › ').pop()!.trim() : raw
+                const matched = categories.value.find(c => 
+                    c.name.toLowerCase() === leaf.toLowerCase() || 
+                    c.name.toLowerCase() === raw.toLowerCase()
+                )
+                cat = matched ? matched.name : leaf
+            }
+
+            return {
+                transaction_id: t.id,
+                description: t.description,
+                amount: t.amount,
+                date: t.date,
+                category: cat,
+                create_rule: !cat,
+                exclude_from_reports: false
+            }
+        })
     bulkIngestDialog.value = true
 }
 
@@ -179,7 +199,7 @@ const canConfirmBulkIngest = computed(() => {
 
 async function confirmBulkIngest() {
     try {
-        await store.bulkIngestTransactions(bulkIngestItems.value)
+        await store.bulkIngestTransactions(bulkIngestItems.value, selectedStatement.value?.account_id)
         notification.success('Bulk ingestion successful')
         bulkIngestDialog.value = false
         selectedTransactions.value = []
@@ -813,6 +833,8 @@ function toggleSelectTransaction(id: string) {
                                             variant="primary"
                                             size="sm"
                                             @click="openBulkIngestDialog"
+                                            :disabled="selectedTransactions.length === 0 || !selectedStatement.account_id"
+                                            :title="!selectedStatement.account_id ? 'Link an account to this statement before ingesting' : 'Ingest selected transactions'"
                                             class="h-8 px-3 text-xs font-semibold shadow-sm"
                                         >
                                             <CheckCircle2 class="w-3.5 h-3.5 mr-1" />
@@ -1515,6 +1537,8 @@ function toggleSelectTransaction(id: string) {
                                     :items="bulkCategoryOptions"
                                     placeholder="-- Select Category --"
                                     size="sm"
+                                    searchable
+                                    :teleport="true"
                                 />
                             </td>
 

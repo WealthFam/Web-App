@@ -414,7 +414,7 @@ export const financeApi = {
     reconcileStatement: (id: string) => apiClient.post(`/finance/statements/${id}/reconcile`),
     reprocessStatement: (id: string, password?: string) => apiClient.post(`/finance/statements/${id}/reprocess`, null, { params: { password } }),
     ingestStatementTransaction: (id: string, category?: string) => apiClient.post(`/finance/statements/transactions/${id}/ingest`, null, { params: { category } }),
-    bulkIngestStatementTransactions: (data: { items: { transaction_id: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[] }) => apiClient.post('/finance/statements/transactions/bulk-ingest', data),
+    bulkIngestStatementTransactions: (data: { items: { transaction_id: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[], account_id?: string }) => apiClient.post('/finance/statements/transactions/bulk-ingest', data),
     reconcileCasStatement: (statementId: string, transactionIds: string[], userId?: string) => apiClient.post(`/finance/statements/${statementId}/reconcile-cas`, { transaction_ids: transactionIds, user_id: userId }),
 }
 

@@ -31,6 +31,36 @@ const ruleToDelete = ref<string | null>(null)
 const ruleToApply = ref<string | null>(null)
 const ruleFileInput = ref<HTMLInputElement | null>(null)
 const activeMenuRuleId = ref<string | null>(null)
+const filterOnlyWithTriage = ref(false)
+
+const triageMatchesMap = computed(() => {
+    const map: Record<string, number> = {}
+    if (rulesStore.triageScanResults?.rules_with_matches) {
+        for (const item of rulesStore.triageScanResults.rules_with_matches) {
+            map[item.rule_id] = item.matching_count
+        }
+    }
+    return map
+})
+
+const rulesWithMatchesCount = computed(() => {
+    return Object.keys(triageMatchesMap.value).length
+})
+
+const sortedRules = computed(() => {
+    let list = [...rulesStore.filteredRules]
+    if (filterOnlyWithTriage.value) {
+        list = list.filter(r => (triageMatchesMap.value[r.id] || 0) > 0)
+    }
+    return list.sort((a, b) => {
+        const aMatches = triageMatchesMap.value[a.id] || 0
+        const bMatches = triageMatchesMap.value[b.id] || 0
+        if (aMatches !== bMatches) {
+            return bMatches - aMatches // Rules with review matches first
+        }
+        return (b.priority || 0) - (a.priority || 0)
+    })
+})
 
 // Watch for filter changes and refresh data
 watch(() => [rulesStore.searchQuery, rulesStore.categoryFilter], () => {
@@ -156,6 +186,20 @@ function toggleActionMenu(id: string) {
 
             <!-- Action Buttons -->
             <div class="flex items-center gap-2 shrink-0">
+                <button
+                    v-if="rulesWithMatchesCount > 0"
+                    type="button"
+                    @click="filterOnlyWithTriage = !filterOnlyWithTriage"
+                    class="h-8 px-2.5 rounded-wf-md text-xs font-semibold flex items-center gap-1.5 transition-colors border cursor-pointer shrink-0"
+                    :class="filterOnlyWithTriage
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-2xs'
+                        : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-900/50'"
+                    title="Filter rules with review matches"
+                >
+                    <Inbox class="w-3.5 h-3.5" />
+                    <span>{{ rulesWithMatchesCount }} in Review</span>
+                </button>
+
                 <WfButton
                     variant="outline"
                     size="sm"
@@ -199,7 +243,7 @@ function toggleActionMenu(id: string) {
             </div>
 
             <!-- Table Layout -->
-            <div v-else-if="rulesStore.filteredRules.length > 0" class="overflow-x-auto flex-1 min-h-0">
+            <div v-else-if="sortedRules.length > 0" class="overflow-x-auto flex-1 min-h-0">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="border-b border-wf-border bg-wf-surface-variant/40 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
@@ -214,9 +258,12 @@ function toggleActionMenu(id: string) {
                     </thead>
                     <tbody class="divide-y divide-wf-border-subtle">
                         <tr
-                            v-for="item in rulesStore.filteredRules"
+                            v-for="item in sortedRules"
                             :key="item.id"
                             class="hover:bg-wf-surface-variant/40 transition-colors group"
+                            :class="{
+                                'border-l-3 border-l-amber-500 bg-amber-50/20 dark:bg-amber-950/15': (triageMatchesMap[item.id] || 0) > 0
+                            }"
                         >
                             <!-- Name Column -->
                             <td class="py-1.5 px-3">
@@ -228,10 +275,21 @@ function toggleActionMenu(id: string) {
                                         <span class="font-bold text-xs text-wf-text-primary block truncate max-w-[170px]" :title="item.name">
                                             {{ item.name }}
                                         </span>
-                                        <span v-if="item.exclude_from_reports" class="inline-flex items-center gap-1 text-[9px] font-bold text-wf-error">
-                                            <EyeOff class="w-2.5 h-2.5" />
-                                            <span>Hidden</span>
-                                        </span>
+                                        <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                            <button
+                                                v-if="(triageMatchesMap[item.id] || 0) > 0"
+                                                @click="emit('apply-triage-rule', item.id)"
+                                                class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 transition-colors cursor-pointer"
+                                                title="Click to view and approve matching transactions in triage"
+                                            >
+                                                <Inbox class="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
+                                                <span>{{ triageMatchesMap[item.id] }} in Review</span>
+                                            </button>
+                                            <span v-if="item.exclude_from_reports" class="inline-flex items-center gap-1 text-[9px] font-bold text-wf-error">
+                                                <EyeOff class="w-2.5 h-2.5" />
+                                                <span>Hidden</span>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
