@@ -135,8 +135,12 @@ export const useStatementStore = defineStore('statements', () => {
         try {
             const res = await financeApi.reprocessStatement(id, password)
             await fetchStatements()
-            // Re-fetch transactions
-            await fetchTransactions(id)
+            const targetId = res.data?.statement_id || id
+            try {
+                await fetchTransactions(targetId)
+            } catch (txnErr) {
+                console.warn('[StatementStore] Skipping transactions fetch after reprocess:', txnErr)
+            }
             return res.data
         } catch (error) {
             console.error('[StatementStore] Reprocess/Retry failed', error)

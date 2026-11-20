@@ -44,7 +44,7 @@ const hasThumbnail = computed(() => {
   if (props.item.thumbnail_path) return true
   const filename = (props.item.filename || '').toLowerCase()
   const mt = (props.item.mime_type || '').toLowerCase()
-  return mt.startsWith('image/') || mt === 'application/pdf' || /\.(jpe?g|png|gif|webp|svg|pdf)$/i.test(filename)
+  return mt.startsWith('image/') || /\.(jpe?g|png|gif|webp|svg)$/i.test(filename)
 })
 
 const menuOpen = ref(false)

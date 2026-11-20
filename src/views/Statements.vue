@@ -373,17 +373,21 @@ function openRetryDialog(s: Statement) {
 async function handleRetry() {
     if (!selectedStatementForRetry.value || !retryPassword.value) return
     try {
-        await store.reprocessStatement(selectedStatementForRetry.value.id, retryPassword.value)
-        notification.success('Statement decrypted and parsed successfully')
+        const res = await store.reprocessStatement(selectedStatementForRetry.value.id, retryPassword.value)
         retryDialog.value = false
-        
-        // Find the newly parsed statement in the updated list
-        const newStatement = store.statements.find(s => 
-            s.filename === selectedStatementForRetry.value?.filename && 
-            s.status === 'PARSED'
+        if (res?.status === 'partial_success') {
+            notification.warning(res.message || 'PDF unlocked and saved to Vault, but parsing failed.')
+        } else {
+            notification.success(res?.message || 'Statement decrypted and parsed successfully')
+        }
+
+        // Find the refreshed statement in the updated list
+        const updatedStatement = store.statements.find(s =>
+            (res?.statement_id && s.id === res.statement_id) ||
+            (s.filename === selectedStatementForRetry.value?.filename && s.status === 'PARSED')
         )
-        if (newStatement) {
-            selectStatement(newStatement)
+        if (updatedStatement) {
+            selectStatement(updatedStatement)
         }
     } catch (e) {
         // Error is handled by global interceptor
@@ -514,9 +518,16 @@ async function reevaluateStatement(id: string) {
             const reason = selectedStatement.value.failure_reason || ''
             if (reason.startsWith('ACCOUNT_NOT_FOUND:')) {
                 // Account issue — just reprocess (account may have been linked since)
-                const updated = await store.reprocessStatement(id)
-                selectedStatement.value = updated
-                notification.success('Statement re-processed successfully')
+                const res = await store.reprocessStatement(id)
+                const refreshed = store.statements.find(s => s.id === (res?.statement_id || id))
+                if (refreshed) {
+                    await selectStatement(refreshed)
+                }
+                if (res?.status === 'partial_success') {
+                    notification.warning(res.message || 'Statement unlocked, please link an account to complete parsing.')
+                } else {
+                    notification.success(res?.message || 'Statement re-processed successfully')
+                }
             } else {
                 // Parse/password issue — prompt for password
                 openRetryDialog(selectedStatement.value)
@@ -1428,7 +1439,6 @@ function toggleSelectTransaction(id: string) {
                             v-model="retryPassword"
                             :type="showRetryPassword ? 'text' : 'password'"
                             placeholder="Enter password..."
-                            autofocus
                             @keyup.enter="handleRetry"
                             class="w-full h-10 px-3 pr-10 bg-wf-surface border border-wf-border rounded-wf-md text-sm text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
                         />
