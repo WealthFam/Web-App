@@ -236,6 +236,7 @@ async function confirmSaveRule() {
                         :items="categoryOptions"
                         placeholder="Select Target Category"
                         size="md"
+                        :teleport="true"
                     />
                 </div>
 
@@ -287,7 +288,7 @@ async function confirmSaveRule() {
                         :loading="testingLogic"
                         class="h-7.5 px-3 text-xs"
                     >
-                        <Zap class="w-3.5 h-3.5 mr-1" />
+                        <Zap class="w-3.5 h-3.5" />
                         <span>Check Matches</span>
                     </WfButton>
                 </div>
@@ -322,6 +323,7 @@ async function confirmSaveRule() {
                         :items="accountOptions"
                         placeholder="Select Destination Account"
                         size="sm"
+                        :teleport="true"
                     />
                 </div>
 
@@ -371,7 +373,7 @@ async function confirmSaveRule() {
                     @click="saveRule"
                     :disabled="!form.name || (!form.category && !form.is_transfer) || !form.keywords.length"
                 >
-                    <Save class="w-4 h-4 mr-1.5" />
+                    <Save class="w-4 h-4" />
                     <span>Save Logic</span>
                 </WfButton>
             </div>

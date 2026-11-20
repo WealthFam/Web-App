@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import {
     AlertCircle, ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Copy,
     Download, EyeOff, FileText, Inbox, MoreVertical, Pencil, Plus, Search, Shuffle,
@@ -30,7 +30,10 @@ const showApplyConfirm = ref(false)
 const ruleToDelete = ref<string | null>(null)
 const ruleToApply = ref<string | null>(null)
 const ruleFileInput = ref<HTMLInputElement | null>(null)
-const activeMenuRuleId = ref<string | null>(null)
+const activeMenuRule = ref<Rule | null>(null)
+const menuRef = ref<HTMLElement | null>(null)
+const menuTriggerEl = ref<HTMLElement | null>(null)
+const menuStyle = ref<Record<string, string>>({})
 const filterOnlyWithTriage = ref(false)
 
 const triageMatchesMap = computed(() => {
@@ -84,7 +87,7 @@ async function updatePriority(rule: Rule, delta: number) {
 // Delete
 function confirmDelete(id: string) {
     ruleToDelete.value = id
-    activeMenuRuleId.value = null
+    closeActionMenu()
     showDeleteConfirm.value = true
 }
 
@@ -99,13 +102,13 @@ async function executeDelete() {
 
 // Duplicate
 function duplicateRule(rule: Rule) {
-    activeMenuRuleId.value = null
+    closeActionMenu()
     emit('duplicate-rule', rule)
 }
 
 // Apply Retro to Ledger
 async function handleApplyToLedger(rule: Rule) {
-    activeMenuRuleId.value = null
+    closeActionMenu()
     ruleToApply.value = rule.id
     showApplyConfirm.value = true
     await rulesStore.fetchMatchPreview(rule.keywords)
@@ -145,16 +148,70 @@ function handleRuleImport(event: Event) {
     }
 }
 
-function toggleActionMenu(id: string) {
-    activeMenuRuleId.value = activeMenuRuleId.value === id ? null : id
+function closeActionMenu() {
+    activeMenuRule.value = null
+    menuTriggerEl.value = null
 }
+
+function toggleActionMenu(rule: Rule, event: MouseEvent) {
+    if (activeMenuRule.value?.id === rule.id) {
+        closeActionMenu()
+        return
+    }
+    const trigger = event.currentTarget as HTMLElement | null
+    if (!trigger) return
+    menuTriggerEl.value = trigger
+    const rect = trigger.getBoundingClientRect()
+    const menuWidth = 168
+    const left = Math.max(8, Math.min(window.innerWidth - menuWidth - 8, rect.right - menuWidth))
+    const openUpward = window.innerHeight - rect.bottom < 210 && rect.top > 210
+
+    menuStyle.value = {
+        position: 'fixed',
+        left: `${left}px`,
+        width: `${menuWidth}px`,
+        ...(openUpward
+            ? { bottom: `${window.innerHeight - rect.top + 4}px`, top: 'auto' }
+            : { top: `${rect.bottom + 4}px`, bottom: 'auto' }),
+        zIndex: '9999'
+    }
+    activeMenuRule.value = rule
+}
+
+function onDocumentPointerDown(e: PointerEvent) {
+    if (!activeMenuRule.value) return
+    const target = e.target as Node
+    if (menuRef.value?.contains(target)) return
+    if (menuTriggerEl.value?.contains(target)) return
+    closeActionMenu()
+}
+
+function onKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && activeMenuRule.value) {
+        closeActionMenu()
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('pointerdown', onDocumentPointerDown)
+    document.addEventListener('keydown', onKeydown)
+    window.addEventListener('scroll', closeActionMenu, true)
+    window.addEventListener('resize', closeActionMenu)
+})
+
+onUnmounted(() => {
+    document.removeEventListener('pointerdown', onDocumentPointerDown)
+    document.removeEventListener('keydown', onKeydown)
+    window.removeEventListener('scroll', closeActionMenu, true)
+    window.removeEventListener('resize', closeActionMenu)
+})
 </script>
 
 <template>
     <div class="space-y-4">
         <!-- 1. TOOLBAR -->
-        <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border bg-wf-surface flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2 shadow-2xs">
-            <div class="flex items-center gap-2 flex-1 max-w-lg">
+        <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border bg-wf-surface flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 p-2 shadow-2xs">
+            <div class="flex items-center gap-2 flex-1 min-w-0 lg:max-w-lg">
                 <!-- Category Filter Dropdown -->
                 <div class="w-44 shrink-0">
                     <WfSelect
@@ -165,7 +222,7 @@ function toggleActionMenu(id: string) {
                 </div>
 
                 <!-- Search Input -->
-                <div class="flex-1 flex items-center h-8 px-2.5 bg-wf-surface-variant/40 border border-wf-border rounded-wf-md text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-2">
+                <div class="flex-1 min-w-0 flex items-center h-8 px-2.5 bg-wf-surface-variant/40 border border-wf-border rounded-wf-md text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-2">
                     <Search class="w-3.5 h-3.5 text-wf-text-muted shrink-0 pointer-events-none" />
                     <input
                         v-model="rulesStore.searchQuery"
@@ -185,7 +242,7 @@ function toggleActionMenu(id: string) {
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex items-center gap-2 shrink-0">
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
                 <button
                     v-if="rulesWithMatchesCount > 0"
                     type="button"
@@ -206,7 +263,7 @@ function toggleActionMenu(id: string) {
                     @click="ruleFileInput?.click()"
                     class="h-8 px-3 text-xs font-semibold shadow-2xs"
                 >
-                    <Upload class="w-3.5 h-3.5 mr-1" />
+                    <Upload class="w-3.5 h-3.5" />
                     <span>Import</span>
                 </WfButton>
 
@@ -216,7 +273,7 @@ function toggleActionMenu(id: string) {
                     @click="rulesStore.exportRules"
                     class="h-8 px-3 text-xs font-semibold shadow-2xs"
                 >
-                    <Download class="w-3.5 h-3.5 mr-1" />
+                    <Download class="w-3.5 h-3.5" />
                     <span>Export</span>
                 </WfButton>
 
@@ -226,7 +283,7 @@ function toggleActionMenu(id: string) {
                     @click="emit('open-add-rule')"
                     class="h-8 px-3.5 text-xs font-semibold shadow-2xs"
                 >
-                    <Plus class="w-3.5 h-3.5 mr-1" />
+                    <Plus class="w-3.5 h-3.5" />
                     <span>Add Rule</span>
                 </WfButton>
             </div>
@@ -262,11 +319,14 @@ function toggleActionMenu(id: string) {
                             :key="item.id"
                             class="hover:bg-wf-surface-variant/40 transition-colors group"
                             :class="{
-                                'border-l-3 border-l-amber-500 bg-amber-50/20 dark:bg-amber-950/15': (triageMatchesMap[item.id] || 0) > 0
+                                'bg-amber-50/20 dark:bg-amber-950/15': (triageMatchesMap[item.id] || 0) > 0
                             }"
                         >
                             <!-- Name Column -->
-                            <td class="py-1.5 px-3">
+                            <td
+                                class="py-1.5 px-3"
+                                :class="{ 'border-l-[3px] border-l-amber-500': (triageMatchesMap[item.id] || 0) > 0 }"
+                            >
                                 <div class="flex items-center gap-2">
                                     <div class="w-7 h-7 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-wf-primary shrink-0">
                                         <FileText class="w-3.5 h-3.5" />
@@ -279,7 +339,7 @@ function toggleActionMenu(id: string) {
                                             <button
                                                 v-if="(triageMatchesMap[item.id] || 0) > 0"
                                                 @click="emit('apply-triage-rule', item.id)"
-                                                class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 transition-colors cursor-pointer"
+                                                class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-wf-pill text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200 dark:hover:bg-amber-900/80 transition-colors cursor-pointer"
                                                 title="Click to view and approve matching transactions in triage"
                                             >
                                                 <Inbox class="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
@@ -300,7 +360,7 @@ function toggleActionMenu(id: string) {
                                     <span
                                         v-for="(k, idx) in item.keywords.slice(0, 3)"
                                         :key="idx"
-                                        class="px-1.5 py-0.2 rounded-wf-xs text-[9px] font-mono font-bold bg-wf-surface border border-wf-border text-wf-text-primary"
+                                        class="px-1.5 py-0.5 rounded-wf-xs text-[9px] font-mono font-bold bg-wf-surface border border-wf-border text-wf-text-primary"
                                     >
                                         {{ k }}
                                     </span>
@@ -316,12 +376,12 @@ function toggleActionMenu(id: string) {
                             <!-- Category Column -->
                             <td class="py-1.5 px-3">
                                 <div class="flex items-center gap-1.5 flex-wrap">
-                                    <span class="inline-flex items-center px-1.5 py-0.2 rounded-wf-sm text-[10px] font-semibold bg-wf-surface border border-wf-border text-wf-text-primary">
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-wf-sm text-[10px] font-semibold bg-wf-surface border border-wf-border text-wf-text-primary">
                                         {{ categoriesStore.getCategoryDisplay(item.category) }}
                                     </span>
                                     <span
                                         v-if="item.is_transfer"
-                                        class="inline-flex items-center gap-0.5 px-1 py-0.2 rounded-wf-xs text-[9px] font-bold bg-indigo-50 text-wf-primary dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50"
+                                        class="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-wf-xs text-[9px] font-bold bg-indigo-50 text-wf-primary dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50"
                                     >
                                         <Shuffle class="w-2.5 h-2.5" />
                                         Transfer
@@ -339,7 +399,7 @@ function toggleActionMenu(id: string) {
                                     >
                                         <ArrowUp class="w-3 h-3" />
                                     </button>
-                                    <span class="w-7 py-0.2 rounded-wf-xs text-[10px] font-mono font-bold bg-wf-surface border border-wf-border text-center text-wf-text-primary">
+                                    <span class="w-7 py-0.5 rounded-wf-xs text-[10px] font-mono font-bold bg-wf-surface border border-wf-border text-center text-wf-text-primary">
                                         {{ item.priority }}
                                     </span>
                                     <button
@@ -364,7 +424,7 @@ function toggleActionMenu(id: string) {
                             <td class="py-1.5 px-3 text-center">
                                 <span
                                     v-if="item.is_valid === false"
-                                    class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/60"
+                                    class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-wf-pill text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/60"
                                     :title="item.validation_error || 'Rule is malformed.'"
                                 >
                                     <AlertCircle class="w-2.5 h-2.5" />
@@ -372,65 +432,22 @@ function toggleActionMenu(id: string) {
                                 </span>
                                 <span
                                     v-else
-                                    class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/60"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-wf-pill text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/60"
                                 >
                                     Active
                                 </span>
                             </td>
 
                             <!-- Action Menu -->
-                            <td class="py-1.5 px-3 text-right relative">
+                            <td class="py-1.5 px-3 text-right">
                                 <button
-                                    @click="toggleActionMenu(item.id)"
-                                    class="p-0.5 rounded-wf-xs text-wf-text-muted hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
+                                    type="button"
+                                    @click="toggleActionMenu(item, $event)"
+                                    class="p-1 rounded-wf-xs text-wf-text-muted hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors"
                                     title="Rule options"
                                 >
                                     <MoreVertical class="w-3.5 h-3.5" />
                                 </button>
-
-                                <!-- Action Dropdown Menu -->
-                                <div
-                                    v-if="activeMenuRuleId === item.id"
-                                    class="absolute right-3 top-8 w-40 bg-wf-surface border border-wf-border rounded-wf-md shadow-wf-modal z-20 py-1 text-left text-xs"
-                                >
-                                    <button
-                                        @click="handleApplyToLedger(item)"
-                                        class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary text-[11px]"
-                                    >
-                                        <Zap class="w-3 h-3 text-wf-primary" />
-                                        <span>Apply to Ledger</span>
-                                    </button>
-                                    <button
-                                        @click="emit('apply-triage-rule', item.id); activeMenuRuleId = null"
-                                        class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary text-[11px]"
-                                    >
-                                        <Inbox class="w-3 h-3 text-amber-500" />
-                                        <span>Apply to Triage</span>
-                                    </button>
-                                    <div class="h-px bg-wf-border my-0.5"></div>
-                                    <button
-                                        @click="emit('edit-rule', item); activeMenuRuleId = null"
-                                        class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary text-[11px]"
-                                    >
-                                        <Pencil class="w-3 h-3 text-wf-text-secondary" />
-                                        <span>Edit Rule</span>
-                                    </button>
-                                    <button
-                                        @click="duplicateRule(item)"
-                                        class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary text-[11px]"
-                                    >
-                                        <Copy class="w-3 h-3 text-wf-text-secondary" />
-                                        <span>Duplicate</span>
-                                    </button>
-                                    <div class="h-px bg-wf-border my-0.5"></div>
-                                    <button
-                                        @click="confirmDelete(item.id)"
-                                        class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-wf-error text-[11px]"
-                                    >
-                                        <Trash2 class="w-3 h-3" />
-                                        <span>Delete</span>
-                                    </button>
-                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -448,26 +465,22 @@ function toggleActionMenu(id: string) {
                         size="sm"
                         @click="emit('open-add-rule')"
                     >
-                        <Plus class="w-3 h-3 mr-1" />
+                        <Plus class="w-3 h-3" />
                         <span>Create First Rule</span>
                     </WfButton>
                 </div>
             </div>
 
             <!-- Pagination Footer -->
-            <div
+            <WfPagination
                 v-if="rulesStore.totalRules > 0"
-                class="p-2 border-t border-wf-border bg-wf-surface-variant/30"
-            >
-                <WfPagination
-                    :page="rulesStore.currentPage"
-                    :page-size="rulesStore.pageSize"
-                    :total="rulesStore.totalRules"
-                    :page-sizes="[10, 20, 50, 100]"
-                    @update:page="rulesStore.fetchRules($event)"
-                    @update:page-size="rulesStore.pageSize = $event; rulesStore.fetchRules(1)"
-                />
-            </div>
+                :page="rulesStore.currentPage"
+                :page-size="rulesStore.pageSize"
+                :total="rulesStore.totalRules"
+                :page-sizes="[10, 20, 50, 100]"
+                @update:page="rulesStore.fetchRules($event)"
+                @update:page-size="rulesStore.pageSize = $event; rulesStore.fetchRules(1)"
+            />
         </WfCard>
 
         <!-- Delete Confirmation Modal -->
@@ -624,5 +637,59 @@ function toggleActionMenu(id: string) {
                 </div>
             </template>
         </WfModal>
+
+        <!-- Teleported Row Action Dropdown Menu -->
+        <Teleport to="body">
+            <div
+                v-if="activeMenuRule"
+                ref="menuRef"
+                role="menu"
+                :style="menuStyle"
+                class="bg-wf-surface border border-wf-border rounded-wf-md shadow-wf-modal py-1 text-left text-xs"
+            >
+                <button
+                    type="button"
+                    @click="handleApplyToLedger(activeMenuRule)"
+                    class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary text-[11px]"
+                >
+                    <Zap class="w-3 h-3 text-wf-primary" />
+                    <span>Apply to Ledger</span>
+                </button>
+                <button
+                    type="button"
+                    @click="emit('apply-triage-rule', activeMenuRule.id); closeActionMenu()"
+                    class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary text-[11px]"
+                >
+                    <Inbox class="w-3 h-3 text-amber-500" />
+                    <span>Apply to Triage</span>
+                </button>
+                <div class="h-px bg-wf-border my-0.5"></div>
+                <button
+                    type="button"
+                    @click="emit('edit-rule', activeMenuRule); closeActionMenu()"
+                    class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary text-[11px]"
+                >
+                    <Pencil class="w-3 h-3 text-wf-text-secondary" />
+                    <span>Edit Rule</span>
+                </button>
+                <button
+                    type="button"
+                    @click="duplicateRule(activeMenuRule)"
+                    class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-wf-surface-variant text-wf-text-primary text-[11px]"
+                >
+                    <Copy class="w-3 h-3 text-wf-text-secondary" />
+                    <span>Duplicate</span>
+                </button>
+                <div class="h-px bg-wf-border my-0.5"></div>
+                <button
+                    type="button"
+                    @click="confirmDelete(activeMenuRule.id)"
+                    class="w-full px-2.5 py-1.5 flex items-center gap-2 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-wf-error text-[11px]"
+                >
+                    <Trash2 class="w-3 h-3" />
+                    <span>Delete</span>
+                </button>
+            </div>
+        </Teleport>
     </div>
 </template>

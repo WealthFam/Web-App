@@ -1,54 +1,33 @@
 
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
+@layer base {
+  body {
+    min-height: 100vh;
+    color: var(--wf-color-text-primary, #0f172a);
+    background: var(--wf-color-background, #f8fafc);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+    overflow-x: hidden !important;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--wf-color-border, #E2E8F0) transparent;
+  }
 }
-
-body {
-  min-height: 100vh;
-  color: var(--wf-color-text-primary, #0f172a);
-  background: var(--wf-color-background, #f8fafc);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  letter-spacing: -0.01em;
-  overflow-x: hidden !important;
-}
-
-.text-h1,
-.text-h2,
-.text-h3,
-.text-h4,
-.text-h5,
-.text-h6 {
-  letter-spacing: -0.02em !important;
-}
-
-.font-weight-black {
-  letter-spacing: -0.03em !important;
-}
-
-
 
 /* Scoped Scrollbar Utilities & Subtle Desktop Scrollbars */
-.hide-scrollbars, .no-scrollbar {
+.no-scrollbar {
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
 }
 
-.hide-scrollbars::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
+.no-scrollbar::-webkit-scrollbar {
     width: 0px !important;
     height: 0px !important;
     display: none !important;
-}
-
-/* Subtle modern scrollbars for desktop */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: var(--wf-color-border, #E2E8F0) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -67,26 +46,5 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background-color: var(--wf-color-text-muted, #94A3B8);
-}
-
-/* Glass Effect */
-.glass-card {
-  background: var(--wf-color-surface, rgba(255, 255, 255, 0.7));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--wf-color-border, rgba(148, 163, 184, 0.2));
-  border-radius: var(--wf-radius-lg, 1rem);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-}
-
-.force-no-x-scroll {
-  overflow-x: hidden !important;
-}
-
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
-  -moz-font-feature-settings: 'tnum';
-  -webkit-font-feature-settings: 'tnum';
-  font-feature-settings: 'tnum';
 }
 

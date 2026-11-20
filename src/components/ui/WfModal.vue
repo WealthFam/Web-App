@@ -59,14 +59,14 @@ watch(() => props.modelValue, (isOpen) => {
     >
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto"
         @click.self="close"
         role="dialog"
         aria-modal="true"
         :aria-label="title || 'Dialog'"
       >
         <div
-          class="w-full bg-wf-surface border border-wf-border rounded-wf-xl shadow-wf-modal overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+          class="w-full my-auto bg-wf-surface border border-wf-border rounded-wf-xl shadow-wf-modal overflow-hidden animate-in fade-in zoom-in-95 duration-200"
           :class="[
             maxWidth === 'sm' ? 'max-w-sm' : '',
             maxWidth === 'md' ? 'max-w-md' : '',

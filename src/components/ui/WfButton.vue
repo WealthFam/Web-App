@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 
 interface Props {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success'
   size?: 'sm' | 'md' | 'lg' | 'icon'
   type?: 'button' | 'submit' | 'reset'
   loading?: boolean
@@ -32,6 +32,8 @@ const variantClasses = computed(() => {
       return 'bg-transparent text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant'
     case 'danger':
       return 'bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white shadow-xs border border-rose-500/20 font-semibold'
+    case 'success':
+      return 'bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white shadow-xs border border-emerald-500/20 font-semibold'
     default:
       return 'bg-indigo-600 text-white'
   }

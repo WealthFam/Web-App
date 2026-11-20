@@ -68,7 +68,7 @@ const formatConflictType = (type: string) => {
 <template>
     <div class="space-y-4">
         <!-- Toolbar Ribbon -->
-        <WfCard variant="flat" padding="sm" radius="lg" class="border border-wf-border bg-wf-surface flex items-center justify-between gap-3">
+        <WfCard variant="flat" padding="sm" radius="lg" class="border border-wf-border bg-wf-surface flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-2">
                 <div class="w-8 h-8 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-wf-primary shrink-0">
                     <ShieldAlert class="w-4 h-4" />
@@ -86,7 +86,7 @@ const formatConflictType = (type: string) => {
                 :loading="rulesStore.analysisLoading"
                 class="h-8 px-3 text-xs font-semibold shadow-2xs"
             >
-                <Zap class="w-3.5 h-3.5 mr-1" />
+                <Zap class="w-3.5 h-3.5" />
                 <span>Rescan Rules</span>
             </WfButton>
         </WfCard>
@@ -149,7 +149,7 @@ const formatConflictType = (type: string) => {
                                 </span>
                             </div>
 
-                            <span class="px-1.5 py-0.5 rounded-wf-pill text-[9px] font-bold bg-indigo-50 text-wf-primary border border-indigo-200 shrink-0">
+                            <span class="px-1.5 py-0.5 rounded-wf-pill text-[9px] font-bold bg-indigo-50 text-wf-primary dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50 shrink-0">
                                 VS
                             </span>
 
@@ -188,18 +188,18 @@ const formatConflictType = (type: string) => {
                             variant="outline"
                             size="sm"
                             @click="confirmDelete(issue.rule_a_id, issue.rule_b_category)"
-                            class="flex-1 h-7 text-xs font-semibold text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                            class="flex-1 h-7 text-xs font-semibold text-wf-error! border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                         >
-                            <Trash2 class="w-3 h-3 mr-1" />
+                            <Trash2 class="w-3 h-3" />
                             <span>Delete A</span>
                         </WfButton>
                         <WfButton
                             variant="outline"
                             size="sm"
                             @click="confirmDelete(issue.rule_b_id, issue.rule_a_category)"
-                            class="flex-1 h-7 text-xs font-semibold text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                            class="flex-1 h-7 text-xs font-semibold text-wf-error! border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                         >
-                            <Trash2 class="w-3 h-3 mr-1" />
+                            <Trash2 class="w-3 h-3" />
                             <span>Delete B</span>
                         </WfButton>
                     </div>

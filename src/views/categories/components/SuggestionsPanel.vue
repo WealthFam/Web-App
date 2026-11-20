@@ -112,7 +112,7 @@ function acceptSuggestion(s: RuleSuggestion) {
                                         @click="rulesStore.ignoreSuggestion(item)"
                                         class="h-7 px-2.5 text-xs text-wf-text-muted hover:text-wf-text-primary"
                                     >
-                                        <XCircle class="w-3.5 h-3.5 mr-1" />
+                                        <XCircle class="w-3.5 h-3.5" />
                                         <span>Ignore</span>
                                     </WfButton>
 
@@ -122,7 +122,7 @@ function acceptSuggestion(s: RuleSuggestion) {
                                         @click="acceptSuggestion(item)"
                                         class="h-7 px-3 text-xs font-semibold"
                                     >
-                                        <Check class="w-3.5 h-3.5 mr-1" />
+                                        <Check class="w-3.5 h-3.5" />
                                         <span>Approve</span>
                                     </WfButton>
                                 </div>

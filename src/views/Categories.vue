@@ -24,11 +24,11 @@ onMounted(() => {
                         <Tag class="w-4 h-4 text-wf-primary" />
                     </div>
                     <div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center flex-wrap gap-2">
                             <h1 class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary leading-tight">
                                 Categories & Classification Rules
                             </h1>
-                            <span class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50">
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-wf-pill text-[10px] font-bold bg-wf-primary-light text-wf-primary border border-indigo-200 dark:border-indigo-900/50 shrink-0">
                                 {{ categoriesStore.categoryStats.total }} Items
                             </span>
                         </div>

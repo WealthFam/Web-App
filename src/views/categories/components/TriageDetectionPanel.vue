@@ -126,7 +126,7 @@ defineExpose({
 <template>
     <div class="space-y-4">
         <!-- Toolbar Ribbon -->
-        <WfCard variant="flat" padding="sm" radius="lg" class="border border-wf-border bg-wf-surface flex items-center justify-between gap-3">
+        <WfCard variant="flat" padding="sm" radius="lg" class="border border-wf-border bg-wf-surface flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-2">
                 <span class="text-xs font-bold text-wf-text-primary">Triage Ingestion Scan</span>
                 <span
@@ -145,18 +145,18 @@ defineExpose({
                     :loading="rulesStore.triageScanLoading"
                     class="h-8 px-3 text-xs font-semibold shadow-2xs"
                 >
-                    <Search class="w-3.5 h-3.5 mr-1" />
+                    <Search class="w-3.5 h-3.5" />
                     <span>Re-Scan Queue</span>
                 </WfButton>
 
                 <WfButton
                     v-if="selectedRuleIds.length > 0"
-                    variant="primary"
+                    variant="success"
                     size="sm"
                     @click="openBatchConfirmation"
-                    class="h-8 px-3.5 text-xs font-semibold shadow-2xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                    class="h-8 px-3.5 text-xs font-semibold shadow-2xs"
                 >
-                    <Zap class="w-3.5 h-3.5 mr-1" />
+                    <Zap class="w-3.5 h-3.5" />
                     <span>Approve Selected ({{ selectedMatchCount }})</span>
                 </WfButton>
             </div>
@@ -171,7 +171,7 @@ defineExpose({
             </p>
             <div class="mt-4">
                 <WfButton variant="primary" size="sm" @click="runScan">
-                    <Search class="w-3.5 h-3.5 mr-1" />
+                    <Search class="w-3.5 h-3.5" />
                     <span>Start Scan</span>
                 </WfButton>
             </div>
@@ -246,7 +246,7 @@ defineExpose({
                                     <td class="py-3 px-3 text-center">
                                         <span
                                             class="px-2 py-0.5 rounded-wf-sm text-[10px] font-bold border"
-                                            :class="item.matching_count > 5 ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'"
+                                            :class="item.matching_count > 5 ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900/60' : 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-900/60'"
                                         >
                                             {{ item.matching_count }}
                                         </span>
@@ -259,7 +259,7 @@ defineExpose({
                                             :loading="rulesStore.triageApplyLoading"
                                             class="h-7 px-2.5 text-xs font-semibold"
                                         >
-                                            <Zap class="w-3 h-3 mr-1" />
+                                            <Zap class="w-3 h-3" />
                                             <span>Apply</span>
                                         </WfButton>
                                     </td>
@@ -335,7 +335,7 @@ defineExpose({
                             class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-wf-sm text-xs font-semibold bg-wf-surface border border-wf-border text-wf-text-primary"
                         >
                             <span>{{ r.rule_name }}</span>
-                            <span class="px-1 py-0.2 rounded-wf-xs bg-indigo-50 text-wf-primary text-[10px] font-bold">
+                            <span class="px-1 py-0.5 rounded-wf-xs bg-indigo-50 dark:bg-indigo-950/60 text-wf-primary dark:text-indigo-400 text-[10px] font-bold">
                                 {{ r.matching_count }}
                             </span>
                         </span>
@@ -344,34 +344,36 @@ defineExpose({
 
                 <!-- Preview Table -->
                 <div class="border border-wf-border rounded-wf-md bg-wf-surface overflow-hidden">
-                    <table class="w-full text-left border-collapse text-xs">
-                        <thead>
-                            <tr class="border-b border-wf-border bg-wf-surface-variant/40 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
-                                <th class="py-2.5 px-3">Description</th>
-                                <th class="py-2.5 px-3">Rule</th>
-                                <th class="py-2.5 px-3">Date</th>
-                                <th class="py-2.5 px-3 text-right">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-wf-border-subtle">
-                            <tr v-for="txn in paginatedConfirmTxns" :key="txn.id">
-                                <td class="py-2 px-3 font-semibold text-wf-text-primary max-w-[200px] truncate" :title="txn.description || txn.recipient">
-                                    {{ txn.description || txn.recipient || '—' }}
-                                </td>
-                                <td class="py-2 px-3">
-                                    <span class="px-1.5 py-0.5 rounded-wf-xs text-[10px] font-bold bg-indigo-50 text-wf-primary border border-indigo-200">
-                                        {{ txn._ruleName }}
-                                    </span>
-                                </td>
-                                <td class="py-2 px-3 text-[11px] text-wf-text-muted">
-                                    {{ txn.date ? new Date(txn.date).toLocaleDateString() : '—' }}
-                                </td>
-                                <td class="py-2 px-3 text-right font-bold tabular-nums" :class="(txn.amount || 0) < 0 ? 'text-wf-error' : 'text-wf-success'">
-                                    {{ (txn.amount || 0) < 0 ? '-' : '' }}₹{{ Math.abs(txn.amount || 0).toLocaleString() }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="border-b border-wf-border bg-wf-surface-variant/40 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
+                                    <th class="py-2.5 px-3">Description</th>
+                                    <th class="py-2.5 px-3">Rule</th>
+                                    <th class="py-2.5 px-3">Date</th>
+                                    <th class="py-2.5 px-3 text-right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-wf-border-subtle">
+                                <tr v-for="txn in paginatedConfirmTxns" :key="txn.id">
+                                    <td class="py-2 px-3 font-semibold text-wf-text-primary max-w-[200px] truncate" :title="txn.description || txn.recipient">
+                                        {{ txn.description || txn.recipient || '—' }}
+                                    </td>
+                                    <td class="py-2 px-3">
+                                        <span class="px-1.5 py-0.5 rounded-wf-xs text-[10px] font-bold bg-indigo-50 text-wf-primary dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50">
+                                            {{ txn._ruleName }}
+                                        </span>
+                                    </td>
+                                    <td class="py-2 px-3 text-[11px] text-wf-text-muted">
+                                        {{ txn.date ? new Date(txn.date).toLocaleDateString() : '—' }}
+                                    </td>
+                                    <td class="py-2 px-3 text-right font-bold tabular-nums" :class="(txn.amount || 0) < 0 ? 'text-wf-error' : 'text-wf-success'">
+                                        {{ (txn.amount || 0) < 0 ? '-' : '' }}₹{{ Math.abs(txn.amount || 0).toLocaleString() }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
                     <!-- Pagination Footer -->
                     <div class="p-2.5 border-t border-wf-border bg-wf-surface-variant/30 flex items-center justify-between text-xs">
@@ -408,13 +410,12 @@ defineExpose({
                         Cancel
                     </WfButton>
                     <WfButton
-                        variant="primary"
+                        variant="success"
                         size="sm"
                         @click="executeTriageApply"
                         :loading="rulesStore.triageApplyLoading"
-                        class="bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
-                        <Check class="w-4 h-4 mr-1.5" />
+                        <Check class="w-4 h-4" />
                         <span>Confirm & Approve to Ledger</span>
                     </WfButton>
                 </div>

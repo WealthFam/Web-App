@@ -7,7 +7,7 @@ defineProps<{ stats: RuleStats | null }>()
 </script>
 
 <template>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 mb-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
         <!-- Total Rules -->
         <WfCard variant="flat" padding="none" radius="lg" class="p-2.5 flex items-center gap-3 border border-wf-border shadow-2xs">
             <div class="w-8 h-8 rounded-wf-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-wf-primary shrink-0">

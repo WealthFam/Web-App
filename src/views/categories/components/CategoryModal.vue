@@ -145,6 +145,7 @@ function handleSave() {
                             v-model="localForm.parent_id"
                             :items="parentOptions"
                             size="md"
+                            :teleport="true"
                         />
                     </div>
 
@@ -155,6 +156,7 @@ function handleSave() {
                             v-model="localForm.type"
                             :items="financialTypeOptions"
                             size="md"
+                            :teleport="true"
                         />
                     </div>
                 </div>
@@ -175,7 +177,7 @@ function handleSave() {
                             class="w-5.5 h-5.5 rounded-wf-pill transition-all border shrink-0"
                             :style="{ backgroundColor: c }"
                             :class="[
-                                localForm.color === c ? 'ring-2 ring-wf-primary ring-offset-1 scale-110 border-white' : 'border-transparent hover:scale-110 opacity-80 hover:opacity-100'
+                                localForm.color === c ? 'ring-2 ring-wf-primary ring-offset-1 dark:ring-offset-slate-900 scale-110 border-white' : 'border-transparent hover:scale-110 opacity-80 hover:opacity-100'
                             ]"
                             :title="c"
                         />
@@ -202,9 +204,9 @@ function handleSave() {
                         variant="ghost"
                         size="sm"
                         @click="$emit('delete')"
-                        class="text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                        class="text-wf-error! hover:bg-rose-50 dark:hover:bg-rose-950/40"
                     >
-                        <Trash2 class="w-4 h-4 mr-1.5" />
+                        <Trash2 class="w-4 h-4" />
                         <span>Delete</span>
                     </WfButton>
                 </div>
@@ -224,7 +226,7 @@ function handleSave() {
                         :loading="loading"
                         :disabled="!localForm.name || !localForm.icon"
                     >
-                        <Save class="w-4 h-4 mr-1.5" />
+                        <Save class="w-4 h-4" />
                         <span>{{ isEditing ? 'Update' : 'Create' }} Category</span>
                     </WfButton>
                 </div>

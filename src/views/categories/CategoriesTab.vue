@@ -253,7 +253,7 @@ defineExpose({
                     </div>
                 </div>
                 <div>
-                    <div class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary tabular-nums leading-none" :class="{ 'text-wf-error': categoriesStore.searchFilter === 'expense' }">
+                    <div class="text-lg sm:text-xl font-bold tracking-tight tabular-nums leading-none" :class="categoriesStore.searchFilter === 'expense' ? 'text-wf-error' : 'text-wf-text-primary'">
                         {{ categoriesStore.categoryStats.expenses }}
                     </div>
                     <div class="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-wf-pill overflow-hidden mt-1.5">
@@ -283,7 +283,7 @@ defineExpose({
                     </div>
                 </div>
                 <div>
-                    <div class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary tabular-nums leading-none" :class="{ 'text-wf-success': categoriesStore.searchFilter === 'income' }">
+                    <div class="text-lg sm:text-xl font-bold tracking-tight tabular-nums leading-none" :class="categoriesStore.searchFilter === 'income' ? 'text-wf-success' : 'text-wf-text-primary'">
                         {{ categoriesStore.categoryStats.income }}
                     </div>
                     <div class="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-wf-pill overflow-hidden mt-1.5">
@@ -313,7 +313,7 @@ defineExpose({
                     </div>
                 </div>
                 <div>
-                    <div class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary tabular-nums leading-none" :class="{ 'text-amber-600 dark:text-amber-400': categoriesStore.searchFilter === 'investment' }">
+                    <div class="text-lg sm:text-xl font-bold tracking-tight tabular-nums leading-none" :class="categoriesStore.searchFilter === 'investment' ? 'text-amber-600 dark:text-amber-400' : 'text-wf-text-primary'">
                         {{ categoriesStore.categoryStats.investment }}
                     </div>
                     <div class="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-wf-pill overflow-hidden mt-1.5">
@@ -343,7 +343,7 @@ defineExpose({
                     </div>
                 </div>
                 <div>
-                    <div class="text-lg sm:text-xl font-bold tracking-tight text-wf-text-primary tabular-nums leading-none" :class="{ 'text-sky-600 dark:text-sky-400': categoriesStore.searchFilter === 'transfer' }">
+                    <div class="text-lg sm:text-xl font-bold tracking-tight tabular-nums leading-none" :class="categoriesStore.searchFilter === 'transfer' ? 'text-sky-600 dark:text-sky-400' : 'text-wf-text-primary'">
                         {{ categoriesStore.categoryStats.transfer }}
                     </div>
                     <span class="text-[10px] font-semibold text-wf-text-muted mt-1 block">Linked movements</span>
@@ -352,8 +352,8 @@ defineExpose({
         </div>
 
         <!-- 2. TOOLBAR & ACTIONS -->
-        <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border bg-wf-surface flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2 shadow-2xs">
-            <div class="flex items-center gap-2 flex-1 max-w-lg">
+        <WfCard variant="flat" padding="none" radius="lg" class="border border-wf-border bg-wf-surface flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 p-2 shadow-2xs">
+            <div class="flex items-center gap-2 flex-1 min-w-0 lg:max-w-lg">
                 <!-- Type Filter Dropdown -->
                 <div class="w-36 shrink-0">
                     <WfSelect
@@ -364,7 +364,7 @@ defineExpose({
                 </div>
 
                 <!-- Search Input -->
-                <div class="flex-1 flex items-center h-8 px-2.5 bg-wf-surface-variant/40 border border-wf-border rounded-wf-md text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-2">
+                <div class="flex-1 min-w-0 flex items-center h-8 px-2.5 bg-wf-surface-variant/40 border border-wf-border rounded-wf-md text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-2">
                     <Search class="w-3.5 h-3.5 text-wf-text-muted shrink-0 pointer-events-none" />
                     <input
                         v-model="categoriesStore.searchQuery"
@@ -384,14 +384,14 @@ defineExpose({
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex items-center gap-2 shrink-0">
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
                 <WfButton
                     variant="outline"
                     size="sm"
                     @click="triggerImport"
                     class="h-8 px-3 text-xs font-semibold shadow-2xs"
                 >
-                    <Upload class="w-3.5 h-3.5 mr-1" />
+                    <Upload class="w-3.5 h-3.5" />
                     <span>Import</span>
                 </WfButton>
 
@@ -401,7 +401,7 @@ defineExpose({
                     @click="categoriesStore.exportCategories"
                     class="h-8 px-3 text-xs font-semibold shadow-2xs"
                 >
-                    <Download class="w-3.5 h-3.5 mr-1" />
+                    <Download class="w-3.5 h-3.5" />
                     <span>Export</span>
                 </WfButton>
 
@@ -411,7 +411,7 @@ defineExpose({
                     @click="startAddCategory"
                     class="h-8 px-3.5 text-xs font-semibold shadow-2xs"
                 >
-                    <Plus class="w-3.5 h-3.5 mr-1" />
+                    <Plus class="w-3.5 h-3.5" />
                     <span>Add Category</span>
                 </WfButton>
             </div>
@@ -470,7 +470,7 @@ defineExpose({
                             <!-- Type Column -->
                             <td class="py-1.5 px-3">
                                 <span
-                                    class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold border"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-wf-pill text-[9px] font-bold border"
                                     :class="getTypeBadge(item.type).bg"
                                 >
                                     {{ getTypeBadge(item.type).label }}
@@ -505,7 +505,7 @@ defineExpose({
                                     <!-- Add New Subcategory Button -->
                                     <button
                                         @click.stop="startAddSubCategory(item)"
-                                        class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-wf-xs text-[9px] font-bold text-wf-success bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-900/60 transition-colors"
+                                        class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-wf-xs text-[9px] font-bold text-wf-success bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-900/60 transition-colors"
                                         title="Add sub-category"
                                     >
                                         <Plus class="w-2.5 h-2.5" />
@@ -547,19 +547,15 @@ defineExpose({
             </div>
 
             <!-- Pagination Footer -->
-            <div
+            <WfPagination
                 v-if="filteredRootCategories.length > 0"
-                class="p-2.5 border-t border-wf-border bg-wf-surface-variant/30"
-            >
-                <WfPagination
-                    :page="currentPage"
-                    :page-size="pageSize"
-                    :total="filteredRootCategories.length"
-                    :page-sizes="[10, 25, 50]"
-                    @update:page="currentPage = $event"
-                    @update:page-size="pageSize = $event"
-                />
-            </div>
+                :page="currentPage"
+                :page-size="pageSize"
+                :total="filteredRootCategories.length"
+                :page-sizes="[10, 25, 50]"
+                @update:page="currentPage = $event"
+                @update:page-size="pageSize = $event"
+            />
         </WfCard>
 
         <!-- Category Create/Edit Modal -->

@@ -31,7 +31,7 @@ const variantClasses = computed(() => {
 const paddingClasses = computed(() => {
   switch (props.padding) {
     case 'none':
-      return 'p-0'
+      return ''
     case 'sm':
       return 'p-2.5 sm:p-3'
     case 'md':

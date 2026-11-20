@@ -3,6 +3,8 @@
 @import './themes.css';
 @import './base.css';
 
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
 @theme inline {
   --color-wf-primary: var(--wf-color-primary);
   --color-wf-primary-hover: var(--wf-color-primary-hover);
