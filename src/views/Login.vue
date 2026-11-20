@@ -25,6 +25,7 @@ const password = ref('')
 const error = ref('')
 const loading = ref(false)
 const showForgotDialog = ref(false)
+const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 
 async function handleLogin() {
   loading.value = true
@@ -37,6 +38,12 @@ async function handleLogin() {
   } finally {
     loading.value = false
   }
+}
+
+async function handleDemoLogin() {
+  email.value = 'demo@demo.com'
+  password.value = 'demo123'
+  await handleLogin()
 }
 </script>
 
@@ -204,6 +211,38 @@ async function handleLogin() {
             </WfButton>
           </div>
         </form>
+
+        <!-- Opt-in Demo Login Card (Only when VITE_DEMO_MODE === 'true') -->
+        <div
+          v-if="isDemoMode"
+          class="mt-6 p-4 rounded-wf-lg bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 space-y-3"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                <Sparkles class="w-3.5 h-3.5" />
+                <span>Interactive Demo Workspace</span>
+              </div>
+              <p class="text-xs text-wf-text-secondary mt-1">
+                Pre-seeded family wealth data (resets periodically):
+              </p>
+              <p class="text-xs font-mono text-wf-text-primary mt-1">
+                demo@demo.com / demo123
+              </p>
+            </div>
+          </div>
+          <WfButton
+            type="button"
+            variant="secondary"
+            size="md"
+            block
+            :loading="loading"
+            @click="handleDemoLogin"
+          >
+            <Sparkles class="w-4 h-4" />
+            <span>One-Click Demo Sign In</span>
+          </WfButton>
+        </div>
 
         <!-- Register Link -->
         <div class="mt-8 pt-6 border-t border-wf-border text-center">
