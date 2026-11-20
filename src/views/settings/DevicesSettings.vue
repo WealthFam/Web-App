@@ -7,7 +7,6 @@ import {
   Edit2,
   Copy,
   Trash2,
-  RefreshCw,
   ClipboardList,
   Bell,
   Search,
@@ -53,12 +52,6 @@ const selectedAssignUserId = ref<string | null>(null)
 const editDeviceName = ref('')
 const showDeviceDeleteConfirm = ref(false)
 const deviceToDelete = ref<any>(null)
-
-// Ingestion Events State
-const ingestionEvents = ref<any[]>([])
-const eventPagination = ref({ total: 0, limit: 10, skip: 0 })
-const selectedEvents = ref<string[]>([])
-const isDeletingEvents = ref(false)
 const isTestingDevice = ref<string | null>(null)
 
 function formatDate(dateStr: string) {
@@ -118,38 +111,6 @@ watch(searchQuery, () => {
   activePage.value = 1
   ignoredPage.value = 1
 })
-
-const fetchIngestionEvents = async (deviceId?: string, resetSkip = false) => {
-  try {
-    if (resetSkip) eventPagination.value.skip = 0
-    const res = await financeApi.getIngestionEvents({
-      limit: eventPagination.value.limit,
-      skip: eventPagination.value.skip,
-      device_id: deviceId
-    })
-    ingestionEvents.value = res.data.items || []
-    eventPagination.value.total = res.data.total || 0
-    selectedEvents.value = []
-  } catch (e) {
-    console.error('Failed to fetch events', e)
-  }
-}
-
-const toggleSelectAllEvents = () => {
-  if (selectedEvents.value.length === ingestionEvents.value.length) {
-    selectedEvents.value = []
-  } else {
-    selectedEvents.value = ingestionEvents.value.map(e => e.id)
-  }
-}
-
-const toggleSelectEvent = (id: string) => {
-  if (selectedEvents.value.includes(id)) {
-    selectedEvents.value = selectedEvents.value.filter(eId => eId !== id)
-  } else {
-    selectedEvents.value.push(id)
-  }
-}
 
 const fetchData = async () => {
   loading.value = true
@@ -251,20 +212,6 @@ const confirmDeleteDevice = async () => {
   }
 }
 
-const handleBulkDeleteEvents = async () => {
-  if (selectedEvents.value.length === 0) return
-  isDeletingEvents.value = true
-  try {
-    await financeApi.bulkDeleteEvents(selectedEvents.value)
-    notify.success(`Deleted ${selectedEvents.value.length} events`)
-    fetchIngestionEvents(undefined, true)
-  } catch (e) {
-    notify.error('Failed to delete events')
-  } finally {
-    isDeletingEvents.value = false
-  }
-}
-
 const copyToClipboard = (text: string) => {
   navigator.clipboard.writeText(text)
   notify.success('Device ID copied!')
@@ -283,7 +230,6 @@ const handleLogoutAll = async () => {
 }
 
 onMounted(() => {
-  fetchIngestionEvents()
   fetchData()
 })
 </script>
@@ -671,132 +617,27 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 5. INGESTION ACTIVITY LOGS -->
-    <WfCard variant="flat" padding="none" radius="lg" class="shadow-2xs overflow-hidden mt-4">
-      <div class="p-3 px-4 border-b border-wf-border-subtle flex items-center justify-between">
+    <!-- 5. INGESTION ACTIVITY LINK CARD -->
+    <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs mt-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-wf-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500">
+          <div class="w-8 h-8 rounded-wf-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 shrink-0">
             <ClipboardList class="w-4 h-4" />
           </div>
           <div>
-            <h3 class="text-xs font-bold text-wf-text-primary">Recent Ingestion Activity</h3>
-            <p class="text-[10px] text-wf-text-muted">SMS & Notification background parse events</p>
+            <h3 class="text-xs font-bold text-wf-text-primary">SMS Ingestion Activity</h3>
+            <p class="text-[10px] text-wf-text-muted">
+              Inspect received SMS alerts, full message content, ignore rules, and linked accounts in the unified Ingestions hub.
+            </p>
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
-          <WfButton
-            v-if="selectedEvents.length > 0"
-            variant="secondary"
-            size="sm"
-            :loading="isDeletingEvents"
-            class="text-rose-500 hover:bg-rose-500/10 h-7 text-[11px] px-2 py-0"
-            @click="handleBulkDeleteEvents"
-          >
-            <Trash2 class="w-3 h-3 mr-1" />
-            <span>Delete ({{ selectedEvents.length }})</span>
-          </WfButton>
-
-          <span class="px-2 py-0.5 rounded-wf-xs bg-wf-surface-variant text-[10px] font-mono text-wf-text-secondary border border-wf-border-subtle">
-            Total: {{ eventPagination.total }}
-          </span>
-          <button
-            type="button"
-            @click="fetchIngestionEvents(undefined, true)"
-            title="Refresh Logs"
-            class="p-1 rounded-wf-xs text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
-          >
-            <RefreshCw class="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      <!-- Table -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse text-xs">
-          <thead>
-            <tr class="border-b border-wf-border-subtle bg-wf-surface-variant/30 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
-              <th class="py-2 px-3 w-8">
-                <input
-                  type="checkbox"
-                  :checked="selectedEvents.length === ingestionEvents.length && ingestionEvents.length > 0"
-                  @change="toggleSelectAllEvents"
-                  class="w-3.5 h-3.5 rounded text-wf-primary focus:ring-wf-primary"
-                />
-              </th>
-              <th class="py-2 px-3">Timestamp</th>
-              <th class="py-2 px-3">Event</th>
-              <th class="py-2 px-3">Device ID</th>
-              <th class="py-2 px-3">Status</th>
-              <th class="py-2 px-3">Message</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-wf-border-subtle">
-            <tr v-for="event in ingestionEvents" :key="event.id" class="hover:bg-wf-surface-variant/40 transition-colors">
-              <td class="py-1.5 px-3">
-                <input
-                  type="checkbox"
-                  :checked="selectedEvents.includes(event.id)"
-                  @change="toggleSelectEvent(event.id)"
-                  class="w-3.5 h-3.5 rounded text-wf-primary focus:ring-wf-primary"
-                />
-              </td>
-              <td class="py-1.5 px-3 whitespace-nowrap text-wf-text-secondary font-medium text-[11px]">
-                {{ formatDate(event.created_at).full }}
-              </td>
-              <td class="py-1.5 px-3 whitespace-nowrap">
-                <span class="px-1.5 py-0.2 rounded-wf-xs bg-wf-surface-variant text-[9px] font-mono font-bold text-wf-text-secondary uppercase">
-                  {{ event.event_type.replace('_', ' ') }}
-                </span>
-              </td>
-              <td class="py-1.5 px-3 whitespace-nowrap font-mono text-wf-text-secondary text-[11px]">
-                {{ event.device_id }}
-              </td>
-              <td class="py-1.5 px-3 whitespace-nowrap">
-                <span
-                  class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold uppercase tracking-wider border"
-                  :class="event.status === 'success' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : event.status === 'warning' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'"
-                >
-                  {{ event.status }}
-                </span>
-              </td>
-              <td class="py-1.5 px-3 text-wf-text-secondary truncate max-w-sm text-[11px]" :title="event.message">
-                {{ event.message }}
-              </td>
-            </tr>
-            <tr v-if="ingestionEvents.length === 0">
-              <td colspan="6" class="text-center py-8 text-wf-text-muted">No ingestion logs found.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Logs Pagination -->
-      <div
-        v-if="eventPagination.total > eventPagination.limit"
-        class="p-3 border-t border-wf-border-subtle flex items-center justify-between text-xs text-wf-text-secondary"
-      >
-        <span>
-          Showing {{ eventPagination.skip + 1 }} - {{ Math.min(eventPagination.skip + eventPagination.limit, eventPagination.total) }} of {{ eventPagination.total }}
-        </span>
-        <div class="flex items-center gap-2">
-          <WfButton
-            variant="secondary"
-            size="sm"
-            :disabled="eventPagination.skip === 0"
-            @click="eventPagination.skip -= eventPagination.limit; fetchIngestionEvents()"
-          >
-            Previous
-          </WfButton>
-          <WfButton
-            variant="secondary"
-            size="sm"
-            :disabled="eventPagination.skip + eventPagination.limit >= eventPagination.total"
-            @click="eventPagination.skip += eventPagination.limit; fetchIngestionEvents()"
-          >
-            Next
-          </WfButton>
-        </div>
+        <router-link
+          :to="{ path: '/settings', query: { tab: 'ingestions', source: 'SMS' } }"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-wf-md bg-wf-primary text-white text-xs font-semibold hover:opacity-90 transition-opacity shrink-0"
+        >
+          <span>View SMS Activity</span>
+        </router-link>
       </div>
     </WfCard>
 

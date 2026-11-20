@@ -7,25 +7,34 @@ import {
   Users,
   Mail,
   Smartphone,
-  Cpu
+  Activity
 } from 'lucide-vue-next'
 
 // Child Components
 import FamilySettings from './settings/FamilySettings.vue'
+import IngestionsSettings from './settings/IngestionsSettings.vue'
 import EmailSettings from './settings/EmailSettings.vue'
 import DevicesSettings from './settings/DevicesSettings.vue'
-import ParserSettings from './settings/ParserSettings.vue'
 
 const route = useRoute()
 const router = useRouter()
-const activeTab = ref<'tenants' | 'emails' | 'devices' | 'parser'>('tenants')
+const activeTab = ref<'tenants' | 'ingestions' | 'emails' | 'devices'>('tenants')
 
 const tabs = [
   { id: 'tenants', label: 'Family Circle', icon: Users },
+  { id: 'ingestions', label: 'Ingestions', icon: Activity },
   { id: 'emails', label: 'Email Sync', icon: Mail },
-  { id: 'devices', label: 'Devices', icon: Smartphone },
-  { id: 'parser', label: 'Parser Engine', icon: Cpu }
+  { id: 'devices', label: 'Devices', icon: Smartphone }
 ]
+
+const validTabs = ['tenants', 'ingestions', 'emails', 'devices']
+
+function normalizeTabParam(rawTab: unknown): 'tenants' | 'ingestions' | 'emails' | 'devices' | null {
+  if (typeof rawTab !== 'string') return null
+  if (rawTab === 'parser' || rawTab === 'sms') return 'ingestions'
+  if (validTabs.includes(rawTab)) return rawTab as any
+  return null
+}
 
 function selectTab(tabId: any) {
   activeTab.value = tabId
@@ -33,14 +42,16 @@ function selectTab(tabId: any) {
 }
 
 onMounted(() => {
-  if (route.query.tab && ['tenants', 'emails', 'devices', 'parser'].includes(route.query.tab as string)) {
-    activeTab.value = route.query.tab as any
+  const mapped = normalizeTabParam(route.query.tab)
+  if (mapped) {
+    activeTab.value = mapped
   }
 })
 
 watch(() => route.query.tab, (newTab) => {
-  if (newTab && ['tenants', 'emails', 'devices', 'parser'].includes(newTab as string)) {
-    activeTab.value = newTab as any
+  const mapped = normalizeTabParam(newTab)
+  if (mapped) {
+    activeTab.value = mapped
   }
 })
 </script>
@@ -59,7 +70,7 @@ watch(() => route.query.tab, (newTab) => {
               Settings & Administration
             </h1>
             <p class="text-xs text-wf-text-secondary">
-              Manage family circle, email synchronization, mobile sync devices, and extraction rules.
+              Manage family circle, SMS & email ingestions, mailboxes, and sync devices.
             </p>
           </div>
         </div>
@@ -88,9 +99,9 @@ watch(() => route.query.tab, (newTab) => {
       <transition name="fade" mode="out-in">
         <div :key="activeTab">
           <FamilySettings v-if="activeTab === 'tenants'" />
+          <IngestionsSettings v-else-if="activeTab === 'ingestions'" />
           <EmailSettings v-else-if="activeTab === 'emails'" />
           <DevicesSettings v-else-if="activeTab === 'devices'" />
-          <ParserSettings v-else-if="activeTab === 'parser'" />
         </div>
       </transition>
     </div>

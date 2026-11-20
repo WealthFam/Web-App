@@ -36,4 +36,3 @@ jobs:
           tags: wglabz/wealthfam-webapp:latest
           build-args: |
             VITE_API_URL=/api/v1
-            VITE_PARSER_API_URL=/parser

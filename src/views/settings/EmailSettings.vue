@@ -809,33 +809,33 @@ onMounted(() => {
         <table class="w-full text-left border-collapse text-xs">
           <thead>
             <tr class="border-b border-wf-border-subtle bg-wf-surface-variant/30 text-[10px] font-bold text-wf-text-muted uppercase tracking-wider">
-              <th class="py-2.5 px-3">Status</th>
+              <th class="py-2.5 px-3">Outcome</th>
               <th class="py-2.5 px-3">Sender & Subject</th>
-              <th class="py-2.5 px-3">Parser</th>
               <th class="py-2.5 px-3">Result / Reason</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-wf-border-subtle">
             <tr v-for="item in selectedLogItems" :key="item.id">
-              <td class="py-2.5 px-3 whitespace-nowrap">
+              <td class="py-2.5 px-3 whitespace-nowrap align-top">
                 <span
                   class="inline-flex items-center px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold uppercase tracking-wider border"
-                  :class="item.status === 'processed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : item.status === 'duplicate' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-wf-surface-variant text-wf-text-muted border-wf-border-subtle'"
+                  :class="item.status === 'success' || item.status === 'processed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : item.status === 'skipped' || item.status === 'duplicate' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-wf-surface-variant text-wf-text-muted border-wf-border-subtle'"
                 >
-                  {{ item.status }}
+                  {{ (item.outcome || item.status || '').replace(/_/g, ' ') }}
                 </span>
               </td>
-              <td class="py-2.5 px-3">
+              <td class="py-2.5 px-3 align-top">
                 <p class="font-bold text-wf-text-primary truncate max-w-xs" :title="item.subject">{{ item.subject }}</p>
                 <p class="text-[10px] text-wf-text-muted truncate max-w-xs">{{ item.sender }}</p>
+                <details v-if="item.raw_content" class="mt-1">
+                  <summary class="text-[10px] text-wf-primary cursor-pointer hover:underline select-none">View message content</summary>
+                  <pre class="mt-1 p-2 rounded bg-wf-surface-variant/60 text-[10px] text-wf-text-secondary whitespace-pre-wrap break-words max-h-32 overflow-y-auto border border-wf-border-subtle">{{ item.raw_content }}</pre>
+                </details>
               </td>
-              <td class="py-2.5 px-3 whitespace-nowrap font-mono text-[10px] text-wf-primary">
-                {{ item.parser_used || '—' }}
-              </td>
-              <td class="py-2.5 px-3">
+              <td class="py-2.5 px-3 align-top">
                 <div class="flex items-center gap-1.5">
                   <span class="truncate max-w-xs text-wf-text-secondary" :title="item.reason">
-                    {{ item.reason || (item.status === 'processed' ? 'Transaction Created' : '—') }}
+                    {{ item.reason || (item.status === 'processed' || item.status === 'success' ? 'Transaction Created' : '—') }}
                   </span>
                   <router-link
                     v-if="item.transaction_id"
@@ -849,7 +849,7 @@ onMounted(() => {
               </td>
             </tr>
             <tr v-if="selectedLogItems.length === 0">
-              <td colspan="4" class="text-center py-6 text-wf-text-muted">No itemized logs found for this session.</td>
+              <td colspan="3" class="text-center py-6 text-wf-text-muted">No itemized logs found for this session.</td>
             </tr>
           </tbody>
         </table>

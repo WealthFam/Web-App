@@ -5,10 +5,8 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 ARG VITE_API_URL
-ARG VITE_PARSER_API_URL
 ARG VITE_DISABLE_AI_AGENT=false
 ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_PARSER_API_URL=$VITE_PARSER_API_URL
 ENV VITE_DISABLE_AI_AGENT=$VITE_DISABLE_AI_AGENT
 RUN npm run build
 
@@ -26,11 +24,6 @@ RUN printf "server {\n\
     }\n\
     location /api {\n\
         proxy_pass http://backend:8000;\n\
-        proxy_http_version 1.1;\n\
-        proxy_set_header Host \$host;\n\
-    }\n\
-    location /parser/ {\n\
-        proxy_pass http://parser:8001/v1/;\n\
         proxy_http_version 1.1;\n\
         proxy_set_header Host \$host;\n\
     }\n\

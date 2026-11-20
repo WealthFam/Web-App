@@ -993,7 +993,7 @@ function toggleSelectTransaction(id: string) {
                                     <!-- Generic recovery -->
                                     <template v-else>
                                         <p class="text-xs text-wf-text-secondary max-w-md mb-6">
-                                            The statement parser encountered an error. You can provide a password or assign a different target account.
+                                            We couldn't extract transactions from this statement automatically. You can provide a password or assign a different target account.
                                         </p>
                                         <div class="flex items-center gap-3">
                                             <WfButton

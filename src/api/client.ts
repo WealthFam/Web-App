@@ -16,11 +16,6 @@ const apiClient: AxiosInstance = axios.create({
     headers: { 'Content-Type': 'application/json' },
 })
 
-// 2. Parser Microservice Client
-const parserClient = axios.create({
-    baseURL: import.meta.env.VITE_PARSER_API_URL || '/parser',
-    headers: { 'Content-Type': 'application/json' },
-})
 // -----------------------
 
 // Request interceptor for API calls
@@ -33,7 +28,6 @@ const authInterceptor = async (config: any) => {
 }
 
 apiClient.interceptors.request.use(authInterceptor, (error) => Promise.reject(error))
-parserClient.interceptors.request.use(authInterceptor, (error) => Promise.reject(error))
 
 // Response interceptor for API calls
 apiClient.interceptors.response.use(
@@ -138,7 +132,6 @@ export const financeApi = {
     applyRuleRetrospectively: (id: string, override: boolean = false) => apiClient.post(`/finance/transactions/rules/${id}/apply-retrospective`, null, { params: { override } }),
     getMatchCount: (keywords: string[], onlyUncategorized: boolean = true) => apiClient.post('/finance/transactions/match-count', { keywords, only_uncategorized: onlyUncategorized }),
     getMatchPreview: (keywords: string[], onlyUncategorized: boolean = true, page: number = 1, limit: number = 5) => apiClient.post('/finance/transactions/match-preview', { keywords, only_uncategorized: onlyUncategorized }, { params: { page, limit } }),
-    bulkRename: (old_name: string, new_name: string, sync_to_parser: boolean) => apiClient.post('/finance/transactions/bulk-rename', { old_name, new_name, sync_to_parser }),
     importRules: (data: any[]) => apiClient.post('/finance/rules/import', data),
     exportRules: () => apiClient.get<any[]>('/finance/rules/export'),
 
@@ -279,10 +272,28 @@ export const financeApi = {
     approveTriage: (id: string, data: { category?: string, is_transfer?: boolean, to_account_id?: string, create_rule?: boolean, exclude_from_reports?: boolean }) => apiClient.post(`/ingestion/triage/${id}/approve`, data),
     rejectTriage: (id: string, createIgnoreRule: boolean = false) => apiClient.delete(`/ingestion/triage/${id}`, { params: { create_ignore_rule: createIgnoreRule } }),
     bulkRejectTriage: (ids: string[], createIgnoreRules: boolean = false) => apiClient.post('/ingestion/triage/bulk-reject', { pending_ids: ids, create_ignore_rules: createIgnoreRules }),
-    getIngestionEvents: (params?: { limit?: number, skip?: number, device_id?: string }) => apiClient.get('/ingestion/events', { params }),
-    bulkDeleteEvents: (ids: string[]) => apiClient.post('/ingestion/events/bulk-delete', { event_ids: ids }),
     getEmailLogs: (params?: { limit?: number, skip?: number, config_id?: string }) => apiClient.get('/ingestion/email/logs', { params }),
-    testParser: (data: any) => parserClient.post('/ingest/test', data),
+    getIngestionActivity: (params?: {
+        start_date?: string,
+        end_date?: string,
+        source?: string,
+        outcome?: string,
+        user_id?: string,
+        device_id?: string,
+        config_id?: string,
+        account_id?: string,
+        search?: string,
+        skip?: number,
+        limit?: number
+    }) => apiClient.get('/ingestion/activity', { params }),
+    getIgnoreRules: () => apiClient.get('/ingestion/ignore-rules'),
+    createIgnoreRule: (data: { source?: string, sender?: string | null, subject?: string | null, pattern?: string | null }) =>
+        apiClient.post('/ingestion/ignore-rules', data),
+    deleteIgnoreRule: (id: string) => apiClient.delete(`/ingestion/ignore-rules/${id}`),
+    previewAnonymizedAlert: (data: { raw_content: string, sender_or_header?: string, source_type?: string }) =>
+        apiClient.post('/ingestion/anonymize-preview', data),
+    reportUnrecognizedAlert: (data: { source_type?: string, sender_or_header?: string, raw_or_anonymized_content: string, user_consented: boolean }) =>
+        apiClient.post('/ingestion/report-unrecognized', data),
 
     // User Management
     getMe: () => apiClient.get<any>('/auth/me'),
@@ -416,35 +427,6 @@ export const financeApi = {
     ingestStatementTransaction: (id: string, category?: string) => apiClient.post(`/finance/statements/transactions/${id}/ingest`, null, { params: { category } }),
     bulkIngestStatementTransactions: (data: { items: { transaction_id: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[], account_id?: string }) => apiClient.post('/finance/statements/transactions/bulk-ingest', data),
     reconcileCasStatement: (statementId: string, transactionIds: string[], userId?: string) => apiClient.post(`/finance/statements/${statementId}/reconcile-cas`, { transaction_ids: transactionIds, user_id: userId }),
-}
-
-// Request interceptor for Parser calls
-parserClient.interceptors.request.use(
-    async (config) => {
-        const token = localStorage.getItem('access_token')
-        if (token && config.headers) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    },
-    (error) => {
-        return Promise.reject(error)
-    }
-)
-
-export const parserApi = {
-    getHealth: () => parserClient.get('/health'),
-    getStats: () => parserClient.get('/stats'),
-    getLogs: (params?: { limit?: number, offset?: number, source?: string, status?: string }) =>
-        parserClient.get('/logs', { params }),
-    getLogDetail: (id: string) => parserClient.get(`/logs/${id}`),
-    getAliases: () => parserClient.get('/config/aliases'),
-    createAlias: (pattern: string, alias: string) => parserClient.post('/config/aliases', { pattern, alias }),
-    deleteAlias: (id: string) => parserClient.delete(`/config/aliases/${id}`),
-    getPatterns: (params?: { limit?: number, skip?: number }) => parserClient.get('/patterns', { params }),
-    createPattern: (data: any) => parserClient.post('/patterns', data),
-    updatePattern: (id: string, data: any) => parserClient.put(`/patterns/${id}`, data),
-    deletePattern: (id: string) => parserClient.delete(`/patterns/${id}`),
 }
 
 export const mobileApi = {
