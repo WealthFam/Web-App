@@ -34,7 +34,7 @@ import WfAlert from '@/components/ui/WfAlert.vue'
 import WfSelect from '@/components/ui/WfSelect.vue'
 import WfPagination from '@/components/ui/WfPagination.vue'
 import apiClient, { financeApi } from '@/api/client'
-import { useStatementStore, type Statement } from '@/stores/finance/statements'
+import { useStatementStore, type Statement, type StatementTransaction } from '@/stores/finance/statements'
 import { useNotificationStore } from '@/stores/notification'
 import { format } from 'date-fns'
 
@@ -377,8 +377,15 @@ async function handleBulkImportMf() {
             selectedStatement.value.id,
             selectedTransactions.value
         )
-        const count = res?.processed || selectedTransactions.value.length
-        notification.success(`Successfully imported ${count} mutual fund transactions into your portfolio!`)
+        const processed = res?.processed ?? 0
+        const failed = res?.failed ?? res?.stats?.failed ?? 0
+        if (processed > 0 && failed === 0) {
+            notification.success(`Successfully imported ${processed} mutual fund transaction(s) into your portfolio!`)
+        } else if (processed > 0 && failed > 0) {
+            notification.warning(`Imported ${processed} transaction(s); ${failed} failed (check unmapped schemes).`)
+        } else {
+            notification.error(`Could not import selected transaction(s) (${failed} failed — check unmapped schemes).`)
+        }
         selectedTransactions.value = []
         await store.fetchTransactions(selectedStatement.value.id, (txnPage.value - 1) * txnLimit.value, txnLimit.value)
     } catch (e: any) {
@@ -838,6 +845,45 @@ function toggleSelectTransaction(id: string) {
     } else {
         selectedTransactions.value.push(id)
     }
+}
+
+function getCasSchemeName(txn: StatementTransaction): string {
+    return (
+        txn.extra_data?.scheme_name?.toString().trim() ||
+        txn.extra_data?.mapped_name?.toString().trim() ||
+        txn.description?.toString().trim() ||
+        'Mutual Fund Scheme'
+    )
+}
+
+function getCasMappedName(txn: StatementTransaction): string | null {
+    const mapped = txn.extra_data?.mapped_name?.toString().trim() || ''
+    if (!mapped) return null
+    const primary = getCasSchemeName(txn)
+    return mapped.toLowerCase() !== primary.toLowerCase() ? mapped : null
+}
+
+function getCasFolio(txn: StatementTransaction): string | null {
+    const val = txn.extra_data?.folio_number || txn.ref_id
+    const str = val != null ? String(val).trim() : ''
+    return str || null
+}
+
+function getCasOrderType(txn: StatementTransaction): string {
+    const raw = txn.extra_data?.order_type
+    if (raw != null && String(raw).trim()) return String(raw).trim()
+    return txn.extra_data?.is_synthesized ? 'SUMMARY BALANCE' : txn.type
+}
+
+function isCasSnapshot(txn: StatementTransaction): boolean {
+    return Boolean(txn.extra_data?.is_synthesized) || getCasOrderType(txn).toUpperCase() === 'SUMMARY BALANCE'
+}
+
+function isCasWithdrawal(txn: StatementTransaction): boolean {
+    const ot = getCasOrderType(txn)
+    if (/sell|redemp|switch[\s-]*out|stp[\s-]*out|payout/i.test(ot)) return true
+    if (isCasSnapshot(txn)) return false
+    return txn.type === 'DEBIT' && !/buy|sip|purchase|switch[\s-]*in|stp[\s-]*in|reinv/i.test(ot)
 }
 
 </script>
@@ -1376,7 +1422,7 @@ function toggleSelectTransaction(id: string) {
                                                         />
                                                     </th>
                                                     <th class="py-2.5 px-3">Date</th>
-                                                    <th class="py-2.5 px-3 min-w-[220px]">Scheme / Folio</th>
+                                                    <th class="py-2.5 px-3 min-w-[240px]">Mutual Fund / Folio</th>
                                                     <th class="py-2.5 px-3">Type</th>
                                                     <th class="py-2.5 px-3 text-right">Units</th>
                                                     <th class="py-2.5 px-3 text-right">NAV</th>
@@ -1406,23 +1452,58 @@ function toggleSelectTransaction(id: string) {
                                                     </td>
 
                                                     <td class="py-2 px-3">
-                                                        <div class="font-semibold text-wf-text-primary line-clamp-1" :title="txn.description">
-                                                            {{ txn.description }}
+                                                        <div class="font-semibold text-wf-text-primary line-clamp-2" :title="getCasSchemeName(txn)">
+                                                            {{ getCasSchemeName(txn) }}
                                                         </div>
-                                                        <div class="text-[10px] text-wf-text-muted flex items-center gap-2 mt-0.5">
-                                                            <span v-if="txn.extra_data?.folio" class="font-mono">Folio: {{ txn.extra_data.folio }}</span>
-                                                            <span v-if="txn.extra_data?.isin" class="font-mono text-slate-400">{{ txn.extra_data.isin }}</span>
+                                                        <div
+                                                            v-if="getCasMappedName(txn)"
+                                                            class="text-[11px] font-semibold text-wf-primary mt-0.5 line-clamp-1"
+                                                            :title="getCasMappedName(txn)!"
+                                                        >
+                                                            ↳ {{ getCasMappedName(txn) }}
+                                                        </div>
+                                                        <div
+                                                            v-if="txn.extra_data?.narration"
+                                                            class="text-[10px] text-wf-text-muted truncate mt-0.5"
+                                                            :title="txn.extra_data.narration"
+                                                        >
+                                                            {{ txn.extra_data.narration }}
+                                                        </div>
+                                                        <div class="text-[10px] flex items-center gap-1.5 flex-wrap mt-1">
+                                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-wf-surface-variant border border-wf-border font-mono font-semibold text-wf-text-secondary">
+                                                                Folio: {{ getCasFolio(txn) || 'N/A' }}
+                                                            </span>
+                                                            <span v-if="txn.extra_data?.isin" class="font-mono text-wf-text-muted">
+                                                                ISIN: {{ txn.extra_data.isin }}
+                                                            </span>
+                                                            <span v-if="txn.extra_data?.amfi || txn.extra_data?.scheme_code" class="font-mono text-wf-text-muted">
+                                                                AMFI: {{ txn.extra_data.amfi || txn.extra_data.scheme_code }}
+                                                            </span>
+                                                            <span
+                                                                v-if="isCasSnapshot(txn)"
+                                                                class="inline-flex items-center px-1.5 py-0.5 rounded-wf-xs text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-900/50"
+                                                            >
+                                                                SNAPSHOT
+                                                            </span>
+                                                            <span
+                                                                v-if="txn.extra_data?.mapping_status === 'UNMAPPED' || (!txn.extra_data?.scheme_code && !txn.is_reconciled)"
+                                                                class="inline-flex items-center px-1.5 py-0.5 rounded-wf-xs text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-900/50"
+                                                            >
+                                                                Unmapped
+                                                            </span>
                                                         </div>
                                                     </td>
 
                                                     <td class="py-2 px-3 whitespace-nowrap">
                                                         <span 
                                                             class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold"
-                                                            :class="txn.type === 'DEBIT' || (txn.extra_data?.type && /redemption|switch.out|sell/i.test(txn.extra_data.type))
-                                                                ? 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-900/50' 
-                                                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-900/50'"
+                                                            :class="isCasWithdrawal(txn)
+                                                                ? 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-900/50'
+                                                                : isCasSnapshot(txn)
+                                                                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-900/50'
+                                                                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-900/50'"
                                                         >
-                                                            {{ txn.extra_data?.type || txn.type }}
+                                                            {{ getCasOrderType(txn) }}
                                                         </span>
                                                     </td>
 
@@ -1434,8 +1515,11 @@ function toggleSelectTransaction(id: string) {
                                                         {{ txn.extra_data?.nav != null ? '₹' + Number(txn.extra_data.nav).toFixed(2) : '-' }}
                                                     </td>
 
-                                                    <td class="py-2 px-3 text-right whitespace-nowrap font-bold tabular-nums" :class="txn.type === 'DEBIT' ? 'text-wf-error' : 'text-wf-success'">
-                                                        {{ txn.type === 'DEBIT' ? '-' : '+' }}{{ formatCurrency(txn.amount) }}
+                                                    <td
+                                                        class="py-2 px-3 text-right whitespace-nowrap font-bold tabular-nums"
+                                                        :class="isCasWithdrawal(txn) ? 'text-wf-error' : isCasSnapshot(txn) ? 'text-indigo-600 dark:text-indigo-400' : 'text-wf-success'"
+                                                    >
+                                                        {{ isCasWithdrawal(txn) ? '-' : isCasSnapshot(txn) ? '' : '+' }}{{ formatCurrency(txn.amount) }}
                                                     </td>
 
                                                     <td class="py-2 px-3 text-center whitespace-nowrap">

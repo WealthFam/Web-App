@@ -214,9 +214,13 @@ export const useStatementStore = defineStore('statements', () => {
     async function bulkImportMfTransactions(statementId: string, transactionIds: string[], userId?: string) {
         try {
             const res = await financeApi.reconcileCasStatement(statementId, transactionIds, userId)
-            for (const txn of currentTransactions.value) {
-                if (transactionIds.includes(txn.id)) {
-                    txn.is_reconciled = true
+            const processed = res.data?.processed ?? 0
+            const failed = res.data?.failed ?? res.data?.stats?.failed ?? 0
+            if (processed > 0 && failed === 0) {
+                for (const txn of currentTransactions.value) {
+                    if (transactionIds.includes(txn.id)) {
+                        txn.is_reconciled = true
+                    }
                 }
             }
             return res.data
