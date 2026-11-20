@@ -20,7 +20,10 @@ import {
     Search as SearchIcon,
     FileSpreadsheet,
     TrendingUp,
-    CreditCard
+    CreditCard,
+    Pencil,
+    Ban,
+    Plus
 } from 'lucide-vue-next'
 
 import MainLayout from '@/layouts/MainLayout.vue'
@@ -49,6 +52,8 @@ const syncDialog = ref(false)
 const syncDate = ref(new Date().toISOString().substring(0, 10))
 const syncing = ref(false)
 const search = ref('')
+const statusFilter = ref<'ALL' | 'PARSED' | 'PENDING' | 'FAILED'>('ALL')
+const selectedStatementIds = ref<string[]>([])
 
 const retryDialog = ref(false)
 const retryPassword = ref('')
@@ -74,10 +79,34 @@ const bulkIngestItems = ref<{ transaction_id: string, description: string, amoun
 
 const deleteDialog = ref(false)
 const statementToDelete = ref<string | null>(null)
+const deleteVaultFile = ref(true)
+const deleteCreateIgnoreRule = ref(false)
+
+const bulkDeleteDialog = ref(false)
+const bulkDeleting = ref(false)
+const bulkDeleteVaultFile = ref(true)
+const bulkCreateIgnoreRules = ref(false)
 
 const reassignDialog = ref(false)
+const editFilename = ref('')
+const editStatementType = ref('BANK')
 const reassignAccountId = ref<string | null>(null)
 const reassigning = ref(false)
+
+const ignoreDialog = ref(false)
+const ignoring = ref(false)
+const ignoreTargetStatement = ref<Statement | null>(null)
+const ignoreMatchType = ref<'sender' | 'pattern' | 'subject'>('sender')
+const ignoreValue = ref('')
+const ignoreDeleteMatching = ref(true)
+const ignoreDeleteVaultFile = ref(true)
+
+const statementIgnoreRules = ref<any[]>([])
+const showIgnoreRulesModal = ref(false)
+const loadingIgnoreRules = ref(false)
+const newRuleMatchType = ref<'sender' | 'pattern' | 'subject'>('sender')
+const newRuleValue = ref('')
+const savingNewRule = ref(false)
 
 const attachmentUrl = ref<string | null>(null)
 
@@ -158,11 +187,34 @@ const accountSelectOptions = computed(() => [
     }))
 ])
 
+const statementTypeOptions = [
+    { title: 'Bank Account Statement', value: 'BANK' },
+    { title: 'Credit Card Statement', value: 'CREDIT_CARD' },
+    { title: 'Mutual Fund CAS (eCAS)', value: 'MUTUAL_FUND_CAS' }
+]
+
+const statementToDeleteObj = computed(() =>
+    store.statements.find(s => s.id === statementToDelete.value) ||
+    (selectedStatement.value?.id === statementToDelete.value ? selectedStatement.value : null)
+)
+
+const isAllStatementsOnPageSelected = computed(() => {
+    if (store.statements.length === 0) return false
+    return store.statements.every(s => selectedStatementIds.value.includes(s.id))
+})
+
+function toggleSelectAllStatements() {
+    if (isAllStatementsOnPageSelected.value) {
+        selectedStatementIds.value = []
+    } else {
+        selectedStatementIds.value = store.statements.map(s => s.id)
+    }
+}
+
 function openBulkIngestDialog() {
     if (!selectedStatement.value?.account_id) {
         notification.error('Please link an account to this statement before ingesting transactions.')
-        reassignAccountId.value = null
-        reassignDialog.value = true
+        openEditDialog(selectedStatement.value)
         return
     }
 
@@ -199,7 +251,7 @@ const canConfirmBulkIngest = computed(() => {
 
 async function confirmBulkIngest() {
     try {
-        await store.bulkIngestTransactions(bulkIngestItems.value, selectedStatement.value?.account_id)
+        await store.bulkIngestTransactions(bulkIngestItems.value, selectedStatement.value?.account_id || undefined)
         notification.success('Bulk ingestion successful')
         bulkIngestDialog.value = false
         selectedTransactions.value = []
@@ -210,6 +262,7 @@ async function confirmBulkIngest() {
 
 onMounted(async () => {
     store.fetchStatements(0, statementPageSize)
+    fetchStatementIgnoreRules()
     try {
         const [usersRes, accountsRes, categoriesRes] = await Promise.all([
             apiClient.get('/auth/users'),
@@ -224,9 +277,35 @@ onMounted(async () => {
     }
 })
 
-// Server-side pagination for statements
-watch([statementPage, search], () => {
-    store.fetchStatements((statementPage.value - 1) * statementPageSize, statementPageSize, search.value)
+// Server-side pagination and search/status filtering for statements
+function loadFilteredStatements(page = statementPage.value) {
+    const activeStatus = statusFilter.value === 'ALL' ? undefined : statusFilter.value
+    store.fetchStatements((page - 1) * statementPageSize, statementPageSize, search.value, activeStatus)
+}
+
+function setStatusFilter(nextStatus: 'ALL' | 'PARSED' | 'PENDING' | 'FAILED') {
+    if (statusFilter.value === nextStatus) return
+    statusFilter.value = nextStatus
+    selectedStatementIds.value = []
+    if (statementPage.value !== 1) {
+        statementPage.value = 1
+    } else {
+        loadFilteredStatements(1)
+    }
+}
+
+watch(search, () => {
+    selectedStatementIds.value = []
+    if (statementPage.value !== 1) {
+        statementPage.value = 1
+    } else {
+        loadFilteredStatements(1)
+    }
+})
+
+watch(statementPage, (page) => {
+    selectedStatementIds.value = []
+    loadFilteredStatements(page)
 })
 
 // Server-side pagination for transactions
@@ -468,22 +547,39 @@ function getAccountInfo(accountId: string) {
     return { accountName: acc.name, userName: user?.full_name || 'System' }
 }
 
+function openEditDialog(s: Statement | null = selectedStatement.value) {
+    if (!s) return
+    editFilename.value = s.filename || ''
+    editStatementType.value = s.statement_type || 'BANK'
+    reassignAccountId.value = s.account_id || null
+    reassignDialog.value = true
+}
+
 async function confirmReassign() {
-    if (!selectedStatement.value || !reassignAccountId.value) return
+    if (!selectedStatement.value) return
+    const trimmedName = editFilename.value.trim()
+    if (!trimmedName) {
+        notification.error('Statement filename cannot be empty')
+        return
+    }
     reassigning.value = true
     try {
-        const updated = await store.updateStatement(selectedStatement.value.id, { account_id: reassignAccountId.value })
+        const updated = await store.updateStatement(selectedStatement.value.id, {
+            filename: trimmedName,
+            statement_type: editStatementType.value,
+            account_id: editStatementType.value === 'MUTUAL_FUND_CAS' ? null : (reassignAccountId.value || null),
+        })
         selectedStatement.value = updated
-        
-        // If it was FAILED and now PARSED, we need to fetch the newly extracted transactions
+
+        // If it was FAILED and now PARSED, fetch the newly extracted transactions
         if (updated.status === 'PARSED') {
             await store.fetchTransactions(updated.id)
         }
-        
-        notification.success('Account re-assigned and statement re-processed successfully')
+
+        notification.success('Statement updated successfully')
         reassignDialog.value = false
     } catch (e: any) {
-        notification.error(e.message || 'Failed to re-assign account')
+        notification.error(e.response?.data?.detail || e.message || 'Failed to update statement')
     } finally {
         reassigning.value = false
     }
@@ -491,22 +587,170 @@ async function confirmReassign() {
 
 function promptDeleteStatement(id: string) {
     statementToDelete.value = id
+    deleteVaultFile.value = true
+    deleteCreateIgnoreRule.value = false
     deleteDialog.value = true
 }
 
 async function confirmDeleteStatement() {
     if (!statementToDelete.value) return
-    
+    const targetId = statementToDelete.value
+
     try {
-        await store.deleteStatement(statementToDelete.value)
-        if (selectedStatement.value?.id === statementToDelete.value) {
+        await store.deleteStatement(targetId, {
+            delete_vault_file: deleteVaultFile.value,
+            create_ignore_rule: deleteCreateIgnoreRule.value,
+        })
+        if (selectedStatement.value?.id === targetId) {
             selectedStatement.value = null
         }
-        notification.success('Statement deleted successfully')
+        selectedStatementIds.value = selectedStatementIds.value.filter(id => id !== targetId)
+        notification.success(
+            deleteCreateIgnoreRule.value
+                ? 'Statement deleted and future emails from sender ignored'
+                : 'Statement deleted successfully'
+        )
         deleteDialog.value = false
         statementToDelete.value = null
+        if (deleteCreateIgnoreRule.value) {
+            fetchStatementIgnoreRules()
+        }
     } catch (e) {
         notification.error('Failed to delete statement')
+    }
+}
+
+function openBulkDeleteDialog() {
+    if (selectedStatementIds.value.length === 0) return
+    bulkDeleteVaultFile.value = true
+    bulkCreateIgnoreRules.value = false
+    bulkDeleteDialog.value = true
+}
+
+async function confirmBulkDelete() {
+    if (selectedStatementIds.value.length === 0) return
+    bulkDeleting.value = true
+    try {
+        const idsToDelete = [...selectedStatementIds.value]
+        const res = await store.bulkDeleteStatements(idsToDelete, {
+            delete_vault_file: bulkDeleteVaultFile.value,
+            create_ignore_rules: bulkCreateIgnoreRules.value,
+        })
+        if (selectedStatement.value && idsToDelete.includes(selectedStatement.value.id)) {
+            selectedStatement.value = null
+        }
+        selectedStatementIds.value = []
+        bulkDeleteDialog.value = false
+        notification.success(`Deleted ${res?.deleted_count ?? idsToDelete.length} statement(s)`)
+        if (bulkCreateIgnoreRules.value) {
+            fetchStatementIgnoreRules()
+        }
+    } catch (e: any) {
+        notification.error(e.response?.data?.detail || 'Failed to delete selected statements')
+    } finally {
+        bulkDeleting.value = false
+    }
+}
+
+function openIgnoreDialog(s: Statement | null = selectedStatement.value) {
+    if (!s) return
+    ignoreTargetStatement.value = s
+    const defaultType = s.email_sender ? 'sender' : 'pattern'
+    ignoreMatchType.value = defaultType
+    ignoreValue.value = defaultType === 'sender' ? (s.email_sender || '') : (s.filename || '')
+    ignoreDeleteMatching.value = true
+    ignoreDeleteVaultFile.value = true
+    ignoreDialog.value = true
+}
+
+function setIgnoreMatchType(mt: 'sender' | 'pattern' | 'subject') {
+    ignoreMatchType.value = mt
+    const s = ignoreTargetStatement.value
+    if (!s) return
+    if (mt === 'sender') {
+        ignoreValue.value = s.email_sender || ''
+    } else if (mt === 'pattern') {
+        ignoreValue.value = s.filename || ''
+    } else {
+        ignoreValue.value = ''
+    }
+}
+
+async function confirmIgnoreStatement() {
+    const s = ignoreTargetStatement.value
+    if (!s || !ignoreValue.value.trim()) return
+    ignoring.value = true
+    try {
+        const res = await store.ignoreStatement(s.id, {
+            match_type: ignoreMatchType.value,
+            value: ignoreValue.value.trim(),
+            delete_matching: ignoreDeleteMatching.value,
+            delete_vault_file: ignoreDeleteVaultFile.value,
+        })
+        if (selectedStatement.value && !store.statements.some(st => st.id === selectedStatement.value?.id)) {
+            selectedStatement.value = null
+        }
+        selectedStatementIds.value = []
+        ignoreDialog.value = false
+        notification.success(
+            `Ignored future statements (${res?.deleted_count ?? 1} statement(s) cleaned up)`
+        )
+        fetchStatementIgnoreRules()
+    } catch (e: any) {
+        notification.error(e.response?.data?.detail || 'Failed to create statement ignore rule')
+    } finally {
+        ignoring.value = false
+    }
+}
+
+async function fetchStatementIgnoreRules() {
+    loadingIgnoreRules.value = true
+    try {
+        const res = await financeApi.getIgnoreRules()
+        statementIgnoreRules.value = (res.data || []).filter(
+            (r: any) => r.source === 'STATEMENT' || r.source === 'ALL'
+        )
+    } catch (e) {
+        console.error('Failed to load statement ignore rules:', e)
+    } finally {
+        loadingIgnoreRules.value = false
+    }
+}
+
+function openIgnoreRulesModal() {
+    showIgnoreRulesModal.value = true
+    fetchStatementIgnoreRules()
+}
+
+async function addStatementIgnoreRule() {
+    const val = newRuleValue.value.trim()
+    if (!val) return
+    savingNewRule.value = true
+    try {
+        const payload = {
+            source: 'STATEMENT',
+            sender: newRuleMatchType.value === 'sender' ? val : null,
+            subject: newRuleMatchType.value === 'subject' ? val : null,
+            pattern: newRuleMatchType.value === 'pattern' ? val : null,
+        }
+        await financeApi.createIgnoreRule(payload)
+        newRuleValue.value = ''
+        notification.success('Statement ignore rule added')
+        await fetchStatementIgnoreRules()
+    } catch (e: any) {
+        notification.error(e.response?.data?.detail || 'Failed to add ignore rule')
+    } finally {
+        savingNewRule.value = false
+    }
+}
+
+async function removeStatementIgnoreRule(ruleId: string) {
+    try {
+        await financeApi.deleteIgnoreRule(ruleId)
+        notification.success('Rule removed — matching statements allowed again')
+        await fetchStatementIgnoreRules()
+    } catch (e: any) {
+        notification.error(e.response?.data?.detail || 'Failed to remove ignore rule')
     }
 }
 
@@ -555,7 +799,8 @@ async function loadAttachment(vault_id: string) {
     }
 }
 
-function getAccountName(account_id: string) {
+function getAccountName(account_id?: string | null) {
+    if (!account_id) return 'Unlinked Account'
     const acc = getAccountInfo(account_id)
     if (!acc) return `Account: XX${account_id?.slice(-4) || 'Unknown'}`
     return `${acc.userName} - ${acc.accountName}`
@@ -622,7 +867,16 @@ function toggleSelectTransaction(id: string) {
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2.5">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <WfButton
+                        variant="outline"
+                        size="sm"
+                        @click="openIgnoreRulesModal"
+                    >
+                        <Ban class="w-3.5 h-3.5 mr-1" />
+                        <span>Ignored Rules ({{ statementIgnoreRules.length }})</span>
+                    </WfButton>
+
                     <WfButton
                         variant="outline"
                         size="sm"
@@ -650,24 +904,75 @@ function toggleSelectTransaction(id: string) {
                 <!-- LEFT COLUMN: Statements List Directory (4 cols) -->
                 <div class="lg:col-span-4 flex flex-col h-full min-h-0">
                     <WfCard variant="flat" padding="none" radius="lg" class="overflow-hidden flex flex-col border border-wf-border h-full">
-                        <!-- Search Toolbar -->
-                        <div class="p-2.5 border-b border-wf-border bg-wf-surface-variant/40 flex items-center gap-2 shrink-0">
-                            <div class="flex-1 flex items-center h-8 px-2.5 bg-wf-surface border border-wf-border rounded-wf-sm text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-2">
-                                <SearchIcon class="w-3.5 h-3.5 text-wf-text-muted shrink-0 pointer-events-none" />
+                        <!-- Search & Status Filter Toolbar -->
+                        <div class="p-2.5 border-b border-wf-border bg-wf-surface-variant/40 flex flex-col gap-2 shrink-0">
+                            <div class="flex items-center gap-2">
                                 <input
-                                    v-model="search"
-                                    type="text"
-                                    placeholder="Search statements..."
-                                    class="w-full h-full bg-transparent text-xs text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none"
+                                    type="checkbox"
+                                    :checked="isAllStatementsOnPageSelected"
+                                    :disabled="store.statements.length === 0"
+                                    @change="toggleSelectAllStatements"
+                                    title="Select all statements on this page"
+                                    class="rounded-wf-xs border-slate-300 text-wf-primary focus:ring-wf-primary cursor-pointer w-3.5 h-3.5 shrink-0"
                                 />
-                                <button
-                                    v-if="search"
-                                    @click="search = ''"
-                                    class="text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded-wf-xs transition-colors flex items-center justify-center shrink-0"
-                                    title="Clear search"
-                                >
-                                    <X class="w-3.5 h-3.5" />
-                                </button>
+                                <div class="flex-1 flex items-center h-8 px-2.5 bg-wf-surface border border-wf-border rounded-wf-sm text-wf-text-primary focus-within:ring-1 focus-within:ring-wf-primary focus-within:border-wf-primary transition-all shadow-2xs gap-2">
+                                    <SearchIcon class="w-3.5 h-3.5 text-wf-text-muted shrink-0 pointer-events-none" />
+                                    <input
+                                        v-model="search"
+                                        type="text"
+                                        placeholder="Search statements..."
+                                        class="w-full h-full bg-transparent text-xs text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none"
+                                    />
+                                    <button
+                                        v-if="search"
+                                        @click="search = ''"
+                                        class="text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded-wf-xs transition-colors flex items-center justify-center shrink-0"
+                                        title="Clear search"
+                                    >
+                                        <X class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Status Filter Pills & Bulk Delete Bar -->
+                            <div class="flex items-center justify-between gap-1.5 flex-wrap">
+                                <div class="flex items-center gap-1">
+                                    <button
+                                        v-for="tab in ([
+                                            { value: 'ALL', label: 'All' },
+                                            { value: 'PARSED', label: 'Parsed' },
+                                            { value: 'PENDING', label: 'Pending' },
+                                            { value: 'FAILED', label: 'Failed' }
+                                        ] as const)"
+                                        :key="tab.value"
+                                        type="button"
+                                        @click="setStatusFilter(tab.value)"
+                                        class="px-2 py-0.5 rounded-wf-pill text-[10px] font-semibold border transition-colors cursor-pointer"
+                                        :class="statusFilter === tab.value
+                                            ? 'bg-wf-primary text-white border-wf-primary shadow-2xs'
+                                            : 'bg-wf-surface text-wf-text-secondary border-wf-border hover:bg-wf-surface-variant'"
+                                    >
+                                        {{ tab.label }}
+                                    </button>
+                                </div>
+
+                                <div v-if="selectedStatementIds.length > 0" class="flex items-center gap-1.5">
+                                    <button
+                                        type="button"
+                                        @click="openBulkDeleteDialog"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-sm text-[10px] font-bold bg-rose-600 hover:bg-rose-700 text-white cursor-pointer transition-colors"
+                                    >
+                                        <Trash2 class="w-2.5 h-2.5" />
+                                        <span>Delete ({{ selectedStatementIds.length }})</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="selectedStatementIds = []"
+                                        class="px-1.5 py-0.5 text-[10px] font-medium text-wf-text-muted hover:text-wf-text-primary cursor-pointer"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -687,13 +992,22 @@ function toggleSelectTransaction(id: string) {
                                     v-for="s in store.statements"
                                     :key="s.id"
                                     @click="selectStatement(s)"
-                                    class="p-3 cursor-pointer transition-all duration-150 flex items-start gap-3 select-none relative group"
+                                    class="p-3 cursor-pointer transition-all duration-150 flex items-start gap-2.5 select-none relative group"
                                     :class="[
                                         selectedStatement?.id === s.id 
                                             ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-l-3 border-l-wf-primary' 
                                             : 'hover:bg-wf-surface-variant/60 border-l-3 border-l-transparent'
                                     ]"
                                 >
+                                    <!-- Multi-select Checkbox -->
+                                    <input
+                                        type="checkbox"
+                                        :value="s.id"
+                                        v-model="selectedStatementIds"
+                                        @click.stop
+                                        class="mt-2 rounded-wf-xs border-slate-300 text-wf-primary focus:ring-wf-primary cursor-pointer w-3.5 h-3.5 shrink-0"
+                                    />
+
                                     <!-- Status Icon Avatar -->
                                     <div 
                                         class="w-8 h-8 rounded-wf-md shrink-0 flex items-center justify-center text-xs mt-0.5 border"
@@ -854,6 +1168,22 @@ function toggleSelectTransaction(id: string) {
                                     </template>
 
                                     <button
+                                        @click="openEditDialog(selectedStatement)"
+                                        class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant hover:border-wf-primary/40 transition-colors cursor-pointer"
+                                        title="Edit Statement Details"
+                                    >
+                                        <Pencil class="w-4 h-4" />
+                                    </button>
+
+                                    <button
+                                        @click="openIgnoreDialog(selectedStatement)"
+                                        class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:border-amber-200 transition-colors cursor-pointer"
+                                        title="Ignore Future Statements Like This"
+                                    >
+                                        <Ban class="w-4 h-4" />
+                                    </button>
+
+                                    <button
                                         @click="reevaluateStatement(selectedStatement.id)"
                                         class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant hover:border-wf-primary/40 transition-colors cursor-pointer"
                                         title="Re-evaluate Statement"
@@ -883,7 +1213,7 @@ function toggleSelectTransaction(id: string) {
                                     <span class="text-wf-text-muted">Account:</span>
                                     <span class="font-semibold text-wf-text-primary">{{ getAccountName(selectedStatement.account_id) }}</span>
                                     <button 
-                                        @click="reassignDialog = true" 
+                                        @click="openEditDialog(selectedStatement)" 
                                         class="text-[11px] font-bold text-wf-primary hover:underline ml-1 px-1.5 py-0.5 rounded-wf-sm bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900/50 cursor-pointer"
                                     >
                                         Change
@@ -1467,13 +1797,34 @@ function toggleSelectTransaction(id: string) {
 
         <!-- MODAL: Delete Statement Confirmation -->
         <WfModal v-model="deleteDialog" title="Delete Statement?" maxWidth="sm">
-            <div class="space-y-3 text-center">
-                <div class="w-12 h-12 rounded-wf-pill bg-rose-50 dark:bg-rose-950/60 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
-                    <Trash2 class="w-6 h-6" />
+            <div class="space-y-3">
+                <div class="text-center space-y-2.5">
+                    <div class="w-12 h-12 rounded-wf-pill bg-rose-50 dark:bg-rose-950/60 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
+                        <Trash2 class="w-6 h-6" />
+                    </div>
+                    <p class="text-xs text-wf-text-secondary">
+                        Are you sure you want to delete <strong>{{ statementToDeleteObj?.filename || 'this statement' }}</strong>?
+                    </p>
                 </div>
-                <p class="text-xs text-wf-text-secondary">
-                    Are you sure you want to delete this statement? This action cannot be undone and will remove the file from your Vault.
-                </p>
+
+                <div class="space-y-2 pt-2 border-t border-wf-border-subtle text-left text-xs text-wf-text-secondary">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            v-model="deleteVaultFile"
+                            class="rounded-wf-xs border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer w-3.5 h-3.5"
+                        />
+                        <span>Also permanently delete the PDF file from Vault</span>
+                    </label>
+                    <label v-if="statementToDeleteObj?.email_sender" class="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            v-model="deleteCreateIgnoreRule"
+                            class="rounded-wf-xs border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer w-3.5 h-3.5"
+                        />
+                        <span class="truncate">Also ignore future statements from <strong>{{ statementToDeleteObj.email_sender }}</strong></span>
+                    </label>
+                </div>
             </div>
 
             <template #footer>
@@ -1486,14 +1837,148 @@ function toggleSelectTransaction(id: string) {
             </template>
         </WfModal>
 
-        <!-- MODAL: Re-assign Account -->
-        <WfModal v-model="reassignDialog" title="Re-assign Account" description="Correct account detection if the statement was linked to the wrong account." maxWidth="md">
-            <div class="space-y-4">
+        <!-- MODAL: Bulk Delete Statements -->
+        <WfModal v-model="bulkDeleteDialog" title="Delete Selected Statements?" maxWidth="sm">
+            <div class="space-y-3">
                 <p class="text-xs text-wf-text-secondary">
-                    Select the correct target account for this statement below:
+                    Delete <strong>{{ selectedStatementIds.length }}</strong> selected statement(s) and their extracted statement rows?
                 </p>
 
+                <div class="space-y-2 pt-2 border-t border-wf-border-subtle text-left text-xs text-wf-text-secondary">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            v-model="bulkDeleteVaultFile"
+                            class="rounded-wf-xs border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer w-3.5 h-3.5"
+                        />
+                        <span>Also delete linked PDF files from Vault</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            v-model="bulkCreateIgnoreRules"
+                            class="rounded-wf-xs border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer w-3.5 h-3.5"
+                        />
+                        <span>Also ignore future email statements from these senders</span>
+                    </label>
+                </div>
+            </div>
+
+            <template #footer>
+                <WfButton variant="ghost" size="sm" @click="bulkDeleteDialog = false">
+                    Cancel
+                </WfButton>
+                <WfButton variant="danger" size="sm" @click="confirmBulkDelete" :loading="bulkDeleting">
+                    <span>Delete {{ selectedStatementIds.length }} Statement(s)</span>
+                </WfButton>
+            </template>
+        </WfModal>
+
+        <!-- MODAL: Ignore Future Statements -->
+        <WfModal v-model="ignoreDialog" title="Ignore Future Statements" description="Automatically skip matching email PDF attachments before they enter your Statements or Vault." maxWidth="md">
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-semibold text-wf-text-secondary uppercase tracking-wider mb-1.5">
+                        Match Rule By
+                    </label>
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <button
+                            type="button"
+                            @click="setIgnoreMatchType('sender')"
+                            class="py-1.5 rounded-wf-md border text-xs font-semibold cursor-pointer"
+                            :class="ignoreMatchType === 'sender' ? 'border-wf-primary bg-wf-primary/10 text-wf-primary' : 'border-wf-border text-wf-text-secondary'"
+                        >
+                            Email Sender
+                        </button>
+                        <button
+                            type="button"
+                            @click="setIgnoreMatchType('pattern')"
+                            class="py-1.5 rounded-wf-md border text-xs font-semibold cursor-pointer"
+                            :class="ignoreMatchType === 'pattern' ? 'border-wf-primary bg-wf-primary/10 text-wf-primary' : 'border-wf-border text-wf-text-secondary'"
+                        >
+                            Filename Keyword
+                        </button>
+                        <button
+                            type="button"
+                            @click="setIgnoreMatchType('subject')"
+                            class="py-1.5 rounded-wf-md border text-xs font-semibold cursor-pointer"
+                            :class="ignoreMatchType === 'subject' ? 'border-wf-primary bg-wf-primary/10 text-wf-primary' : 'border-wf-border text-wf-text-secondary'"
+                        >
+                            Email Subject
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
+                        {{ ignoreMatchType === 'sender' ? 'Sender Email / Pattern' : ignoreMatchType === 'pattern' ? 'Filename Keyword' : 'Subject Contains' }}
+                    </label>
+                    <input
+                        v-model="ignoreValue"
+                        type="text"
+                        placeholder="e.g. intimations@tdscpc.gov.in or DAILY MARGIN"
+                        class="w-full h-10 px-3 bg-wf-surface border border-wf-border rounded-wf-md text-sm text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
+                    />
+                </div>
+
+                <div class="space-y-2 pt-2 border-t border-wf-border-subtle text-xs text-wf-text-secondary">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            v-model="ignoreDeleteMatching"
+                            class="rounded-wf-xs border-slate-300 text-wf-primary focus:ring-wf-primary cursor-pointer w-3.5 h-3.5"
+                        />
+                        <span>Also clear other matching Pending/Failed statements</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            v-model="ignoreDeleteVaultFile"
+                            class="rounded-wf-xs border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer w-3.5 h-3.5"
+                        />
+                        <span>Delete their PDF files from Vault</span>
+                    </label>
+                </div>
+            </div>
+
+            <template #footer>
+                <WfButton variant="ghost" size="sm" @click="ignoreDialog = false">
+                    Cancel
+                </WfButton>
+                <WfButton variant="primary" size="sm" :disabled="!ignoreValue.trim()" @click="confirmIgnoreStatement" :loading="ignoring">
+                    <Ban class="w-4 h-4 mr-1.5" />
+                    <span>Ignore & Remove</span>
+                </WfButton>
+            </template>
+        </WfModal>
+
+        <!-- MODAL: Edit Statement Metadata -->
+        <WfModal v-model="reassignDialog" title="Edit Statement" description="Update statement filename, classification, or linked account." maxWidth="md">
+            <div class="space-y-4">
                 <div class="space-y-1.5 text-left">
+                    <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
+                        Statement Filename
+                    </label>
+                    <input
+                        v-model="editFilename"
+                        type="text"
+                        placeholder="Statement filename..."
+                        class="w-full h-10 px-3 bg-wf-surface border border-wf-border rounded-wf-md text-sm text-wf-text-primary focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary"
+                    />
+                </div>
+
+                <div class="space-y-1.5 text-left">
+                    <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
+                        Statement Type
+                    </label>
+                    <WfSelect
+                        v-model="editStatementType"
+                        :items="statementTypeOptions"
+                        size="md"
+                    />
+                </div>
+
+                <div v-if="editStatementType !== 'MUTUAL_FUND_CAS'" class="space-y-1.5 text-left">
                     <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
                         Target Account
                     </label>
@@ -1509,8 +1994,8 @@ function toggleSelectTransaction(id: string) {
                 <WfButton variant="ghost" size="sm" @click="reassignDialog = false">
                     Cancel
                 </WfButton>
-                <WfButton variant="primary" size="sm" :disabled="!reassignAccountId" @click="confirmReassign" :loading="reassigning">
-                    <span>Update Account</span>
+                <WfButton variant="primary" size="sm" :disabled="!editFilename.trim()" @click="confirmReassign" :loading="reassigning">
+                    <span>Save Changes</span>
                 </WfButton>
             </template>
         </WfModal>
@@ -1581,6 +2066,87 @@ function toggleSelectTransaction(id: string) {
                     <span>Confirm Import</span>
                 </WfButton>
             </template>
+        </WfModal>
+
+        <!-- MODAL: Statement Ignore Rules Manager -->
+        <WfModal
+            v-model="showIgnoreRulesModal"
+            title="Statement Ignore Rules"
+            description="Email PDF attachments matching these rules are skipped automatically before entering Statements or Vault."
+            maxWidth="md"
+        >
+            <div class="space-y-4 text-left">
+                <!-- Quick Add Rule -->
+                <div class="p-3 rounded-wf-md border border-wf-border bg-wf-surface-variant/30 space-y-2.5">
+                    <div class="text-xs font-semibold text-wf-text-primary">Add Statement Ignore Rule</div>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <select
+                            v-model="newRuleMatchType"
+                            class="h-9 px-2.5 rounded-wf-sm border border-wf-border bg-wf-surface text-xs text-wf-text-primary"
+                        >
+                            <option value="sender">Email Sender</option>
+                            <option value="pattern">Filename Keyword</option>
+                            <option value="subject">Email Subject</option>
+                        </select>
+                        <input
+                            v-model="newRuleValue"
+                            type="text"
+                            @keyup.enter="addStatementIgnoreRule"
+                            :placeholder="newRuleMatchType === 'sender' ? 'e.g. noreply@groww.in' : newRuleMatchType === 'pattern' ? 'e.g. DAILY MARGIN' : 'e.g. Weekly Digest'"
+                            class="flex-1 h-9 px-3 rounded-wf-sm border border-wf-border bg-wf-surface text-xs text-wf-text-primary focus:outline-none focus:ring-1 focus:ring-wf-primary"
+                        />
+                        <WfButton
+                            size="sm"
+                            :disabled="!newRuleValue.trim()"
+                            :loading="savingNewRule"
+                            @click="addStatementIgnoreRule"
+                        >
+                            <Plus class="w-3.5 h-3.5 mr-1" />
+                            <span>Add</span>
+                        </WfButton>
+                    </div>
+                </div>
+
+                <!-- Rules List -->
+                <div v-if="loadingIgnoreRules" class="py-6 text-center text-xs text-wf-text-muted">
+                    Loading rules...
+                </div>
+                <div
+                    v-else-if="statementIgnoreRules.length === 0"
+                    class="py-8 text-center text-xs text-wf-text-muted border border-dashed border-wf-border rounded-wf-md"
+                >
+                    No statement ignore rules configured yet.
+                </div>
+                <div
+                    v-else
+                    class="divide-y divide-wf-border-subtle max-h-72 overflow-y-auto border border-wf-border rounded-wf-md bg-wf-surface"
+                >
+                    <div
+                        v-for="rule in statementIgnoreRules"
+                        :key="rule.id"
+                        class="p-2.5 flex items-center justify-between gap-3"
+                    >
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                <span class="px-1.5 py-0.5 rounded-wf-xs bg-wf-surface-variant text-[10px] font-bold uppercase text-wf-text-secondary border border-wf-border-subtle">
+                                    {{ rule.source }}
+                                </span>
+                                <span class="text-xs font-semibold text-wf-text-primary truncate">
+                                    {{ rule.sender || rule.subject || rule.pattern }}
+                                </span>
+                            </div>
+                            <p class="text-[11px] text-wf-text-muted mt-0.5">
+                                Match on {{ rule.sender ? 'Sender' : rule.subject ? 'Subject' : 'Filename / Keyword' }}
+                                <template v-if="rule.count_blocked > 0"> • Blocked {{ rule.count_blocked }}x</template>
+                            </p>
+                        </div>
+                        <WfButton variant="secondary" size="sm" @click="removeStatementIgnoreRule(rule.id)">
+                            <Trash2 class="w-3 h-3 mr-1" />
+                            <span>Allow</span>
+                        </WfButton>
+                    </div>
+                </div>
+            </div>
         </WfModal>
     </MainLayout>
 </template>

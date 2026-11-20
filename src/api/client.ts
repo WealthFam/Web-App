@@ -414,13 +414,16 @@ export const financeApi = {
     createTransferCounterpart: (data: { source_txn_id: string, to_account_id: string, credited_amount?: number }) => apiClient.post('/finance/transfers/create-counterpart', data),
     getTransferHistory: (params?: { limit?: number, offset?: number }) => apiClient.get('/finance/transfers/history', { params }),
 
-    getStatements: (params?: { skip?: number, limit?: number, search?: string }) => apiClient.get('/finance/statements', { params }),
+    getStatements: (params?: { skip?: number, limit?: number, search?: string, status?: string, statement_type?: string }) => apiClient.get('/finance/statements', { params }),
+    getStatement: (id: string) => apiClient.get(`/finance/statements/${id}`),
     getStatementTransactions: (id: string, params?: { skip?: number, limit?: number, search?: string }) => apiClient.get(`/finance/statements/${id}/transactions`, { params }),
     uploadStatement: (formData: FormData) => apiClient.post('/finance/statements/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     }),
-    deleteStatement: (id: string) => apiClient.delete(`/finance/statements/${id}`),
-    updateStatement: (id: string, data: { account_id?: string, is_deleted?: boolean }) => apiClient.patch(`/finance/statements/${id}`, data),
+    deleteStatement: (id: string, params?: { delete_vault_file?: boolean, create_ignore_rule?: boolean }) => apiClient.delete(`/finance/statements/${id}`, { params }),
+    bulkDeleteStatements: (data: { statement_ids: string[], delete_vault_file?: boolean, create_ignore_rules?: boolean }) => apiClient.post('/finance/statements/bulk-delete', data),
+    ignoreStatement: (id: string, data: { match_type: 'sender' | 'subject' | 'pattern', value?: string, delete_matching?: boolean, delete_vault_file?: boolean }) => apiClient.post(`/finance/statements/${id}/ignore`, data),
+    updateStatement: (id: string, data: { account_id?: string | null, filename?: string, statement_type?: string }) => apiClient.patch(`/finance/statements/${id}`, data),
     syncStatements: (sinceDate?: string) => apiClient.post('/finance/statements/sync', null, { params: { since_date: sinceDate } }),
     reconcileStatement: (id: string) => apiClient.post(`/finance/statements/${id}/reconcile`),
     reprocessStatement: (id: string, password?: string) => apiClient.post(`/finance/statements/${id}/reprocess`, null, { params: { password } }),

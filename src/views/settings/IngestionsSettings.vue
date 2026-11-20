@@ -839,7 +839,8 @@ onMounted(() => {
           >
             <option value="SMS">SMS Messages</option>
             <option value="EMAIL">Emails</option>
-            <option value="ALL">Both SMS & Emails</option>
+            <option value="STATEMENT">Email Statements (PDFs)</option>
+            <option value="ALL">All Channels (SMS, Email & Statements)</option>
           </select>
         </div>
 

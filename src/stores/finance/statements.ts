@@ -18,7 +18,7 @@ export interface StatementTransaction {
 
 export interface Statement {
     id: string
-    account_id: string
+    account_id?: string | null
     statement_type?: string
     vault_id?: string
     filename: string
@@ -37,11 +37,22 @@ export const useStatementStore = defineStore('statements', () => {
     const totalTransactions = ref(0)
     const loading = ref(false)
     const syncing = ref(false)
+    const lastQuery = ref<{ skip: number, limit: number, search?: string, status?: string, statement_type?: string }>({
+        skip: 0,
+        limit: 20,
+    })
 
-    async function fetchStatements(skip = 0, limit = 20, search?: string) {
+    async function fetchStatements(skip = 0, limit = 20, search?: string, status?: string, statementType?: string) {
         loading.value = true
+        lastQuery.value = {
+            skip,
+            limit,
+            search: search || undefined,
+            status: status && status !== 'ALL' ? status : undefined,
+            statement_type: statementType && statementType !== 'ALL' ? statementType : undefined,
+        }
         try {
-            const res = await financeApi.getStatements({ skip, limit, search })
+            const res = await financeApi.getStatements(lastQuery.value)
             statements.value = res.data.items
             totalStatements.value = res.data.total
         } catch (error) {
@@ -49,6 +60,11 @@ export const useStatementStore = defineStore('statements', () => {
         } finally {
             loading.value = false
         }
+    }
+
+    async function refreshCurrentPage() {
+        const q = lastQuery.value
+        await fetchStatements(q.skip, q.limit, q.search, q.status, q.statement_type)
     }
 
     async function fetchTransactions(statementId: string, skip = 0, limit = 50, search?: string) {
@@ -83,13 +99,42 @@ export const useStatementStore = defineStore('statements', () => {
         }
     }
 
-    async function deleteStatement(id: string) {
+    async function deleteStatement(id: string, options?: { delete_vault_file?: boolean, create_ignore_rule?: boolean }) {
         try {
-            await financeApi.deleteStatement(id)
-            await fetchStatements()
+            const res = await financeApi.deleteStatement(id, options)
+            await refreshCurrentPage()
             currentTransactions.value = []
+            return res.data
         } catch (error) {
             console.error('[StatementStore] Delete failed', error)
+            throw error
+        }
+    }
+
+    async function bulkDeleteStatements(statementIds: string[], options?: { delete_vault_file?: boolean, create_ignore_rules?: boolean }) {
+        try {
+            const res = await financeApi.bulkDeleteStatements({
+                statement_ids: statementIds,
+                delete_vault_file: options?.delete_vault_file ?? true,
+                create_ignore_rules: options?.create_ignore_rules ?? false,
+            })
+            await refreshCurrentPage()
+            currentTransactions.value = []
+            return res.data
+        } catch (error) {
+            console.error('[StatementStore] Bulk delete failed', error)
+            throw error
+        }
+    }
+
+    async function ignoreStatement(id: string, data: { match_type: 'sender' | 'subject' | 'pattern', value?: string, delete_matching?: boolean, delete_vault_file?: boolean }) {
+        try {
+            const res = await financeApi.ignoreStatement(id, data)
+            await refreshCurrentPage()
+            currentTransactions.value = []
+            return res.data
+        } catch (error) {
+            console.error('[StatementStore] Ignore statement failed', error)
             throw error
         }
     }
@@ -181,7 +226,7 @@ export const useStatementStore = defineStore('statements', () => {
         }
     }
 
-    async function updateStatement(id: string, data: { account_id?: string, is_deleted?: boolean }) {
+    async function updateStatement(id: string, data: { account_id?: string | null, filename?: string, statement_type?: string }) {
         try {
             const res = await financeApi.updateStatement(id, data)
             // Update local state
@@ -207,6 +252,8 @@ export const useStatementStore = defineStore('statements', () => {
         fetchTransactions,
         uploadStatement,
         deleteStatement,
+        bulkDeleteStatements,
+        ignoreStatement,
         triggerSync,
         ingestTransaction,
         bulkIngestTransactions,
