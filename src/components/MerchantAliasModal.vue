@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onBeforeUnmount } from 'vue'
 import { financeApi } from '@/api/client'
+import { useNotificationStore } from '@/stores/notification'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfInput from '@/components/ui/WfInput.vue'
 import WfButton from '@/components/ui/WfButton.vue'
+
+const notify = useNotificationStore()
 
 const props = defineProps<{
     modelValue: boolean
@@ -25,8 +28,7 @@ const loading = ref(false)
 const impact = ref<number | null>(null)
 const form = reactive({
     pattern: '',
-    alias: '',
-    update_past: true
+    alias: ''
 })
 
 // Initialize form when opening
@@ -34,41 +36,64 @@ watch(() => props.modelValue, (val) => {
     if (val) {
         form.pattern = props.initialPattern || ''
         form.alias = props.initialAlias || ''
-        form.update_past = true
         impact.value = null
         checkImpact()
+    } else if (impactDebounce) {
+        clearTimeout(impactDebounce)
+        impactDebounce = null
     }
 })
 
 let impactDebounce: any = null
 function checkImpact() {
-    if (!form.pattern) {
+    const pat = form.pattern.trim()
+    if (!pat) {
         impact.value = null
         return
     }
     if (impactDebounce) clearTimeout(impactDebounce)
     impactDebounce = setTimeout(async () => {
         try {
-            const res = await financeApi.previewAliasImpact(form.pattern)
-            impact.value = res.data.match_count
+            const res = await financeApi.previewAliasImpact(pat)
+            impact.value = res.data.match_count ?? 0
         } catch (e) {
             console.error(e)
+            impact.value = null
         }
-    }, 500)
+    }, 350)
 }
 
+watch(() => form.pattern, () => {
+    if (!isOpen.value) return
+    checkImpact()
+})
+
+onBeforeUnmount(() => {
+    if (impactDebounce) {
+        clearTimeout(impactDebounce)
+        impactDebounce = null
+    }
+})
+
 async function save() {
+    const pattern = form.pattern.trim()
+    const alias = form.alias.trim()
+    if (!pattern || !alias) return
+
     loading.value = true
     try {
-        await financeApi.createAlias({
-            pattern: form.pattern,
-            alias: form.alias,
-            update_past_transactions: form.update_past
-        })
+        const res = await financeApi.createAlias({ pattern, alias })
+        const matched = res.data?.matched_transactions || 0
+        notify.success(
+            matched > 0
+                ? `Merchant alias saved — resolves ${matched} matching transactions`
+                : 'Merchant alias saved'
+        )
         emit('saved')
         isOpen.value = false
-    } catch (err) {
-        console.error("Failed to create alias", err)
+    } catch (err: any) {
+        console.error('Failed to create alias', err)
+        notify.error(err?.response?.data?.detail || 'Failed to save merchant alias')
     } finally {
         loading.value = false
     }
@@ -76,29 +101,33 @@ async function save() {
 </script>
 
 <template>
-    <WfModal v-model="isOpen" title="New Merchant Alias">
+    <WfModal v-model="isOpen" title="Map Merchant Alias">
         <form id="merchant-alias-form" class="space-y-4" @submit.prevent="save">
-            <WfInput v-model="form.pattern" label="Raw Text Pattern" placeholder="e.g. AMZN MKTP"
-                hint="Matches if this text appears in description" required disabled />
+            <WfInput
+                v-model="form.pattern"
+                label="Raw Text Pattern"
+                placeholder="e.g. AMZN MKTP"
+                hint="Case-insensitive keyword or space-separated words (e.g. AMZN MKTP matches AMZN*MKTP)"
+                required
+            />
 
             <WfInput v-model="form.alias" label="Clean Merchant Name" placeholder="e.g. Amazon" required />
 
-            <label class="flex items-start gap-2 cursor-pointer">
-                <input v-model="form.update_past" type="checkbox" class="mt-0.5 accent-[var(--wf-color-primary)]" />
-                <span>
-                    <span class="block text-sm font-semibold text-wf-text-primary">Update past transactions?</span>
-                    <span class="block text-xs text-wf-text-muted" v-if="impact !== null">
-                        Will update approx. <strong class="font-mono">{{ impact }}</strong> transactions
-                    </span>
-                    <span class="block text-xs text-wf-text-muted" v-else>
-                        Select to verify impact on history
-                    </span>
-                </span>
-            </label>
+            <div class="p-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border text-xs space-y-1">
+                <p class="font-semibold text-wf-text-primary" v-if="impact !== null">
+                    Matches <strong class="font-mono">{{ impact }}</strong> existing ledger & triage transactions
+                </p>
+                <p class="font-semibold text-wf-text-primary" v-else>
+                    Real-time merchant lookup
+                </p>
+                <p class="text-wf-text-muted">
+                    Aliases resolve dynamically at read time across Ledger, Triage, Search, and Analytics without altering raw bank descriptions.
+                </p>
+            </div>
         </form>
         <template #footer>
             <WfButton variant="ghost" size="sm" @click="isOpen = false">Cancel</WfButton>
-            <WfButton type="submit" size="sm" :loading="loading" :disabled="!form.alias" @click="save">Create Rule</WfButton>
+            <WfButton type="button" size="sm" :loading="loading" :disabled="!form.pattern.trim() || !form.alias.trim()" @click="save">Save Alias</WfButton>
         </template>
     </WfModal>
 </template>

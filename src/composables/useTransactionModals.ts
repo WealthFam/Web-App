@@ -1,16 +1,16 @@
-import { ref, watch, computed, type Ref } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 import { localISOString } from '@/utils/time'
 import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
 
 /**
  * Transaction Modals Composable
- * Handle all modal-related state and logic (Edit, Smart Categorization, Bulk Rename)
+ * Handle all modal-related state and logic (Edit, Smart Categorization)
  */
 export function useTransactionModals(
     selectedAccount: Ref<string>,
     accounts: Ref<any[]>,
-    budgets: Ref<any[]>,
+    _budgets: Ref<any[]>,
     transactions: Ref<any[]>,
     fetchData: Function,
     showSmartPrompt: Ref<boolean>,
@@ -25,21 +25,11 @@ export function useTransactionModals(
     const editingTxnId = ref<string | null>(null)
     const originalCategory = ref<string | null>(null)
     const originalExclude = ref(false)
-    const originalDescription = ref('')
 
     // Match Finding
     const potentialMatches = ref<any[]>([])
     const isSearchingMatches = ref(false)
     const matchesSearched = ref(false)
-
-    // Rename Modal
-    const showRenamePrompt = ref(false)
-    const renamePromptData = ref({
-        oldName: '',
-        newName: '',
-        count: 0,
-        syncToParser: true
-    })
 
     // Form State
     const defaultForm: {
@@ -76,12 +66,6 @@ export function useTransactionModals(
         expense_group_id: ''
     }
     const form = ref({ ...defaultForm })
-
-    // Budget display
-    const currentCategoryBudget = computed(() => {
-        if (!form.value.category || form.value.is_transfer) return null
-        return budgets.value.find(b => b.category === form.value.category) || null
-    })
 
     // Watch for transfer toggle to auto-set category
     watch(() => form.value.is_transfer, (isTransfer) => {
@@ -128,7 +112,6 @@ export function useTransactionModals(
         isEditing.value = true
         editingTxnId.value = txn.id
         originalCategory.value = txn.category
-        originalDescription.value = txn.description || ''
         originalExclude.value = txn.exclude_from_reports || false
         const isDebit = txn.amount < 0
         form.value = {
@@ -250,24 +233,6 @@ export function useTransactionModals(
                         }
                     }
                 }
-
-                // Rename Detection
-                if (form.value.description !== originalDescription.value) {
-                    try {
-                        const res = await financeApi.getMatchCount([originalDescription.value], false)
-                        if (res.data.count > 0) {
-                            renamePromptData.value = {
-                                oldName: originalDescription.value,
-                                newName: form.value.description,
-                                count: res.data.count,
-                                syncToParser: true
-                            }
-                            showRenamePrompt.value = true
-                        }
-                    } catch (e) {
-                        console.error('Rename check failed', e)
-                    }
-                }
             } else {
                 await financeApi.createTransaction(payload)
                 notify.success('Transaction added')
@@ -279,25 +244,6 @@ export function useTransactionModals(
             console.error(e)
             const msg = e.response?.data?.detail || 'Failed to save transaction'
             notify.error(msg)
-        }
-    }
-
-    /**
-     * Handle bulk rename
-     */
-    async function handleBulkRename() {
-        try {
-            await financeApi.bulkRename(
-                renamePromptData.value.oldName,
-                renamePromptData.value.newName,
-                renamePromptData.value.syncToParser
-            )
-            notify.success(`Renamed ${renamePromptData.value.count} transactions`)
-            showRenamePrompt.value = false
-            fetchData()
-        } catch (e) {
-            console.error(e)
-            notify.error('Bulk rename failed')
         }
     }
 
@@ -394,21 +340,16 @@ export function useTransactionModals(
         editingTxnId,
         originalCategory,
         originalExclude,
-        originalDescription,
         potentialMatches,
         isSearchingMatches,
         matchesSearched,
-        showRenamePrompt,
-        renamePromptData,
         form,
         defaultForm,
-        currentCategoryBudget,
 
         // Methods
         openAddModal,
         openEditModal,
         handleSubmit,
-        handleBulkRename,
         handleSmartCategorize,
         findMatches
     }

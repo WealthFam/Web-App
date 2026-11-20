@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { FileText, Inbox, Sparkles, ShieldAlert } from 'lucide-vue-next'
+import { FileText, Inbox, Sparkles, ShieldAlert, Tag } from 'lucide-vue-next'
 import WfCard from '@/components/ui/WfCard.vue'
 import { useCategoriesStore } from '@/stores/finance/categories'
 import { useRulesStore, type Rule, type RuleSuggestion } from '@/stores/finance/rules'
@@ -11,11 +11,12 @@ import TriageDetectionPanel from './components/TriageDetectionPanel.vue'
 import SuggestionsPanel from './components/SuggestionsPanel.vue'
 import RuleFormModal from './components/RuleFormModal.vue'
 import RuleHygienePanel from './components/RuleHygienePanel.vue'
+import MerchantAliasesPanel from './components/MerchantAliasesPanel.vue'
 
 const rulesStore = useRulesStore()
 const categoriesStore = useCategoriesStore()
 
-const activeTab = ref<'rules' | 'triage' | 'suggestions' | 'hygiene'>('rules')
+const activeTab = ref<'rules' | 'triage' | 'suggestions' | 'hygiene' | 'aliases'>('rules')
 const showRuleModal = ref(false)
 const isEditingRule = ref(false)
 const editingRule = ref<Rule | null>(null)
@@ -107,16 +108,16 @@ defineExpose({
 </script>
 
 <template>
-    <div class="space-y-6">
+    <div class="space-y-5">
         <!-- 1. Stats Header -->
         <RuleStatsHeader :stats="rulesStore.ruleStats" />
 
         <!-- 2. Sub-Tabs Nav Pill Toolbar -->
-        <WfCard variant="flat" padding="none" radius="lg" class="p-1.5 border border-wf-border bg-wf-surface flex items-center gap-1.5 overflow-x-auto">
+        <WfCard variant="flat" padding="none" radius="lg" class="p-1.5 border border-wf-border bg-wf-surface flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             <button
                 type="button"
                 @click="activeTab = 'rules'"
-                class="px-3.5 py-2 rounded-wf-md text-xs font-semibold transition-all flex items-center gap-2 shrink-0 select-none"
+                class="px-3.5 py-2 rounded-wf-md text-xs font-semibold transition-all flex items-center gap-2 shrink-0 select-none cursor-pointer"
                 :class="[
                     activeTab === 'rules'
                         ? 'bg-wf-primary text-white shadow-xs'
@@ -127,7 +128,7 @@ defineExpose({
                 <span>Active Rules</span>
                 <span
                     v-if="rulesStore.totalRules > 0"
-                    class="ml-1 px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold"
+                    class="ml-1 px-1.5 py-0.5 rounded-wf-pill text-[10px] font-bold"
                     :class="activeTab === 'rules' ? 'bg-white/20 text-white' : 'bg-indigo-50 text-wf-primary dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50'"
                 >
                     {{ rulesStore.totalRules }}
@@ -137,7 +138,7 @@ defineExpose({
             <button
                 type="button"
                 @click="activeTab = 'triage'"
-                class="px-3.5 py-2 rounded-wf-md text-xs font-semibold transition-all flex items-center gap-2 shrink-0 select-none"
+                class="px-3.5 py-2 rounded-wf-md text-xs font-semibold transition-all flex items-center gap-2 shrink-0 select-none cursor-pointer"
                 :class="[
                     activeTab === 'triage'
                         ? 'bg-wf-primary text-white shadow-xs'
@@ -148,7 +149,7 @@ defineExpose({
                 <span>Triage Detection</span>
                 <span
                     v-if="rulesStore.ruleStats?.pending_triage"
-                    class="ml-1 px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold"
+                    class="ml-1 px-1.5 py-0.5 rounded-wf-pill text-[10px] font-bold"
                     :class="activeTab === 'triage' ? 'bg-white/20 text-white' : 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50'"
                 >
                     {{ rulesStore.ruleStats.pending_triage }}
@@ -158,7 +159,7 @@ defineExpose({
             <button
                 type="button"
                 @click="activeTab = 'suggestions'"
-                class="px-3.5 py-2 rounded-wf-md text-xs font-semibold transition-all flex items-center gap-2 shrink-0 select-none"
+                class="px-3.5 py-2 rounded-wf-md text-xs font-semibold transition-all flex items-center gap-2 shrink-0 select-none cursor-pointer"
                 :class="[
                     activeTab === 'suggestions'
                         ? 'bg-wf-primary text-white shadow-xs'
@@ -169,7 +170,7 @@ defineExpose({
                 <span>Smart Suggestions</span>
                 <span
                     v-if="rulesStore.suggestions.length > 0"
-                    class="ml-1 px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold"
+                    class="ml-1 px-1.5 py-0.5 rounded-wf-pill text-[10px] font-bold"
                     :class="activeTab === 'suggestions' ? 'bg-white/20 text-white' : 'bg-indigo-50 text-wf-primary dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50'"
                 >
                     {{ rulesStore.suggestions.length }}
@@ -179,7 +180,7 @@ defineExpose({
             <button
                 type="button"
                 @click="activeTab = 'hygiene'"
-                class="px-3.5 py-2 rounded-wf-md text-xs font-semibold transition-all flex items-center gap-2 shrink-0 select-none"
+                class="px-3.5 py-2 rounded-wf-md text-xs font-semibold transition-all flex items-center gap-2 shrink-0 select-none cursor-pointer"
                 :class="[
                     activeTab === 'hygiene'
                         ? 'bg-wf-primary text-white shadow-xs'
@@ -190,11 +191,25 @@ defineExpose({
                 <span>Rule Hygiene</span>
                 <span
                     v-if="rulesStore.analysisResult?.issues?.length > 0"
-                    class="ml-1 px-1.5 py-0.2 rounded-wf-pill text-[10px] font-bold"
+                    class="ml-1 px-1.5 py-0.5 rounded-wf-pill text-[10px] font-bold"
                     :class="activeTab === 'hygiene' ? 'bg-white/20 text-white' : 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50'"
                 >
                     {{ rulesStore.analysisResult.issues.length }}
                 </span>
+            </button>
+
+            <button
+                type="button"
+                @click="activeTab = 'aliases'"
+                class="px-3.5 py-2 rounded-wf-md text-xs font-semibold transition-all flex items-center gap-2 shrink-0 select-none cursor-pointer"
+                :class="[
+                    activeTab === 'aliases'
+                        ? 'bg-wf-primary text-white shadow-xs'
+                        : 'text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant'
+                ]"
+            >
+                <Tag class="w-4 h-4" />
+                <span>Merchant Aliases</span>
             </button>
         </WfCard>
 
@@ -223,6 +238,10 @@ defineExpose({
 
                 <RuleHygienePanel
                     v-else-if="activeTab === 'hygiene'"
+                />
+
+                <MerchantAliasesPanel
+                    v-else-if="activeTab === 'aliases'"
                 />
             </div>
         </transition>

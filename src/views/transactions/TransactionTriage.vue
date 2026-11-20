@@ -694,8 +694,7 @@ function handleTriagePaginationLimitChange(newLimit: number) {
 const showAliasModal = ref(false)
 const aliasForm = reactive({
     pattern: '',
-    alias: '',
-    update_past: false
+    alias: ''
 })
 
 function openAliasModal(txn: TriageTransaction) {
