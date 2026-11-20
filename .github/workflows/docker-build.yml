@@ -4,6 +4,14 @@ on:
   push:
     branches: [ "master" ]
     tags: [ 'v*.*.*' ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -15,24 +23,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Determine GHCR Metadata & Tags
+        id: meta
+        run: |
+          OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_URI="ghcr.io/${OWNER_LOWER}/wealthfam-webapp"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          TAGS="${IMAGE_URI}:latest,${IMAGE_URI}:sha-${SHORT_SHA}"
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAGS="${TAGS},${IMAGE_URI}:${{ github.ref_name }}"
+          fi
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
-      - name: Log in to Docker Hub
+
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: wglabz/wealthfam-webapp:latest
+          tags: ${{ steps.meta.outputs.tags }}
           build-args: |
             VITE_API_URL=/api/v1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          annotations: |
+            index:org.opencontainers.image.title=WealthFam Web-App
+            index:org.opencontainers.image.description=WealthFam Vue 3 consumer wealth management dashboard and Nginx ingress.
+            index:org.opencontainers.image.source=https://github.com/WealthFam/Web-App
+            index:org.opencontainers.image.vendor=WGLabz

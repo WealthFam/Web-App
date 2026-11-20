@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:20 AS build-stage
+FROM node:20-slim AS build-stage
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -12,6 +12,12 @@ RUN npm run build
 
 # Stage 2: Serve
 FROM nginx:stable-alpine
+
+LABEL org.opencontainers.image.title="WealthFam Web-App" \
+      org.opencontainers.image.description="WealthFam Vue 3 consumer wealth management dashboard and Nginx ingress." \
+      org.opencontainers.image.source="https://github.com/WealthFam/Web-App" \
+      org.opencontainers.image.vendor="WGLabz"
+
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
 # Custom nginx config for SPA routing and API proxying
