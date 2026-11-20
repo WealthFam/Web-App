@@ -17,17 +17,43 @@ COPY --from=build-stage /app/dist /usr/share/nginx/html
 # Custom nginx config for SPA routing and API proxying
 RUN printf "server {\n\
     listen 80;\n\
+    client_max_body_size 50M;\n\
+    resolver 127.0.0.11 valid=30s ipv6=off;\n\
     location / {\n\
         root /usr/share/nginx/html;\n\
         index index.html;\n\
         try_files \$uri \$uri/ /index.html;\n\
     }\n\
+    location = /health {\n\
+        set \$backend_upstream http://backend:8000;\n\
+        proxy_pass \$backend_upstream/health;\n\
+        proxy_http_version 1.1;\n\
+        proxy_set_header Host \$host;\n\
+    }\n\
+    location /ws/ {\n\
+        set \$backend_upstream http://backend:8000;\n\
+        proxy_pass \$backend_upstream;\n\
+        proxy_http_version 1.1;\n\
+        proxy_set_header Upgrade \$http_upgrade;\n\
+        proxy_set_header Connection \"upgrade\";\n\
+        proxy_set_header Host \$host;\n\
+    }\n\
     location /api {\n\
-        proxy_pass http://backend:8000;\n\
+        set \$backend_upstream http://backend:8000;\n\
+        proxy_pass \$backend_upstream;\n\
+        proxy_http_version 1.1;\n\
+        proxy_set_header Host \$host;\n\
+    }\n\
+    location /telemetry/ {\n\
+        set \$admin_upstream http://admin-backend:8002;\n\
+        rewrite ^/telemetry/(.*)\$ /v1/telemetry/\$1 break;\n\
+        proxy_pass \$admin_upstream;\n\
         proxy_http_version 1.1;\n\
         proxy_set_header Host \$host;\n\
     }\n\
 }\n" > /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD wget -q --spider -T 3 http://127.0.0.1:80/ || exit 1
 CMD ["nginx", "-g", "daemon off;"]
