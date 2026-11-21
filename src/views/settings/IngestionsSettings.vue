@@ -25,7 +25,9 @@ import {
   Link as LinkIcon,
   CheckCircle2,
   Clock,
-  FilterX
+  FilterX,
+  Copy,
+  Check
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -74,16 +76,66 @@ const filters = reactive({
   limit: 25
 })
 
-// Ignore Rule Modal
+// Ignore Rule Modal State
 const showIgnoreRulesModal = ref(false)
 const showCreateIgnoreModal = ref(false)
 const creatingIgnore = ref(false)
+const ignoreSearchQuery = ref('')
+const ignoreSourceFilter = ref<'ALL' | 'SMS' | 'EMAIL' | 'STATEMENT'>('ALL')
+const ignoreKindFilter = ref<'ALL' | 'ignored_pattern' | 'spam_filter'>('ALL')
+const expandedRuleIds = ref<Record<string, boolean>>({})
+const selectedRuleIds = ref<string[]>([])
+const isBulkDeletingRules = ref(false)
+const copiedRuleId = ref<string | null>(null)
+
 const ignoreForm = reactive({
   source: 'SMS',
   matchType: 'sender' as 'sender' | 'subject' | 'pattern',
   sender: '',
   subject: '',
   pattern: ''
+})
+
+const filteredIgnoreRules = computed(() => {
+  return ignoreRules.value.filter(r => {
+    // Channel / Source filter
+    if (ignoreSourceFilter.value !== 'ALL') {
+      const src = (r.source || '').toUpperCase()
+      if (src !== ignoreSourceFilter.value && src !== 'ALL') return false
+    }
+    // Rule kind filter
+    if (ignoreKindFilter.value !== 'ALL' && r.rule_kind !== ignoreKindFilter.value) {
+      return false
+    }
+    // Search
+    if (ignoreSearchQuery.value.trim()) {
+      const q = ignoreSearchQuery.value.trim().toLowerCase()
+      const text = `${r.pattern || ''} ${r.sender || ''} ${r.subject || ''} ${r.source || ''}`.toLowerCase()
+      if (!text.includes(q)) return false
+    }
+    return true
+  })
+})
+
+const triageRulesCount = computed(() => {
+  return ignoreRules.value.filter(r => r.rule_kind === 'ignored_pattern').length
+})
+
+const customRulesCount = computed(() => {
+  return ignoreRules.value.filter(r => r.rule_kind === 'spam_filter').length
+})
+
+const smsRulesCount = computed(() => {
+  return ignoreRules.value.filter(r => (r.source || '').toUpperCase() === 'SMS').length
+})
+
+const emailRulesCount = computed(() => {
+  return ignoreRules.value.filter(r => (r.source || '').toUpperCase() === 'EMAIL').length
+})
+
+const allFilteredSelected = computed(() => {
+  if (filteredIgnoreRules.value.length === 0) return false
+  return filteredIgnoreRules.value.every(r => selectedRuleIds.value.includes(r.id))
 })
 
 // Unrecognized Sample Consent Modal
@@ -339,9 +391,79 @@ async function allowFutureRule(ruleId: string) {
   try {
     await financeApi.deleteIgnoreRule(ruleId)
     notify.success('Rule removed — matching messages will be allowed again')
+    selectedRuleIds.value = selectedRuleIds.value.filter(id => id !== ruleId)
     await Promise.all([fetchIgnoreRules(), fetchActivity()])
   } catch (e) {
     notify.error('Could not remove ignore rule')
+  }
+}
+
+function toggleExpandRule(id: string) {
+  expandedRuleIds.value[id] = !expandedRuleIds.value[id]
+}
+
+function copyRuleContent(rule: any) {
+  const content = rule.pattern || rule.sender || rule.subject || ''
+  if (!content) return
+  navigator.clipboard.writeText(content)
+  copiedRuleId.value = rule.id
+  notify.success('Copied pattern to clipboard')
+  setTimeout(() => {
+    if (copiedRuleId.value === rule.id) copiedRuleId.value = null
+  }, 2000)
+}
+
+function toggleSelectAllRules() {
+  if (allFilteredSelected.value) {
+    const currentIds = new Set(filteredIgnoreRules.value.map(r => r.id))
+    selectedRuleIds.value = selectedRuleIds.value.filter(id => !currentIds.has(id))
+  } else {
+    const newSet = new Set(selectedRuleIds.value)
+    filteredIgnoreRules.value.forEach(r => newSet.add(r.id))
+    selectedRuleIds.value = Array.from(newSet)
+  }
+}
+
+function toggleSelectRule(id: string) {
+  const idx = selectedRuleIds.value.indexOf(id)
+  if (idx >= 0) {
+    selectedRuleIds.value.splice(idx, 1)
+  } else {
+    selectedRuleIds.value.push(id)
+  }
+}
+
+async function bulkAllowSelectedRules() {
+  if (selectedRuleIds.value.length === 0) return
+  if (!confirm(`Are you sure you want to allow ${selectedRuleIds.value.length} selected rule(s)? Matching future messages will be processed.`)) return
+
+  isBulkDeletingRules.value = true
+  try {
+    const res = await financeApi.bulkDeleteIgnoreRules({ rule_ids: selectedRuleIds.value })
+    notify.success(`Allowed ${res.data?.count ?? selectedRuleIds.value.length} rule(s)`)
+    selectedRuleIds.value = []
+    await Promise.all([fetchIgnoreRules(), fetchActivity()])
+  } catch (e) {
+    notify.error('Failed to remove selected rules')
+  } finally {
+    isBulkDeletingRules.value = false
+  }
+}
+
+async function clearAllTriagePatterns() {
+  if (triageRulesCount.value === 0) return
+  if (!confirm(`Are you sure you want to clear all ${triageRulesCount.value} auto-generated triage ignore rules? This will NOT affect your custom sender or spam rules.`)) return
+
+  isBulkDeletingRules.value = true
+  try {
+    const res = await financeApi.bulkDeleteIgnoreRules({ rule_kind: 'ignored_pattern', clear_all: true })
+    notify.success(`Cleared ${res.data?.count ?? triageRulesCount.value} triage patterns — messages will no longer be blocked by these snippets`)
+    selectedRuleIds.value = []
+    await Promise.all([fetchIgnoreRules(), fetchActivity()])
+  } catch (e) {
+    notify.error('Failed to clear triage patterns')
+  } finally {
+    isBulkDeletingRules.value = false
   }
 }
 
@@ -783,42 +905,255 @@ onMounted(() => {
     </WfCard>
 
     <!-- MODAL 1: IGNORED RULES LIST -->
-    <WfModal v-model="showIgnoreRulesModal" title="Ignored Senders & Keywords">
-      <div class="space-y-3">
-        <div class="flex items-center justify-between gap-2">
-          <p class="text-xs text-wf-text-secondary">
-            Messages matching these rules are discarded before processing. Click <strong>Allow</strong> to stop ignoring them.
+    <WfModal v-model="showIgnoreRulesModal" :title="`Ignored Senders & Keywords (${ignoreRules.length})`" maxWidth="4xl">
+      <div class="space-y-3.5">
+        <!-- Top Description & Add Rule Button -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-wf-border-subtle">
+          <p class="text-xs text-wf-text-secondary leading-relaxed">
+            Messages matching these rules are discarded before ingestion. Click any row to expand its full content, or use <strong>Allow</strong> to unblock.
           </p>
-          <WfButton size="sm" @click="openCreateIgnoreModal()">
-            <Plus class="w-3.5 h-3.5 mr-1" />
-            Add Rule
-          </WfButton>
+          <div class="flex items-center gap-2 shrink-0">
+            <WfButton
+              v-if="triageRulesCount > 0"
+              variant="outline"
+              size="sm"
+              class="text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10"
+              :disabled="isBulkDeletingRules"
+              @click="clearAllTriagePatterns()"
+              title="Purge all auto-generated patterns created during bulk triage rejection"
+            >
+              <Trash2 class="w-3.5 h-3.5 mr-1" />
+              Clear Triage Rules ({{ triageRulesCount }})
+            </WfButton>
+            <WfButton size="sm" @click="openCreateIgnoreModal()">
+              <Plus class="w-3.5 h-3.5 mr-1" />
+              Add Rule
+            </WfButton>
+          </div>
         </div>
 
-        <div v-if="loadingRules" class="py-6 text-center text-xs text-wf-text-muted">Loading rules...</div>
-        <div v-else-if="ignoreRules.length === 0" class="py-8 text-center text-xs text-wf-text-muted border border-dashed border-wf-border-subtle rounded-wf-md">
-          No ignore rules configured yet.
+        <!-- Filter & Search Controls Bar -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <!-- Search input -->
+          <div class="relative flex-1">
+            <Search class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-wf-text-muted pointer-events-none" />
+            <input
+              v-model="ignoreSearchQuery"
+              type="text"
+              placeholder="Search keyword patterns, senders, or subjects..."
+              class="w-full h-8 pl-8 pr-3 text-xs rounded-wf-md border border-wf-border-subtle bg-wf-surface text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none focus:ring-1 focus:ring-wf-primary"
+            />
+          </div>
+
+          <!-- Channel Filter -->
+          <div class="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 shrink-0 text-xs">
+            <button
+              type="button"
+              @click="ignoreSourceFilter = 'ALL'"
+              :class="[
+                'px-2.5 py-1 rounded-wf-md font-medium transition-colors',
+                ignoreSourceFilter === 'ALL'
+                  ? 'bg-wf-primary text-white'
+                  : 'bg-wf-surface-variant text-wf-text-secondary hover:text-wf-text-primary'
+              ]"
+            >
+              All Channels ({{ ignoreRules.length }})
+            </button>
+            <button
+              type="button"
+              @click="ignoreSourceFilter = 'SMS'"
+              :class="[
+                'px-2.5 py-1 rounded-wf-md font-medium transition-colors',
+                ignoreSourceFilter === 'SMS'
+                  ? 'bg-wf-primary text-white'
+                  : 'bg-wf-surface-variant text-wf-text-secondary hover:text-wf-text-primary'
+              ]"
+            >
+              SMS ({{ smsRulesCount }})
+            </button>
+            <button
+              type="button"
+              @click="ignoreSourceFilter = 'EMAIL'"
+              :class="[
+                'px-2.5 py-1 rounded-wf-md font-medium transition-colors',
+                ignoreSourceFilter === 'EMAIL'
+                  ? 'bg-wf-primary text-white'
+                  : 'bg-wf-surface-variant text-wf-text-secondary hover:text-wf-text-primary'
+              ]"
+            >
+              Email ({{ emailRulesCount }})
+            </button>
+          </div>
+
+          <!-- Rule Kind Filter -->
+          <select
+            v-model="ignoreKindFilter"
+            class="h-8 px-2 text-xs rounded-wf-md border border-wf-border-subtle bg-wf-surface text-wf-text-primary focus:outline-none focus:ring-1 focus:ring-wf-primary shrink-0"
+          >
+            <option value="ALL">All Rule Types</option>
+            <option value="ignored_pattern">Triage Patterns ({{ triageRulesCount }})</option>
+            <option value="spam_filter">Sender/Spam Rules ({{ customRulesCount }})</option>
+          </select>
         </div>
-        <div v-else class="divide-y divide-wf-border-subtle max-h-80 overflow-y-auto border border-wf-border-subtle rounded-wf-md">
-          <div v-for="rule in ignoreRules" :key="rule.id" class="p-2.5 flex items-center justify-between gap-3">
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5">
-                <span class="px-1.5 py-0.5 rounded bg-wf-surface-variant text-[10px] font-bold uppercase text-wf-text-secondary">
-                  {{ rule.source }}
+
+        <!-- Bulk Selection Action Bar -->
+        <div class="flex items-center justify-between px-1 text-xs text-wf-text-secondary">
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                :checked="allFilteredSelected"
+                @change="toggleSelectAllRules()"
+                class="rounded border-wf-border text-wf-primary focus:ring-wf-primary"
+              />
+              <span class="font-medium text-[11px]">Select All Filtered ({{ filteredIgnoreRules.length }})</span>
+            </label>
+            <span v-if="selectedRuleIds.length > 0" class="text-wf-text-muted text-[11px]">
+              • {{ selectedRuleIds.length }} selected
+            </span>
+          </div>
+
+          <div v-if="selectedRuleIds.length > 0" class="flex items-center gap-2">
+            <WfButton
+              variant="danger"
+              size="sm"
+              :disabled="isBulkDeletingRules"
+              @click="bulkAllowSelectedRules()"
+            >
+              <Trash2 class="w-3 h-3 mr-1" />
+              Allow Selected ({{ selectedRuleIds.length }})
+            </WfButton>
+          </div>
+        </div>
+
+        <!-- Loading / Empty / Rules List -->
+        <div v-if="loadingRules" class="py-12 text-center text-xs text-wf-text-muted">Loading rules...</div>
+        <div v-else-if="filteredIgnoreRules.length === 0" class="py-12 text-center text-xs text-wf-text-muted border border-dashed border-wf-border-subtle rounded-wf-md">
+          <p class="font-medium">No matching ignore rules found.</p>
+          <p v-if="ignoreSearchQuery" class="text-[11px] text-wf-text-muted mt-1">Try clearing your search query or filters.</p>
+        </div>
+        <div v-else class="divide-y divide-wf-border-subtle max-h-[58vh] overflow-y-auto border border-wf-border-subtle rounded-wf-md bg-wf-surface">
+          <div
+            v-for="rule in filteredIgnoreRules"
+            :key="rule.id"
+            class="p-3 transition-colors hover:bg-wf-surface-variant/40"
+            :class="{ 'bg-wf-surface-variant/20': expandedRuleIds[rule.id] }"
+          >
+            <!-- Primary Row -->
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-start gap-2.5 min-w-0 flex-1">
+                <!-- Checkbox -->
+                <input
+                  type="checkbox"
+                  :checked="selectedRuleIds.includes(rule.id)"
+                  @change="toggleSelectRule(rule.id)"
+                  class="mt-1 rounded border-wf-border text-wf-primary focus:ring-wf-primary shrink-0"
+                />
+
+                <div class="min-w-0 flex-1">
+                  <!-- Badges and Title -->
+                  <div class="flex flex-wrap items-center gap-1.5 mb-1">
+                    <!-- Source channel -->
+                    <span class="px-1.5 py-0.5 rounded bg-wf-surface-variant text-[10px] font-bold uppercase text-wf-text-secondary border border-wf-border-subtle">
+                      {{ rule.source }}
+                    </span>
+
+                    <!-- Match target badge -->
+                    <span
+                      class="px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                      :class="[
+                        rule.rule_kind === 'ignored_pattern'
+                          ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
+                          : rule.sender
+                            ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20'
+                            : rule.subject
+                              ? 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20'
+                              : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                      ]"
+                    >
+                      {{ rule.rule_kind === 'ignored_pattern' ? 'Triage Discard Pattern' : rule.sender ? 'Sender Rule' : rule.subject ? 'Subject Rule' : 'Keyword Rule' }}
+                    </span>
+
+                    <!-- Block counter -->
+                    <span v-if="rule.count_blocked > 0" class="px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-700 dark:text-rose-400 text-[10px] font-semibold border border-rose-500/20">
+                      Blocked {{ rule.count_blocked }}x
+                    </span>
+
+                    <!-- Date -->
+                    <span v-if="rule.created_at" class="text-[10px] text-wf-text-muted ml-auto sm:ml-0">
+                      {{ formatDate(rule.created_at).date }}
+                    </span>
+                  </div>
+
+                  <!-- Pattern Snippet (clickable to expand) -->
+                  <div
+                    @click="toggleExpandRule(rule.id)"
+                    class="cursor-pointer group flex items-center justify-between gap-2 py-0.5"
+                  >
+                    <span class="text-xs font-semibold text-wf-text-primary group-hover:text-wf-primary transition-colors truncate">
+                      {{ rule.sender || rule.subject || rule.pattern }}
+                    </span>
+                    <button
+                      type="button"
+                      class="p-0.5 text-wf-text-muted group-hover:text-wf-text-primary transition-colors shrink-0"
+                    >
+                      <ChevronUp v-if="expandedRuleIds[rule.id]" class="w-3.5 h-3.5" />
+                      <ChevronDown v-else class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action buttons -->
+              <div class="flex items-center gap-1.5 shrink-0 self-start mt-0.5">
+                <WfButton
+                  variant="secondary"
+                  size="sm"
+                  @click="allowFutureRule(rule.id)"
+                  title="Remove rule to allow matching messages"
+                >
+                  <Trash2 class="w-3 h-3 mr-1" />
+                  <span>Allow</span>
+                </WfButton>
+              </div>
+            </div>
+
+            <!-- Expanded Content Details -->
+            <div
+              v-if="expandedRuleIds[rule.id]"
+              class="mt-3 pt-2.5 border-t border-wf-border-subtle/80 space-y-2 text-xs"
+            >
+              <div class="flex items-center justify-between gap-2 text-wf-text-secondary text-[11px]">
+                <span class="font-semibold text-wf-text-primary">Full Keyword / Pattern Match String:</span>
+                <button
+                  type="button"
+                  @click="copyRuleContent(rule)"
+                  class="inline-flex items-center gap-1 text-[11px] text-wf-text-muted hover:text-wf-text-primary transition-colors"
+                >
+                  <Check v-if="copiedRuleId === rule.id" class="w-3 h-3 text-emerald-500" />
+                  <Copy v-else class="w-3 h-3" />
+                  <span>{{ copiedRuleId === rule.id ? 'Copied' : 'Copy Pattern' }}</span>
+                </button>
+              </div>
+
+              <!-- Full Raw Preformatted Text -->
+              <div class="p-2.5 rounded bg-wf-surface-variant font-mono text-xs text-wf-text-primary whitespace-pre-wrap break-words max-h-40 overflow-y-auto border border-wf-border-subtle select-all">
+                {{ rule.pattern || rule.sender || rule.subject }}
+              </div>
+
+              <!-- Meta info footer -->
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-wf-text-muted pt-1">
+                <span>
+                  <strong>Origin:</strong> {{ rule.rule_kind === 'ignored_pattern' ? 'Auto-created via Triage Discard ("Ignore in future")' : 'Manual Ingestion Rule' }}
                 </span>
-                <span class="text-xs font-semibold text-wf-text-primary truncate">
-                  {{ rule.sender || rule.subject || rule.pattern }}
+                <span>
+                  <strong>Scope:</strong> {{ rule.source === 'ALL' ? 'All Channels' : rule.source }}
+                </span>
+                <span v-if="rule.created_at">
+                  <strong>Created:</strong> {{ formatDate(rule.created_at).full }}
                 </span>
               </div>
-              <p class="text-[11px] text-wf-text-muted mt-0.5">
-                Match on {{ rule.sender ? 'Sender' : rule.subject ? 'Subject' : 'Keyword' }}
-                <template v-if="rule.count_blocked > 0"> • Blocked {{ rule.count_blocked }}x</template>
-              </p>
             </div>
-            <WfButton variant="secondary" size="sm" @click="allowFutureRule(rule.id)">
-              <Trash2 class="w-3 h-3 mr-1" />
-              Allow
-            </WfButton>
           </div>
         </div>
       </div>

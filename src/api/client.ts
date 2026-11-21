@@ -307,6 +307,8 @@ export const financeApi = {
     createIgnoreRule: (data: { source?: string, sender?: string | null, subject?: string | null, pattern?: string | null }) =>
         apiClient.post('/ingestion/ignore-rules', data),
     deleteIgnoreRule: (id: string) => apiClient.delete(`/ingestion/ignore-rules/${id}`),
+    bulkDeleteIgnoreRules: (data: { rule_ids?: string[], rule_kind?: string, clear_all?: boolean }) =>
+        apiClient.post('/ingestion/ignore-rules/bulk-delete', data),
     previewAnonymizedAlert: (data: { raw_content: string, sender_or_header?: string, source_type?: string }) =>
         apiClient.post('/ingestion/anonymize-preview', data),
     reportUnrecognizedAlert: (data: { source_type?: string, sender_or_header?: string, raw_or_anonymized_content: string, user_consented: boolean }) =>
