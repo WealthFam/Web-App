@@ -35,6 +35,7 @@ import {
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
+import { useBrandsStore } from '@/stores/brands'
 import { useRouter, useRoute } from 'vue-router'
 import ToastContainer from '@/components/ToastContainer.vue'
 import GlobalSearch from '@/components/common/GlobalSearch.vue'
@@ -132,6 +133,9 @@ watch(() => route.path, () => {
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
   if (route.query.search === 'true') showSearch.value = true
+
+  // Fetch brand catalog on app init for dynamic runtime matching
+  useBrandsStore().fetchBrands()
   
   // Set initial data-theme
   if (isDark.value) {

@@ -444,3 +444,32 @@ export const mobileApi = {
     deleteDevice: (id: string) => apiClient.delete(`/mobile/devices/${id}`),
     getAlerts: () => apiClient.get<any[]>('/mobile/alerts'),
 }
+
+export interface BrandLogo {
+    id: string;
+    slug: string;
+    brand_name: string;
+    category: string;
+    regex_pattern: string;
+    priority: number;
+    filename: string;
+    mime_type: string;
+    accent_color: string;
+    is_active: boolean;
+    logo_url: string;
+}
+
+export function resolveBrandLogoUrl(logoUrl?: string): string {
+    if (!logoUrl) return ''
+    if (logoUrl.startsWith('http://') || logoUrl.startsWith('https://')) return logoUrl
+    const baseURL = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '')
+    const cleanPath = logoUrl.startsWith('/') ? logoUrl : `/${logoUrl}`
+    if (cleanPath.startsWith('/api/v1/')) {
+        return `${baseURL}${cleanPath.replace('/api/v1', '')}`
+    }
+    return `${baseURL}${cleanPath}`
+}
+
+export const brandsApi = {
+    getCatalog: () => apiClient.get<{ total: number; brands: BrandLogo[] }>('/brands/catalog'),
+}

@@ -56,11 +56,13 @@
 
                         <td class="px-3 py-2 align-middle">
                             <div class="flex items-center gap-2.5 min-w-0">
-                                <span class="w-8 h-8 shrink-0 rounded-wf-md flex items-center justify-center text-sm"
-                                    :style="{ backgroundColor: getCategoryDisplay(item.category || '').color + '20' }"
-                                    :title="getCategoryDisplay(item.category || '').text">
-                                    {{ getCategoryDisplay(item.category || '').icon }}
-                                </span>
+                                <BrandIcon
+                                    :text="item.recipient || item.description"
+                                    :category="item.category"
+                                    :fallback-icon="getCategoryDisplay(item.category || '').icon"
+                                    :fallback-color="getCategoryDisplay(item.category || '').color"
+                                    size-class="w-8 h-8"
+                                />
                                 <div class="min-w-0">
                                     <div class="text-xs font-semibold truncate max-w-[200px] text-wf-text-primary">
                                         <router-link v-if="item.recipient"
@@ -134,6 +136,7 @@ import { useCurrency } from '@/composables/useCurrency'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfMenu from '@/components/ui/WfMenu.vue'
 import WfPagination from '@/components/ui/WfPagination.vue'
+import BrandIcon from '@/components/common/BrandIcon.vue'
 import { getCssToken } from '@/utils/themeColors'
 
 const { formatAmount } = useCurrency()

@@ -96,10 +96,10 @@
 
             <!-- Card Body -->
             <div class="flex items-center gap-2 my-0.5 flex-1 min-w-0">
-              <div class="w-6 h-6 rounded-wf-sm bg-wf-surface-variant flex items-center justify-center text-xs shrink-0 border border-wf-border-subtle group-hover:scale-105 transition-transform">
-                <component :is="item.iconComponent" v-if="item.iconComponent" class="w-3 h-3 text-wf-text-primary" />
-                <span v-else class="text-xs">{{ item.iconEmoji || '💳' }}</span>
+              <div v-if="item.iconComponent" class="w-6 h-6 rounded-wf-sm bg-wf-surface-variant flex items-center justify-center text-xs shrink-0 border border-wf-border-subtle group-hover:scale-105 transition-transform">
+                <component :is="item.iconComponent" class="w-3 h-3 text-wf-text-primary" />
               </div>
+              <BrandIcon v-else :text="item.title" :fallback-icon="item.iconEmoji || '💳'" size-class="w-6 h-6" class="group-hover:scale-105 transition-transform" />
               <div class="min-w-0 flex-1">
                 <p class="text-[11px] font-bold text-wf-text-primary truncate" :title="item.title">{{ item.title }}</p>
                 <p class="text-[9px] text-wf-text-secondary truncate" :title="item.subtitle">{{ item.subtitle }}</p>
@@ -180,10 +180,10 @@
 
             <!-- Card Body -->
             <div class="flex items-center gap-2 my-0.5 flex-1 min-w-0">
-              <div class="w-6 h-6 rounded-wf-sm bg-amber-100/60 dark:bg-amber-900/40 flex items-center justify-center text-xs shrink-0 border border-amber-200 dark:border-amber-800 group-hover:scale-105 transition-transform">
-                <component :is="item.iconComponent" v-if="item.iconComponent" class="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                <span v-else class="text-xs">{{ item.iconEmoji || '🗓️' }}</span>
+              <div v-if="item.iconComponent" class="w-6 h-6 rounded-wf-sm bg-amber-100/60 dark:bg-amber-900/40 flex items-center justify-center text-xs shrink-0 border border-amber-200 dark:border-amber-800 group-hover:scale-105 transition-transform">
+                <component :is="item.iconComponent" class="w-3 h-3 text-amber-600 dark:text-amber-400" />
               </div>
+              <BrandIcon v-else :text="item.title" :fallback-icon="item.iconEmoji || '🗓️'" size-class="w-6 h-6" class="group-hover:scale-105 transition-transform" />
               <div class="min-w-0 flex-1">
                 <p class="text-[11px] font-bold text-wf-text-primary truncate" :title="item.title">{{ item.title }}</p>
                 <p class="text-[9px] text-wf-text-secondary truncate" :title="item.subtitle">{{ item.subtitle }}</p>
@@ -240,6 +240,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
+import BrandIcon from '@/components/common/BrandIcon.vue'
 import {
   Clock3,
   ChevronLeft,
