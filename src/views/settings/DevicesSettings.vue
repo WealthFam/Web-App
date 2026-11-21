@@ -14,16 +14,31 @@ import {
   LogOut,
   CheckCircle2,
   Play,
-  Pause
+  Pause,
+  ShieldCheck
 } from 'lucide-vue-next'
 import WfCard from '@/components/ui/WfCard.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfSelect from '@/components/ui/WfSelect.vue'
+import { telemetry } from '@/services/telemetry'
 
 const notify = useNotificationStore()
 
 // State
+const isTelemetryEnabled = ref(telemetry.isEnabled)
+
+function toggleTelemetry() {
+  const next = !isTelemetryEnabled.value
+  isTelemetryEnabled.value = next
+  telemetry.setEnabled(next)
+  if (next) {
+    notify.success('Anonymous telemetry enabled. Thank you for helping improve WealthFam!')
+  } else {
+    notify.info('Anonymous telemetry disabled. No diagnostics or metrics will be shared.')
+  }
+}
+
 const devices = ref<any[]>([])
 const familyMembers = ref<any[]>([])
 const searchQuery = ref('')
@@ -638,6 +653,39 @@ onMounted(() => {
         >
           <span>View SMS Activity</span>
         </router-link>
+      </div>
+    </WfCard>
+
+    <!-- 6. PRIVACY & TELEMETRY DIAGNOSTICS CARD -->
+    <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs mt-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-wf-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
+            <ShieldCheck class="w-4 h-4" />
+          </div>
+          <div>
+            <h3 class="text-xs font-bold text-wf-text-primary">Share Anonymized Telemetry & Logs to Improve Experience</h3>
+            <p class="text-[10px] text-wf-text-muted">
+              Sends sanitized performance metrics, route latencies, and error diagnostics to help us improve your experience. Zero personal, account, or financial data is ever collected.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            role="switch"
+            :aria-checked="isTelemetryEnabled"
+            @click="toggleTelemetry"
+            :class="[
+              isTelemetryEnabled ? 'bg-wf-primary text-white' : 'bg-wf-surface-variant text-wf-text-muted border border-wf-border-subtle',
+              'px-3 py-1.5 rounded-wf-md text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer'
+            ]"
+          >
+            <span class="w-2 h-2 rounded-full" :class="isTelemetryEnabled ? 'bg-emerald-400' : 'bg-slate-400'"></span>
+            <span>{{ isTelemetryEnabled ? 'Enabled' : 'Disabled' }}</span>
+          </button>
+        </div>
       </div>
     </WfCard>
 

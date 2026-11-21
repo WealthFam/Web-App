@@ -57,10 +57,10 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
-      '/agent': {
+      '/telemetry': {
         target: 'http://127.0.0.1:8002',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/agent/, '/api/v1'),
+        rewrite: (path) => path.replace(/^\/telemetry/, '/v1/telemetry'),
       },
       '/ws': {
         target: 'http://127.0.0.1:8000',

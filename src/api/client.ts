@@ -1,5 +1,6 @@
 import axios, { type AxiosInstance } from 'axios'
 import { useNotificationStore } from '@/stores/notification'
+import { telemetry, scrubRoutePath } from '@/services/telemetry'
 
 declare module 'axios' {
     export interface AxiosRequestConfig {
@@ -42,6 +43,22 @@ apiClient.interceptors.response.use(
     },
     async (error) => {
         const notification = useNotificationStore()
+
+        // Track API error in anonymous client telemetry
+        try {
+            telemetry.enqueueEvent(
+                'api_error',
+                scrubRoutePath(error.config?.url || 'unknown_api'),
+                undefined,
+                'error',
+                {
+                    status: error.response?.status || 0,
+                    method: error.config?.method?.toUpperCase() || 'GET',
+                }
+            )
+        } catch {
+            // Never fail caller on telemetry error
+        }
 
         // Handle 401 Unauthorized (e.g., token expired)
         if (error.response && error.response.status === 401) {

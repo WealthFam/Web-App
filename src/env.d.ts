@@ -2,6 +2,9 @@
 
 interface ImportMetaEnv {
     readonly VITE_DEMO_MODE?: string
+    readonly VITE_API_URL?: string
+    readonly VITE_DISABLE_TELEMETRY?: string
+    readonly VITE_TELEMETRY_URL?: string
 }
 
 interface ImportMeta {

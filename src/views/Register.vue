@@ -16,6 +16,7 @@ import {
 import WfButton from '@/components/ui/WfButton.vue'
 import WfInput from '@/components/ui/WfInput.vue'
 import WfAlert from '@/components/ui/WfAlert.vue'
+import { telemetry } from '@/services/telemetry'
 
 const router = useRouter()
 
@@ -23,6 +24,7 @@ const familyName = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const allowTelemetry = ref(true)
 const error = ref('')
 const loading = ref(false)
 
@@ -36,6 +38,7 @@ async function handleRegister() {
   error.value = ''
 
   try {
+    telemetry.setEnabled(allowTelemetry.value)
     await apiClient.post('/auth/register', {
       tenant: { name: familyName.value },
       user: { email: email.value, password: password.value }
@@ -214,6 +217,21 @@ async function handleRegister() {
             <WfAlert variant="error">
               {{ error }}
             </WfAlert>
+          </div>
+
+          <!-- Anonymous Telemetry Onboarding Consent -->
+          <div class="p-3 rounded-lg bg-wf-surface-variant/70 border border-wf-border-subtle flex items-start gap-3 text-left">
+            <input
+              id="telemetry-consent"
+              type="checkbox"
+              v-model="allowTelemetry"
+              class="mt-1 w-4 h-4 rounded border-wf-border-subtle text-wf-primary focus:ring-wf-primary/30 shrink-0 cursor-pointer"
+            />
+            <label for="telemetry-consent" class="text-xs text-wf-text-muted leading-relaxed cursor-pointer select-none">
+              <span class="font-medium text-wf-text-primary block mb-0.5">Share anonymized telemetry and logs to improve experience</span>
+              Helps us optimize performance, diagnose crashes, and improve overall stability. 
+              <span class="text-wf-primary font-medium">Zero financial records, accounts, or personal identities are ever collected.</span>
+            </label>
           </div>
 
           <!-- Submit Button -->
