@@ -20,14 +20,14 @@ export function useWebSockets() {
         const tenantId = auth.user.tenant_id
         const token = auth.token
 
-        const wsUrl = `${protocol}//${host}/ws/${tenantId}?token=${token}`
+        const wsUrl = `${protocol}//${host}/ws/${tenantId}`
         console.log(`[WebSockets] Connecting to ${wsUrl}`)
 
         if (socket) {
             socket.close()
         }
 
-        socket = new WebSocket(wsUrl)
+        socket = new WebSocket(wsUrl, ['wealthfam-auth', token])
 
         socket.onopen = () => {
             activityStore.setConnected(true);

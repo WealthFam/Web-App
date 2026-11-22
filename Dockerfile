@@ -20,46 +20,64 @@ LABEL org.opencontainers.image.title="WealthFam Web-App" \
       org.opencontainers.image.source="https://github.com/WealthFam/Web-App" \
       org.opencontainers.image.vendor="WGLabz"
 
+RUN apk add --no-cache libcap && \
+    setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
+
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
-# Custom nginx config for SPA routing and API proxying
-RUN printf "server {\n\
-    listen 80;\n\
-    client_max_body_size 50M;\n\
-    resolver 127.0.0.11 valid=30s ipv6=off;\n\
-    location / {\n\
-        root /usr/share/nginx/html;\n\
-        index index.html;\n\
-        try_files \$uri \$uri/ /index.html;\n\
+# Custom nginx config for SPA routing, API proxying, and unprivileged execution
+RUN printf "pid /tmp/nginx.pid;\n\
+events { worker_connections 1024; }\n\
+http {\n\
+    include /etc/nginx/mime.types;\n\
+    default_type application/octet-stream;\n\
+    client_body_temp_path /tmp/client_temp;\n\
+    proxy_temp_path /tmp/proxy_temp;\n\
+    fastcgi_temp_path /tmp/fastcgi_temp;\n\
+    uwsgi_temp_path /tmp/uwsgi_temp;\n\
+    scgi_temp_path /tmp/scgi_temp;\n\
+    server {\n\
+        listen 80;\n\
+        client_max_body_size 50M;\n\
+        resolver 127.0.0.11 valid=30s ipv6=off;\n\
+        location / {\n\
+            root /usr/share/nginx/html;\n\
+            index index.html;\n\
+            try_files \$uri \$uri/ /index.html;\n\
+        }\n\
+        location = /health {\n\
+            set \$backend_upstream http://backend:8000;\n\
+            proxy_pass \$backend_upstream/health;\n\
+            proxy_http_version 1.1;\n\
+            proxy_set_header Host \$host;\n\
+        }\n\
+        location /ws/ {\n\
+            set \$backend_upstream http://backend:8000;\n\
+            proxy_pass \$backend_upstream;\n\
+            proxy_http_version 1.1;\n\
+            proxy_set_header Upgrade \$http_upgrade;\n\
+            proxy_set_header Connection \"upgrade\";\n\
+            proxy_set_header Host \$host;\n\
+        }\n\
+        location /api {\n\
+            set \$backend_upstream http://backend:8000;\n\
+            proxy_pass \$backend_upstream;\n\
+            proxy_http_version 1.1;\n\
+            proxy_set_header Host \$host;\n\
+        }\n\
+        location /telemetry/ {\n\
+            set \$admin_upstream http://admin-backend:8002;\n\
+            rewrite ^/telemetry/(.*)\$ /v1/telemetry/\$1 break;\n\
+            proxy_pass \$admin_upstream;\n\
+            proxy_http_version 1.1;\n\
+            proxy_set_header Host \$host;\n\
+        }\n\
     }\n\
-    location = /health {\n\
-        set \$backend_upstream http://backend:8000;\n\
-        proxy_pass \$backend_upstream/health;\n\
-        proxy_http_version 1.1;\n\
-        proxy_set_header Host \$host;\n\
-    }\n\
-    location /ws/ {\n\
-        set \$backend_upstream http://backend:8000;\n\
-        proxy_pass \$backend_upstream;\n\
-        proxy_http_version 1.1;\n\
-        proxy_set_header Upgrade \$http_upgrade;\n\
-        proxy_set_header Connection \"upgrade\";\n\
-        proxy_set_header Host \$host;\n\
-    }\n\
-    location /api {\n\
-        set \$backend_upstream http://backend:8000;\n\
-        proxy_pass \$backend_upstream;\n\
-        proxy_http_version 1.1;\n\
-        proxy_set_header Host \$host;\n\
-    }\n\
-    location /telemetry/ {\n\
-        set \$admin_upstream http://admin-backend:8002;\n\
-        rewrite ^/telemetry/(.*)\$ /v1/telemetry/\$1 break;\n\
-        proxy_pass \$admin_upstream;\n\
-        proxy_http_version 1.1;\n\
-        proxy_set_header Host \$host;\n\
-    }\n\
-}\n" > /etc/nginx/conf.d/default.conf
+}\n" > /etc/nginx/nginx.conf && \
+    mkdir -p /tmp/client_temp /tmp/proxy_temp /tmp/fastcgi_temp /tmp/uwsgi_temp /tmp/scgi_temp && \
+    chown -R nginx:nginx /usr/share/nginx/html /var/cache/nginx /var/log/nginx /etc/nginx /tmp/*_temp
+
+USER nginx
 
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \

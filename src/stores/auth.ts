@@ -16,22 +16,7 @@ interface User {
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref<User | null>(null)
-
-    const get_url_token = () => {
-        const urlParams = new URLSearchParams(window.location.search)
-        return urlParams.get('auth_token')
-    }
-
-    const token = ref<string | null>(get_url_token() || localStorage.getItem('access_token'))
-
-    if (get_url_token()) {
-        localStorage.setItem('access_token', token.value!)
-        // Clean up URL after consumption
-        const url = new URL(window.location.href)
-        url.searchParams.delete('auth_token')
-        window.history.replaceState({}, '', url.pathname + url.search)
-    }
-
+    const token = ref<string | null>(localStorage.getItem('access_token'))
     const isAuthenticated = computed(() => !!token.value)
 
     const familyMembers = ref<any[]>([])

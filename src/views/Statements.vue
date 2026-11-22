@@ -62,7 +62,6 @@ const retryPassword = ref('')
 const showRetryPassword = ref(false)
 const selectedStatementForRetry = ref<Statement | null>(null)
 
-const pdfUrl = ref('')
 const activeTab = ref<'transactions' | 'attachment' | 'email'>('transactions')
 
 const statementPage = ref(1)
@@ -393,10 +392,8 @@ async function selectStatement(s: Statement) {
     selectedTransactions.value = []
     
     if (s.vault_id) {
-        pdfUrl.value = financeApi.getDocumentViewUrl(s.vault_id)
         loadAttachment(s.vault_id)
     } else {
-        pdfUrl.value = ''
         attachmentUrl.value = null
     }
     
@@ -1813,8 +1810,8 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                     <div class="text-xs text-wf-text-muted mt-0.5">This statement record does not have an associated source PDF file in the vault.</div>
                                 </div>
                                 <iframe 
-                                    v-else-if="attachmentUrl || pdfUrl"
-                                    :src="attachmentUrl || pdfUrl" 
+                                    v-else-if="attachmentUrl"
+                                    :src="attachmentUrl" 
                                     class="w-full h-full flex-1 border-0 bg-white"
                                 ></iframe>
                                 <div v-else class="flex-1 flex items-center justify-center p-10">

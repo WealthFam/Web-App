@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import {
   FileText,
   Folder,
@@ -47,6 +47,22 @@ const hasThumbnail = computed(() => {
   return mt.startsWith('image/') || /\.(jpe?g|png|gif|webp|svg)$/i.test(filename)
 })
 
+const thumbnailUrl = ref<string | null>(null)
+
+watch(() => [props.item.id, hasThumbnail.value] as const, async ([id, canThumb]: readonly [string, boolean]) => {
+  if (thumbnailUrl.value) {
+    URL.revokeObjectURL(thumbnailUrl.value)
+    thumbnailUrl.value = null
+  }
+  if (!canThumb) return
+  try {
+    const res = await financeApi.getDocumentThumbnailBlob(id as string)
+    thumbnailUrl.value = URL.createObjectURL(res.data)
+  } catch {
+    imageFailed.value = true
+  }
+}, { immediate: true })
+
 const menuOpen = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
 
@@ -66,6 +82,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', closeMenuOnClickOutside)
+  if (thumbnailUrl.value) {
+    URL.revokeObjectURL(thumbnailUrl.value)
+  }
 })
 
 function getIcon(item: any) {
@@ -152,12 +171,10 @@ function formatDate(dateStr: string) {
 
       <!-- Thumbnail image if available -->
       <img
-        v-if="hasThumbnail"
-        :src="financeApi.getDocumentThumbnailUrl(item.id)"
+        v-if="hasThumbnail && thumbnailUrl"
+        :src="thumbnailUrl"
         alt="thumbnail"
-        loading="lazy"
         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        @error="imageFailed = true"
       />
       <!-- Otherwise Icon Box -->
       <div

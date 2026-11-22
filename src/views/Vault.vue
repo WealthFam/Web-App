@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import {
   ShieldCheck,
   FolderPlus,
@@ -230,9 +230,37 @@ function canHaveThumbnail(item: any) {
   return mt.startsWith('image/') || mt === 'application/pdf' || /\.(jpe?g|png|gif|webp|svg|pdf)$/i.test(filename)
 }
 
-function onTableRowImgError(id: string) {
-  tableImgErrors.value.add(id)
+const tableThumbnails = ref<Map<string, string>>(new Map())
+
+async function loadTableThumbnail(item: any) {
+  if (!canHaveThumbnail(item) || tableThumbnails.value.has(item.id)) return
+  try {
+    const res = await financeApi.getDocumentThumbnailBlob(item.id)
+    const url = URL.createObjectURL(res.data)
+    tableThumbnails.value.set(item.id, url)
+  } catch {
+    tableImgErrors.value.add(item.id)
+  }
 }
+
+watch(items, (newItems) => {
+  for (const url of tableThumbnails.value.values()) {
+    URL.revokeObjectURL(url)
+  }
+  tableThumbnails.value.clear()
+  for (const item of newItems) {
+    if (canHaveThumbnail(item)) {
+      loadTableThumbnail(item)
+    }
+  }
+}, { immediate: true })
+
+onUnmounted(() => {
+  for (const url of tableThumbnails.value.values()) {
+    URL.revokeObjectURL(url)
+  }
+  tableThumbnails.value.clear()
+})
 
 function navigateTo(id: string | null, name?: string) {
   selectedIds.value = new Set()
@@ -794,15 +822,13 @@ onMounted(() => {
                     :class="getItemIconColorClass(item)"
                   >
                     <img
-                      v-if="canHaveThumbnail(item)"
-                      :src="financeApi.getDocumentThumbnailUrl(item.id)"
+                      v-if="canHaveThumbnail(item) && tableThumbnails.has(item.id)"
+                      :src="tableThumbnails.get(item.id)"
                       alt=""
-                      loading="lazy"
                       class="w-full h-full object-cover"
-                      @error="onTableRowImgError(item.id)"
                     />
                     <component
-                      v-if="!canHaveThumbnail(item) || tableImgErrors.has(item.id)"
+                      v-if="!canHaveThumbnail(item) || !tableThumbnails.has(item.id)"
                       :is="getItemIcon(item)"
                       class="w-4 h-4"
                     />

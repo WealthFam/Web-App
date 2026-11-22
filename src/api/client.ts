@@ -227,27 +227,39 @@ export const financeApi = {
         apiClient.patch(`/finance/vault/${docId}/link-transaction`, { transaction_id: transactionId }),
     syncVault: () => apiClient.post('/finance/vault/sync'),
     getDocument: (id: string) => apiClient.get(`/finance/vault/${id}`),
+    issueTicket: () => apiClient.post<{ ticket: string; expires_in: number }>('/auth/ticket'),
 
-    getDocumentDownloadUrl: (id: string, version?: number) => {
-        const token = localStorage.getItem('access_token')
-        let url = `${apiClient.defaults.baseURL}/finance/vault/${id}/download?token=${token}`
-        if (version) url += `&version=${version}`
-        return url
+    getDocumentDownloadUrl: (id: string, ticket?: string, version?: number) => {
+        let url = `${apiClient.defaults.baseURL}/finance/vault/${id}/download`
+        const params = new URLSearchParams()
+        if (ticket) params.append('ticket', ticket)
+        if (version) params.append('version', String(version))
+        const q = params.toString()
+        return q ? `${url}?${q}` : url
     },
-    getDocumentViewUrl: (id: string, version?: number) => {
-        const token = localStorage.getItem('access_token')
-        let url = `${apiClient.defaults.baseURL}/finance/vault/${id}/view?token=${token}`
-        if (version) url += `&version=${version}`
-        return url
+    getDocumentViewUrl: (id: string, ticket?: string, version?: number) => {
+        let url = `${apiClient.defaults.baseURL}/finance/vault/${id}/view`
+        const params = new URLSearchParams()
+        if (ticket) params.append('ticket', ticket)
+        if (version) params.append('version', String(version))
+        const q = params.toString()
+        return q ? `${url}?${q}` : url
     },
-    getDocumentThumbnailUrl: (id: string, version?: number) => {
-        const token = localStorage.getItem('access_token')
-        let url = `${apiClient.defaults.baseURL}/finance/vault/${id}/thumbnail?token=${token}`
-        if (version) url += `&version=${version}`
-        return url
+    getDocumentThumbnailUrl: (id: string, ticket?: string, version?: number) => {
+        let url = `${apiClient.defaults.baseURL}/finance/vault/${id}/thumbnail`
+        const params = new URLSearchParams()
+        if (ticket) params.append('ticket', ticket)
+        if (version) params.append('version', String(version))
+        const q = params.toString()
+        return q ? `${url}?${q}` : url
     },
     getDocumentBlob: (id: string, version?: number) => {
         let url = `/finance/vault/${id}/view`
+        if (version) url += `?version=${version}`
+        return apiClient.get(url, { responseType: 'blob' })
+    },
+    getDocumentThumbnailBlob: (id: string, version?: number) => {
+        let url = `/finance/vault/${id}/thumbnail`
         if (version) url += `?version=${version}`
         return apiClient.get(url, { responseType: 'blob' })
     },
