@@ -3,11 +3,12 @@ import { storeToRefs } from 'pinia'
 
 import { useMutualFundStore } from '@/stores/finance/mutualFunds'
 import MainLayout from '@/layouts/MainLayout.vue'
-import { FileText, Search, Upload, Sliders, TrendingUp } from 'lucide-vue-next'
+import { FileText, Search, Upload, Sliders, TrendingUp, BrainCircuit } from 'lucide-vue-next'
 import PortfolioTab from './mutual-funds/PortfolioTab.vue'
 import SearchTab from './mutual-funds/SearchTab.vue'
 import ImportTab from './mutual-funds/ImportTab.vue'
 import BenchmarksTab from './mutual-funds/BenchmarksTab.vue'
+import IntelligenceTab from './mutual-funds/IntelligenceTab.vue'
 
 // State
 const mfStore = useMutualFundStore()
@@ -95,6 +96,20 @@ const { activeTab } = storeToRefs(mfStore)
                         <Sliders class="w-3.5 h-3.5" />
                         <span>Benchmarks</span>
                     </button>
+
+                    <button
+                        type="button"
+                        @click="activeTab = 'intelligence'"
+                        class="px-3 py-1 rounded-wf-sm text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 shrink-0"
+                        :class="[
+                            activeTab === 'intelligence'
+                                ? 'bg-wf-surface text-wf-primary shadow-xs border border-wf-border/60'
+                                : 'text-wf-text-secondary hover:text-wf-text-primary'
+                        ]"
+                    >
+                        <BrainCircuit class="w-3.5 h-3.5" />
+                        <span>Intelligence</span>
+                    </button>
                 </div>
             </div>
 
@@ -104,6 +119,7 @@ const { activeTab } = storeToRefs(mfStore)
                 <SearchTab v-else-if="activeTab === 'search'" />
                 <ImportTab v-else-if="activeTab === 'import'" @success="activeTab = 'portfolio'" />
                 <BenchmarksTab v-else-if="activeTab === 'benchmarks'" />
+                <IntelligenceTab v-else-if="activeTab === 'intelligence'" />
             </transition>
         </div>
     </MainLayout>

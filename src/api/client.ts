@@ -382,6 +382,21 @@ export const financeApi = {
         params: { user_id: userId }
     }),
     getNav: (schemeCode: string) => apiClient.get(`/finance/mutual-funds/${schemeCode}/nav`),
+    getMFTaxOptimization: (userId?: string) =>
+        apiClient.get('/finance/mutual-funds/intelligence/tax-optimization', { params: { user_id: userId } }),
+    getMFPortfolioOverlap: (userId?: string) =>
+        apiClient.get('/finance/mutual-funds/intelligence/overlap', { params: { user_id: userId } }),
+    getMFSectorHeatmap: (userId?: string) =>
+        apiClient.get('/finance/mutual-funds/intelligence/sector-heatmap', { params: { user_id: userId } }),
+    getMFSipIntelligence: (userId?: string) =>
+        apiClient.get('/finance/mutual-funds/intelligence/sip', { params: { user_id: userId } }),
+    updateMFSip: (sipId: string, payload: any) =>
+        apiClient.patch(`/finance/mutual-funds/intelligence/sip/${sipId}`, payload),
+    deleteMFSip: (sipId: string) =>
+        apiClient.delete(`/finance/mutual-funds/intelligence/sip/${sipId}`),
+    getMFPeerComparison: (userId?: string) =>
+        apiClient.get('/finance/mutual-funds/intelligence/peer-comparison', { params: { user_id: userId } }),
+
     getLoans: (userId?: string) => apiClient.get('/finance/loans', { params: { user_id: userId } }),
     getLoanDetails: (id: string) => apiClient.get(`/finance/loans/${id}`),
     getLoanInsights: (id: string) => apiClient.post(`/finance/loans/${id}/insights`, {}),

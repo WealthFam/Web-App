@@ -10,7 +10,7 @@ import { useCurrency } from '@/composables/useCurrency'
 import {
     History, Shield, Edit2, ChevronLeft, Check, TrendingUp,
     Target, Briefcase, Globe, Fingerprint, AlertCircle, Search,
-    Zap, RefreshCw, ZapOff, Trash2, Edit
+    Zap, RefreshCw, ZapOff, Trash2, Edit, Calendar, Pause, Play
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import WfCard from '@/components/ui/WfCard.vue'
@@ -247,6 +247,37 @@ const getInsightColor = (type: string) => {
     }
 }
 
+const isSipActionLoading = ref(false)
+
+async function confirmFundSip() {
+    if (!holding.value?.sip?.id || isSipActionLoading.value) return
+    isSipActionLoading.value = true
+    try {
+        await financeApi.updateMFSip(holding.value.sip.id, { confirm: true })
+        notify.success('SIP mandate confirmed successfully')
+        await fetchHoldingDetails()
+    } catch (e) {
+        notify.error('Failed to confirm SIP mandate')
+    } finally {
+        isSipActionLoading.value = false
+    }
+}
+
+async function toggleFundSipStatus() {
+    if (!holding.value?.sip?.id || isSipActionLoading.value) return
+    isSipActionLoading.value = true
+    try {
+        const nextStatus = holding.value.sip.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE'
+        await financeApi.updateMFSip(holding.value.sip.id, { status: nextStatus })
+        notify.success(`SIP mandate ${nextStatus === 'ACTIVE' ? 'resumed' : 'paused'}`)
+        await fetchHoldingDetails()
+    } catch (e) {
+        notify.error('Failed to toggle SIP mandate')
+    } finally {
+        isSipActionLoading.value = false
+    }
+}
+
 onMounted(() => {
     fetchHoldingDetails()
     fetchPerformanceTimeline()
@@ -408,6 +439,59 @@ function isImageUrl(url: string) {
                             {{ holding.xirr ? holding.xirr.toFixed(2) + '%' : 'N/A' }}
                         </div>
                     </WfCard>
+                </div>
+
+                <!-- Active SIP Mandate Card (If configured or auto-detected) -->
+                <div v-if="holding.sip" class="p-3.5 bg-linear-to-r from-amber-500/10 via-wf-surface to-wf-surface border rounded-wf-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs" :class="holding.sip.is_auto_detected ? 'border-amber-500/30' : 'border-emerald-500/30'">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-wf-md flex items-center justify-center shrink-0" :class="holding.sip.is_auto_detected ? 'bg-amber-500/20 text-amber-600' : 'bg-emerald-500/20 text-emerald-600'">
+                            <Calendar :size="18" />
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-wf-text-primary">
+                                    {{ holding.sip.frequency || 'Monthly' }} SIP: {{ formatAmount(holding.sip.installment_amount) }}
+                                </span>
+                                <span v-if="holding.sip.is_auto_detected" class="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-600 border border-amber-500/30">
+                                    Auto-detected
+                                </span>
+                                <span v-else class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
+                                    Confirmed Mandate
+                                </span>
+                                <span v-if="holding.sip.status === 'PAUSED'" class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-zinc-500/15 text-zinc-500">
+                                    Paused
+                                </span>
+                            </div>
+                            <div class="text-[11px] text-wf-text-secondary mt-0.5">
+                                Day {{ holding.sip.day_of_month || 5 }} of every month • Next scheduled deduction: <b>{{ holding.sip.next_execution_date || 'Upcoming' }}</b>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Controls -->
+                    <div class="flex items-center gap-2 self-end sm:self-center">
+                        <button
+                            v-if="holding.sip.is_auto_detected"
+                            type="button"
+                            @click="confirmFundSip"
+                            :disabled="isSipActionLoading"
+                            class="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all"
+                        >
+                            <Check :size="13" />
+                            <span>Confirm Mandate</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            @click="toggleFundSipStatus"
+                            :disabled="isSipActionLoading"
+                            class="px-2.5 py-1 rounded bg-wf-surface hover:bg-wf-surface-variant text-wf-text-secondary border border-wf-border-subtle text-xs font-medium flex items-center gap-1"
+                        >
+                            <Pause v-if="holding.sip.status === 'ACTIVE'" :size="13" class="text-amber-500" />
+                            <Play v-else :size="13" class="text-emerald-500" />
+                            <span>{{ holding.sip.status === 'ACTIVE' ? 'Pause' : 'Resume' }}</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Main Content Grid -->
