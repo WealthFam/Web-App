@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { financeApi } from '@/api/client'
+import { useAuthStore } from '@/stores/auth'
 import { RefreshCw, ShieldCheck, Layers, PieChart, Calendar, Award } from 'lucide-vue-next'
 import TaxOptimizationCard from './components/TaxOptimizationCard.vue'
 import PortfolioOverlapCard from './components/PortfolioOverlapCard.vue'
@@ -12,6 +13,7 @@ const props = defineProps<{
     selectedMemberId?: string | null
 }>()
 
+const authStore = useAuthStore()
 const isLoading = ref(true)
 const activeSubView = ref<'tax' | 'overlap' | 'sector' | 'sip' | 'peer'>('tax')
 
@@ -22,10 +24,17 @@ const sectorData = ref<any>(null)
 const sipData = ref<any>(null)
 const peerData = ref<any>(null)
 
+const effectiveMemberId = computed(() => {
+    if (props.selectedMemberId !== undefined) {
+        return props.selectedMemberId || undefined
+    }
+    return authStore.selectedMemberId || undefined
+})
+
 const fetchAllIntelligence = async () => {
     isLoading.value = true
     try {
-        const memberId = props.selectedMemberId || undefined
+        const memberId = effectiveMemberId.value
         const [taxRes, overlapRes, sectorRes, sipRes, peerRes] = await Promise.allSettled([
             financeApi.getMFTaxOptimization(memberId),
             financeApi.getMFPortfolioOverlap(memberId),
@@ -46,7 +55,7 @@ const fetchAllIntelligence = async () => {
     }
 }
 
-watch(() => props.selectedMemberId, () => {
+watch([() => props.selectedMemberId, () => authStore.selectedMemberId], () => {
     fetchAllIntelligence()
 })
 

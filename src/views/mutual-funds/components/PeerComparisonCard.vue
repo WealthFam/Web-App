@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Award, Sparkles, FileText, X, Compass, BarChart2 } from 'lucide-vue-next'
+import { Award, Sparkles, FileText, X, Compass, BarChart2, TrendingUp, Zap, Shield, AlertTriangle } from 'lucide-vue-next'
 
 const props = defineProps<{
     data: any
@@ -9,6 +9,7 @@ const props = defineProps<{
 
 const showFullAdvisorModal = ref(false)
 const selectedFundForModal = ref<any | null>(null)
+const hoveredFund = ref<any | null>(null)
 
 const formatPercent = (val: number | string | undefined) => {
     const num = Number(val || 0)
@@ -16,34 +17,93 @@ const formatPercent = (val: number | string | undefined) => {
 }
 
 const fundsList = computed(() => {
-    return props.data?.funds || []
+    return props.data?.funds || props.data?.fund_rankings || []
 })
 
-// Compute Quadrant Positions for Alpha vs Beta Scatter Chart
-// SVG dimensions: 500 wide by 260 high
-// X-axis: Beta from 0.5 to 1.5 (Center = 1.0 at X=250)
-// Y-axis: Alpha from -6% to +10% (Center = 0% at Y=130)
+// Coordinate mapping parameters
+// SVG dimensions: 600 wide by 320 high
+// Active chart rect: X from 60 to 540 (width 480), Y from 35 to 275 (height 240)
+// Center point: X = 300 (Beta = 1.0), Y = 155 (Alpha = 0.0%)
+// Beta domain: [0.5, 1.5]
+// Alpha domain: [-8.0%, +12.0%]
+const mapCoords = (betaVal: number, alphaVal: number) => {
+    const clampedBeta = Math.max(0.5, Math.min(1.5, betaVal))
+    const x = 60 + ((clampedBeta - 0.5) / 1.0) * 480
+
+    const clampedAlpha = Math.max(-8, Math.min(12, alphaVal))
+    // 12% is top (y=35), -8% is bottom (y=275)
+    const y = 275 - ((clampedAlpha + 8) / 20) * 240
+
+    return { x, y }
+}
+
+// Portfolio overall point
+const portfolioCoords = computed(() => {
+    const beta = Number(props.data?.portfolio_beta ?? 1.0)
+    const alpha = Number(props.data?.portfolio_alpha ?? 0.0)
+    return {
+        ...mapCoords(beta, alpha),
+        beta,
+        alpha
+    }
+})
+
+// Plotted Fund Points
 const plotPoints = computed(() => {
     return fundsList.value.map((f: any) => {
-        const beta = Number(f.beta || 1.0)
-        const alpha = Number(f.alpha || 0.0)
-
-        // Clamp beta between 0.5 and 1.5 -> map to x: 40 to 460
-        const clampedBeta = Math.max(0.5, Math.min(1.5, beta))
-        const x = 40 + ((clampedBeta - 0.5) / 1.0) * 420
-
-        // Clamp alpha between -6 and 10 -> map to y: 220 (at -6) down to 30 (at 10)
-        const clampedAlpha = Math.max(-6, Math.min(10, alpha))
-        const y = 220 - ((clampedAlpha + 6) / 16) * 190
+        const beta = Number(f.beta ?? 1.0)
+        const alpha = Number(f.alpha ?? 0.0)
+        const coords = mapCoords(beta, alpha)
 
         return {
             ...f,
-            plotX: x,
-            plotY: y,
+            plotX: coords.x,
+            plotY: coords.y,
             beta,
-            alpha
+            alpha,
+            shortName: (f.scheme_name || 'Scheme').split(' ').slice(0, 2).join(' ')
         }
     })
+})
+
+// Dynamic Portfolio Posture Assessment
+const portfolioPosture = computed(() => {
+    const alpha = portfolioCoords.value.alpha
+    const beta = portfolioCoords.value.beta
+
+    if (alpha >= 0 && beta <= 1.0) {
+        return {
+            quadrant: 'Star Outperformer',
+            badgeClass: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+            icon: Zap,
+            headline: 'Optimal Capital Efficiency (High Alpha, Low Beta)',
+            description: `Your portfolio generates ${formatPercent(alpha)} annualized excess returns over benchmark indices while maintaining lower systemic volatility (Beta ${beta.toFixed(2)}).`
+        }
+    } else if (alpha >= 0 && beta > 1.0) {
+        return {
+            quadrant: 'Aggressive Alpha',
+            badgeClass: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
+            icon: TrendingUp,
+            headline: 'High-Octane Growth Profile (High Alpha, High Beta)',
+            description: `Your portfolio achieves robust excess return (${formatPercent(alpha)}), capitalizing on market upside with active risk factor exposure (Beta ${beta.toFixed(2)}).`
+        }
+    } else if (alpha < 0 && beta <= 1.0) {
+        return {
+            quadrant: 'Defensive Value',
+            badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
+            icon: Shield,
+            headline: 'Low-Volatility Defensive Stance',
+            description: `Systemic market risk is well-contained (Beta ${beta.toFixed(2)}), but portfolio alpha is lagging (${formatPercent(alpha)}). Consider reallocating low-quartile schemes.`
+        }
+    } else {
+        return {
+            quadrant: 'High Risk Lagging',
+            badgeClass: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30',
+            icon: AlertTriangle,
+            headline: 'Sub-Optimal Risk/Return Tradeoff',
+            description: `The portfolio carries elevated volatility (Beta ${beta.toFixed(2)}) without compensatory alpha (${formatPercent(alpha)}). Targeted replacement of bottom-quartile funds is recommended.`
+        }
+    }
 })
 </script>
 
@@ -70,7 +130,7 @@ const plotPoints = computed(() => {
 
             <div class="flex items-center gap-2 self-start sm:self-auto font-mono text-xs">
                 <span class="text-wf-text-tertiary">Top Outperformer:</span>
-                <span class="font-bold text-wf-text-primary truncate max-w-[150px]">{{ data?.top_alpha_fund || 'Active Schemes' }}</span>
+                <span class="font-bold text-wf-text-primary truncate max-w-[180px]">{{ data?.top_alpha_fund || 'Active Schemes' }}</span>
             </div>
         </div>
 
@@ -104,74 +164,275 @@ const plotPoints = computed(() => {
                     <span class="text-[10px] text-indigo-600 font-bold">Risk-Adjusted</span>
                 </div>
                 <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono">
-                    {{ Number(data?.portfolio_sharpe || 0).toFixed(2) }}
+                    {{ Number(data?.portfolio_sharpe || data?.portfolio_sharpe_ratio || 0).toFixed(2) }}
                 </div>
                 <div class="text-[10px] text-wf-text-tertiary">&gt;1.0 indicates attractive risk premium</div>
             </div>
         </div>
 
         <!-- Visual Risk-Return Quadrant Scatter Chart (Alpha on Y vs Beta on X) -->
-        <div class="p-4 sm:p-5 bg-wf-surface-variant/30 border border-wf-border rounded-wf-xl space-y-3">
-            <div class="flex items-center justify-between">
+        <div class="p-4 sm:p-5 bg-wf-surface-variant/30 border border-wf-border rounded-wf-xl space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                     <h4 class="text-xs font-bold text-wf-text-primary flex items-center gap-1.5">
                         <Compass class="w-4 h-4 text-indigo-500" />
                         <span>Alpha vs. Beta Risk-Return Quadrant Matrix</span>
                     </h4>
                     <p class="text-[11px] text-wf-text-tertiary mt-0.5">
-                        Ideal position: Top-Left Quadrant (High Alpha, Low Beta)
+                        Interactive cross-sectional map of active schemes vs category benchmark
                     </p>
+                </div>
+                <div class="flex items-center gap-3 text-[11px]">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-xs"></span>
+                        <span class="text-wf-text-secondary">Individual Scheme</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3.5 h-3.5 rounded-full border-2 border-indigo-600 bg-indigo-500 inline-block ring-2 ring-indigo-500/30"></span>
+                        <span class="text-wf-text-primary font-bold">Your Portfolio</span>
+                    </div>
                 </div>
             </div>
 
             <!-- SVG Quadrant Plot -->
-            <div class="relative w-full aspect-5/2 sm:aspect-3/1 bg-wf-surface border border-wf-border-subtle rounded-wf-lg overflow-hidden p-2">
-                <svg viewBox="0 0 500 260" class="w-full h-full">
-                    <!-- Quadrant Background Tints -->
-                    <!-- Top Left: Stars (High Alpha, Low Beta) -->
-                    <rect x="40" y="30" width="210" height="100" fill="rgba(16, 185, 129, 0.08)" />
-                    <text x="50" y="48" class="text-[9px] fill-emerald-600 font-bold">⭐ Star (High Alpha, Low Risk)</text>
+            <div class="relative w-full aspect-5/3 sm:aspect-2/1 bg-wf-surface border border-wf-border-subtle rounded-wf-lg overflow-hidden select-none">
+                <svg viewBox="0 0 600 320" class="w-full h-full">
+                    <defs>
+                        <!-- Radial Gradients for 4 Quadrants -->
+                        <radialGradient id="starGradient" cx="20%" cy="20%" r="80%">
+                            <stop offset="0%" stop-color="#10B981" stop-opacity="0.14" />
+                            <stop offset="100%" stop-color="#10B981" stop-opacity="0.02" />
+                        </radialGradient>
+                        <radialGradient id="aggGradient" cx="80%" cy="20%" r="80%">
+                            <stop offset="0%" stop-color="#6366F1" stop-opacity="0.14" />
+                            <stop offset="100%" stop-color="#6366F1" stop-opacity="0.02" />
+                        </radialGradient>
+                        <radialGradient id="defGradient" cx="20%" cy="80%" r="80%">
+                            <stop offset="0%" stop-color="#0EA5E9" stop-opacity="0.10" />
+                            <stop offset="100%" stop-color="#0EA5E9" stop-opacity="0.02" />
+                        </radialGradient>
+                        <radialGradient id="riskGradient" cx="80%" cy="80%" r="80%">
+                            <stop offset="0%" stop-color="#EF4444" stop-opacity="0.14" />
+                            <stop offset="100%" stop-color="#EF4444" stop-opacity="0.02" />
+                        </radialGradient>
 
-                    <!-- Top Right: Aggressive Outperformers -->
-                    <rect x="250" y="30" width="210" height="100" fill="rgba(99, 102, 241, 0.06)" />
-                    <text x="260" y="48" class="text-[9px] fill-indigo-600 font-bold">🚀 Aggressive Outperformer</text>
+                        <!-- Glow filter for Portfolio point -->
+                        <filter id="portfolioGlow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+                            <feMerge>
+                                <feMergeNode in="blur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                    </defs>
 
-                    <!-- Bottom Left: Defensive Laggards -->
-                    <rect x="40" y="130" width="210" height="90" fill="rgba(107, 114, 128, 0.05)" />
-                    <text x="50" y="210" class="text-[9px] fill-gray-500 font-bold">🛡️ Defensive Laggard</text>
+                    <!-- Quadrant Background Zones -->
+                    <!-- Top Left: Star (High Alpha, Low Beta) -->
+                    <rect x="60" y="35" width="240" height="120" rx="4" fill="url(#starGradient)" />
+                    <!-- Top Right: Aggressive Outperformer (High Alpha, High Beta) -->
+                    <rect x="300" y="35" width="240" height="120" rx="4" fill="url(#aggGradient)" />
+                    <!-- Bottom Left: Defensive / Low Risk (Low Alpha, Low Beta) -->
+                    <rect x="60" y="155" width="240" height="120" rx="4" fill="url(#defGradient)" />
+                    <!-- Bottom Right: High Risk Lagging (Low Alpha, High Beta) -->
+                    <rect x="300" y="155" width="240" height="120" rx="4" fill="url(#riskGradient)" />
 
-                    <!-- Bottom Right: High-Risk Laggards -->
-                    <rect x="250" y="130" width="210" height="90" fill="rgba(239, 68, 68, 0.06)" />
-                    <text x="260" y="210" class="text-[9px] fill-red-500 font-bold">⚠️ High Risk Laggard</text>
+                    <!-- Quadrant Zone Watermarks / Badges -->
+                    <g opacity="0.85">
+                        <text x="75" y="58" class="text-[10px] font-bold fill-emerald-600 dark:fill-emerald-400">⭐ STAR OUTPERFORMER</text>
+                        <text x="75" y="70" class="text-[8px] fill-emerald-600/70 font-mono">High Alpha • Low Beta (Ideal)</text>
 
-                    <!-- Center Axis Lines -->
-                    <line x1="250" y1="30" x2="250" y2="220" stroke="rgba(156, 163, 175, 0.5)" stroke-dasharray="3,3" stroke-width="1.5" />
-                    <line x1="40" y1="130" x2="460" y2="130" stroke="rgba(156, 163, 175, 0.5)" stroke-dasharray="3,3" stroke-width="1.5" />
+                        <text x="405" y="58" class="text-[10px] font-bold fill-indigo-600 dark:fill-indigo-400">🚀 AGGRESSIVE ALPHA</text>
+                        <text x="405" y="70" class="text-[8px] fill-indigo-600/70 font-mono">High Alpha • High Beta</text>
 
-                    <!-- Axis Labels -->
-                    <text x="252" y="235" class="text-[9px] fill-gray-400 font-mono">β = 1.0 (Market)</text>
-                    <text x="420" y="125" class="text-[9px] fill-gray-400 font-mono">α = 0%</text>
+                        <text x="75" y="255" class="text-[10px] font-bold fill-sky-600 dark:fill-sky-400">🛡️ DEFENSIVE VALUE</text>
+                        <text x="75" y="267" class="text-[8px] fill-sky-600/70 font-mono">Subdued Alpha • Low Volatility</text>
 
-                    <!-- Plotted Fund Circles -->
+                        <text x="410" y="255" class="text-[10px] font-bold fill-rose-600 dark:fill-rose-400">⚠️ HIGH RISK LAGGING</text>
+                        <text x="410" y="267" class="text-[8px] fill-rose-600/70 font-mono">Negative Alpha • High Volatility</text>
+                    </g>
+
+                    <!-- Auxiliary Guideline Grids -->
+                    <line x1="180" y1="35" x2="180" y2="275" stroke="currentColor" class="text-wf-border-subtle" stroke-dasharray="2,4" stroke-width="0.75" />
+                    <line x1="420" y1="35" x2="420" y2="275" stroke="currentColor" class="text-wf-border-subtle" stroke-dasharray="2,4" stroke-width="0.75" />
+                    <line x1="60" y1="95" x2="540" y2="95" stroke="currentColor" class="text-wf-border-subtle" stroke-dasharray="2,4" stroke-width="0.75" />
+                    <line x1="60" y1="215" x2="540" y2="215" stroke="currentColor" class="text-wf-border-subtle" stroke-dasharray="2,4" stroke-width="0.75" />
+
+                    <!-- Center Crosshair Axes (Beta = 1.0, Alpha = 0.0%) -->
+                    <line x1="300" y1="35" x2="300" y2="275" stroke="#64748B" stroke-width="1.5" stroke-dasharray="4,3" />
+                    <line x1="60" y1="155" x2="540" y2="155" stroke="#64748B" stroke-width="1.5" stroke-dasharray="4,3" />
+
+                    <!-- Axis Direction Markers / Labels -->
+                    <text x="300" y="25" text-anchor="middle" class="text-[9px] font-bold fill-emerald-600 dark:fill-emerald-400">▲ Excess Return (Alpha > 0)</text>
+                    <text x="300" y="295" text-anchor="middle" class="text-[9px] font-bold fill-rose-500">▼ Underperforming (Alpha &lt; 0)</text>
+
+                    <text x="60" y="308" text-anchor="start" class="text-[9px] font-mono fill-wf-text-tertiary">◀ β 0.5 (Defensive)</text>
+                    <text x="300" y="308" text-anchor="middle" class="text-[9px] font-mono font-bold fill-wf-text-secondary">β = 1.0 (Market Benchmark)</text>
+                    <text x="540" y="308" text-anchor="end" class="text-[9px] font-mono fill-wf-text-tertiary">β 1.5 (Aggressive) ▶</text>
+
+                    <text x="25" y="159" class="text-[9px] font-mono font-bold fill-wf-text-secondary">α = 0%</text>
+
+                    <!-- Plotted Individual Funds -->
                     <g v-for="(p, pidx) in plotPoints" :key="pidx">
+                        <!-- Connecting hairline on hover -->
+                        <line
+                            v-if="hoveredFund === p"
+                            :x1="p.plotX"
+                            :y1="p.plotY"
+                            :x2="portfolioCoords.x"
+                            :y2="portfolioCoords.y"
+                            stroke="#6366F1"
+                            stroke-width="1.5"
+                            stroke-dasharray="3,3"
+                            opacity="0.6"
+                        />
+
+                        <!-- Outer hover ring -->
+                        <circle
+                            v-if="hoveredFund === p"
+                            :cx="p.plotX"
+                            :cy="p.plotY"
+                            r="12"
+                            fill="none"
+                            stroke="#10B981"
+                            stroke-width="2"
+                            opacity="0.8"
+                        />
+
+                        <!-- Fund Node Circle -->
                         <circle
                             :cx="p.plotX"
                             :cy="p.plotY"
-                            r="7"
-                            :class="p.alpha >= 0 ? 'fill-emerald-500 stroke-white' : 'fill-red-500 stroke-white'"
+                            :r="hoveredFund === p ? 8 : 6"
+                            :class="p.alpha >= 0 ? 'fill-emerald-500 stroke-white dark:stroke-wf-surface' : 'fill-rose-500 stroke-white dark:stroke-wf-surface'"
                             stroke-width="2"
-                            class="cursor-pointer hover:r-9 transition-all"
+                            class="cursor-pointer transition-all duration-200"
+                            @mouseenter="hoveredFund = p"
+                            @mouseleave="hoveredFund = null"
                             @click="selectedFundForModal = p"
                         />
+
+                        <!-- Scheme Short Label -->
                         <text
-                            :x="p.plotX + 10"
+                            :x="p.plotX + 8"
                             :y="p.plotY + 3"
-                            class="text-[9px] fill-gray-700 dark:fill-gray-200 font-semibold truncate max-w-[100px]"
+                            class="text-[9px] font-semibold fill-wf-text-primary pointer-events-none drop-shadow-xs"
                         >
-                            {{ p.scheme_name.split(' ')[0] }} ({{ p.alpha >= 0 ? '+' : '' }}{{ p.alpha }}%)
+                            {{ p.shortName }} ({{ p.alpha >= 0 ? '+' : '' }}{{ p.alpha.toFixed(1) }}%)
                         </text>
                     </g>
+
+                    <!-- Your Portfolio Node (High-emphasis pulsing halo & target icon) -->
+                    <g class="cursor-pointer" filter="url(#portfolioGlow)">
+                        <!-- Outer Halo Ring -->
+                        <circle
+                            :cx="portfolioCoords.x"
+                            :cy="portfolioCoords.y"
+                            r="16"
+                            fill="rgba(99, 102, 241, 0.15)"
+                            stroke="#6366F1"
+                            stroke-width="1.5"
+                            class="animate-pulse"
+                        />
+
+                        <!-- Core Portfolio Circle -->
+                        <circle
+                            :cx="portfolioCoords.x"
+                            :cy="portfolioCoords.y"
+                            r="8"
+                            fill="#6366F1"
+                            stroke="#FFFFFF"
+                            stroke-width="2.5"
+                        />
+
+                        <!-- Inner Bullseye Dot -->
+                        <circle
+                            :cx="portfolioCoords.x"
+                            :cy="portfolioCoords.y"
+                            r="2.5"
+                            fill="#FFFFFF"
+                        />
+
+                        <!-- Portfolio Label Tag with Background Badge -->
+                        <g :transform="`translate(${portfolioCoords.x > 380 ? portfolioCoords.x - 140 : portfolioCoords.x + 14}, ${portfolioCoords.y - 12})`">
+                            <rect
+                                x="0"
+                                y="0"
+                                width="128"
+                                height="22"
+                                rx="5"
+                                fill="#1E1B4B"
+                                stroke="#818CF8"
+                                stroke-width="1"
+                                opacity="0.95"
+                            />
+                            <text
+                                x="6"
+                                y="14"
+                                class="text-[9px] font-bold fill-white font-mono"
+                            >
+                                🎯 You: α {{ formatPercent(portfolioCoords.alpha) }}, β {{ portfolioCoords.beta.toFixed(2) }}
+                            </text>
+                        </g>
+                    </g>
                 </svg>
+
+                <!-- Floating Hover Tooltip Card -->
+                <div
+                    v-if="hoveredFund"
+                    class="absolute top-3 right-3 z-10 max-w-[220px] p-2.5 bg-wf-surface/95 dark:bg-wf-surface/95 backdrop-blur-md border border-wf-border rounded-wf-md shadow-lg text-xs space-y-1.5 transition-all"
+                >
+                    <div class="font-bold text-wf-text-primary truncate">
+                        {{ hoveredFund.scheme_name }}
+                    </div>
+                    <div class="text-[10px] text-wf-text-tertiary">
+                        vs {{ hoveredFund.benchmark_label || 'Category TRI' }}
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5 pt-1 border-t border-wf-border-subtle font-mono text-[11px]">
+                        <div>
+                            <span class="text-wf-text-tertiary block text-[9px]">Alpha (α)</span>
+                            <span :class="hoveredFund.alpha >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'">
+                                {{ formatPercent(hoveredFund.alpha) }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-wf-text-tertiary block text-[9px]">Beta (β)</span>
+                            <span class="text-wf-text-primary font-bold">
+                                {{ Number(hoveredFund.beta).toFixed(2) }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-wf-text-tertiary block text-[9px]">Sharpe</span>
+                            <span class="text-indigo-600 font-bold">
+                                {{ Number(hoveredFund.sharpe_ratio || hoveredFund.sharpe || 0).toFixed(2) }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-wf-text-tertiary block text-[9px]">1Y Return</span>
+                            <span class="text-wf-text-primary font-bold">
+                                {{ hoveredFund.annualized_return }}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Executive Posture Takeaway Banner -->
+            <div
+                class="p-3.5 rounded-wf-lg border flex items-start gap-3 transition-colors"
+                :class="portfolioPosture.badgeClass"
+            >
+                <component :is="portfolioPosture.icon" class="w-5 h-5 shrink-0 mt-0.5" />
+                <div class="space-y-0.5">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold">{{ portfolioPosture.headline }}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/20 dark:bg-black/20">
+                            {{ portfolioPosture.quadrant }}
+                        </span>
+                    </div>
+                    <p class="text-[11px] leading-relaxed opacity-90">
+                        {{ portfolioPosture.description }}
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -189,7 +450,8 @@ const plotPoints = computed(() => {
                 <div
                     v-for="(f, fidx) in fundsList"
                     :key="fidx"
-                    class="p-3 bg-wf-surface border border-wf-border-subtle rounded-wf-md space-y-2 hover:border-wf-border transition-colors"
+                    class="p-3 bg-wf-surface border border-wf-border-subtle rounded-wf-md space-y-2 hover:border-wf-border transition-colors cursor-pointer"
+                    @click="selectedFundForModal = f"
                 >
                     <div class="flex items-center justify-between text-xs">
                         <div class="min-w-0 pr-2">

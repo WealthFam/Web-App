@@ -2,6 +2,7 @@
 import { storeToRefs } from 'pinia'
 
 import { useMutualFundStore } from '@/stores/finance/mutualFunds'
+import { useAuthStore } from '@/stores/auth'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { FileText, Search, Upload, Sliders, TrendingUp, BrainCircuit } from 'lucide-vue-next'
 import PortfolioTab from './mutual-funds/PortfolioTab.vue'
@@ -12,6 +13,7 @@ import IntelligenceTab from './mutual-funds/IntelligenceTab.vue'
 
 // State
 const mfStore = useMutualFundStore()
+const authStore = useAuthStore()
 const { activeTab } = storeToRefs(mfStore)
 </script>
 
@@ -119,7 +121,7 @@ const { activeTab } = storeToRefs(mfStore)
                 <SearchTab v-else-if="activeTab === 'search'" />
                 <ImportTab v-else-if="activeTab === 'import'" @success="activeTab = 'portfolio'" />
                 <BenchmarksTab v-else-if="activeTab === 'benchmarks'" />
-                <IntelligenceTab v-else-if="activeTab === 'intelligence'" />
+                <IntelligenceTab v-else-if="activeTab === 'intelligence'" :selected-member-id="authStore.selectedMemberId" />
             </transition>
         </div>
     </MainLayout>
