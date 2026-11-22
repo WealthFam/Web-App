@@ -83,6 +83,10 @@ const statementToDelete = ref<string | null>(null)
 const deleteVaultFile = ref(true)
 const deleteCreateIgnoreRule = ref(false)
 
+const reevaluateDialog = ref(false)
+const statementToReevaluate = ref<Statement | null>(null)
+const reevaluating = ref(false)
+
 const bulkDeleteDialog = ref(false)
 const bulkDeleting = ref(false)
 const bulkDeleteVaultFile = ref(true)
@@ -115,6 +119,13 @@ async function confirmToggleAttended(stmt: Statement, isAttended: boolean) {
         if (selectedStatement.value?.id === stmt.id) {
             selectedStatement.value.is_attended = isAttended
             selectedStatement.value.closed_at = isAttended ? new Date().toISOString() : null
+            if (isAttended) {
+                selectedTransactions.value = []
+            } else if (stmt.statement_type === 'MUTUAL_FUND_CAS') {
+                selectedTransactions.value = store.currentTransactions
+                    .filter(t => !t.is_reconciled && !t.extra_data?.is_duplicate)
+                    .map(t => t.id)
+            }
         }
         if (!showAttended.value && isAttended) {
             store.statements = store.statements.filter(s => s.id !== stmt.id)
@@ -354,14 +365,32 @@ watch(statementPage, (page) => {
     loadFilteredStatements(page)
 })
 
-// Server-side pagination for transactions
-watch([txnPage, txnLimit, selectedStatement], () => {
-    if (selectedStatement.value) {
-        store.fetchTransactions(
-            selectedStatement.value.id, 
-            (txnPage.value - 1) * txnLimit.value, 
-            txnLimit.value
-        )
+const loadingTransactions = ref(false)
+let statementSelectSeq = 0
+let attachmentLoadSeq = 0
+let isSelectingStatement = false
+
+// Server-side pagination for transactions (fires only on explicit page/limit change)
+watch([txnPage, txnLimit], async ([newPage, newLimit]) => {
+    if (isSelectingStatement) return
+    if (selectedStatement.value && selectedStatement.value.status === 'PARSED') {
+        const currentSeq = ++statementSelectSeq
+        loadingTransactions.value = true
+        try {
+            await store.fetchTransactions(
+                selectedStatement.value.id, 
+                (newPage - 1) * newLimit, 
+                newLimit
+            )
+        } catch (e) {
+            if (currentSeq === statementSelectSeq) {
+                console.error('[Statements] Failed to paginate transactions', e)
+            }
+        } finally {
+            if (currentSeq === statementSelectSeq) {
+                loadingTransactions.value = false
+            }
+        }
     }
 })
 
@@ -388,26 +417,59 @@ watch(uploadUser, (user) => {
 })
 
 async function selectStatement(s: Statement) {
-    selectedStatement.value = s
-    selectedTransactions.value = []
-    
-    if (s.vault_id) {
-        loadAttachment(s.vault_id)
-    } else {
-        attachmentUrl.value = null
+    if (selectedStatement.value?.id === s.id && selectedStatement.value?.status === s.status) {
+        return
     }
-    
-    // Reset tab if statement lacks appropriate media
-    if (activeTab.value === 'attachment' && !s.vault_id) activeTab.value = 'transactions'
-    if (activeTab.value === 'email' && !s.email_body) activeTab.value = 'transactions'
-    
-    txnPage.value = 1
-    await store.fetchTransactions(s.id, 0, txnLimit.value)
 
-    if (s.statement_type === 'MUTUAL_FUND_CAS') {
-        selectedTransactions.value = store.currentTransactions
-            .filter(t => !t.is_reconciled && !t.extra_data?.is_duplicate)
-            .map(t => t.id)
+    const currentSeq = ++statementSelectSeq
+    isSelectingStatement = true
+
+    try {
+        selectedStatement.value = s
+        selectedTransactions.value = []
+        
+        // Immediately clear previous statement transactions to prevent stale glitch/flicker
+        store.currentTransactions = []
+        store.totalTransactions = 0
+        loadingTransactions.value = true
+
+        if (s.vault_id) {
+            loadAttachment(s.vault_id)
+        } else {
+            attachmentLoadSeq++
+            if (attachmentUrl.value) {
+                URL.revokeObjectURL(attachmentUrl.value)
+                attachmentUrl.value = null
+            }
+        }
+
+        // Reset tab if statement lacks appropriate media
+        if (activeTab.value === 'attachment' && !s.vault_id) activeTab.value = 'transactions'
+        if (activeTab.value === 'email' && !s.email_body) activeTab.value = 'transactions'
+
+        txnPage.value = 1
+
+        if (s.status === 'PARSED') {
+            await store.fetchTransactions(s.id, 0, txnLimit.value)
+            if (currentSeq !== statementSelectSeq) return
+
+            if (s.statement_type === 'MUTUAL_FUND_CAS' && !s.is_attended) {
+                selectedTransactions.value = store.currentTransactions
+                    .filter(t => !t.is_reconciled && !t.extra_data?.is_duplicate)
+                    .map(t => t.id)
+            } else {
+                selectedTransactions.value = []
+            }
+        }
+    } catch (e) {
+        if (currentSeq === statementSelectSeq) {
+            console.error('[Statements] Failed to load statement transactions', e)
+        }
+    } finally {
+        if (currentSeq === statementSelectSeq) {
+            loadingTransactions.value = false
+            isSelectingStatement = false
+        }
     }
 }
 
@@ -431,7 +493,12 @@ async function handleBulkImportMf() {
             notification.error(`Could not import selected transaction(s) (${failed} failed — check unmapped schemes).`)
         }
         selectedTransactions.value = []
-        await store.fetchTransactions(selectedStatement.value.id, (txnPage.value - 1) * txnLimit.value, txnLimit.value)
+        loadingTransactions.value = true
+        try {
+            await store.fetchTransactions(selectedStatement.value.id, (txnPage.value - 1) * txnLimit.value, txnLimit.value)
+        } finally {
+            loadingTransactions.value = false
+        }
     } catch (e: any) {
         notification.error(e.response?.data?.detail || 'Failed to import mutual fund transactions')
     } finally {
@@ -624,7 +691,12 @@ async function confirmReassign() {
 
         // If it was FAILED and now PARSED, fetch the newly extracted transactions
         if (updated.status === 'PARSED') {
-            await store.fetchTransactions(updated.id)
+            loadingTransactions.value = true
+            try {
+                await store.fetchTransactions(updated.id, 0, txnLimit.value)
+            } finally {
+                loadingTransactions.value = false
+            }
         }
 
         notification.success('Statement updated successfully')
@@ -805,48 +877,67 @@ async function removeStatementIgnoreRule(ruleId: string) {
     }
 }
 
-async function reevaluateStatement(id: string) {
-    if (!selectedStatement.value) return
+function promptReevaluate(statement: Statement | null = selectedStatement.value) {
+    if (!statement) return
+    statementToReevaluate.value = statement
+    reevaluateDialog.value = true
+}
+
+async function confirmReevaluate() {
+    if (!statementToReevaluate.value) return
+    const stmt = statementToReevaluate.value
+    reevaluating.value = true
     try {
-        if (selectedStatement.value.status === 'FAILED') {
-            // Smart recovery: check failure type
-            const reason = selectedStatement.value.failure_reason || ''
-            if (reason.startsWith('ACCOUNT_NOT_FOUND:')) {
-                // Account issue — just reprocess (account may have been linked since)
-                const res = await store.reprocessStatement(id)
-                const refreshed = store.statements.find(s => s.id === (res?.statement_id || id))
-                if (refreshed) {
-                    await selectStatement(refreshed)
-                }
-                if (res?.status === 'partial_success') {
-                    notification.warning(res.message || 'Statement unlocked, please link an account to complete parsing.')
-                } else {
-                    notification.success(res?.message || 'Statement re-processed successfully')
-                }
-            } else {
-                // Parse/password issue — prompt for password
-                openRetryDialog(selectedStatement.value)
+        if (stmt.status === 'FAILED') {
+            const reason = stmt.failure_reason || ''
+            if (reason.startsWith('PASSWORD_FAILED:')) {
+                reevaluateDialog.value = false
+                openRetryDialog(stmt)
+                return
             }
-        } else {
-            await store.reconcileStatement(id)
-            notification.success('Statement reconciled successfully')
         }
+
+        const res = await store.reprocessStatement(stmt.id)
+        const targetId = res?.statement_id || stmt.id
+        const refreshed = store.statements.find(s => s.id === targetId)
+        if (refreshed) {
+            await selectStatement(refreshed)
+        }
+
+        if (res?.status === 'partial_success') {
+            notification.warning(res.message || 'Statement unlocked, please link an account to complete parsing.')
+        } else {
+            notification.success(res?.message || 'Statement re-evaluated and parsed successfully')
+        }
+        reevaluateDialog.value = false
     } catch (e: any) {
-        notification.error(e.response?.data?.detail || 'Failed to reevaluate statement')
+        const errorDetail = e.response?.data?.detail || ''
+        if (errorDetail.toLowerCase().includes('password') || stmt.status === 'PENDING') {
+            reevaluateDialog.value = false
+            openRetryDialog(stmt)
+        } else {
+            notification.error(errorDetail || 'Failed to re-evaluate statement')
+        }
+    } finally {
+        reevaluating.value = false
     }
 }
 
 async function loadAttachment(vault_id: string) {
+    const seq = ++attachmentLoadSeq
     if (attachmentUrl.value) {
         URL.revokeObjectURL(attachmentUrl.value)
         attachmentUrl.value = null
     }
     try {
         const res = await financeApi.getDocumentBlob(vault_id)
+        if (seq !== attachmentLoadSeq) return
         const blob = new Blob([res.data], { type: 'application/pdf' })
         attachmentUrl.value = URL.createObjectURL(blob)
     } catch (e) {
-        notification.error('Failed to load attachment for preview')
+        if (seq === attachmentLoadSeq) {
+            notification.error('Failed to load attachment for preview')
+        }
     }
 }
 
@@ -1279,19 +1370,13 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
 
                                 <!-- Header Action Buttons -->
                                 <div class="flex items-center gap-2 shrink-0">
-                                    <template v-if="selectedStatement.status === 'PARSED'">
+                                    <!-- ATTENDED STATE: Hide edit, ignore, reprocess/re-evaluate and ingest actions; show badge + Reopen -->
+                                    <template v-if="selectedStatement.is_attended">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-wf-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
+                                            <CheckCircle2 class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                            <span>Attended</span>
+                                        </span>
                                         <WfButton
-                                            v-if="!selectedStatement.is_attended"
-                                            variant="outline"
-                                            size="sm"
-                                            @click="handleMarkAttended(selectedStatement, true)"
-                                            class="h-8 px-2.5 text-xs font-semibold text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800"
-                                        >
-                                            <CheckCircle2 class="w-3.5 h-3.5 mr-1" />
-                                            <span>Mark Attended</span>
-                                        </WfButton>
-                                        <WfButton
-                                            v-else
                                             variant="ghost"
                                             size="sm"
                                             @click="handleMarkAttended(selectedStatement, false)"
@@ -1301,65 +1386,87 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                             <RefreshCw class="w-3.5 h-3.5 mr-1" />
                                             <span>Reopen</span>
                                         </WfButton>
-                                    </template>
-                                    <template v-if="selectedTransactions.length > 0">
-                                        <WfButton
-                                            v-if="selectedStatement.statement_type === 'MUTUAL_FUND_CAS'"
-                                            variant="primary"
-                                            size="sm"
-                                            @click="handleBulkImportMf"
-                                            :loading="isImportingMf"
-                                            class="h-8 px-3 text-xs font-semibold shadow-sm bg-purple-600 hover:bg-purple-700 text-white"
+                                        <button
+                                            @click="promptDeleteStatement(selectedStatement.id)"
+                                            class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 transition-colors cursor-pointer"
+                                            title="Delete Statement"
                                         >
-                                            <TrendingUp class="w-3.5 h-3.5 mr-1" />
-                                            <span>Import to Portfolio ({{ selectedTransactions.length }})</span>
-                                        </WfButton>
-
-                                        <WfButton
-                                            v-else
-                                            variant="primary"
-                                            size="sm"
-                                            @click="openBulkIngestDialog"
-                                            :disabled="selectedTransactions.length === 0 || !selectedStatement.account_id"
-                                            :title="!selectedStatement.account_id ? 'Link an account to this statement before ingesting' : 'Ingest selected transactions'"
-                                            class="h-8 px-3 text-xs font-semibold shadow-sm"
-                                        >
-                                            <CheckCircle2 class="w-3.5 h-3.5 mr-1" />
-                                            <span>Ingest ({{ selectedTransactions.length }})</span>
-                                        </WfButton>
+                                            <Trash2 class="w-4 h-4" />
+                                        </button>
                                     </template>
 
-                                    <button
-                                        @click="openEditDialog(selectedStatement)"
-                                        class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant hover:border-wf-primary/40 transition-colors cursor-pointer"
-                                        title="Edit Statement Details"
-                                    >
-                                        <Pencil class="w-4 h-4" />
-                                    </button>
+                                    <!-- UNATTENDED STATE: Normal interactive review actions -->
+                                    <template v-else>
+                                        <template v-if="selectedStatement.status === 'PARSED'">
+                                            <WfButton
+                                                variant="outline"
+                                                size="sm"
+                                                @click="handleMarkAttended(selectedStatement, true)"
+                                                class="h-8 px-2.5 text-xs font-semibold text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800"
+                                            >
+                                                <CheckCircle2 class="w-3.5 h-3.5 mr-1" />
+                                                <span>Mark Attended</span>
+                                            </WfButton>
+                                        </template>
+                                        <template v-if="selectedTransactions.length > 0">
+                                            <WfButton
+                                                v-if="selectedStatement.statement_type === 'MUTUAL_FUND_CAS'"
+                                                variant="primary"
+                                                size="sm"
+                                                @click="handleBulkImportMf"
+                                                :loading="isImportingMf"
+                                                class="h-8 px-3 text-xs font-semibold shadow-sm bg-purple-600 hover:bg-purple-700 text-white"
+                                            >
+                                                <TrendingUp class="w-3.5 h-3.5 mr-1" />
+                                                <span>Import to Portfolio ({{ selectedTransactions.length }})</span>
+                                            </WfButton>
 
-                                    <button
-                                        @click="openIgnoreDialog(selectedStatement)"
-                                        class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:border-amber-200 transition-colors cursor-pointer"
-                                        title="Ignore Future Statements Like This"
-                                    >
-                                        <Ban class="w-4 h-4" />
-                                    </button>
+                                            <WfButton
+                                                v-else
+                                                variant="primary"
+                                                size="sm"
+                                                @click="openBulkIngestDialog"
+                                                :disabled="selectedTransactions.length === 0 || !selectedStatement.account_id"
+                                                :title="!selectedStatement.account_id ? 'Link an account to this statement before ingesting' : 'Ingest selected transactions'"
+                                                class="h-8 px-3 text-xs font-semibold shadow-sm"
+                                            >
+                                                <CheckCircle2 class="w-3.5 h-3.5 mr-1" />
+                                                <span>Ingest ({{ selectedTransactions.length }})</span>
+                                            </WfButton>
+                                        </template>
 
-                                    <button
-                                        @click="reevaluateStatement(selectedStatement.id)"
-                                        class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant hover:border-wf-primary/40 transition-colors cursor-pointer"
-                                        title="Re-evaluate Statement"
-                                    >
-                                        <RefreshCw class="w-4 h-4" />
-                                    </button>
+                                        <button
+                                            @click="openEditDialog(selectedStatement)"
+                                            class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant hover:border-wf-primary/40 transition-colors cursor-pointer"
+                                            title="Edit Statement Details"
+                                        >
+                                            <Pencil class="w-4 h-4" />
+                                        </button>
 
-                                    <button
-                                        @click="promptDeleteStatement(selectedStatement.id)"
-                                        class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 transition-colors cursor-pointer"
-                                        title="Delete Statement"
-                                    >
-                                        <Trash2 class="w-4 h-4" />
-                                    </button>
+                                        <button
+                                            @click="openIgnoreDialog(selectedStatement)"
+                                            class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:border-amber-200 transition-colors cursor-pointer"
+                                            title="Ignore Future Statements Like This"
+                                        >
+                                            <Ban class="w-4 h-4" />
+                                        </button>
+
+                                        <button
+                                            @click="promptReevaluate(selectedStatement)"
+                                            class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant hover:border-wf-primary/40 transition-colors cursor-pointer"
+                                            title="Re-evaluate Statement"
+                                        >
+                                            <RefreshCw class="w-4 h-4" />
+                                        </button>
+
+                                        <button
+                                            @click="promptDeleteStatement(selectedStatement.id)"
+                                            class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-error hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 transition-colors cursor-pointer"
+                                            title="Delete Statement"
+                                        >
+                                            <Trash2 class="w-4 h-4" />
+                                        </button>
+                                    </template>
                                 </div>
                             </div>
 
@@ -1390,7 +1497,7 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                             </div>
 
                             <!-- Warning Banner if Attended with Unreconciled Transactions -->
-                            <div v-if="selectedStatement.is_attended && unreconciledTxnCount > 0" class="mt-2.5 p-2 px-3 rounded-wf-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex items-center gap-2 text-xs text-amber-800 dark:text-amber-300">
+                            <div v-if="!loadingTransactions && selectedStatement.is_attended && unreconciledTxnCount > 0" class="mt-2.5 p-2 px-3 rounded-wf-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex items-center gap-2 text-xs text-amber-800 dark:text-amber-300">
                                 <AlertCircle class="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
                                 <span><strong>Notice:</strong> Marked as Attended with {{ unreconciledTxnCount }} unreconciled transaction(s).</span>
                             </div>
@@ -1406,7 +1513,7 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                 <Table class="w-3.5 h-3.5" />
                                 <span>Transactions</span>
                                 <span v-if="selectedStatement.status === 'PARSED'" class="ml-1 px-1.5 py-0.2 rounded-wf-pill text-[10px] bg-wf-surface-variant text-wf-text-muted">
-                                    {{ store.totalTransactions }}
+                                    {{ loadingTransactions ? '...' : store.totalTransactions }}
                                 </span>
                             </button>
 
@@ -1539,8 +1646,9 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                                         <input 
                                                             type="checkbox" 
                                                             :checked="isAllSelected" 
+                                                            :disabled="selectedStatement.is_attended"
                                                             @change="toggleSelectAll"
-                                                            class="rounded-wf-xs border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer w-3.5 h-3.5"
+                                                            class="rounded-wf-xs border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer w-3.5 h-3.5 disabled:opacity-40"
                                                         />
                                                     </th>
                                                     <th class="py-2.5 px-3">Date</th>
@@ -1563,7 +1671,7 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                                         <input 
                                                             type="checkbox" 
                                                             :checked="selectedTransactions.includes(txn.id)"
-                                                            :disabled="txn.is_reconciled"
+                                                            :disabled="selectedStatement.is_attended || txn.is_reconciled"
                                                             @change="toggleSelectTransaction(txn.id)"
                                                             class="rounded-wf-xs border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer w-3.5 h-3.5 disabled:opacity-40"
                                                         />
@@ -1661,6 +1769,14 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                                             <span>Duplicate</span>
                                                         </span>
                                                         <span 
+                                                            v-else-if="selectedStatement.is_attended" 
+                                                            class="inline-flex items-center gap-1 text-[11px] font-medium text-wf-text-muted"
+                                                            title="Statement attended without importing this transaction"
+                                                        >
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                                            <span>Unimported</span>
+                                                        </span>
+                                                        <span 
                                                             v-else 
                                                             class="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-600 dark:text-purple-400"
                                                             title="Ready to import"
@@ -1671,7 +1787,16 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                                     </td>
                                                 </tr>
 
-                                                <tr v-if="store.currentTransactions.length === 0">
+                                                <tr v-if="loadingTransactions">
+                                                    <td colspan="8" class="py-12 text-center text-wf-text-muted">
+                                                        <div class="flex flex-col items-center justify-center gap-2">
+                                                            <RefreshCw class="w-6 h-6 text-wf-primary animate-spin" />
+                                                            <span class="text-xs font-semibold text-wf-text-secondary">Loading transactions...</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr v-else-if="store.currentTransactions.length === 0">
                                                     <td colspan="8" class="py-8 text-center text-wf-text-muted">
                                                         <div class="flex flex-col items-center justify-center">
                                                             <Table class="w-8 h-8 text-slate-300 dark:text-slate-600 mb-1" />
@@ -1690,8 +1815,9 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                                         <input 
                                                             type="checkbox" 
                                                             :checked="isAllSelected" 
+                                                            :disabled="selectedStatement.is_attended"
                                                             @change="toggleSelectAll"
-                                                            class="rounded-wf-xs border-slate-300 text-wf-primary focus:ring-wf-primary cursor-pointer w-3.5 h-3.5"
+                                                            class="rounded-wf-xs border-slate-300 text-wf-primary focus:ring-wf-primary cursor-pointer w-3.5 h-3.5 disabled:opacity-40"
                                                         />
                                                     </th>
                                                     <th class="py-2.5 px-3">Date</th>
@@ -1712,8 +1838,9 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                                         <input 
                                                             type="checkbox" 
                                                             :checked="selectedTransactions.includes(txn.id)"
+                                                            :disabled="selectedStatement.is_attended || txn.is_reconciled"
                                                             @change="toggleSelectTransaction(txn.id)"
-                                                            class="rounded-wf-xs border-slate-300 text-wf-primary focus:ring-wf-primary cursor-pointer w-3.5 h-3.5"
+                                                            class="rounded-wf-xs border-slate-300 text-wf-primary focus:ring-wf-primary cursor-pointer w-3.5 h-3.5 disabled:opacity-40"
                                                         />
                                                     </td>
 
@@ -1766,6 +1893,14 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                                             <span>Matched</span>
                                                         </span>
                                                         <span 
+                                                            v-else-if="selectedStatement.is_attended" 
+                                                            class="inline-flex items-center gap-1 text-[11px] font-medium text-wf-text-muted"
+                                                            title="Statement attended without matching this transaction"
+                                                        >
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                                            <span>Unmatched</span>
+                                                        </span>
+                                                        <span 
                                                             v-else 
                                                             class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400"
                                                             title="Not in Ledger"
@@ -1776,7 +1911,16 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                                     </td>
                                                 </tr>
 
-                                                <tr v-if="store.currentTransactions.length === 0">
+                                                <tr v-if="loadingTransactions">
+                                                    <td colspan="6" class="py-12 text-center text-wf-text-muted">
+                                                        <div class="flex flex-col items-center justify-center gap-2">
+                                                            <RefreshCw class="w-6 h-6 text-wf-primary animate-spin" />
+                                                            <span class="text-xs font-semibold text-wf-text-secondary">Loading transactions...</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr v-else-if="store.currentTransactions.length === 0">
                                                     <td colspan="6" class="py-8 text-center text-wf-text-muted">
                                                         <div class="flex flex-col items-center justify-center">
                                                             <Table class="w-8 h-8 text-slate-300 dark:text-slate-600 mb-1" />
@@ -2408,6 +2552,46 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                     @click="targetStatementToAttend && confirmToggleAttended(targetStatementToAttend, true)"
                 >
                     Force Mark Attended
+                </WfButton>
+            </template>
+        </WfModal>
+
+        <!-- MODAL: Re-evaluate Statement Parsing Confirmation -->
+        <WfModal
+            v-model="reevaluateDialog"
+            title="Re-evaluate Statement Parsing?"
+            size="md"
+        >
+            <div class="space-y-3 p-1">
+                <div class="text-center space-y-2.5">
+                    <div class="w-12 h-12 rounded-wf-pill bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-wf-primary flex items-center justify-center mx-auto">
+                        <RefreshCw class="w-6 h-6" :class="{ 'animate-spin': reevaluating }" />
+                    </div>
+                    <p class="text-xs text-wf-text-secondary">
+                        Are you sure you want to re-evaluate and re-parse <strong>{{ statementToReevaluate?.filename || 'this statement' }}</strong>?
+                    </p>
+                </div>
+
+                <div class="p-3 rounded-wf-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
+                    <AlertCircle class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div class="space-y-1">
+                        <p class="font-semibold text-amber-900 dark:text-amber-200">What happens during re-evaluation:</p>
+                        <ul class="list-disc list-inside space-y-0.5 text-[11px] text-amber-800 dark:text-amber-300">
+                            <li>The original PDF file in your Vault will be re-analyzed using the parser engine.</li>
+                            <li>Extracted transactions will be refreshed and reconciled against ledger transactions.</li>
+                            <li>If the PDF requires a password to decrypt, you will be prompted to provide it.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <template #footer>
+                <WfButton variant="ghost" size="sm" :disabled="reevaluating" @click="reevaluateDialog = false">
+                    Cancel
+                </WfButton>
+                <WfButton variant="primary" size="sm" :loading="reevaluating" @click="confirmReevaluate">
+                    <RefreshCw class="w-3.5 h-3.5 mr-1.5" />
+                    <span>Confirm & Re-evaluate</span>
                 </WfButton>
             </template>
         </WfModal>

@@ -38,6 +38,7 @@ export const useStatementStore = defineStore('statements', () => {
     const currentTransactions = ref<StatementTransaction[]>([])
     const totalTransactions = ref(0)
     const loading = ref(false)
+    const loadingTransactions = ref(false)
     const syncing = ref(false)
     const lastQuery = ref<{ skip: number, limit: number, search?: string, status?: string, statement_type?: string, is_attended?: boolean }>({
         skip: 0,
@@ -71,15 +72,17 @@ export const useStatementStore = defineStore('statements', () => {
     }
 
     async function fetchTransactions(statementId: string, skip = 0, limit = 50, search?: string) {
-        loading.value = true
+        loadingTransactions.value = true
         try {
             const res = await financeApi.getStatementTransactions(statementId, { skip, limit, search })
             currentTransactions.value = res.data.items
             totalTransactions.value = res.data.total
+            return res.data
         } catch (error) {
             console.error('[StatementStore] Failed to fetch transactions', error)
+            throw error
         } finally {
-            loading.value = false
+            loadingTransactions.value = false
         }
     }
 
@@ -268,6 +271,7 @@ export const useStatementStore = defineStore('statements', () => {
         currentTransactions,
         totalTransactions,
         loading,
+        loadingTransactions,
         syncing,
         fetchStatements,
         fetchTransactions,
