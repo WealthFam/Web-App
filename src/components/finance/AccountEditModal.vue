@@ -93,15 +93,21 @@ async function handleSubmit() {
     }
     saving.value = true
     try {
+        const payload = {
+            ...form.value,
+            owner_id: form.value.owner_id && typeof form.value.owner_id === 'string' && form.value.owner_id.trim()
+                ? form.value.owner_id.trim()
+                : null
+        }
         if (props.account?.id) {
-            await financeApi.updateAccount(props.account.id, form.value)
+            await financeApi.updateAccount(props.account.id, payload)
             notify.success("Account updated successfully")
         } else {
             if (form.value.type === 'CREDIT_CARD') {
-                await financeApi.createCreditCard(form.value)
+                await financeApi.createCreditCard(payload)
                 notify.success("Credit card created successfully")
             } else {
-                await financeApi.createAccount(form.value)
+                await financeApi.createAccount(payload)
                 notify.success("Account created successfully")
             }
         }
