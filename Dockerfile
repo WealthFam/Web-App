@@ -20,9 +20,6 @@ LABEL org.opencontainers.image.title="WealthFam Web-App" \
       org.opencontainers.image.source="https://github.com/WealthFam/Web-App" \
       org.opencontainers.image.vendor="WGLabz"
 
-RUN apk add --no-cache libcap && \
-    setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
-
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
 # Custom nginx config for SPA routing, API proxying, and unprivileged execution
@@ -37,7 +34,7 @@ http {\n\
     uwsgi_temp_path /tmp/uwsgi_temp;\n\
     scgi_temp_path /tmp/scgi_temp;\n\
     server {\n\
-        listen 80;\n\
+        listen 8080;\n\
         client_max_body_size 50M;\n\
         resolver 127.0.0.11 valid=30s ipv6=off;\n\
         location / {\n\
@@ -79,7 +76,7 @@ http {\n\
 
 USER nginx
 
-EXPOSE 80
+EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD wget -q --spider -T 3 http://127.0.0.1:80/ || exit 1
+    CMD wget -q --spider -T 3 http://127.0.0.1:8080/ || exit 1
 CMD ["nginx", "-g", "daemon off;"]
