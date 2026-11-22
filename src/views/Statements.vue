@@ -650,6 +650,15 @@ function getStatusBadge(status: string) {
     }
 }
 
+function formatFailureReason(reason: string | null | undefined): string {
+    if (!reason) return 'An unexpected error occurred during ingestion.'
+    const cleaned = reason.replace(/^(PASSWORD_FAILED|PARSE_FAILED|ACCOUNT_NOT_FOUND):\s*/, '').trim()
+    if (cleaned === 'Parser failed: []' || cleaned === '[]' || cleaned === 'Parser failed:' || cleaned === 'Parser failed: Unknown error') {
+        return 'No supported transaction table was found in this document. If this is a Demat holding summary, TDS certificate, challan, or non-statement PDF, you can mark it as ignored or delete it.'
+    }
+    return cleaned
+}
+
 function formatDate(date: string) {
     if (!date) return 'N/A'
     try {
@@ -1590,7 +1599,7 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                     </div>
                                     <h3 class="text-base font-bold text-wf-text-primary mb-1">Processing Encountered an Issue</h3>
                                     <p class="text-xs font-medium text-rose-600 dark:text-rose-400 max-w-lg mb-4 p-2.5 bg-rose-50/80 dark:bg-rose-950/40 rounded-wf-md border border-rose-200 dark:border-rose-900/60 break-words">
-                                        {{ (selectedStatement.failure_reason || 'An unexpected error occurred during ingestion.').replace(/^(PASSWORD_FAILED|PARSE_FAILED|ACCOUNT_NOT_FOUND):\s*/, '') }}
+                                        {{ formatFailureReason(selectedStatement.failure_reason) }}
                                     </p>
 
                                     <!-- Smart recovery: ACCOUNT_NOT_FOUND -->
