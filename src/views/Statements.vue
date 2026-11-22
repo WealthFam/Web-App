@@ -130,6 +130,16 @@ async function confirmToggleAttended(stmt: Statement, isAttended: boolean) {
         if (!showAttended.value && isAttended) {
             store.statements = store.statements.filter(s => s.id !== stmt.id)
             if (store.totalStatements > 0) store.totalStatements--
+            if (selectedStatement.value?.id === stmt.id) {
+                const nextStmt = store.statements[0] || null
+                if (nextStmt) {
+                    selectStatement(nextStmt)
+                } else {
+                    selectedStatement.value = null
+                    store.currentTransactions = []
+                    store.totalTransactions = 0
+                }
+            }
         }
         attendWarningDialog.value = false
         notification.success(isAttended ? 'Statement marked as attended' : 'Statement review reopened')
@@ -325,10 +335,19 @@ onMounted(async () => {
 })
 
 // Server-side pagination and search/status filtering for statements
-function loadFilteredStatements(page = statementPage.value) {
+async function loadFilteredStatements(page = statementPage.value) {
     const activeStatus = statusFilter.value === 'ALL' ? undefined : statusFilter.value
     const activeAttended = showAttended.value ? undefined : false
-    store.fetchStatements((page - 1) * statementPageSize, statementPageSize, search.value, activeStatus, undefined, activeAttended)
+    await store.fetchStatements((page - 1) * statementPageSize, statementPageSize, search.value, activeStatus, undefined, activeAttended)
+    if (selectedStatement.value && !store.statements.some(s => s.id === selectedStatement.value?.id)) {
+        if (store.statements.length > 0) {
+            selectStatement(store.statements[0])
+        } else {
+            selectedStatement.value = null
+            store.currentTransactions = []
+            store.totalTransactions = 0
+        }
+    }
 }
 
 function setStatusFilter(nextStatus: 'ALL' | 'PARSED' | 'PENDING' | 'FAILED') {
@@ -1152,10 +1171,10 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                         :class="showAttended 
                                             ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700 shadow-2xs font-bold' 
                                             : 'bg-wf-surface text-wf-text-muted border-wf-border hover:bg-wf-surface-variant hover:text-wf-text-secondary'"
-                                        :title="showAttended ? 'Showing all statements including attended ones' : 'Attended statements are hidden by default. Click to show them.'"
+                                        :title="showAttended ? 'Showing all statements including attended ones. Click to hide attended.' : 'Attended statements are hidden by default. Click to show both.'"
                                     >
                                         <CheckCircle2 class="w-2.5 h-2.5" :class="showAttended ? 'text-emerald-600 dark:text-emerald-400' : 'text-wf-text-muted'" />
-                                        <span>Show Attended</span>
+                                        <span>{{ showAttended ? 'Showing Attended' : 'Show Attended' }}</span>
                                     </button>
                                 </div>
 
