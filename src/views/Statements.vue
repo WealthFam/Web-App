@@ -54,6 +54,7 @@ const syncDate = ref(new Date().toISOString().substring(0, 10))
 const syncing = ref(false)
 const search = ref('')
 const statusFilter = ref<'ALL' | 'PARSED' | 'PENDING' | 'FAILED'>('ALL')
+const showAttended = ref(false)
 const selectedStatementIds = ref<string[]>([])
 
 const retryDialog = ref(false)
@@ -93,6 +94,39 @@ const editFilename = ref('')
 const editStatementType = ref('BANK')
 const reassignAccountId = ref<string | null>(null)
 const reassigning = ref(false)
+
+const attendWarningDialog = ref(false)
+const targetStatementToAttend = ref<Statement | null>(null)
+const unreconciledTxnCount = computed(() => {
+    return store.currentTransactions.filter(t => !t.is_reconciled).length
+})
+
+function handleMarkAttended(stmt: Statement, isAttended: boolean) {
+    if (isAttended && unreconciledTxnCount.value > 0) {
+        targetStatementToAttend.value = stmt
+        attendWarningDialog.value = true
+        return
+    }
+    confirmToggleAttended(stmt, isAttended)
+}
+
+async function confirmToggleAttended(stmt: Statement, isAttended: boolean) {
+    try {
+        await store.toggleAttended(stmt.id, isAttended)
+        if (selectedStatement.value?.id === stmt.id) {
+            selectedStatement.value.is_attended = isAttended
+            selectedStatement.value.closed_at = isAttended ? new Date().toISOString() : null
+        }
+        if (!showAttended.value && isAttended) {
+            store.statements = store.statements.filter(s => s.id !== stmt.id)
+            if (store.totalStatements > 0) store.totalStatements--
+        }
+        attendWarningDialog.value = false
+        notification.success(isAttended ? 'Statement marked as attended' : 'Statement review reopened')
+    } catch (e: any) {
+        notification.error(e?.message || 'Failed to update statement')
+    }
+}
 
 const ignoreDialog = ref(false)
 const ignoring = ref(false)
@@ -283,7 +317,8 @@ onMounted(async () => {
 // Server-side pagination and search/status filtering for statements
 function loadFilteredStatements(page = statementPage.value) {
     const activeStatus = statusFilter.value === 'ALL' ? undefined : statusFilter.value
-    store.fetchStatements((page - 1) * statementPageSize, statementPageSize, search.value, activeStatus)
+    const activeAttended = showAttended.value ? undefined : false
+    store.fetchStatements((page - 1) * statementPageSize, statementPageSize, search.value, activeStatus, undefined, activeAttended)
 }
 
 function setStatusFilter(nextStatus: 'ALL' | 'PARSED' | 'PENDING' | 'FAILED') {
@@ -296,6 +331,15 @@ function setStatusFilter(nextStatus: 'ALL' | 'PARSED' | 'PENDING' | 'FAILED') {
         loadFilteredStatements(1)
     }
 }
+
+watch(showAttended, () => {
+    selectedStatementIds.value = []
+    if (statementPage.value !== 1) {
+        statementPage.value = 1
+    } else {
+        loadFilteredStatements(1)
+    }
+})
 
 watch(search, () => {
     selectedStatementIds.value = []
@@ -1011,6 +1055,20 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                     >
                                         {{ tab.label }}
                                     </button>
+
+                                    <!-- Show Attended Toggle Pill -->
+                                    <button
+                                        type="button"
+                                        @click="showAttended = !showAttended"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-pill text-[10px] font-semibold border transition-all cursor-pointer ml-1"
+                                        :class="showAttended 
+                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700 shadow-2xs font-bold' 
+                                            : 'bg-wf-surface text-wf-text-muted border-wf-border hover:bg-wf-surface-variant hover:text-wf-text-secondary'"
+                                        :title="showAttended ? 'Showing all statements including attended ones' : 'Attended statements are hidden by default. Click to show them.'"
+                                    >
+                                        <CheckCircle2 class="w-2.5 h-2.5" :class="showAttended ? 'text-emerald-600 dark:text-emerald-400' : 'text-wf-text-muted'" />
+                                        <span>Show Attended</span>
+                                    </button>
                                 </div>
 
                                 <div v-if="selectedStatementIds.length > 0" class="flex items-center gap-1.5">
@@ -1090,12 +1148,23 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                             >
                                                 {{ s.filename }}
                                             </span>
-                                            <span 
-                                                class="inline-flex items-center px-1.5 py-0.5 rounded-wf-sm text-[10px] font-bold shrink-0 border"
-                                                :class="getStatusBadge(s.status).bg"
-                                            >
-                                                {{ getStatusBadge(s.status).label }}
-                                            </span>
+                                            <div class="flex items-center gap-1 shrink-0">
+                                                <span 
+                                                    class="inline-flex items-center px-1.5 py-0.5 rounded-wf-sm text-[10px] font-bold border"
+                                                    :class="getStatusBadge(s.status).bg"
+                                                >
+                                                    {{ getStatusBadge(s.status).label }}
+                                                </span>
+                                                <span 
+                                                    v-if="s.status === 'PARSED'"
+                                                    class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-wf-xs text-[9px] font-bold border"
+                                                    :class="s.is_attended 
+                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300' 
+                                                        : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300'"
+                                                >
+                                                    {{ s.is_attended ? '✓ Attended' : '⚡ Review' }}
+                                                </span>
+                                            </div>
                                         </div>
 
                                         <div class="flex items-center gap-2 text-[11px] text-wf-text-muted mt-1 flex-wrap">
@@ -1177,6 +1246,16 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                                 {{ selectedStatement.status }}
                                             </span>
 
+                                            <span 
+                                                v-if="selectedStatement.status === 'PARSED'"
+                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-sm text-[10px] font-bold border"
+                                                :class="selectedStatement.is_attended 
+                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300' 
+                                                    : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300'"
+                                            >
+                                                {{ selectedStatement.is_attended ? '✓ Attended' : '⚡ Needs Review' }}
+                                            </span>
+
                                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-wf-sm text-[10px] font-semibold bg-wf-surface border border-wf-border text-wf-text-secondary">
                                                 <Mail v-if="selectedStatement.source === 'EMAIL'" class="w-3 h-3 text-wf-primary" />
                                                 <Upload v-else class="w-3 h-3 text-wf-primary" />
@@ -1188,15 +1267,44 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                             {{ selectedStatement.filename }}
                                         </h2>
 
-                                        <p class="text-[11px] text-wf-text-muted mt-0.5 flex items-center gap-1">
-                                            <Clock class="w-3 h-3" />
-                                            Ingested {{ formatDate(selectedStatement.created_at) }}
-                                        </p>
+                                        <div class="flex items-center gap-3 text-[11px] text-wf-text-muted mt-0.5 flex-wrap">
+                                            <p class="flex items-center gap-1">
+                                                <Clock class="w-3 h-3" />
+                                                Ingested {{ formatDate(selectedStatement.created_at) }}
+                                            </p>
+                                            <p v-if="selectedStatement.closed_at" class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                                                <CheckCircle2 class="w-3 h-3" />
+                                                Attended on {{ formatDate(selectedStatement.closed_at) }}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <!-- Header Action Buttons -->
                                 <div class="flex items-center gap-2 shrink-0">
+                                    <template v-if="selectedStatement.status === 'PARSED'">
+                                        <WfButton
+                                            v-if="!selectedStatement.is_attended"
+                                            variant="outline"
+                                            size="sm"
+                                            @click="handleMarkAttended(selectedStatement, true)"
+                                            class="h-8 px-2.5 text-xs font-semibold text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800"
+                                        >
+                                            <CheckCircle2 class="w-3.5 h-3.5 mr-1" />
+                                            <span>Mark Attended</span>
+                                        </WfButton>
+                                        <WfButton
+                                            v-else
+                                            variant="ghost"
+                                            size="sm"
+                                            @click="handleMarkAttended(selectedStatement, false)"
+                                            class="h-8 px-2.5 text-xs font-semibold text-wf-text-muted hover:text-wf-text-primary"
+                                            title="Reopen statement review"
+                                        >
+                                            <RefreshCw class="w-3.5 h-3.5 mr-1" />
+                                            <span>Reopen</span>
+                                        </WfButton>
+                                    </template>
                                     <template v-if="selectedTransactions.length > 0">
                                         <WfButton
                                             v-if="selectedStatement.statement_type === 'MUTUAL_FUND_CAS'"
@@ -1282,6 +1390,12 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                     <span class="text-wf-text-muted">Sender:</span>
                                     <span class="font-semibold text-wf-text-primary">{{ selectedStatement.email_sender }}</span>
                                 </div>
+                            </div>
+
+                            <!-- Warning Banner if Attended with Unreconciled Transactions -->
+                            <div v-if="selectedStatement.is_attended && unreconciledTxnCount > 0" class="mt-2.5 p-2 px-3 rounded-wf-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex items-center gap-2 text-xs text-amber-800 dark:text-amber-300">
+                                <AlertCircle class="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                                <span><strong>Notice:</strong> Marked as Attended with {{ unreconciledTxnCount }} unreconciled transaction(s).</span>
                             </div>
                         </div>
 
@@ -2268,6 +2382,37 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                     </div>
                 </div>
             </div>
+        </WfModal>
+
+        <!-- Force Attend Confirmation Modal -->
+        <WfModal
+            v-model="attendWarningDialog"
+            title="Mark Statement as Attended?"
+            size="sm"
+        >
+            <div class="space-y-3 p-1">
+                <div class="p-3 rounded-wf-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex items-start gap-2.5">
+                    <AlertCircle class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div class="text-xs text-amber-900 dark:text-amber-200">
+                        <p class="font-bold mb-1">Unreconciled Transactions Pending</p>
+                        <p>This statement still has <strong>{{ unreconciledTxnCount }}</strong> unreconciled transaction(s).</p>
+                        <p class="mt-1 text-amber-800 dark:text-amber-300 text-[11px]">Marking it as Attended will dismiss it from Needs Attention lists and top-bar action alerts. Are you sure you want to proceed?</p>
+                    </div>
+                </div>
+            </div>
+            <template #footer>
+                <WfButton variant="ghost" size="sm" @click="attendWarningDialog = false">
+                    Cancel
+                </WfButton>
+                <WfButton
+                    variant="primary"
+                    size="sm"
+                    class="bg-amber-600 hover:bg-amber-700 text-white"
+                    @click="targetStatementToAttend && confirmToggleAttended(targetStatementToAttend, true)"
+                >
+                    Force Mark Attended
+                </WfButton>
+            </template>
         </WfModal>
     </MainLayout>
 </template>

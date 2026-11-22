@@ -25,6 +25,8 @@ export interface Statement {
     status: 'PENDING' | 'PARSED' | 'FAILED'
     source: 'EMAIL' | 'MANUAL'
     created_at: string
+    is_attended?: boolean
+    closed_at?: string | null
     email_sender?: string
     email_body?: string
     failure_reason?: string
@@ -37,12 +39,12 @@ export const useStatementStore = defineStore('statements', () => {
     const totalTransactions = ref(0)
     const loading = ref(false)
     const syncing = ref(false)
-    const lastQuery = ref<{ skip: number, limit: number, search?: string, status?: string, statement_type?: string }>({
+    const lastQuery = ref<{ skip: number, limit: number, search?: string, status?: string, statement_type?: string, is_attended?: boolean }>({
         skip: 0,
         limit: 20,
     })
 
-    async function fetchStatements(skip = 0, limit = 20, search?: string, status?: string, statementType?: string) {
+    async function fetchStatements(skip = 0, limit = 20, search?: string, status?: string, statementType?: string, isAttended?: boolean) {
         loading.value = true
         lastQuery.value = {
             skip,
@@ -50,6 +52,7 @@ export const useStatementStore = defineStore('statements', () => {
             search: search || undefined,
             status: status && status !== 'ALL' ? status : undefined,
             statement_type: statementType && statementType !== 'ALL' ? statementType : undefined,
+            is_attended: isAttended,
         }
         try {
             const res = await financeApi.getStatements(lastQuery.value)
@@ -64,7 +67,7 @@ export const useStatementStore = defineStore('statements', () => {
 
     async function refreshCurrentPage() {
         const q = lastQuery.value
-        await fetchStatements(q.skip, q.limit, q.search, q.status, q.statement_type)
+        await fetchStatements(q.skip, q.limit, q.search, q.status, q.statement_type, q.is_attended)
     }
 
     async function fetchTransactions(statementId: string, skip = 0, limit = 50, search?: string) {
@@ -245,6 +248,20 @@ export const useStatementStore = defineStore('statements', () => {
         }
     }
 
+    async function toggleAttended(id: string, isAttended: boolean) {
+        try {
+            const res = await financeApi.markStatementAttended(id, isAttended)
+            const index = statements.value.findIndex(s => s.id === id)
+            if (index !== -1) {
+                statements.value[index] = res.data
+            }
+            return res.data
+        } catch (error) {
+            console.error('[StatementStore] Failed to toggle attended status', error)
+            throw error
+        }
+    }
+
     return {
         statements,
         totalStatements,
@@ -264,6 +281,7 @@ export const useStatementStore = defineStore('statements', () => {
         bulkImportMfTransactions,
         reconcileStatement,
         updateStatement,
-        reprocessStatement
+        reprocessStatement,
+        toggleAttended
     }
 })

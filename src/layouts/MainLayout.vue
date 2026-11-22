@@ -27,6 +27,7 @@ import {
   Briefcase,
   CreditCard,
   ArrowLeftRight,
+  FileText,
   X,
   Check,
   PanelLeftClose,
@@ -40,9 +41,35 @@ import { useRouter, useRoute } from 'vue-router'
 import ToastContainer from '@/components/ToastContainer.vue'
 import GlobalSearch from '@/components/common/GlobalSearch.vue'
 import { useWebSockets } from '@/composables/useWebSockets'
+import { useAttentionStore } from '@/stores/attention'
 
 const { notifications, clearNotifications } = useWebSockets()
 const unreadCount = computed(() => notifications.value.length)
+const attentionStore = useAttentionStore()
+const activeHubTab = ref<'actions' | 'notifications'>('actions')
+
+function toggleUnifiedMenu() {
+  if (showNotificationMenu.value) {
+    showNotificationMenu.value = false
+  } else {
+    activeHubTab.value = attentionStore.totalCount > 0 ? 'actions' : 'notifications'
+    showNotificationMenu.value = true
+    attentionStore.fetchSummary(auth.selectedMemberId || undefined)
+  }
+}
+
+function navigateToActionItem(item: any) {
+  showNotificationMenu.value = false
+  router.push({ path: item.route, query: item.query })
+}
+
+onMounted(() => {
+  attentionStore.fetchSummary(auth.selectedMemberId || undefined)
+})
+
+watch(() => auth.selectedMemberId, (newId) => {
+  attentionStore.fetchSummary(newId || undefined)
+})
 
 // Bell Ring Animation
 const isBellRinging = ref(false)
@@ -544,57 +571,171 @@ function logout() {
             <component :is="isDark ? Sun : Moon" class="w-3.5 h-3.5" />
           </button>
 
-          <!-- Notifications Bell -->
+          <!-- Unified Action Hub & Notifications -->
           <div class="relative">
+            <!-- Consolidated Bell Icon with Attention & Activity Badges -->
             <button
               type="button"
-              @click="showNotificationMenu = !showNotificationMenu"
-              class="w-8 h-8 rounded-wf-md border border-wf-border flex items-center justify-center text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant transition-colors relative"
-              title="Notifications"
-              aria-label="Notifications"
+              @click="toggleUnifiedMenu"
+              class="h-8 px-2.5 rounded-wf-md border flex items-center justify-center gap-1.5 transition-all text-xs font-semibold cursor-pointer relative"
+              :class="[
+                showNotificationMenu ? 'bg-wf-surface-variant border-wf-border text-wf-text-primary' : '',
+                attentionStore.totalCount > 0
+                  ? 'bg-amber-500/10 border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 shadow-2xs'
+                  : unreadCount > 0
+                    ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-900/50 text-wf-primary hover:bg-indigo-100/60'
+                    : 'border-wf-border text-wf-text-secondary hover:text-wf-text-primary hover:bg-wf-surface-variant'
+              ]"
+              title="Action Required & Notifications"
+              aria-label="Action Required & Notifications"
             >
               <Bell class="w-3.5 h-3.5" :class="{ 'animate-bounce': isBellRinging }" />
+
+              <!-- Pending Actions Badge Count -->
               <span
-                v-if="unreadCount > 0"
-                class="absolute top-1 right-1 w-2 h-2 rounded-full bg-wf-error"
+                v-if="attentionStore.totalCount > 0"
+                class="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white leading-none shadow-2xs tabular-nums"
+              >
+                {{ attentionStore.totalCount }}
+              </span>
+
+              <!-- Activity Notification Unread Dot -->
+              <span
+                v-else-if="unreadCount > 0"
+                class="w-2 h-2 rounded-full bg-indigo-500"
               ></span>
             </button>
 
-            <!-- Notifications Popup -->
+            <!-- Unified Dropdown Panel -->
             <div
               v-if="showNotificationMenu"
-              class="absolute right-0 mt-1 w-76 bg-wf-surface border border-wf-border rounded-wf-lg shadow-wf-modal py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100"
+              class="absolute right-0 top-full mt-1.5 w-84 sm:w-96 bg-wf-surface border border-wf-border rounded-wf-lg shadow-wf-modal py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100"
             >
-              <div class="px-3 py-1.5 flex items-center justify-between border-b border-wf-divider">
-                <span class="font-bold text-wf-text-primary">Notifications</span>
+              <!-- Two Tabs Header -->
+              <div class="px-2 pt-1 pb-1.5 border-b border-wf-divider flex items-center justify-between gap-1">
+                <div class="flex items-center gap-1 bg-wf-surface-variant/60 p-0.5 rounded-wf-sm">
+                  <button
+                    type="button"
+                    @click="activeHubTab = 'actions'"
+                    class="px-2.5 py-1 rounded-wf-xs text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                    :class="activeHubTab === 'actions'
+                      ? 'bg-wf-surface text-amber-600 dark:text-amber-400 shadow-2xs'
+                      : 'text-wf-text-muted hover:text-wf-text-primary'"
+                  >
+                    <Zap class="w-3 h-3 text-amber-500" />
+                    <span>Action Required</span>
+                    <span v-if="attentionStore.totalCount > 0" class="px-1.5 py-0.2 rounded-wf-pill text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                      {{ attentionStore.totalCount }}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    @click="activeHubTab = 'notifications'"
+                    class="px-2.5 py-1 rounded-wf-xs text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                    :class="activeHubTab === 'notifications'
+                      ? 'bg-wf-surface text-wf-primary shadow-2xs'
+                      : 'text-wf-text-muted hover:text-wf-text-primary'"
+                  >
+                    <Bell class="w-3 h-3 text-wf-primary" />
+                    <span>Activity</span>
+                    <span v-if="unreadCount > 0" class="px-1.5 py-0.2 rounded-wf-pill text-[10px] bg-indigo-500/20 text-indigo-700 dark:text-indigo-300">
+                      {{ unreadCount }}
+                    </span>
+                  </button>
+                </div>
+
                 <button
+                  v-if="activeHubTab === 'notifications' && notifications.length > 0"
                   type="button"
-                  class="text-[10px] font-semibold text-wf-primary hover:underline"
+                  class="text-[10px] font-semibold text-wf-primary hover:underline px-2"
                   @click="clearNotifications"
                 >
                   Clear all
                 </button>
+                <button
+                  v-else-if="activeHubTab === 'actions'"
+                  type="button"
+                  class="text-[10px] font-semibold text-wf-primary hover:underline px-2"
+                  @click="attentionStore.fetchSummary(auth.selectedMemberId || undefined)"
+                  title="Refresh Action Summary"
+                >
+                  <RefreshCw class="w-3 h-3" :class="{ 'animate-spin': attentionStore.loading }" />
+                </button>
               </div>
 
-              <div v-if="notifications.length > 0" class="max-h-60 overflow-y-auto divide-y divide-wf-divider/50">
-                <div
-                  v-for="note in notifications"
-                  :key="note.id"
-                  class="p-2.5 flex items-start gap-2 hover:bg-wf-surface-variant transition-colors"
-                >
-                  <div class="w-5 h-5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-wf-primary flex items-center justify-center shrink-0 mt-0.5">
-                    <Zap v-if="note.category === 'MILESTONE'" class="w-3 h-3 text-wf-success" />
-                    <Bell v-else class="w-3 h-3" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-wf-text-primary truncate">{{ note.title }}</p>
-                    <p class="text-[10px] text-wf-text-muted line-clamp-2 mt-0.5">{{ note.body }}</p>
+              <!-- Tab 1: Action Required Content -->
+              <div v-if="activeHubTab === 'actions'" class="max-h-80 overflow-y-auto">
+                <div v-if="attentionStore.loading && !attentionStore.summary" class="py-6 text-center text-wf-text-muted">
+                  <RefreshCw class="w-4 h-4 mx-auto mb-1 animate-spin text-amber-500" />
+                  <span>Checking pending actions...</span>
+                </div>
+                <div v-else-if="attentionStore.items.length === 0" class="py-6 text-center text-wf-text-muted">
+                  <Check class="w-5 h-5 mx-auto mb-1 text-emerald-500 stroke-[2.5]" />
+                  <span class="font-semibold text-wf-text-primary">All caught up!</span>
+                  <p class="text-[11px] text-wf-text-muted mt-0.5">No statements, triage, transfers, card bills, or budget alerts need attention.</p>
+                </div>
+                <div v-else class="divide-y divide-wf-divider/50">
+                  <div
+                    v-for="item in attentionStore.items"
+                    :key="item.id"
+                    @click="navigateToActionItem(item)"
+                    class="p-2.5 flex items-start gap-2.5 hover:bg-wf-surface-variant transition-colors cursor-pointer group"
+                  >
+                    <div
+                      class="w-6 h-6 rounded-wf-md flex items-center justify-center shrink-0 mt-0.5 border"
+                      :class="[
+                        item.severity === 'ERROR'
+                          ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-900/60'
+                          : item.severity === 'WARNING'
+                          ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-900/60'
+                          : 'bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-400 dark:border-indigo-900/60'
+                      ]"
+                    >
+                      <CreditCard v-if="item.type.startsWith('CREDIT_CARD')" class="w-3 h-3" />
+                      <PieChart v-else-if="item.type.startsWith('BUDGET')" class="w-3 h-3" />
+                      <FileText v-else-if="item.type.startsWith('STATEMENT')" class="w-3 h-3" />
+                      <ArrowLeftRight v-else-if="item.type.startsWith('TRANSFER')" class="w-3 h-3" />
+                      <Landmark v-else-if="item.type.startsWith('LOAN')" class="w-3 h-3" />
+                      <Wallet v-else-if="item.type.startsWith('ACCOUNT')" class="w-3 h-3" />
+                      <Sparkles v-else-if="item.type.startsWith('RECURRING') || item.type.startsWith('CAS')" class="w-3 h-3" />
+                      <Zap v-else class="w-3 h-3" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between gap-1">
+                        <p class="font-semibold text-wf-text-primary truncate">{{ item.title }}</p>
+                        <span class="px-1.5 py-0.5 rounded-wf-xs text-[9px] font-bold bg-wf-surface border border-wf-border text-wf-text-secondary shrink-0">
+                          {{ item.count }}
+                        </span>
+                      </div>
+                      <p class="text-[10px] text-wf-text-muted line-clamp-2 mt-0.5">{{ item.description }}</p>
+                    </div>
+                    <ChevronRight class="w-3.5 h-3.5 text-wf-text-muted opacity-0 group-hover:opacity-100 transition-opacity self-center shrink-0" />
                   </div>
                 </div>
               </div>
-              <div v-else class="py-6 text-center text-wf-text-muted">
-                <Bell class="w-4 h-4 mx-auto mb-1 opacity-40" />
-                <span>No new notifications</span>
+
+              <!-- Tab 2: Activity Notifications Content -->
+              <div v-else class="max-h-80 overflow-y-auto">
+                <div v-if="notifications.length > 0" class="divide-y divide-wf-divider/50">
+                  <div
+                    v-for="note in notifications"
+                    :key="note.id"
+                    class="p-2.5 flex items-start gap-2 hover:bg-wf-surface-variant transition-colors"
+                  >
+                    <div class="w-5 h-5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-wf-primary flex items-center justify-center shrink-0 mt-0.5">
+                      <Zap v-if="note.category === 'MILESTONE'" class="w-3 h-3 text-wf-success" />
+                      <Bell v-else class="w-3 h-3" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="font-semibold text-wf-text-primary truncate">{{ note.title }}</p>
+                      <p class="text-[10px] text-wf-text-muted line-clamp-2 mt-0.5">{{ note.body }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="py-6 text-center text-wf-text-muted">
+                  <Bell class="w-4 h-4 mx-auto mb-1 opacity-40" />
+                  <span>No new activity alerts</span>
+                </div>
               </div>
             </div>
           </div>

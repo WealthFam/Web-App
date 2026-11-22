@@ -433,7 +433,7 @@ export const financeApi = {
     createTransferCounterpart: (data: { source_txn_id: string, to_account_id: string, credited_amount?: number }) => apiClient.post('/finance/transfers/create-counterpart', data),
     getTransferHistory: (params?: { limit?: number, offset?: number }) => apiClient.get('/finance/transfers/history', { params }),
 
-    getStatements: (params?: { skip?: number, limit?: number, search?: string, status?: string, statement_type?: string }) => apiClient.get('/finance/statements', { params }),
+    getStatements: (params?: { skip?: number, limit?: number, search?: string, status?: string, statement_type?: string, is_attended?: boolean }) => apiClient.get('/finance/statements', { params }),
     getStatement: (id: string) => apiClient.get(`/finance/statements/${id}`),
     getStatementTransactions: (id: string, params?: { skip?: number, limit?: number, search?: string }) => apiClient.get(`/finance/statements/${id}/transactions`, { params }),
     uploadStatement: (formData: FormData) => apiClient.post('/finance/statements/upload', formData, {
@@ -449,6 +449,8 @@ export const financeApi = {
     ingestStatementTransaction: (id: string, category?: string) => apiClient.post(`/finance/statements/transactions/${id}/ingest`, null, { params: { category } }),
     bulkIngestStatementTransactions: (data: { items: { transaction_id: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[], account_id?: string }) => apiClient.post('/finance/statements/transactions/bulk-ingest', data),
     reconcileCasStatement: (statementId: string, transactionIds: string[], userId?: string) => apiClient.post(`/finance/statements/${statementId}/reconcile-cas`, { transaction_ids: transactionIds, user_id: userId }),
+    markStatementAttended: (id: string, is_attended: boolean) => apiClient.patch(`/finance/statements/${id}/attend`, { is_attended }),
+    getAttentionSummary: (userId?: string) => apiClient.get('/finance/statements/attention-summary', { params: { user_id: userId } }),
 }
 
 export const mobileApi = {
