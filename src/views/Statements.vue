@@ -23,7 +23,8 @@ import {
     CreditCard,
     Pencil,
     Ban,
-    Plus
+    Plus,
+    Store
 } from 'lucide-vue-next'
 
 import MainLayout from '@/layouts/MainLayout.vue'
@@ -75,7 +76,7 @@ const categories = ref<any[]>([])
 
 const selectedTransactions = ref<string[]>([])
 const bulkIngestDialog = ref(false)
-const bulkIngestItems = ref<{ transaction_id: string, description: string, amount: number, date: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[]>([])
+const bulkIngestItems = ref<{ transaction_id: string, description: string, amount: number, date: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean, ref_id?: string, extra_data?: any }[]>([])
 
 const deleteDialog = ref(false)
 const statementToDelete = ref<string | null>(null)
@@ -239,7 +240,9 @@ function openBulkIngestDialog() {
                 date: t.date,
                 category: cat,
                 create_rule: !cat,
-                exclude_from_reports: false
+                exclude_from_reports: false,
+                ref_id: t.ref_id,
+                extra_data: t.extra_data
             }
         })
     bulkIngestDialog.value = true
@@ -854,6 +857,14 @@ function getCasSchemeName(txn: StatementTransaction): string {
         txn.description?.toString().trim() ||
         'Mutual Fund Scheme'
     )
+}
+
+function getTxnMerchant(txn: StatementTransaction | any): string | null {
+    if (txn?.extra_data?.merchant) return txn.extra_data.merchant
+    if (selectedStatement.value?.statement_type === 'MUTUAL_FUND_CAS') {
+        return getCasSchemeName(txn)
+    }
+    return null
 }
 
 function getCasMappedName(txn: StatementTransaction): string | null {
@@ -1599,9 +1610,22 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                                         {{ formatTxnDate(txn.date) }}
                                                     </td>
 
-                                                    <td class="py-2 px-3">
-                                                        <div class="font-semibold text-wf-text-primary line-clamp-1" :title="txn.description">
+                                                    <td class="py-2 px-3 max-w-md">
+                                                        <div v-if="getTxnMerchant(txn)" class="font-semibold text-wf-text-primary text-xs flex items-center gap-1.5 mb-0.5">
+                                                            <Store class="w-3.5 h-3.5 text-wf-primary shrink-0" />
+                                                            <span class="truncate">{{ getTxnMerchant(txn) }}</span>
+                                                        </div>
+                                                        <div 
+                                                            :class="[
+                                                                getTxnMerchant(txn) ? 'text-[11px] text-wf-text-secondary' : 'font-semibold text-wf-text-primary text-xs',
+                                                                'line-clamp-2 break-words'
+                                                            ]" 
+                                                            :title="txn.description"
+                                                        >
                                                             {{ txn.description }}
+                                                        </div>
+                                                        <div v-if="txn.ref_id" class="text-[10px] font-mono text-wf-text-muted mt-0.5 flex items-center gap-1">
+                                                            <span>Ref: {{ txn.ref_id }}</span>
                                                         </div>
                                                     </td>
 
@@ -1768,6 +1792,7 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                             v-model="uploadUser"
                             :items="userOptions"
                             size="md"
+                            teleport
                         />
                     </div>
 
@@ -1780,6 +1805,8 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                             v-model="uploadAccount"
                             :items="uploadAccountOptions"
                             size="md"
+                            teleport
+                            searchable
                         />
                     </div>
                 </div>
@@ -2059,6 +2086,7 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                         v-model="editStatementType"
                         :items="statementTypeOptions"
                         size="md"
+                        teleport
                     />
                 </div>
 
@@ -2070,6 +2098,8 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                         v-model="reassignAccountId"
                         :items="accountSelectOptions"
                         size="md"
+                        teleport
+                        searchable
                     />
                 </div>
             </div>
@@ -2099,11 +2129,18 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                     </thead>
                     <tbody class="divide-y divide-wf-border-subtle bg-wf-surface">
                         <tr v-for="item in bulkIngestItems" :key="item.transaction_id" class="hover:bg-wf-surface-variant/30">
-                            <td class="py-2 px-3">
-                                <div class="font-semibold text-wf-text-primary truncate max-w-[200px]" :title="item.description">
+                            <td class="py-2 px-3 max-w-sm">
+                                <div v-if="getTxnMerchant(item)" class="font-semibold text-wf-text-primary text-xs flex items-center gap-1.5 mb-0.5">
+                                    <Store class="w-3.5 h-3.5 text-wf-primary shrink-0" />
+                                    <span class="truncate">{{ getTxnMerchant(item) }}</span>
+                                </div>
+                                <div :class="[getTxnMerchant(item) ? 'text-[11px] text-wf-text-secondary' : 'font-semibold text-wf-text-primary text-xs', 'line-clamp-2 break-words']" :title="item.description">
                                     {{ item.description }}
                                 </div>
-                                <div class="text-[10px] text-wf-text-muted">{{ formatTxnDate(item.date) }}</div>
+                                <div class="text-[10px] text-wf-text-muted mt-0.5 flex items-center gap-2">
+                                    <span>{{ formatTxnDate(item.date) }}</span>
+                                    <span v-if="item.ref_id" class="font-mono">Ref: {{ item.ref_id }}</span>
+                                </div>
                             </td>
 
                             <td class="py-2 px-3 text-right font-bold tabular-nums">

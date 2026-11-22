@@ -26,7 +26,7 @@ const props = withDefaults(defineProps<Props>(), {
   required: false,
   searchable: false,
   native: false,
-  teleport: false,
+  teleport: true,
 })
 
 const emit = defineEmits<{ (e: 'update:modelValue', value: any): void }>()
@@ -108,6 +108,9 @@ function updatePosition() {
 
 function toggleDropdown() {
   if (props.disabled) return
+  if (!isOpen.value) {
+    updatePosition()
+  }
   isOpen.value = !isOpen.value
   if (isOpen.value) {
     nextTick(() => {
