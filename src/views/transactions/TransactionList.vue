@@ -112,7 +112,7 @@
 
                     <!-- Reset Active Filters Button -->
                     <button
-                        v-if="startDate || endDate || searchQuery || categoryFilter || selectedAccount"
+                        v-if="selectedTimeRange !== 'this-month' || searchQuery || categoryFilter || selectedAccount"
                         type="button"
                         @click="handleReset"
                         class="h-8 px-2 text-xs font-semibold text-wf-primary hover:text-wf-primary-hover hover:bg-wf-primary/10 rounded-wf-md transition-colors flex items-center gap-1"
@@ -221,20 +221,24 @@
                                     </span>
                                     <div class="min-w-0">
                                         <router-link
-                                            :to="`/merchants/${encodeURIComponent(item.recipient || item.description || '')}`"
+                                            v-if="(item.recipient || item.description || '').trim()"
+                                            :to="`/merchants/${encodeURIComponent((item.recipient || item.description || '').trim())}`"
                                             @click.stop
                                             class="group inline-flex items-center gap-1 max-w-[180px] text-xs font-semibold truncate text-wf-text-primary hover:underline"
                                             :title="'Open Merchant Profile for ' + (item.recipient || item.description)">
                                             <span class="truncate">{{ item.recipient || item.description }}</span>
                                             <Store :size="11" class="text-wf-text-muted group-hover:text-wf-primary shrink-0" aria-hidden="true" />
                                         </router-link>
+                                        <span v-else class="inline-flex items-center gap-1 max-w-[180px] text-xs font-semibold truncate text-wf-text-muted">
+                                            {{ item.category || 'Transaction' }}
+                                        </span>
                                         <div class="flex items-center gap-1.5 text-[10px] font-medium mt-0.5 leading-none">
                                             <span v-if="item.source" class="text-wf-text-muted flex items-center gap-0.5">
                                                 <span>{{ item.source === 'SMS' ? '📱' : (item.source === 'EMAIL' ? '📧' : '⌨️') }}</span>{{ item.source }}
                                             </span>
-                                            <button type="button" title="View Vendor Analytics"
+                                            <button v-if="(item.recipient || item.description || '').trim()" type="button" title="View Vendor Analytics"
                                                 class="inline-flex items-center gap-0.5 text-[10px] font-semibold text-wf-primary bg-wf-primary/10 hover:opacity-80 px-1 rounded-wf-xs"
-                                                @click.stop="emit('showVendorInsights', item.recipient || item.description || '')">
+                                                @click.stop="emit('showVendorInsights', (item.recipient || item.description || '').trim())">
                                                 <BarChart2 :size="10" /> Analytics
                                             </button>
                                         </div>
@@ -278,8 +282,8 @@
                             <td class="px-3 py-1.5 align-middle text-center" @click.stop>
                                 <WfMenu label="Transaction actions">
                                     <template #trigger><MoreVertical :size="16" /></template>
-                                    <router-link :to="`/merchants/${encodeURIComponent(item.recipient || item.description || '')}`" role="menuitem" class="wf-menu-item"><Store :size="14" class="text-wf-primary" /> Merchant Profile</router-link>
-                                    <button type="button" role="menuitem" class="wf-menu-item" @click="emit('showVendorInsights', item.recipient || item.description || '')"><BarChart2 :size="14" class="text-wf-primary" /> Vendor Analytics</button>
+                                    <router-link v-if="(item.recipient || item.description || '').trim()" :to="`/merchants/${encodeURIComponent((item.recipient || item.description || '').trim())}`" role="menuitem" class="wf-menu-item"><Store :size="14" class="text-wf-primary" /> Merchant Profile</router-link>
+                                    <button v-if="(item.recipient || item.description || '').trim()" type="button" role="menuitem" class="wf-menu-item" @click="emit('showVendorInsights', (item.recipient || item.description || '').trim())"><BarChart2 :size="14" class="text-wf-primary" /> Vendor Analytics</button>
                                     <a v-if="item.latitude || item.location_name" role="menuitem" class="wf-menu-item" target="_blank" rel="noopener"
                                         :href="item.latitude && item.longitude ? `https://www.google.com/maps?q=${item.latitude},${item.longitude}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location_name || '')}`"><MapPin :size="14" class="text-wf-success" /> View on Map</a>
                                     <button type="button" role="menuitem" class="wf-menu-item" @click="emit('editTxn', item)"><Pencil :size="14" /> Edit</button>

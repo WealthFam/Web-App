@@ -102,8 +102,15 @@ const processTrendData = (items: any[]) => {
     const dailyMap = new Map()
 
     items.forEach(t => {
+        if (t.exclude_from_reports || t.is_transfer) return
+        const amt = Number(t.amount || 0)
         const d = new Date(t.date).getDate()
-        dailyMap.set(d, (dailyMap.get(d) || 0) + Math.abs(t.amount))
+        if (props.budget?.type === 'income') {
+            if (amt > 0) dailyMap.set(d, (dailyMap.get(d) || 0) + amt)
+        } else {
+            if (amt < 0) dailyMap.set(d, (dailyMap.get(d) || 0) + Math.abs(amt))
+            else if (amt > 0) dailyMap.set(d, (dailyMap.get(d) || 0) - amt)
+        }
     })
 
     const data = []
@@ -114,7 +121,7 @@ const processTrendData = (items: any[]) => {
     for (let i = 1; i <= limitDay; i++) {
         data.push({
             day: i,
-            amount: dailyMap.get(i) || 0
+            amount: Math.max(0, dailyMap.get(i) || 0)
         })
     }
     dailySpending.value = data

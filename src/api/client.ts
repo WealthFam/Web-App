@@ -105,7 +105,9 @@ export interface AccountUpdate {
 export interface TransactionUpdate {
     description?: string;
     recipient?: string;
+    category_id?: string;
     category?: string;
+    category_type?: 'income' | 'expense' | 'investment' | 'transfer';
     amount?: number;
     date?: string;
     account_id?: string;
@@ -137,8 +139,8 @@ export const financeApi = {
     smartCategorize: (data: { transaction_id: string, category: string, create_rule: boolean, apply_to_similar: boolean, exclude_from_reports?: boolean }) =>
         apiClient.post('/finance/transactions/smart-categorize', data),
     bulkDeleteTransactions: (ids: string[]) => apiClient.post('/finance/transactions/bulk-delete', { transaction_ids: ids }),
-    getMetrics: (accountId?: string, startDate?: string, endDate?: string, userId?: string) => apiClient.get('/finance/analytics/metrics', { params: { account_id: accountId, start_date: startDate, end_date: endDate, user_id: userId } }),
-    getDetailedAnalytics: (accountId?: string, startDate?: string, endDate?: string, userId?: string, category?: string) => apiClient.get('/finance/analytics/detailed', { params: { account_id: accountId, start_date: startDate, end_date: endDate, user_id: userId, category } }),
+    getMetrics: (accountId?: string, startDate?: string, endDate?: string, userId?: string, period?: string) => apiClient.get('/finance/analytics/metrics', { params: { account_id: accountId, start_date: startDate, end_date: endDate, user_id: userId, period } }),
+    getDetailedAnalytics: (accountId?: string, startDate?: string, endDate?: string, userId?: string, category?: string, period?: string) => apiClient.get('/finance/analytics/spending/detailed', { params: { account_id: accountId, start_date: startDate, end_date: endDate, user_id: userId, category, period } }),
     getRules: (params?: { skip?: number, limit?: number, category?: string, search?: string }) => apiClient.get('/finance/rules', { params }),
     getRuleSuggestions: () => apiClient.get('/finance/rules/suggestions'),
     createRule: (data: any) => apiClient.post('/finance/rules', data),

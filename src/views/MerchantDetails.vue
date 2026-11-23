@@ -35,12 +35,33 @@ const transactions = ref<any[]>([])
 const isLoading = ref(true)
 const transactionsCount = computed(() => transactions.value.length)
 
+const reportableTransactions = computed(() => {
+    return transactions.value.filter(tx => !tx.exclude_from_reports && !tx.is_transfer)
+})
+
 const totalSpent = computed(() => {
-    return transactions.value.reduce((sum, tx) => sum + Math.abs(Number(tx.amount || 0)), 0)
+    let grossDebit = 0
+    let refunds = 0
+    let income = 0
+    reportableTransactions.value.forEach(tx => {
+        const amt = Number(tx.amount || 0)
+        const catType = (tx.category_type || '').toLowerCase()
+        if (amt < 0) {
+            grossDebit += Math.abs(amt)
+        } else if (amt > 0) {
+            if (catType === 'expense') refunds += amt
+            else income += amt
+        }
+    })
+    if (grossDebit > 0) {
+        return Math.max(0, grossDebit - refunds)
+    }
+    return income
 })
 
 const averageTx = computed(() => {
-    return transactionsCount.value > 0 ? totalSpent.value / transactionsCount.value : 0
+    const count = reportableTransactions.value.filter(tx => Number(tx.amount || 0) < 0).length || reportableTransactions.value.length
+    return count > 0 ? totalSpent.value / count : 0
 })
 
 const lastTransaction = computed(() => {
@@ -92,29 +113,47 @@ function getTransactionIcon(type: string) {
 
 const categoryBreakdown = computed(() => {
     const cats: Record<string, number> = {}
-    transactions.value.forEach(tx => {
+    reportableTransactions.value.forEach(tx => {
         const cat = tx.category || 'Uncategorized'
-        cats[cat] = (cats[cat] || 0) + Math.abs(Number(tx.amount))
+        const amt = Number(tx.amount || 0)
+        const catType = (tx.category_type || '').toLowerCase()
+        if (amt < 0) {
+            cats[cat] = (cats[cat] || 0) + Math.abs(amt)
+        } else if (amt > 0 && catType === 'expense') {
+            cats[cat] = (cats[cat] || 0) - amt
+        } else if (amt > 0) {
+            cats[cat] = (cats[cat] || 0) + amt
+        }
     })
-    return Object.entries(cats).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    return Object.entries(cats)
+        .map(([k, v]) => [k, Math.max(0, v)] as [string, number])
+        .filter(([, v]) => v > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
 })
 
 const spendingTrendData = computed(() => {
-    if (!transactions.value.length) return null
+    if (!reportableTransactions.value.length) return null
 
     // Group by month
     const groups: Record<string, number> = {}
-    transactions.value.forEach(tx => {
+    reportableTransactions.value.forEach(tx => {
         try {
             const month = format(parseISO(tx.date), 'MMM yyyy')
-            groups[month] = (groups[month] || 0) + Math.abs(Number(tx.amount))
+            const amt = Number(tx.amount || 0)
+            const catType = (tx.category_type || '').toLowerCase()
+            if (amt < 0) {
+                groups[month] = (groups[month] || 0) + Math.abs(amt)
+            } else if (amt > 0 && catType === 'expense') {
+                groups[month] = (groups[month] || 0) - amt
+            }
         } catch {
             // ignore unparseable date
         }
     })
 
     const labels = Object.keys(groups).reverse()
-    const data = labels.map(l => groups[l])
+    const data = labels.map(l => Math.max(0, groups[l] || 0))
 
     return {
         labels,

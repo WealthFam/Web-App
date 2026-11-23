@@ -112,7 +112,7 @@
                             @editTxn="(t) => { fetchModalData(); openEditModal(t) }"
                             @deleteSelected="showDeleteConfirm = true" @importCsv="showImportModal = true"
                             @fetchData="fetchData" @showVendorInsights="openVendorInsights"
-                            @resetFilters="selectedTimeRange = 'all'; startDate = ''; endDate = ''; searchQuery = ''; categoryFilter = ''; fetchData()" />
+                            @resetFilters="selectedAccount = ''; searchQuery = ''; categoryFilter = ''; handleTimeRangeChange('this-month')" />
             </div>
 
             <div v-show="activeTab === 'pending'">

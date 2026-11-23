@@ -104,9 +104,10 @@ const unpinnedTxns = computed(() => {
 })
 
 const selectedTransactionsTotal = computed(() => {
-    return eligibleTransactions.value
-        .filter(t => selectedTransactionIds.value.includes(t.id) && (t.amount || 0) < 0)
-        .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0)
+    const netSpend = eligibleTransactions.value
+        .filter(t => selectedTransactionIds.value.includes(t.id) && !t.exclude_from_reports && !t.is_transfer)
+        .reduce((sum, t) => sum + (-Number(t.amount || 0)), 0)
+    return Math.max(0, netSpend)
 })
 
 const consumedPercentage = computed(() => {

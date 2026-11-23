@@ -39,11 +39,13 @@ export const useTransactionStore = defineStore('transactions', () => {
 
             // Fetch metrics if on main list with no search
             if (!params.search && !params.category) {
+                const isAllTime = !params.startDate && !params.endDate
                 const mRes = await financeApi.getMetrics(
                     params.accountId,
                     params.startDate,
                     params.endDate,
-                    auth.selectedMemberId || undefined
+                    auth.selectedMemberId || undefined,
+                    isAllTime ? 'all' : undefined
                 )
                 metrics.value = mRes.data
             }

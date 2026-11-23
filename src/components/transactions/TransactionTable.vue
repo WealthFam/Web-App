@@ -65,10 +65,10 @@
                                 />
                                 <div class="min-w-0">
                                     <div class="text-xs font-semibold truncate max-w-[200px] text-wf-text-primary">
-                                        <router-link v-if="item.recipient"
-                                            :to="`/merchants/${encodeURIComponent(item.recipient || '')}`"
+                                        <router-link v-if="(item.recipient || '').trim()"
+                                            :to="`/merchants/${encodeURIComponent((item.recipient || '').trim())}`"
                                             class="hover:underline">{{ item.recipient }}</router-link>
-                                        <span v-else>{{ item.description }}</span>
+                                        <span v-else>{{ item.description || item.category || 'Transaction' }}</span>
                                     </div>
                                     <div v-if="item.source" class="flex items-center gap-1 text-[10px] text-wf-text-muted">
                                         <span>{{ item.source === 'SMS' ? '📱' : (item.source === 'EMAIL' ? '📧' : '⌨️') }}</span>

@@ -33,13 +33,18 @@ export function useTransactionState(
         breakdown: { net_worth: 0 }
     })
 
-    // Filter State
+    // Filter State (Default to Current Month)
+    const now = new Date()
+    const defaultStart = localDateString(now.getFullYear(), now.getMonth(), 1)
+    const defaultLastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    const defaultEnd = localDateString(defaultLastDay.getFullYear(), defaultLastDay.getMonth(), defaultLastDay.getDate())
+
     const selectedAccount = ref<string>('')
     const searchQuery = ref('')
     const categoryFilter = ref('')
-    const startDate = ref<string>('')
-    const endDate = ref<string>('')
-    const selectedTimeRange = ref<string>('all')
+    const startDate = ref<string>(defaultStart)
+    const endDate = ref<string>(defaultEnd)
+    const selectedTimeRange = ref<string>('this-month')
 
     const timeRangeOptions = [
         { title: 'All Time', value: 'all' },

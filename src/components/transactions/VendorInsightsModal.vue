@@ -16,7 +16,8 @@
                         <span>Merchant Profile</span>
                         <span>•</span>
                         <router-link
-                            :to="`/merchants/${encodeURIComponent(vendorName)}`"
+                            v-if="(vendorName || '').trim()"
+                            :to="`/merchants/${encodeURIComponent((vendorName || '').trim())}`"
                             @click="internalValue = false"
                             class="text-xs font-semibold text-wf-primary hover:underline inline-flex items-center gap-1"
                             title="Open Merchant Profile page"

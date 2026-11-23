@@ -37,6 +37,7 @@ export function useTransactionModals(
         type: string
         description: string
         recipient: string
+        category_id: string
         category: string
         amount: number | null
         date: string
@@ -53,6 +54,7 @@ export function useTransactionModals(
         type: 'DEBIT',
         description: '',
         recipient: '',
+        category_id: '',
         category: '',
         amount: null,
         date: localISOString(),
@@ -119,6 +121,7 @@ export function useTransactionModals(
             type: isDebit ? 'DEBIT' : 'CREDIT',
             description: txn.description,
             recipient: txn.recipient || '',
+            category_id: txn.category_id || '',
             category: txn.category,
             amount: Math.abs(txn.amount),
             date: txn.date ? txn.date.slice(0, 16) : localISOString(),
@@ -163,17 +166,18 @@ export function useTransactionModals(
             const payload = {
                 description: submissionData.description,
                 recipient: submissionData.recipient,
+                category_id: submissionData.category_id || undefined,
                 category: submissionData.category,
                 amount: finalAmount,
                 date: new Date(submissionData.date).toISOString(),
                 account_id: submissionData.account_id,
                 is_transfer: submissionData.is_transfer,
-                to_account_id: submissionData.to_account_id,
-                linked_transaction_id: submissionData.linked_transaction_id,
+                to_account_id: submissionData.to_account_id || undefined,
+                linked_transaction_id: submissionData.linked_transaction_id || undefined,
                 exclude_from_reports: submissionData.exclude_from_reports,
                 is_emi: submissionData.is_emi,
-                loan_id: submissionData.loan_id,
-                expense_group_id: submissionData.expense_group_id
+                loan_id: submissionData.loan_id || undefined,
+                expense_group_id: submissionData.expense_group_id || undefined
             }
 
             if (isEditing.value && editingTxnId.value) {
