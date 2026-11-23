@@ -73,6 +73,19 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    async function refreshToken() {
+        if (!token.value) return
+        try {
+            const response = await apiClient.post('/auth/refresh')
+            if (response.data?.access_token) {
+                token.value = response.data.access_token
+                localStorage.setItem('access_token', response.data.access_token)
+            }
+        } catch (error) {
+            console.error("Failed to refresh session token", error)
+        }
+    }
+
     function logout() {
         token.value = null
         user.value = null
@@ -97,6 +110,7 @@ export const useAuthStore = defineStore('auth', () => {
         logout,
         fetchUser,
         fetchFamilyMembers,
+        refreshToken,
         selectMember
     }
 })

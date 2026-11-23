@@ -68,5 +68,32 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  build: {
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('chart.js') || id.includes('vue-chartjs') || id.includes('chartjs-plugin-datalabels')) {
+              return 'vendor-charts'
+            }
+            if (id.includes('leaflet') || id.includes('leaflet.heat')) {
+              return 'vendor-maps'
+            }
+            if (id.includes('lucide-vue-next') || id.includes('@vuepic/vue-datepicker')) {
+              return 'vendor-ui'
+            }
+            if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) {
+              return 'vendor-vue'
+            }
+            if (id.includes('date-fns') || id.includes('marked') || id.includes('axios')) {
+              return 'vendor-utils'
+            }
+            return 'vendor-core'
+          }
+        }
+      }
+    }
   }
 })
