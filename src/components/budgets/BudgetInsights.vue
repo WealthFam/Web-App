@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { TrendingUp, RefreshCw } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import WfCard from '@/components/ui/WfCard.vue'
+import WfButton from '@/components/ui/WfButton.vue'
 
 defineProps<{
   insights: any[]

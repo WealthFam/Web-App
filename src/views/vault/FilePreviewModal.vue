@@ -44,12 +44,14 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', val: boolean): void
   (e: 'refresh'): void
+  (e: 'close'): void
 }>()
 
 const notification = useNotificationStore()
 const router = useRouter()
 
 const loading = ref(false)
+const previewError = ref<string | null>(null)
 const versionsLoading = ref(false)
 const submitting = ref(false)
 const versions = ref<any[]>([])
@@ -158,19 +160,31 @@ const docTypes = [
 ]
 
 const isRenderable = computed(() => {
-  if (!props.item || !props.item.mime_type) return false
-  const mt = props.item.mime_type
+  if (!props.item) return false
+  const mt = (props.item.mime_type || '').toLowerCase()
+  const fname = (props.item.filename || '').toLowerCase()
   return (
     mt.startsWith('image/') ||
     mt === 'application/pdf' ||
+    mt.includes('pdf') ||
+    fname.endsWith('.pdf') ||
+    /\.(jpe?g|png|gif|webp|svg)$/i.test(fname) ||
     mt.startsWith('text/') ||
     mt === 'application/json' ||
     mt === 'text/html'
   )
 })
 
-const isImage = computed(() => props.item?.mime_type?.startsWith('image/'))
-const isPdf = computed(() => props.item?.mime_type === 'application/pdf')
+const isImage = computed(() => {
+  const mt = (props.item?.mime_type || '').toLowerCase()
+  const fname = (props.item?.filename || '').toLowerCase()
+  return mt.startsWith('image/') || /\.(jpe?g|png|gif|webp|svg)$/i.test(fname)
+})
+const isPdf = computed(() => {
+  const mt = (props.item?.mime_type || '').toLowerCase()
+  const fname = (props.item?.filename || '').toLowerCase()
+  return mt === 'application/pdf' || mt.includes('pdf') || fname.endsWith('.pdf')
+})
 
 async function fetchVersions() {
   if (!props.item) return
@@ -188,21 +202,29 @@ async function fetchVersions() {
 async function loadPreview(version?: number) {
   if (!props.item || !isRenderable.value) return
   loading.value = true
+  previewError.value = null
   selectedVersion.value = version || null
 
   if (activeBlob.value) {
     URL.revokeObjectURL(activeBlob.value)
     activeBlob.value = null
   }
+  previewUrl.value = null
 
   try {
     const res = await financeApi.getDocumentBlob(props.item.id, version)
-    const blob = new Blob([res.data], { type: props.item.mime_type })
+    const mimeType = isPdf.value ? 'application/pdf' : (props.item.mime_type || 'application/octet-stream')
+    const blob = new Blob([res.data], { type: mimeType })
     activeBlob.value = URL.createObjectURL(blob)
     previewUrl.value = activeBlob.value
   } catch (e: any) {
-    console.error('Preview load failed', e)
-    notification.error('Failed to load preview')
+    const status = e?.response?.status
+    if (status === 404) {
+      previewError.value = 'This file is missing from local storage. You can upload a replacement version using Edit Details → Replace with New Version.'
+    } else {
+      previewError.value = 'Unable to load preview for this document.'
+      notification.error('Failed to load preview')
+    }
   } finally {
     loading.value = false
   }
@@ -270,6 +292,7 @@ watch(() => props.modelValue, (val) => {
     txSearchResults.value = []
   } else {
     editMode.value = false
+    previewError.value = null
     txSearch.value = ''
     txSearchResults.value = []
     if (activeBlob.value) {
@@ -278,11 +301,15 @@ watch(() => props.modelValue, (val) => {
       previewUrl.value = null
     }
   }
-})
+}, { immediate: true })
 
-watch(() => props.item, (newVal) => {
+watch(() => props.item, (newVal, oldVal) => {
   if (props.modelValue && newVal) {
     fetchLinkedTransaction()
+    if (!oldVal || newVal.id !== oldVal.id) {
+      loadPreview()
+      fetchVersions()
+    }
   }
 }, { deep: true })
 
@@ -353,6 +380,7 @@ function getIcon(item: any) {
 
 function close() {
   emit('update:modelValue', false)
+  emit('close')
 }
 </script>
 
@@ -416,6 +444,22 @@ function close() {
           <div v-if="loading" class="flex flex-col items-center gap-3">
             <Loader2 class="w-10 h-10 text-wf-primary animate-spin" />
             <span class="text-xs font-bold text-wf-text-muted">Loading preview...</span>
+          </div>
+
+          <div v-else-if="previewError" class="text-center p-8 max-w-sm space-y-4">
+            <div class="w-16 h-16 rounded-full bg-wf-surface-variant flex items-center justify-center mx-auto text-wf-text-muted">
+              <FileQuestion class="w-8 h-8" />
+            </div>
+            <div>
+              <h4 class="text-base font-bold text-wf-text-primary">File Not Found on Disk</h4>
+              <p class="text-xs text-wf-text-muted mt-1 leading-relaxed">
+                {{ previewError }}
+              </p>
+            </div>
+            <WfButton v-if="!editMode" variant="secondary" size="sm" @click="initEdit">
+              <Upload class="w-3.5 h-3.5 mr-1.5" />
+              <span>Upload Replacement Version</span>
+            </WfButton>
           </div>
 
           <div v-else-if="!isRenderable" class="text-center p-8 max-w-sm space-y-4">

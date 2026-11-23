@@ -43,6 +43,12 @@ import GlobalSearch from '@/components/common/GlobalSearch.vue'
 import { useWebSockets } from '@/composables/useWebSockets'
 import { useAttentionStore } from '@/stores/attention'
 
+const auth = useAuthStore()
+const settingsStore = useSettingsStore()
+const router = useRouter()
+const route = useRoute()
+const isDark = ref(localStorage.getItem('theme') === 'dark' || document.documentElement.classList.contains('dark'))
+
 const { notifications, clearNotifications } = useWebSockets()
 const unreadCount = computed(() => notifications.value.length)
 const attentionStore = useAttentionStore()
@@ -81,12 +87,6 @@ watch(unreadCount, (newVal, oldVal) => {
     }, 1000)
   }
 })
-
-const auth = useAuthStore()
-const settingsStore = useSettingsStore()
-const router = useRouter()
-const route = useRoute()
-const isDark = ref(localStorage.getItem('theme') === 'dark' || document.documentElement.classList.contains('dark'))
 
 // App metadata
 const appVersionDisplay = `v${__APP_VERSION__} (${__APP_BUILD__})`

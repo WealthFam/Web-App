@@ -1,18 +1,24 @@
 <script setup lang="ts">
-import { watch, onMounted, onUnmounted } from 'vue'
+import { watch, onMounted, onUnmounted, computed } from 'vue'
 import { X } from 'lucide-vue-next'
+
+defineOptions({
+  inheritAttrs: false,
+})
 
 interface Props {
   modelValue: boolean
   title?: string
   description?: string
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl'
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl'
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: false,
-  maxWidth: 'md',
 })
+
+const effectiveMaxWidth = computed(() => props.maxWidth || props.size || 'md')
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
@@ -67,14 +73,15 @@ watch(() => props.modelValue, (isOpen) => {
       >
         <div
           class="w-full my-auto bg-wf-surface border border-wf-border rounded-wf-xl shadow-wf-modal overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+          v-bind="$attrs"
           :class="[
-            maxWidth === 'sm' ? 'max-w-sm' : '',
-            maxWidth === 'md' ? 'max-w-md' : '',
-            maxWidth === 'lg' ? 'max-w-lg' : '',
-            maxWidth === 'xl' ? 'max-w-xl' : '',
-            maxWidth === '2xl' ? 'max-w-2xl' : '',
-            maxWidth === '3xl' ? 'max-w-3xl' : '',
-            maxWidth === '4xl' ? 'max-w-4xl' : '',
+            effectiveMaxWidth === 'sm' ? 'max-w-sm' : '',
+            effectiveMaxWidth === 'md' ? 'max-w-md' : '',
+            effectiveMaxWidth === 'lg' ? 'max-w-lg' : '',
+            effectiveMaxWidth === 'xl' ? 'max-w-xl' : '',
+            effectiveMaxWidth === '2xl' ? 'max-w-2xl' : '',
+            effectiveMaxWidth === '3xl' ? 'max-w-3xl' : '',
+            effectiveMaxWidth === '4xl' ? 'max-w-4xl' : '',
           ]"
         >
           <div v-if="title || $slots.header" class="flex items-center justify-between px-6 py-4 border-b border-wf-divider">
