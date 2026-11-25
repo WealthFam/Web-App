@@ -318,7 +318,7 @@ async function confirmBulkIngest() {
 }
 
 onMounted(async () => {
-    store.fetchStatements(0, statementPageSize)
+    loadFilteredStatements(1)
     fetchStatementIgnoreRules()
     try {
         const [usersRes, accountsRes, categoriesRes] = await Promise.all([
