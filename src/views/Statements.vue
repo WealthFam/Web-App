@@ -573,11 +573,19 @@ async function handleUpload() {
     }
 }
 
+const MAX_STATEMENT_SIZE_BYTES = 15 * 1024 * 1024 // 15 MB
+
 function handleFileInput(e: Event) {
     const target = e.target as HTMLInputElement
-    if (target.files && target.files[0]) {
-        uploadFile.value = target.files[0]
+    const file = target.files?.[0]
+    if (!file) return
+    if (file.size > MAX_STATEMENT_SIZE_BYTES) {
+        uploadFile.value = null
+        target.value = ''
+        notification.error(`Statement PDF is too large (${(file.size / (1024 * 1024)).toFixed(1)} MB). Maximum allowed size is 15 MB.`)
+        return
     }
+    uploadFile.value = file
 }
 
 function openRetryDialog(s: Statement) {
@@ -2098,6 +2106,7 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                 <div class="space-y-1.5 text-left">
                     <label class="text-xs font-semibold text-wf-text-secondary uppercase tracking-wider">
                         PDF Statement File <span class="text-wf-error">*</span>
+                        <span class="normal-case font-normal text-wf-text-muted ml-1">(Max 15 MB)</span>
                     </label>
                     <input
                         type="file"

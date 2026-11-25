@@ -21,7 +21,9 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
 const selectedFile = ref<File | null>(null)
+const fileError = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const docTypes = [
@@ -33,14 +35,26 @@ const docTypes = [
   { title: 'Identity Proof', value: 'IDENTITY' }
 ]
 
+function validateAndSetFile(file: File | undefined) {
+  fileError.value = null
+  if (!file) return
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    selectedFile.value = null
+    fileError.value = `File is too large (${formatSize(file.size)}). Maximum allowed size is 10 MB.`
+    return
+  }
+  selectedFile.value = file
+}
+
 function handleFileSelect(e: any) {
   const file = e.target.files?.[0]
-  if (file) selectedFile.value = file
+  validateAndSetFile(file)
+  if (e.target) e.target.value = ''
 }
 
 function handleDrop(e: DragEvent) {
   const file = e.dataTransfer?.files?.[0]
-  if (file) selectedFile.value = file
+  validateAndSetFile(file)
 }
 
 function formatSize(bytes: number) {
@@ -53,6 +67,7 @@ function formatSize(bytes: number) {
 
 function handleClose() {
   selectedFile.value = null
+  fileError.value = null
   emit('update:modelValue', false)
   emit('close')
 }
@@ -104,9 +119,12 @@ function submit() {
             Click to browse or drag & drop
           </span>
           <span class="text-[10px] text-wf-text-muted mt-0.5 block">
-            PDF, JPG, PNG, XLSX, DOCX up to 50MB
+            PDF, JPG, PNG, XLSX, DOCX up to 10MB
           </span>
         </div>
+        <p v-if="fileError" class="text-[11px] font-medium text-rose-500 pt-1">
+          {{ fileError }}
+        </p>
         <input
           type="file"
           ref="fileInput"
