@@ -78,7 +78,7 @@ export default defineConfig({
             if (id.includes('chart.js') || id.includes('vue-chartjs') || id.includes('chartjs-plugin-datalabels')) {
               return 'vendor-charts'
             }
-            if (id.includes('leaflet') || id.includes('leaflet.heat')) {
+            if (id.includes('leaflet') || id.includes('leaflet.heat') || id.includes('leaflet.markercluster')) {
               return 'vendor-maps'
             }
             if (id.includes('lucide-vue-next') || id.includes('@vuepic/vue-datepicker')) {
