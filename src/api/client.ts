@@ -230,7 +230,6 @@ export const financeApi = {
     batchDeleteDocuments: (ids: string[]) => apiClient.post('/finance/vault/batch-delete', { document_ids: ids }),
     linkDocToTransaction: (docId: string, transactionId: string | null) =>
         apiClient.patch(`/finance/vault/${docId}/link-transaction`, { transaction_id: transactionId }),
-    syncVault: () => apiClient.post('/finance/vault/sync'),
     getDocument: (id: string) => apiClient.get(`/finance/vault/${id}`),
     issueTicket: () => apiClient.post<{ ticket: string; expires_in: number }>('/auth/ticket'),
 
@@ -268,15 +267,6 @@ export const financeApi = {
         if (version) url += `?version=${version}`
         return apiClient.get(url, { responseType: 'blob' })
     },
-    getVaultSettings: () => apiClient.get('/finance/vault/settings'),
-    saveVaultSettings: (credentials_json: string) => apiClient.post('/finance/vault/settings', { credentials_json }),
-    clearVaultSettings: () => apiClient.delete('/finance/vault/settings'),
-    testVaultConnection: () => apiClient.post('/finance/vault/settings/test'),
-    getVaultAuthUrl: (client_id: string, client_secret: string) =>
-        apiClient.post('/finance/vault/settings/auth-url', { client_id, client_secret }),
-    exchangeVaultCode: (code: string) =>
-        apiClient.post('/finance/vault/settings/callback', { code }),
-    getVaultHistory: (limit: number = 10) => apiClient.get('/finance/vault/history', { params: { limit } }),
 
     // Ingestion
     analyzeCsv: (formData: FormData) => apiClient.post('/ingestion/csv/analyze', formData, {
