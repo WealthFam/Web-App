@@ -284,10 +284,11 @@
                 </WfButton>
                 <button
                   type="button"
-                  @click="dismissPair(pair.id)"
-                  class="text-xs font-semibold text-wf-text-muted hover:text-wf-text-primary px-2 py-1 transition-colors"
+                  :disabled="pairingId === pair.id"
+                  @click="dismissPair(pair)"
+                  class="text-xs font-semibold text-wf-text-muted hover:text-wf-text-primary px-2 py-1 transition-colors disabled:opacity-50"
                 >
-                  Dismiss
+                  Not a Transfer
                 </button>
               </div>
             </div>
@@ -338,16 +339,26 @@
               <div class="text-xs text-wf-text-muted">
                 Suggested Destination: <strong class="text-wf-text-primary">{{ item.suggested_destination?.name || 'Unknown' }}</strong>
               </div>
-              <WfButton
-                variant="primary"
-                size="sm"
-                :loading="creatingCounterpartId === item.transaction.id"
-                @click="openCreateCounterpartModal(item)"
-                class="h-8 px-3 text-xs font-semibold"
-              >
-                <PlusCircle class="w-3.5 h-3.5 mr-1.5" />
-                <span>Create Counterpart & Link</span>
-              </WfButton>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  :disabled="creatingCounterpartId === item.transaction.id"
+                  @click="dismissUnpaired(item)"
+                  class="h-8 px-3 text-xs font-semibold text-wf-text-muted hover:text-wf-text-primary border border-wf-border rounded-wf-md transition-colors disabled:opacity-50"
+                >
+                  Not a Transfer
+                </button>
+                <WfButton
+                  variant="primary"
+                  size="sm"
+                  :loading="creatingCounterpartId === item.transaction.id"
+                  @click="openCreateCounterpartModal(item)"
+                  class="h-8 px-3 text-xs font-semibold"
+                >
+                  <PlusCircle class="w-3.5 h-3.5 mr-1.5" />
+                  <span>Create Counterpart & Link</span>
+                </WfButton>
+              </div>
             </div>
           </div>
         </div>
@@ -607,8 +618,7 @@ async function pairSingle(pair: any) {
   try {
     await financeApi.pairTransfer({
       source_txn_id: pair.source_transaction.id,
-      target_txn_id: pair.destination_transaction.id,
-      notes: pair.reason
+      target_txn_id: pair.destination_transaction.id
     })
     notification.success('Transfers successfully paired!')
     candidates.value.paired_candidates = (candidates.value.paired_candidates || []).filter(p => p.id !== pair.id)
@@ -630,20 +640,64 @@ async function approveAllHighConfidence() {
 
   try {
     const res = await financeApi.batchPairTransfers(pairsToLink)
-    notification.success(`Paired ${res.data.paired_count} transfers successfully!`)
+    const pairedCount = Number(res.data?.paired_count || 0)
+    const failedCount = Number(res.data?.failed_count || 0)
+    const errors = Array.isArray(res.data?.errors) ? res.data.errors : []
+
+    if (pairedCount === 0 && failedCount > 0) {
+      const firstErr = errors[0]?.error || 'Unknown error'
+      notification.error(`Could not link ${failedCount} pair(s): ${firstErr}`)
+    } else if (failedCount > 0) {
+      notification.error(`Linked ${pairedCount} pair(s), but ${failedCount} failed.`)
+    } else {
+      notification.success(`Paired ${pairedCount} transfers successfully!`)
+    }
     await fetchCandidates()
     await fetchHistory()
-  } catch (e) {
+  } catch (e: any) {
     console.error('Batch pairing failed', e)
-    notification.error('Failed to batch pair transfers')
+    notification.error(e.response?.data?.detail || 'Failed to batch pair transfers')
   } finally {
     isBatchPairing.value = false
   }
 }
 
-function dismissPair(pairId: string) {
-  candidates.value.paired_candidates = (candidates.value.paired_candidates || []).filter(p => p.id !== pairId)
-  notification.info('Suggestion dismissed')
+async function dismissPair(pair: any) {
+  pairingId.value = pair.id
+  try {
+    await financeApi.ignoreTransferCandidate({
+      source_txn_id: pair.source_transaction.id,
+      target_txn_id: pair.destination_transaction.id,
+      reason: 'User dismissed candidate pair'
+    })
+    candidates.value.paired_candidates = (candidates.value.paired_candidates || []).filter(p => p.id !== pair.id)
+    notification.info('Dismissed from transfer candidates')
+  } catch (e: any) {
+    console.error('Failed to dismiss pair', e)
+    notification.error(e.response?.data?.detail || 'Failed to dismiss suggestion')
+  } finally {
+    pairingId.value = null
+  }
+}
+
+async function dismissUnpaired(item: any) {
+  const txnId = item.transaction.id
+  creatingCounterpartId.value = txnId
+  try {
+    await financeApi.ignoreTransferCandidate({
+      source_txn_id: txnId,
+      reason: 'User dismissed candidate outflow'
+    })
+    candidates.value.unpaired_candidates = (candidates.value.unpaired_candidates || []).filter(
+      u => u.transaction.id !== txnId
+    )
+    notification.info('Dismissed from transfer candidates')
+  } catch (e: any) {
+    console.error('Failed to dismiss unpaired outflow', e)
+    notification.error(e.response?.data?.detail || 'Failed to dismiss suggestion')
+  } finally {
+    creatingCounterpartId.value = null
+  }
 }
 
 function openCreateCounterpartModal(unpaired: any) {

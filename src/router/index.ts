@@ -50,7 +50,7 @@ const router = createRouter({
       path: '/transfers',
       name: 'transfers',
       component: () => import('@/views/Transfers.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, adultOnly: true }
     },
     {
       path: '/transactions',
@@ -169,6 +169,8 @@ router.beforeEach((to, _from, next) => {
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next('/login')
   } else if (to.meta.guest && authStore.isAuthenticated) {
+    next('/')
+  } else if (to.meta.adultOnly && authStore.user?.role?.toUpperCase() === 'CHILD') {
     next('/')
   } else {
     next()

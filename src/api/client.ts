@@ -479,6 +479,7 @@ export const financeApi = {
     batchPairTransfers: (pairs: Array<{ source_txn_id: string, target_txn_id: string }>) => apiClient.post('/finance/transfers/batch-pair', { pairs }),
     unpairTransfer: (txnId: string) => apiClient.post(`/finance/transfers/unpair/${txnId}`),
     createTransferCounterpart: (data: { source_txn_id: string, to_account_id: string, credited_amount?: number }) => apiClient.post('/finance/transfers/create-counterpart', data),
+    ignoreTransferCandidate: (data: { source_txn_id: string, target_txn_id?: string, reason?: string }) => apiClient.post('/finance/transfers/ignore', data),
     getTransferHistory: (params?: { limit?: number, offset?: number }) => apiClient.get('/finance/transfers/history', { params }),
 
     getStatements: (params?: { skip?: number, limit?: number, search?: string, status?: string, statement_type?: string, is_attended?: boolean }) => apiClient.get('/finance/statements', { params }),
