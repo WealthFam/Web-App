@@ -77,6 +77,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/spending-map',
+      name: 'spending-map',
+      component: () => import('@/views/SpendingMap.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/vault',
       name: 'vault',
       component: () => import('@/views/Vault.vue'),

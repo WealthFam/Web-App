@@ -202,8 +202,34 @@ export const financeApi = {
         apiClient.get('/finance/analytics/spending-forecast', { params: { start_date: startDate, end_date: endDate, user_id: userId } }),
     getBudgetHistory: (months: number = 6, userId?: string, accountId?: string) =>
         apiClient.get('/finance/analytics/budget-history', { params: { months, user_id: userId, account_id: accountId } }),
-    getHeatmapData: (startDate?: string, endDate?: string, userId?: string) =>
-        apiClient.get('/finance/analytics/heatmap', { params: { start_date: startDate, end_date: endDate, user_id: userId } }),
+    getHeatmapData: (
+        startDate?: string,
+        endDate?: string,
+        userId?: string,
+        filters?: {
+            period?: string
+            categoryIds?: string[]
+            accountId?: string
+            expenseGroupId?: string
+            minAmount?: number
+            maxAmount?: number
+            search?: string
+        }
+    ) =>
+        apiClient.get('/finance/analytics/heatmap', {
+            params: {
+                start_date: startDate || undefined,
+                end_date: endDate || undefined,
+                user_id: userId || undefined,
+                period: filters?.period || undefined,
+                category_ids: filters?.categoryIds?.length ? filters.categoryIds.join(',') : undefined,
+                account_id: filters?.accountId || undefined,
+                expense_group_id: filters?.expenseGroupId || undefined,
+                min_amount: filters?.minAmount ?? undefined,
+                max_amount: filters?.maxAmount ?? undefined,
+                search: filters?.search?.trim() || undefined,
+            }
+        }),
     getMerchantBreakdown: (category?: string, startDate?: string, endDate?: string, userId?: string) =>
         apiClient.get('/finance/analytics/merchant-breakdown', { params: { category, start_date: startDate, end_date: endDate, user_id: userId } }),
     getFamilyWealth: () => apiClient.get('/finance/analytics/family-wealth'),

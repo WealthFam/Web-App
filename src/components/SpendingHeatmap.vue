@@ -9,14 +9,24 @@
                 <p class="text-xs text-wf-text-muted">Visualizing expenses by location</p>
             </div>
 
-            <div class="flex items-center gap-3 px-4 py-2 rounded-full bg-wf-surface-variant border border-wf-border">
-                <span class="text-[10px] font-semibold uppercase text-wf-text-muted">Low</span>
-                <div class="gradient-bar-premium"></div>
-                <span class="text-[10px] font-semibold uppercase text-wf-text-muted">High</span>
-                <span v-if="hasLocationData"
-                    class="ml-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-wf-primary/10 text-wf-primary">
-                    {{ data.length }} Points
-                </span>
+            <div class="flex items-center gap-2">
+                <div class="flex items-center gap-3 px-4 py-2 rounded-full bg-wf-surface-variant border border-wf-border">
+                    <span class="text-[10px] font-semibold uppercase text-wf-text-muted">Low</span>
+                    <div class="gradient-bar-premium"></div>
+                    <span class="text-[10px] font-semibold uppercase text-wf-text-muted">High</span>
+                    <span v-if="hasLocationData"
+                        class="ml-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-wf-primary/10 text-wf-primary">
+                        {{ data.length }} Points
+                    </span>
+                </div>
+                <RouterLink
+                    :to="{ path: '/spending-map', query: { startDate: props.startDate, endDate: props.endDate } }"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-wf-primary/10 text-wf-primary hover:bg-wf-primary hover:text-white text-xs font-semibold transition-colors"
+                    title="Open Full-Screen Spending Map"
+                >
+                    <Maximize2 :size="14" aria-hidden="true" />
+                    <span class="hidden sm:inline">Full Screen</span>
+                </RouterLink>
             </div>
         </div>
 
@@ -40,7 +50,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import L from 'leaflet'
-import { MapPin } from 'lucide-vue-next'
+import { MapPin, Maximize2 } from 'lucide-vue-next'
 // @ts-ignore - plugin compatibility
 if (typeof window !== 'undefined') window.L = L
 import 'leaflet/dist/leaflet.css'

@@ -31,7 +31,8 @@ import {
   X,
   Check,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  MapPin
 } from 'lucide-vue-next'
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
@@ -235,6 +236,7 @@ const navSections = computed<NavSection[]>(() => {
           icon: PieChart,
           children: [
             { title: 'Insights', icon: Sparkles, to: '/insights' },
+            { title: 'Spending Map', icon: MapPin, to: '/spending-map' },
             { title: 'Budgets', icon: PieChart, to: '/budgets' },
             { title: 'Categories', icon: Tags, to: '/categories' },
             { title: 'Expense Groups', icon: Layers, to: '/expense-groups' },
