@@ -163,22 +163,27 @@ const isRenderable = computed(() => {
   if (!props.item) return false
   const mt = (props.item.mime_type || '').toLowerCase()
   const fname = (props.item.filename || '').toLowerCase()
+  // Security: Never render active content (HTML/SVG) inline in same-origin blob frames
+  if (mt === 'text/html' || mt === 'image/svg+xml' || /\.(html?|svg|xhtml)$/i.test(fname)) {
+    return false
+  }
   return (
     mt.startsWith('image/') ||
     mt === 'application/pdf' ||
     mt.includes('pdf') ||
     fname.endsWith('.pdf') ||
-    /\.(jpe?g|png|gif|webp|svg)$/i.test(fname) ||
-    mt.startsWith('text/') ||
-    mt === 'application/json' ||
-    mt === 'text/html'
+    /\.(jpe?g|png|gif|webp)$/i.test(fname) ||
+    mt === 'text/plain' ||
+    mt === 'text/csv' ||
+    mt === 'application/json'
   )
 })
 
 const isImage = computed(() => {
   const mt = (props.item?.mime_type || '').toLowerCase()
   const fname = (props.item?.filename || '').toLowerCase()
-  return mt.startsWith('image/') || /\.(jpe?g|png|gif|webp|svg)$/i.test(fname)
+  if (mt === 'image/svg+xml' || /\.svg$/i.test(fname)) return false
+  return mt.startsWith('image/') || /\.(jpe?g|png|gif|webp)$/i.test(fname)
 })
 const isPdf = computed(() => {
   const mt = (props.item?.mime_type || '').toLowerCase()
@@ -213,8 +218,17 @@ async function loadPreview(version?: number) {
 
   try {
     const res = await financeApi.getDocumentBlob(props.item.id, version)
-    const mimeType = isPdf.value ? 'application/pdf' : (props.item.mime_type || 'application/octet-stream')
-    const blob = new Blob([res.data], { type: mimeType })
+    const mimeType = isPdf.value
+      ? 'application/pdf'
+      : isImage.value
+        ? (props.item.mime_type || 'application/octet-stream')
+        : 'text/plain'
+    const { useZkVault } = await import('@/composables/useZkVault')
+    const { decryptDownloadedBlob } = useZkVault()
+    const rawBuf = res.data instanceof Blob ? await res.data.arrayBuffer() : res.data
+    const blob = rawBuf instanceof ArrayBuffer
+      ? await decryptDownloadedBlob(rawBuf, mimeType)
+      : new Blob([res.data], { type: mimeType })
     activeBlob.value = URL.createObjectURL(blob)
     previewUrl.value = activeBlob.value
   } catch (e: any) {
@@ -493,6 +507,7 @@ function close() {
             <iframe
               v-else
               :src="previewUrl"
+              sandbox=""
               class="w-full h-full border-0 rounded-wf-md shadow-2xl bg-white"
             ></iframe>
           </div>
