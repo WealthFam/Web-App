@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { marked } from 'marked'
+import { renderSafeMarkdown } from '@/utils/sanitize'
 import { useRoute, useRouter } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { financeApi } from '@/api/client'
@@ -232,8 +232,7 @@ async function fetchPerformanceTimeline() {
 }
 
 const formattedSummary = computed(() => {
-    if (!fundInsights.value?.summary) return ''
-    return marked.parse(fundInsights.value.summary)
+    return renderSafeMarkdown(fundInsights.value?.summary)
 })
 
 const getInsightColor = (type: string) => {

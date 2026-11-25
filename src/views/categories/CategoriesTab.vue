@@ -25,7 +25,7 @@ const showDeleteCategoryConfirm = ref(false)
 const showDeleteRestrictedModal = ref(false)
 const categoryToDelete = ref<any>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
-const restrictionMessage = ref('')
+const restrictionReasons = ref<string[]>([])
 const isCheckingUsage = ref(false)
 
 // Pagination State
@@ -156,9 +156,7 @@ async function startDeleteCategory(cat: any) {
     try {
         const usage = await categoriesStore.getCategoryUsage(cat.id)
         if (usage && !usage.is_safe) {
-            restrictionMessage.value = `This category cannot be deleted because:<br/><br/>` +
-                usage.reasons.map((r: string) => `• ${r}`).join('<br/>') +
-                `<br/><br/>Please resolve these dependencies before removing the category.`
+            restrictionReasons.value = Array.isArray(usage.reasons) ? usage.reasons.map(String) : []
             showDeleteRestrictedModal.value = true
         } else {
             categoryToDelete.value = cat
@@ -617,7 +615,13 @@ defineExpose({
                 </div>
                 <div>
                     <h3 class="text-base font-bold text-wf-text-primary">Notice</h3>
-                    <div class="text-xs text-wf-text-secondary mt-2 text-left bg-wf-surface-variant/50 p-3 rounded-wf-md border border-wf-border" v-html="restrictionMessage"></div>
+                    <div class="text-xs text-wf-text-secondary mt-2 text-left bg-wf-surface-variant/50 p-3 rounded-wf-md border border-wf-border space-y-2">
+                        <p>This category cannot be deleted because:</p>
+                        <ul class="list-disc pl-4 space-y-1">
+                            <li v-for="(reason, idx) in restrictionReasons" :key="idx">{{ reason }}</li>
+                        </ul>
+                        <p>Please resolve these dependencies before removing the category.</p>
+                    </div>
                 </div>
                 <div class="pt-2">
                     <WfButton

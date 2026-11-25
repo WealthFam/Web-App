@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import apiClient from '@/api/client'
 import { clearStoreCache } from '@/utils/persistence'
+import { zkKeyManager } from '@/crypto/zkCrypto'
 
 interface User {
     id: string
@@ -87,12 +88,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     function logout() {
+        const activeToken = token.value
+        if (activeToken) {
+            // Fire-and-forget server-side JTI revocation
+            apiClient.post('/auth/logout', null, {
+                headers: { Authorization: `Bearer ${activeToken}` },
+                skipNotification: true,
+            } as any).catch(() => {})
+        }
         token.value = null
         user.value = null
         selectedMemberId.value = null
         familyMembers.value = []
         localStorage.removeItem('access_token')
         clearStoreCache()
+        zkKeyManager.lock()
     }
 
     if (token.value) {

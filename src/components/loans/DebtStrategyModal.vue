@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Loader2, Sparkles } from 'lucide-vue-next'
-import { marked } from 'marked'
+import { renderSafeMarkdown } from '@/utils/sanitize'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 
@@ -17,7 +17,7 @@ const emit = defineEmits<{
 }>()
 
 const renderedInsights = computed(() => {
-  return props.portfolioInsights ? marked(props.portfolioInsights) : ''
+  return renderSafeMarkdown(props.portfolioInsights)
 })
 
 function handleClose() {

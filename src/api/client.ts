@@ -62,8 +62,11 @@ apiClient.interceptors.response.use(
 
         // Handle 401 Unauthorized (e.g., token expired)
         if (error.response && error.response.status === 401) {
-            // Clear token and redirect to login if not already there
+            // Clear token, cached financial stores, and redirect to login
             localStorage.removeItem('access_token')
+            Object.keys(localStorage).forEach((k) => {
+                if (k.startsWith('wf_cache_')) localStorage.removeItem(k)
+            })
             window.location.href = '/login'
             notification.error('Session expired. Please login again.')
         } else if (error.response) {
@@ -474,7 +477,10 @@ export const financeApi = {
     updateStatement: (id: string, data: { account_id?: string | null, filename?: string, statement_type?: string }) => apiClient.patch(`/finance/statements/${id}`, data),
     syncStatements: (sinceDate?: string) => apiClient.post('/finance/statements/sync', null, { params: { since_date: sinceDate } }),
     reconcileStatement: (id: string) => apiClient.post(`/finance/statements/${id}/reconcile`),
-    reprocessStatement: (id: string, password?: string) => apiClient.post(`/finance/statements/${id}/reprocess`, null, { params: { password } }),
+    reprocessStatement: (id: string, password?: string) => apiClient.post(`/finance/statements/${id}/reprocess`, password ? { password } : {}),
+    getZkKeyBundle: () => apiClient.get('/auth/zk/key-bundle'),
+    saveZkKeyBundle: (data: { kdf_salt: string, kdf_iterations: number, wrapped_dek: string, key_version?: number }) => apiClient.post('/auth/zk/key-bundle', data),
+    lockTenantVault: () => apiClient.post('/auth/lock-vault'),
     ingestStatementTransaction: (id: string, category?: string) => apiClient.post(`/finance/statements/transactions/${id}/ingest`, null, { params: { category } }),
     bulkIngestStatementTransactions: (data: { items: { transaction_id: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[], account_id?: string }) => apiClient.post('/finance/statements/transactions/bulk-ingest', data),
     reconcileCasStatement: (statementId: string, transactionIds: string[], userId?: string) => apiClient.post(`/finance/statements/${statementId}/reconcile-cas`, { transaction_ids: transactionIds, user_id: userId }),

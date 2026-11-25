@@ -8,7 +8,7 @@ import { useNotificationStore } from '@/stores/notification'
 import { useCurrency } from '@/composables/useCurrency'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Filler } from 'chart.js'
 import { Pie, Bar, Line } from 'vue-chartjs'
-import { marked } from 'marked'
+import { renderSafeMarkdown } from '@/utils/sanitize'
 import WfCard from '@/components/ui/WfCard.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import LoanRepaymentModal from '@/components/loans/LoanRepaymentModal.vue'
@@ -107,7 +107,7 @@ const submitRepayment = async () => {
 }
 
 const renderedInsights = computed(() => {
-  return insights.value ? marked(insights.value) : ''
+  return renderSafeMarkdown(insights.value)
 })
 
 const formatDate = (dateStr: string) => {
