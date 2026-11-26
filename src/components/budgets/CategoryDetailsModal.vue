@@ -60,7 +60,9 @@ const fetchData = async () => {
             props.category,
             serverOptions.value.sortBy,
             serverOptions.value.sortOrder,
-            authStore.selectedMemberId || undefined
+            authStore.selectedMemberId || undefined,
+            true,
+            true
         )
         transactions.value = res.data.data || []
         totalTransactions.value = res.data.total || 0
@@ -76,7 +78,9 @@ const fetchData = async () => {
             props.category,
             'date',
             'desc',
-            authStore.selectedMemberId || undefined
+            authStore.selectedMemberId || undefined,
+            true,
+            true
         )
 
         processTrendData(trendRes.data.data || [])
