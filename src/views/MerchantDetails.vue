@@ -99,7 +99,7 @@ onMounted(() => {
     fetchMerchantData()
 })
 
-watch(merchantName, () => {
+watch([merchantName, () => auth.selectedMemberId], () => {
     fetchMerchantData()
 })
 
