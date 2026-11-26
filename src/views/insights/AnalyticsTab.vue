@@ -401,21 +401,28 @@
                         </div>
                     </div>
 
-                    <!-- Doughnut Chart Section -->
+                    <!-- Sunburst / Doughnut Chart Section -->
                     <div class="h-64 w-full relative flex items-center justify-center">
                         <BaseChart
                             type="doughnut"
                             :data="categoryChartData"
                             :height="240"
                             :options="{
-                                cutout: '75%',
+                                cutout: hasCategoryChildren ? '54%' : '75%',
                                 plugins: {
                                     legend: { display: false },
                                     tooltip: {
+                                        filter: function(item: any) {
+                                            const meta = item.dataset?.metaItems?.[item.dataIndex];
+                                            return !meta?.isSpacer;
+                                        },
                                         callbacks: {
                                             label: function(context: any) {
-                                                const label = context.label || '';
-                                                const value = formatAmount(context.raw);
+                                                const meta = context.dataset?.metaItems?.[context.dataIndex];
+                                                if (meta?.isSpacer) return '';
+                                                const label = meta?.fullLabel || context.dataset?.metaLabels?.[context.dataIndex] || context.label || '';
+                                                const rawVal = meta?.rawValue ?? context.raw;
+                                                const value = formatAmount(rawVal);
                                                 return ` ${label}: ${value}`;
                                             }
                                         }
@@ -1160,8 +1167,10 @@ const chartPalette = [
 ]
 
 function handleCategoryClick(payload: any) {
-    if (payload && payload.label) {
-        selectedTrendCategory.value = payload.label === selectedTrendCategory.value ? '' : payload.label
+    if (payload?.meta?.isSpacer) return
+    const target = payload?.meta?.filterName || payload?.label
+    if (target) {
+        selectedTrendCategory.value = target === selectedTrendCategory.value ? '' : target
     }
 }
 
@@ -1498,22 +1507,19 @@ function handleTimeRangeChange(val: string) {
         startDate.value = localDateString(start.getFullYear(), start.getMonth(), start.getDate())
         endDate.value = localDateString(end.getFullYear(), end.getMonth(), end.getDate())
     } else if (val === 'this-month') {
-        start.setDate(1)
-        start.setHours(0, 0, 0, 0)
-        end.setMonth(now.getMonth() + 1)
-        end.setDate(0)
-        end.setHours(23, 59, 59, 999)
-        startDate.value = localDateString(start.getFullYear(), start.getMonth(), start.getDate())
-        endDate.value = localDateString(end.getFullYear(), end.getMonth(), end.getDate())
+        const y = now.getFullYear()
+        const m = now.getMonth()
+        const monthStart = new Date(y, m, 1)
+        const monthEnd = new Date(y, m + 1, 0)
+        startDate.value = localDateString(monthStart.getFullYear(), monthStart.getMonth(), monthStart.getDate())
+        endDate.value = localDateString(monthEnd.getFullYear(), monthEnd.getMonth(), monthEnd.getDate())
     } else if (val === 'last-month') {
-        start.setMonth(start.getMonth() - 1)
-        start.setDate(1)
-        start.setHours(0, 0, 0, 0)
-        end.setMonth(end.getMonth())
-        end.setDate(0)
-        end.setHours(23, 59, 59, 999)
-        startDate.value = localDateString(start.getFullYear(), start.getMonth(), start.getDate())
-        endDate.value = localDateString(end.getFullYear(), end.getMonth(), end.getDate())
+        const y = now.getFullYear()
+        const m = now.getMonth()
+        const prevStart = new Date(y, m - 1, 1)
+        const prevEnd = new Date(y, m, 0)
+        startDate.value = localDateString(prevStart.getFullYear(), prevStart.getMonth(), prevStart.getDate())
+        endDate.value = localDateString(prevEnd.getFullYear(), prevEnd.getMonth(), prevEnd.getDate())
     } else if (val === 'last-30') {
         start.setDate(now.getDate() - 30)
         start.setHours(0, 0, 0, 0)
@@ -1635,16 +1641,115 @@ const merchantChartData = computed(() => ({
     }]
 }))
 
+const hasCategoryChildren = computed(() => {
+    const source = breakdownView.value === 'expense' ? analyticsData.value.categories : analyticsData.value.investment_breakdown
+    return Array.isArray(source) && source.some((c: any) => Array.isArray(c.children) && c.children.length > 0)
+})
+
+function tintHexColor(hex: string, factor: number): string {
+    const clean = hex.replace('#', '')
+    if (clean.length !== 6) return hex
+    const r = Math.min(255, Math.round(parseInt(clean.slice(0, 2), 16) + (255 - parseInt(clean.slice(0, 2), 16)) * factor))
+    const g = Math.min(255, Math.round(parseInt(clean.slice(2, 4), 16) + (255 - parseInt(clean.slice(2, 4), 16)) * factor))
+    const b = Math.min(255, Math.round(parseInt(clean.slice(4, 6), 16) + (255 - parseInt(clean.slice(4, 6), 16)) * factor))
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+}
+
 const categoryChartData = computed(() => {
     const source = breakdownView.value === 'expense' ? analyticsData.value.categories : analyticsData.value.investment_breakdown
+    const list = Array.isArray(source) ? source : []
+    const factor = settings.maskingFactor || 1
+
+    const parentLabels = list.map((c: any) => c.name)
+    const parentValues = list.map((c: any) => (c.value || 0) / factor)
+    const parentColors = list.map((_: any, i: number) => chartPalette[i % chartPalette.length])
+    const parentMeta = list.map((c: any) => ({
+        isSpacer: false,
+        fullLabel: c.name,
+        filterName: c.name
+    }))
+
+    if (!hasCategoryChildren.value) {
+        return {
+            labels: parentLabels,
+            datasets: [{
+                data: parentValues,
+                backgroundColor: parentColors,
+                metaLabels: parentLabels,
+                metaItems: parentMeta,
+                hoverOffset: 10,
+                borderWidth: 0
+            }]
+        }
+    }
+
+    // Build outer ring (children aligned to exact parent arcs, with transparent spacers for direct spend)
+    const outerValues: number[] = []
+    const outerColors: string[] = []
+    const outerLabels: string[] = []
+    const outerMeta: any[] = []
+
+    list.forEach((parent: any, pIdx: number) => {
+        const baseColor = chartPalette[pIdx % chartPalette.length]
+        const parentVal = (parent.value || 0) / factor
+        const children = Array.isArray(parent.children) ? parent.children : []
+        const rawChildSum = children.reduce((acc: number, c: any) => acc + Math.max(0, (c.value || 0) / factor), 0)
+        // Scale outer arc proportionally if direct parent refunds make childSum > parentVal
+        const scale = rawChildSum > parentVal && rawChildSum > 0 ? parentVal / rawChildSum : 1
+        let scaledChildSum = 0
+
+        children.forEach((child: any, cIdx: number) => {
+            const cVal = (child.value || 0) / factor
+            if (cVal <= 0) return
+            const arcVal = cVal * scale
+            scaledChildSum += arcVal
+            outerValues.push(arcVal)
+            const tint = 0.22 + ((cIdx % 4) * 0.14)
+            outerColors.push(tintHexColor(baseColor, tint))
+            outerLabels.push(child.name)
+            outerMeta.push({
+                isSpacer: false,
+                fullLabel: `${parent.name} › ${child.name}`,
+                filterName: child.name,
+                rawValue: cVal
+            })
+        })
+
+        const remainder = Math.max(0, parentVal - scaledChildSum)
+        if (remainder > 0.001) {
+            outerValues.push(remainder)
+            outerColors.push('rgba(0,0,0,0)')
+            outerLabels.push('')
+            outerMeta.push({ isSpacer: true })
+        }
+    })
+
     return {
-        labels: source?.map((c: any) => c.name) || [],
-        datasets: [{
-            data: source?.map((c: any) => c.value / (settings.maskingFactor || 1)) || [],
-            backgroundColor: source?.map((_: any, i: number) => chartPalette[i % chartPalette.length]) || [],
-            hoverOffset: 12,
-            borderWidth: 0
-        }]
+        labels: parentLabels,
+        datasets: [
+            {
+                label: 'Subcategories',
+                data: outerValues,
+                backgroundColor: outerColors,
+                metaLabels: outerLabels,
+                metaItems: outerMeta,
+                borderColor: outerColors.map(c => c === 'rgba(0,0,0,0)' ? 'rgba(0,0,0,0)' : 'rgba(255,255,255,0.65)'),
+                borderWidth: 1,
+                weight: 0.7,
+                hoverOffset: 6
+            },
+            {
+                label: 'Categories',
+                data: parentValues,
+                backgroundColor: parentColors,
+                metaLabels: parentLabels,
+                metaItems: parentMeta,
+                borderColor: 'rgba(255,255,255,0.75)',
+                borderWidth: 1.5,
+                weight: 1.0,
+                hoverOffset: 8
+            }
+        ]
     }
 })
 

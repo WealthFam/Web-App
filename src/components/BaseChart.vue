@@ -331,10 +331,13 @@ const chartOptions = computed(() => {
   if (!base.onClick) {
     base.onClick = (_event: any, elements: any[]) => {
       if (elements && elements.length > 0) {
+        const datasetIndex = elements[0].datasetIndex ?? 0
         const index = elements[0].index
-        const label = chartData.value.labels[index]
-        const value = chartData.value.datasets[0].data[index]
-        emit('chart-click', { index, label, value })
+        const dataset = chartData.value.datasets?.[datasetIndex]
+        const label = dataset?.metaLabels?.[index] ?? chartData.value.labels?.[index]
+        const value = dataset?.data?.[index]
+        const meta = dataset?.metaItems?.[index]
+        emit('chart-click', { datasetIndex, index, label, value, meta })
       }
     }
   }
