@@ -32,6 +32,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 import { useHeatmapData, type HeatmapDataPoint, type HeatmapFilters } from '@/composables/useHeatmapData'
 import { useLocationSearch, type LocationSearchResult } from '@/composables/useLocationSearch'
+import MainLayout from '@/layouts/MainLayout.vue'
 import BrandIcon from '@/components/common/BrandIcon.vue'
 
 type LayerMode = 'hybrid' | 'clusters' | 'heatmap'
@@ -487,6 +488,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+    <MainLayout>
     <div class="spending-map-page relative flex w-full overflow-hidden rounded-2xl border border-wf-border bg-wf-surface">
         <!-- Map Canvas Area -->
         <div class="relative flex-1 h-full min-w-0">
@@ -932,6 +934,7 @@ onUnmounted(() => {
             </div>
         </aside>
     </div>
+    </MainLayout>
 </template>
 
 <style scoped>

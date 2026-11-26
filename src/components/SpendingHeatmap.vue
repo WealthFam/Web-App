@@ -114,11 +114,25 @@ const initMap = () => {
     }, 500)
 }
 
+function escapeHtml(raw: string): string {
+    return raw
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+}
+
 const updateHeatmap = () => {
     if (!map) return
 
     if (heatLayer) {
         map.removeLayer(heatLayer)
+        heatLayer = null
+    }
+    if (markerLayer) {
+        map.removeLayer(markerLayer)
+        markerLayer = null
     }
 
     if (!hasLocationData.value) return
@@ -133,14 +147,10 @@ const updateHeatmap = () => {
         return
     }
 
-    if (markerLayer) {
-        map.removeLayer(markerLayer)
-    }
     markerLayer = L.layerGroup().addTo(map)
 
     // Prepare heatmap data: [lat, lng, intensity]
     const heatPoints = data.value.map(p => {
-        // Boost intensity calculation for deeper colors
         // Boost intensity calculation for deeper colors - ensure minimum visibility
         const intensity = Math.max(0.4, Math.min(Math.abs(p.amount) / 500, 1.2))
 
@@ -155,11 +165,13 @@ const updateHeatmap = () => {
                 fillOpacity: 0.6
             })
 
+            const safeCat = escapeHtml(p.category || 'Expense')
+            const safeTitle = escapeHtml(p.recipient || p.description || 'Raw Transaction')
             const tooltipContent = `
                 <div class="p-2">
-                    <div class="text-xs font-semibold mb-1">${p.category || 'Expense'}</div>
+                    <div class="text-xs font-semibold mb-1">${safeCat}</div>
                     <div class="text-sm font-bold font-mono">₹${Math.abs(p.amount).toLocaleString('en-IN')}</div>
-                    <div class="text-[10px] opacity-70 mt-1">${p.recipient || p.description || 'Raw Transaction'}</div>
+                    <div class="text-[10px] opacity-70 mt-1">${safeTitle}</div>
                 </div>
             `
             marker.bindPopup(tooltipContent, { closeButton: false })
@@ -197,12 +209,12 @@ const updateHeatmap = () => {
 }
 
 watch(data, (newData) => {
-    if (newData && newData.length > 0) {
-        if (!map) {
+    if (!map) {
+        if (newData && newData.length > 0) {
             initMap()
-        } else {
-            updateHeatmap()
         }
+    } else {
+        updateHeatmap()
     }
 }, { deep: true, immediate: true })
 
