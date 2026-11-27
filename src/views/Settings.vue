@@ -7,7 +7,8 @@ import {
   Users,
   Mail,
   Smartphone,
-  Activity
+  Activity,
+  HardDrive
 } from 'lucide-vue-next'
 
 // Child Components
@@ -15,21 +16,23 @@ import FamilySettings from './settings/FamilySettings.vue'
 import IngestionsSettings from './settings/IngestionsSettings.vue'
 import EmailSettings from './settings/EmailSettings.vue'
 import DevicesSettings from './settings/DevicesSettings.vue'
+import BackupSettings from './settings/BackupSettings.vue'
 
 const route = useRoute()
 const router = useRouter()
-const activeTab = ref<'tenants' | 'ingestions' | 'emails' | 'devices'>('tenants')
+const activeTab = ref<'tenants' | 'ingestions' | 'emails' | 'devices' | 'backup'>('tenants')
 
 const tabs = [
   { id: 'tenants', label: 'Family Circle', icon: Users },
   { id: 'ingestions', label: 'Ingestions', icon: Activity },
   { id: 'emails', label: 'Email Sync', icon: Mail },
-  { id: 'devices', label: 'Devices', icon: Smartphone }
+  { id: 'devices', label: 'Devices', icon: Smartphone },
+  { id: 'backup', label: 'Backup & Restore', icon: HardDrive }
 ]
 
-const validTabs = ['tenants', 'ingestions', 'emails', 'devices']
+const validTabs = ['tenants', 'ingestions', 'emails', 'devices', 'backup']
 
-function normalizeTabParam(rawTab: unknown): 'tenants' | 'ingestions' | 'emails' | 'devices' | null {
+function normalizeTabParam(rawTab: unknown): 'tenants' | 'ingestions' | 'emails' | 'devices' | 'backup' | null {
   if (typeof rawTab !== 'string') return null
   if (rawTab === 'parser' || rawTab === 'sms') return 'ingestions'
   if (validTabs.includes(rawTab)) return rawTab as any
@@ -102,6 +105,7 @@ watch(() => route.query.tab, (newTab) => {
           <IngestionsSettings v-else-if="activeTab === 'ingestions'" />
           <EmailSettings v-else-if="activeTab === 'emails'" />
           <DevicesSettings v-else-if="activeTab === 'devices'" />
+          <BackupSettings v-else-if="activeTab === 'backup'" />
         </div>
       </transition>
     </div>
