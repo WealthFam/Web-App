@@ -4,7 +4,7 @@ import { useCurrency } from '@/composables/useCurrency'
 import {
     CheckCircle2, X, Pencil, Plus, Loader2,
     ArrowLeftRight, Search, Link, SearchX, LineChart, IndianRupee, Calendar,
-    FileText, Paperclip, ExternalLink, Trash2, Link2, MapPin,
+    FileText, Paperclip, ExternalLink, Unlink, Link2, MapPin,
     FileImage, FileVideo, Music, FileCode, FileArchive, Fingerprint, ShieldCheck, Receipt, Scale, Folder,
     FileSpreadsheet, Presentation, 
 } from 'lucide-vue-next'
@@ -174,7 +174,7 @@ async function handleFileUpload(e: any) {
 
 async function detachDoc(docId: string) {
     try {
-        await financeApi.deleteDocument(docId)
+        await financeApi.linkDocToTransaction(docId, null)
         notification.success('Document detached')
         fetchAttachedDocs()
     } catch (e) {
@@ -568,7 +568,7 @@ function getIcon(item: any) {
                             </span>
                             <span class="flex-1 min-w-0 text-xs font-semibold text-wf-text-primary truncate">{{ doc.filename }}</span>
                             <button type="button" aria-label="Open document" class="p-1 rounded text-wf-primary hover:bg-wf-primary/10" @click="openDoc(doc.id)"><ExternalLink :size="13" /></button>
-                            <button type="button" aria-label="Detach document" class="p-1 rounded text-wf-error hover:bg-wf-error/10" @click="detachDoc(doc.id)"><Trash2 :size="13" /></button>
+                            <button type="button" aria-label="Detach document" title="Detach document" class="p-1 rounded text-wf-error hover:bg-wf-error/10" @click="detachDoc(doc.id)"><Unlink :size="13" /></button>
                         </li>
                     </ul>
                 </div>
