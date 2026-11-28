@@ -53,6 +53,9 @@ export async function extractBackupError(err: any, fallback = 'Backup operation 
     }
     if (typeof data?.detail === 'string') return data.detail
     if (typeof data?.message === 'string') return data.message
+    if (err?.response?.status === 413) {
+        return 'Backup file exceeds the proxy upload size limit (413). If your domain is proxied through Cloudflare Free/Pro, its edge limit is 100 MB—export without Vault files or bypass proxy for large archives.'
+    }
     return err?.message || fallback
 }
 

@@ -56,6 +56,16 @@ http {\n\
             proxy_set_header Connection \"upgrade\";\n\
             proxy_set_header Host \$host;\n\
         }\n\
+        location /api/v1/backup/ {\n\
+            client_max_body_size 512M;\n\
+            set \$backend_upstream http://backend:8000;\n\
+            proxy_pass \$backend_upstream;\n\
+            proxy_http_version 1.1;\n\
+            proxy_set_header Host \$host;\n\
+            proxy_request_buffering off;\n\
+            proxy_read_timeout 300s;\n\
+            proxy_send_timeout 300s;\n\
+        }\n\
         location /api {\n\
             set \$backend_upstream http://backend:8000;\n\
             proxy_pass \$backend_upstream;\n\
