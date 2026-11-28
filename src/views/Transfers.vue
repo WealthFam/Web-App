@@ -708,11 +708,16 @@ function openCreateCounterpartModal(unpaired: any) {
 
 async function submitCreateCounterpart() {
   if (!selectedUnpaired.value) return
+  const destId = selectedUnpaired.value.suggested_destination?.id
+  if (!destId) {
+    notification.error('Please select a destination account first')
+    return
+  }
   isCreatingCounterpart.value = true
   try {
     await financeApi.createTransferCounterpart({
       source_txn_id: selectedUnpaired.value.transaction.id,
-      to_account_id: selectedUnpaired.value.suggested_destination.id,
+      to_account_id: destId,
       credited_amount: Number(counterpartForm.value.credited_amount)
     })
     notification.success('Counterpart created and linked!')

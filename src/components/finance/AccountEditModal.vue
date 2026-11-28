@@ -29,6 +29,7 @@ const form = ref({
     currency: 'INR',
     account_mask: '',
     balance: 0,
+    as_of: '',
     credit_limit: 0,
     billing_day: undefined as number | undefined,
     due_day: undefined as number | undefined,
@@ -79,7 +80,7 @@ watch(() => props.account, (acc) => {
     } else {
         form.value = {
             name: '', type: 'BANK', currency: 'INR', account_mask: '',
-            balance: 0, credit_limit: 0, billing_day: undefined, due_day: undefined,
+            balance: 0, as_of: '', credit_limit: 0, billing_day: undefined, due_day: undefined,
             is_verified: true, owner_id: ''
         }
         balanceOverride.value = { balance: 0, limit: 0 }
@@ -93,21 +94,38 @@ async function handleSubmit() {
     }
     saving.value = true
     try {
-        const payload = {
-            ...form.value,
-            owner_id: form.value.owner_id && typeof form.value.owner_id === 'string' && form.value.owner_id.trim()
-                ? form.value.owner_id.trim()
-                : null
-        }
+        const ownerId = form.value.owner_id && typeof form.value.owner_id === 'string' && form.value.owner_id.trim()
+            ? form.value.owner_id.trim()
+            : null
+        const asOfIso = form.value.as_of ? new Date(`${form.value.as_of}T23:59:59`).toISOString() : undefined
         if (props.account?.id) {
+            const payload = { ...form.value, owner_id: ownerId }
+            delete (payload as any).as_of
             await financeApi.updateAccount(props.account.id, payload)
             notify.success("Account updated successfully")
         } else {
             if (form.value.type === 'CREDIT_CARD') {
-                await financeApi.createCreditCard(payload)
+                const ccPayload: Record<string, any> = {
+                    name: form.value.name.trim(),
+                    currency: form.value.currency || 'INR',
+                    card_last_4: form.value.account_mask || undefined,
+                    initial_balance: Number(form.value.balance || 0),
+                    credit_limit: Number(form.value.credit_limit || 0),
+                    billing_day: form.value.billing_day,
+                    due_day: form.value.due_day,
+                    owner_id: ownerId,
+                }
+                if (asOfIso) ccPayload.as_of = asOfIso
+                await financeApi.createCreditCard(ccPayload)
                 notify.success("Credit card created successfully")
             } else {
-                await financeApi.createAccount(payload)
+                const { as_of: _ignoredAsOf, ...rest } = form.value
+                const accPayload = {
+                    ...rest,
+                    owner_id: ownerId,
+                    ...(asOfIso ? { as_of: asOfIso } : {}),
+                }
+                await financeApi.createAccount(accPayload as any)
                 notify.success("Account created successfully")
             }
         }
@@ -231,7 +249,9 @@ async function handleOverride() {
                         <Anchor class="w-3.5 h-3.5" />
                         <span>Balance Anchoring</span>
                     </div>
-                    <span class="text-[10px] text-wf-text-muted font-medium">Reconcile Real Balance</span>
+                    <span class="text-[10px] text-wf-text-muted font-medium">
+                        {{ account?.balance_mode || 'CALCULATED' }} · {{ account?.balance_source || 'CALCULATED' }}
+                    </span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <WfInput
@@ -272,6 +292,12 @@ async function handleOverride() {
                     type="number"
                     label="Credit Limit (₹)"
                     placeholder="0.00"
+                />
+                <WfInput
+                    v-model="form.as_of"
+                    type="date"
+                    label="Balance As Of (Optional)"
+                    :max="new Date().toISOString().slice(0, 10)"
                 />
             </div>
         </form>

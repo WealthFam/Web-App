@@ -88,6 +88,14 @@
                     </div>
                 </div>
 
+                <!-- P1-A.5: Balance Drift Banner -->
+                <BalanceDriftBanner
+                    :drift-amount="Number(account.balance_drift_amount || 0)"
+                    :reconciling="reconciling"
+                    @reconcile="handleReconcileBalance"
+                    @override="showEditModal = true"
+                />
+
                 <!-- 4 Summary Stats Metric Cards -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <WfCard
@@ -404,6 +412,7 @@ import WfModal from '@/components/ui/WfModal.vue'
 import WfInput from '@/components/ui/WfInput.vue'
 import WfSelect from '@/components/ui/WfSelect.vue'
 import AccountEditModal from '@/components/finance/AccountEditModal.vue'
+import BalanceDriftBanner from '@/components/finance/BalanceDriftBanner.vue'
 import TransactionTable from '@/components/transactions/TransactionTable.vue'
 import TransactionModal from '@/views/transactions/TransactionModal.vue'
 import SmartPromptModal from '@/components/SmartPromptModal.vue'
@@ -666,6 +675,21 @@ const chartOptions = {
 }
 
 // --- Methods ---
+const reconciling = ref(false)
+async function handleReconcileBalance() {
+    if (!account.value?.id) return
+    reconciling.value = true
+    try {
+        await financeApi.recalculateAccountBalance(account.value.id)
+        notify.success('Account balance reconciled successfully')
+        await fetchAccount()
+    } catch (e) {
+        notify.error('Failed to reconcile account balance')
+    } finally {
+        reconciling.value = false
+    }
+}
+
 async function fetchAccount() {
     loading.value = true
     try {
