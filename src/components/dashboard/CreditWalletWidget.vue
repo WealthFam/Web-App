@@ -94,7 +94,7 @@
           <button
             type="button"
             class="h-8 px-2.5 text-[11px] font-semibold rounded-wf-sm bg-wf-surface border border-wf-border-subtle text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant transition-colors flex items-center justify-center gap-1 shrink-0"
-            @click="router.push('/accounts')"
+            @click="router.push('/credit-cards')"
           >
             <span>Manage</span>
             <ArrowUpRight class="w-3 h-3 text-wf-text-muted" />
@@ -161,10 +161,10 @@
                 </span>
 
                 <span
-                  v-if="card.days_until_due !== undefined && card.days_until_due <= 5"
+                  v-if="card.days_until_due !== undefined && card.days_until_due <= 5 && Number(card.statement_balance || 0) > 0"
                   class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-500 text-white shadow-2xs uppercase tracking-wider"
                 >
-                  Due {{ card.days_until_due <= 0 ? 'Today' : `${card.days_until_due}d` }}
+                  {{ card.days_until_due < 0 ? `${Math.abs(card.days_until_due)}d Overdue` : card.days_until_due === 0 ? 'Due Today' : `Due ${card.days_until_due}d` }}
                 </span>
                 <span
                   v-else-if="card.due_date || card.next_due_date"
@@ -186,7 +186,7 @@
                 <div class="text-right">
                   <span class="text-[8px] font-bold uppercase tracking-wider text-white/70 block leading-none mb-0.5">Available</span>
                   <div class="text-xs font-bold text-emerald-300 tabular-nums leading-tight">
-                    {{ formatAmount(Math.max(0, (card.credit_limit || 0) - (card.statement_balance || 0))) }}
+                    {{ formatAmount(Math.max(0, Number(card.credit_limit || 0) - Number(card.balance ?? card.statement_balance ?? 0))) }}
                   </div>
                 </div>
               </div>
@@ -229,7 +229,7 @@
                 <button
                   type="button"
                   class="px-2 py-0.5 text-[10px] font-semibold rounded bg-wf-surface-variant hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/60 dark:hover:text-indigo-400 border border-wf-border-subtle text-wf-text-secondary transition-colors"
-                  @click="router.push('/accounts')"
+                  @click="router.push(`/credit-cards/${card.id}`)"
                 >
                   Details
                 </button>
@@ -300,7 +300,7 @@
 
               <!-- Available Limit -->
               <td class="py-2.5 px-2.5 font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                {{ formatAmount(Math.max(0, (card.credit_limit || 0) - (card.statement_balance || 0))) }}
+                {{ formatAmount(Math.max(0, Number(card.credit_limit || 0) - Number(card.balance ?? card.statement_balance ?? 0))) }}
               </td>
 
               <!-- Total Limit -->
@@ -329,10 +329,10 @@
               <!-- Due Date -->
               <td class="py-2.5 px-2.5">
                 <span
-                  v-if="card.days_until_due !== undefined && card.days_until_due <= 5"
+                  v-if="card.days_until_due !== undefined && card.days_until_due <= 5 && Number(card.statement_balance || 0) > 0"
                   class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-50 text-rose-600 dark:bg-rose-950/80 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 uppercase"
                 >
-                  Due in {{ card.days_until_due }}d
+                  {{ card.days_until_due < 0 ? `${Math.abs(card.days_until_due)}d Overdue` : card.days_until_due === 0 ? 'Due Today' : `Due in ${card.days_until_due}d` }}
                 </span>
                 <span
                   v-else-if="card.due_date || card.next_due_date"
@@ -348,7 +348,7 @@
                 <button
                   type="button"
                   class="px-2 py-0.5 text-[11px] font-semibold rounded bg-wf-surface-variant hover:bg-wf-surface-variant/80 text-wf-primary border border-wf-border-subtle transition-colors"
-                  @click="router.push('/accounts')"
+                  @click="router.push(`/credit-cards/${card.id}`)"
                 >
                   Manage
                 </button>
@@ -400,7 +400,7 @@ const totalLimit = computed(() => {
 })
 
 const totalBalance = computed(() => {
-  return props.cards.reduce((acc, c) => acc + Number(c.statement_balance || 0), 0)
+  return props.cards.reduce((acc, c) => acc + Number(c.balance ?? c.statement_balance ?? 0), 0)
 })
 
 const totalAvailable = computed(() => {
@@ -425,7 +425,7 @@ const utilizationClass = computed(() => {
 
 function getCardUtilization(card: any): number {
   if (!card.credit_limit || card.credit_limit <= 0) return 0
-  return Math.round(((card.statement_balance || 0) / card.credit_limit) * 100)
+  return Math.round((Number(card.balance ?? card.statement_balance ?? 0) / Number(card.credit_limit)) * 100)
 }
 
 function getCardMask(card: any): string {

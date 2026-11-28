@@ -522,91 +522,16 @@
                 </form>
             </WfModal>
 
-            <!-- Pay Bill Modal -->
-            <WfModal
-                v-model="payModal"
-                max-width="md"
-                title="Pay Credit Card Bill"
-                :description="card ? `${card.name} · Outstanding ${formatAmount(card.balance || 0)}` : ''"
-            >
-                <form @submit.prevent="submitBillPayment" class="space-y-4 py-1">
-                    <WfSelect
-                        v-model="payForm.source_account_id"
-                        label="Pay From Bank Account"
-                        :items="bankAccountOptions"
-                        required
-                    />
-
-                    <!-- Quick Amount Selectors -->
-                    <div>
-                        <label class="text-[10px] font-bold uppercase tracking-wider text-wf-text-muted block mb-1.5">
-                            Quick Select Amount
-                        </label>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <button
-                                type="button"
-                                class="px-2.5 py-1 rounded-wf-sm text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/60 transition-colors cursor-pointer"
-                                @click="setPayAmount(card?.statement_balance)"
-                            >
-                                Statement Due: {{ formatAmount(card?.statement_balance || 0) }}
-                            </button>
-                            <button
-                                type="button"
-                                class="px-2.5 py-1 rounded-wf-sm text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60 transition-colors cursor-pointer"
-                                @click="setPayAmount(card?.minimum_due)"
-                            >
-                                Min Due: {{ formatAmount(card?.minimum_due || 0) }}
-                            </button>
-                            <button
-                                type="button"
-                                class="px-2.5 py-1 rounded-wf-sm text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 transition-colors cursor-pointer"
-                                @click="setPayAmount(card?.balance)"
-                            >
-                                Total Owed: {{ formatAmount(card?.balance || 0) }}
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <WfInput
-                            v-model.number="payForm.amount"
-                            label="Payment Amount (₹)"
-                            type="number"
-                            required
-                        />
-                        <WfInput
-                            v-model="payForm.date"
-                            label="Payment Date"
-                            type="date"
-                            required
-                        />
-                    </div>
-
-                    <WfInput
-                        v-model="payForm.description"
-                        label="Description / Notes"
-                    />
-
-                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-wf-border">
-                        <WfButton
-                            variant="outline"
-                            size="sm"
-                            type="button"
-                            @click="payModal = false"
-                        >
-                            Cancel
-                        </WfButton>
-                        <WfButton
-                            variant="primary"
-                            size="sm"
-                            type="submit"
-                            :loading="payingBill"
-                        >
-                            Record Payment
-                        </WfButton>
-                    </div>
-                </form>
-            </WfModal>
+            <!-- Mark Paid / Pay Bill Modal (3-mode) -->
+            <MarkCardPaidModal
+                :show="payModal"
+                :card-id="card?.account_id || card?.id || ''"
+                :card-name="card?.name || 'Credit Card'"
+                :default-amount="Number(card?.statement_balance || card?.balance || 0)"
+                :bank-accounts="bankAccountOptions"
+                @close="payModal = false"
+                @paid="fetchCardDetails"
+            />
 
             <!-- Delete Confirmation Modal -->
             <WfModal
@@ -666,6 +591,7 @@ import WfButton from '@/components/ui/WfButton.vue'
 import WfModal from '@/components/ui/WfModal.vue'
 import WfInput from '@/components/ui/WfInput.vue'
 import WfSelect from '@/components/ui/WfSelect.vue'
+import MarkCardPaidModal from '@/components/finance/MarkCardPaidModal.vue'
 import { financeApi } from '@/api/client'
 import { useCurrency } from '@/composables/useCurrency'
 import { useNotificationStore } from '@/stores/notification'
@@ -724,7 +650,6 @@ const cardForm = reactive({
 
 // Pay Modal State
 const payModal = ref(false)
-const payingBill = ref(false)
 const payForm = reactive({
     source_account_id: '',
     amount: 0,
@@ -966,42 +891,6 @@ function openPayModal() {
     payForm.date = new Date().toISOString().substring(0, 10)
     payForm.description = `Bill Payment - ${card.value.name}`
     payModal.value = true
-}
-
-function setPayAmount(amt?: number) {
-    if (amt != null) {
-        payForm.amount = Number(amt)
-    }
-}
-
-async function submitBillPayment() {
-    if (!payForm.source_account_id) {
-        notification.error('Please select a payment bank account')
-        return
-    }
-    if (payForm.amount <= 0) {
-        notification.error('Payment amount must be greater than zero')
-        return
-    }
-
-    payingBill.value = true
-    try {
-        const targetId = card.value.account_id || card.value.id
-        await financeApi.payCardBill(targetId, {
-            source_account_id: payForm.source_account_id,
-            amount: payForm.amount,
-            date: payForm.date,
-            description: payForm.description
-        })
-        notification.success('Payment recorded successfully!')
-        payModal.value = false
-        await fetchCardDetails()
-    } catch (e) {
-        console.error('Failed to record payment', e)
-        notification.error('Payment record failed')
-    } finally {
-        payingBill.value = false
-    }
 }
 
 async function confirmDeleteCard() {

@@ -320,68 +320,16 @@
                 @confirm="handleSmartCategorize" 
             />
 
-            <!-- 5. Pay Bill Modal -->
-            <WfModal
-                v-model="showPayBillModal"
-                max-width="md"
-                title="Pay Credit Bill"
-                :description="`${account?.name} · Outstanding ${formatAmount(account?.balance || 0)}`"
-            >
-                <form @submit.prevent="handlePayBillSubmit" class="space-y-4 py-1">
-                    <WfSelect
-                        v-model="payBillForm.source_account_id"
-                        label="Pay From Bank Account"
-                        :items="bankAccountsItems"
-                        placeholder="Select bank account"
-                    />
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <WfInput
-                            v-model.number="payBillForm.amount"
-                            type="number"
-                            label="Amount (₹)"
-                            placeholder="0.00"
-                        />
-                        <WfInput
-                            v-model="payBillForm.date"
-                            type="date"
-                            label="Payment Date"
-                        />
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle">
-                        <div>
-                            <div class="text-xs font-semibold text-wf-text-primary">Record Transaction</div>
-                            <div class="text-[11px] text-wf-text-muted">Automatically debit from source bank account</div>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" v-model="payBillForm.record_transaction" class="sr-only peer" />
-                            <div class="w-9 h-5 bg-wf-surface-muted peer-focus:outline-none rounded-wf-pill peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-wf-pill after:h-4 after:w-4 after:transition-all peer-checked:bg-wf-primary"></div>
-                        </label>
-                    </div>
-                </form>
-
-                <template #footer>
-                    <div class="flex items-center justify-end gap-2 w-full">
-                        <WfButton
-                            variant="outline"
-                            size="sm"
-                            @click="showPayBillModal = false"
-                        >
-                            Cancel
-                        </WfButton>
-                        <WfButton
-                            variant="primary"
-                            size="sm"
-                            :loading="submittingPayBill"
-                            :disabled="!payBillForm.source_account_id || !payBillForm.amount"
-                            @click="handlePayBillSubmit"
-                        >
-                            Confirm Payment
-                        </WfButton>
-                    </div>
-                </template>
-            </WfModal>
+            <!-- 5. Mark Paid / Pay Bill Modal (3-mode: Pay from Bank, Link Existing Debit, No Source) -->
+            <MarkCardPaidModal
+                :show="showPayBillModal"
+                :card-id="account?.id || ''"
+                :card-name="account?.name || 'Credit Card'"
+                :default-amount="Number(account?.balance || 0)"
+                :bank-accounts="bankAccountsItems"
+                @close="showPayBillModal = false"
+                @paid="refreshAll"
+            />
         </div>
     </MainLayout>
 </template>
@@ -409,10 +357,9 @@ import { Bar } from 'vue-chartjs'
 import WfCard from '@/components/ui/WfCard.vue'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfModal from '@/components/ui/WfModal.vue'
-import WfInput from '@/components/ui/WfInput.vue'
-import WfSelect from '@/components/ui/WfSelect.vue'
 import AccountEditModal from '@/components/finance/AccountEditModal.vue'
 import BalanceDriftBanner from '@/components/finance/BalanceDriftBanner.vue'
+import MarkCardPaidModal from '@/components/finance/MarkCardPaidModal.vue'
 import TransactionTable from '@/components/transactions/TransactionTable.vue'
 import TransactionModal from '@/views/transactions/TransactionModal.vue'
 import SmartPromptModal from '@/components/SmartPromptModal.vue'
@@ -449,13 +396,6 @@ const showEditModal = ref(false)
 const showPayBillModal = ref(false)
 const showDeleteAccountConfirm = ref(false)
 const deleting = ref(false)
-const submittingPayBill = ref(false)
-const payBillForm = ref({
-    source_account_id: '',
-    amount: 0,
-    date: new Date().toISOString().split('T')[0],
-    record_transaction: true
-})
 
 const allAccounts = ref<any[]>([])
 
@@ -757,24 +697,6 @@ async function fetchTransactions(options?: any) {
 
 function refreshAll() {
     fetchAccount()
-}
-
-async function handlePayBillSubmit() {
-    if (!account.value || !payBillForm.value.source_account_id) return
-    submittingPayBill.value = true
-    try {
-        await financeApi.payCreditCardBill(account.value.id, {
-            ...payBillForm.value,
-            description: `Bill Payment: ${account.value.name}`
-        })
-        notify.success("Payment recorded successfully")
-        showPayBillModal.value = false
-        refreshAll()
-    } catch (e: any) {
-        notify.error(e.response?.data?.detail || "Payment failed")
-    } finally {
-        submittingPayBill.value = false
-    }
 }
 
 function handleDelete() {

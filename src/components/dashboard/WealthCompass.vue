@@ -76,9 +76,9 @@
           <div class="relative w-12 h-12 shrink-0 flex items-center justify-center">
             <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
               <path class="text-slate-100 dark:text-slate-800" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-              <path class="text-amber-500 transition-all duration-700 ease-out" stroke-dasharray="100" :stroke-dashoffset="creditUtilization" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path class="text-amber-500 transition-all duration-700 ease-out" stroke-dasharray="100" :stroke-dashoffset="minMax(creditUtilization, 0, 100)" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
             </svg>
-            <span class="absolute text-[11px] font-bold tabular-nums text-wf-text-primary">{{ (100 - creditUtilization).toFixed(0) }}%</span>
+            <span class="absolute text-[11px] font-bold tabular-nums text-wf-text-primary">{{ Math.max(0, 100 - minMax(creditUtilization, 0, 100)).toFixed(0) }}%</span>
           </div>
           <div class="min-w-0 flex-1">
             <span class="text-[9px] font-bold text-wf-text-muted uppercase tracking-wider block">Credit Health</span>

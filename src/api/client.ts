@@ -459,6 +459,17 @@ export const financeApi = {
         apiClient.get(`/finance/credit-cards/${id}/cycle-transactions`, { params }),
     payCardBill: (id: string, data: { source_account_id: string, amount: number, date: string, description?: string }) => 
         apiClient.post(`/finance/credit-cards/${id}/pay-bill`, data),
+    getCreditCardPaymentCandidates: (id: string, params?: { amount?: number, window_days?: number }) =>
+        apiClient.get(`/finance/credit-cards/${id}/payment-candidates`, { params }),
+    markCreditCardPaid: (id: string, data: {
+        mode: 'NEW_TRANSFER' | 'LINK_EXISTING' | 'NO_SOURCE_ACCOUNT',
+        amount: number,
+        date: string,
+        source_account_id?: string | null,
+        existing_transaction_id?: string | null,
+        description?: string,
+        force_duplicate?: boolean,
+    }) => apiClient.post(`/finance/credit-cards/${id}/mark-paid`, data),
 
     // Fixed & Recurring Deposits
     getFixedDeposits: (userId?: string) => apiClient.get('/finance/fixed-deposits', { params: { user_id: userId } }),
