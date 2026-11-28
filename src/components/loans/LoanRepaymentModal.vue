@@ -13,17 +13,33 @@ const props = defineProps<{
     bank_account_id: string
     installment_no: number | null
     description: string
+    is_prepayment?: boolean
   }
   accountOptions: Array<{
     label: string
     value: string
   }>
+  outstandingBalance?: number
+  interestRate?: number
   saving?: boolean
 }>()
 
 const formattedAccountOptions = computed(() =>
   props.accountOptions.map(a => ({ title: a.label, value: a.value }))
 )
+
+const splitPreview = computed(() => {
+  const amt = Math.max(0, Number(props.repaymentForm.amount || 0))
+  if (props.repaymentForm.is_prepayment) {
+    return { interest: 0, principal: amt }
+  }
+  const bal = Math.max(0, Number(props.outstandingBalance || 0))
+  const rate = Math.max(0, Number(props.interestRate || 0))
+  const rawInterest = Math.round(bal * (rate / 12 / 100) * 100) / 100
+  const interest = Math.min(amt, rawInterest)
+  const principal = Math.max(0, Math.round((amt - interest) * 100) / 100)
+  return { interest, principal }
+})
 
 const emit = defineEmits<{
   (e: 'update:modelValue', val: boolean): void
@@ -72,11 +88,36 @@ function handleClose() {
           <input
             v-model.number="repaymentForm.amount"
             type="number"
-            min="1"
-            step="1"
+            min="0.01"
+            step="any"
             class="w-full bg-transparent text-sm font-black text-wf-text-primary focus:outline-none font-mono"
             required
           />
+        </div>
+      </div>
+
+      <!-- Prepayment Toggle + Principal/Interest Split Preview -->
+      <div class="p-3 rounded-wf-md bg-wf-surface-variant/50 border border-wf-border-subtle space-y-2">
+        <label class="flex items-center justify-between gap-2 cursor-pointer">
+          <div>
+            <div class="text-xs font-bold text-wf-text-primary">Mark as Principal Prepayment</div>
+            <div class="text-[11px] text-wf-text-muted">Applies 100% directly to principal without marking an EMI month paid</div>
+          </div>
+          <input
+            v-model="repaymentForm.is_prepayment"
+            type="checkbox"
+            class="w-4 h-4 accent-wf-primary rounded"
+          />
+        </label>
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-wf-border-subtle text-xs">
+          <div>
+            <span class="text-[10px] font-bold uppercase text-wf-text-muted block">Principal Reduction</span>
+            <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400">₹{{ splitPreview.principal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold uppercase text-wf-text-muted block">Interest Component</span>
+            <span class="font-mono font-bold text-amber-600 dark:text-amber-400">₹{{ splitPreview.interest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
+          </div>
         </div>
       </div>
 

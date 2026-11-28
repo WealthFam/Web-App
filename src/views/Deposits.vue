@@ -362,6 +362,31 @@
                             label="Deposit Type"
                             :items="typeOptions"
                             required
+                            @update:model-value="recalculateMaturity"
+                        />
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <WfSelect
+                            v-model="depositForm.compounding_frequency"
+                            label="Compounding Frequency"
+                            :items="[
+                                { title: 'Quarterly (Standard)', value: 'QUARTERLY' },
+                                { title: 'Monthly', value: 'MONTHLY' },
+                                { title: 'Half-Yearly', value: 'HALF_YEARLY' },
+                                { title: 'Annually', value: 'ANNUALLY' },
+                                { title: 'Simple Interest', value: 'SIMPLE' }
+                            ]"
+                            @update:model-value="recalculateMaturity"
+                        />
+                        <WfInput
+                            v-if="depositForm.deposit_type === 'RECURRING'"
+                            v-model.number="depositForm.monthly_deposit"
+                            label="Monthly RD Installment (₹)"
+                            type="number"
+                            step="any"
+                            placeholder="5000"
+                            @input="recalculateMaturity"
                         />
                     </div>
 
@@ -533,6 +558,7 @@ const depositForm = reactive({
     bank_name: '',
     deposit_type: 'FIXED',
     principal_amount: 100000,
+    monthly_deposit: 5000,
     interest_rate: 7.25,
     compounding_frequency: 'QUARTERLY',
     start_date: new Date().toISOString().substring(0, 10),
@@ -628,6 +654,7 @@ function openEditModal(dep: any) {
     depositForm.bank_name = dep.bank_name
     depositForm.deposit_type = dep.deposit_type
     depositForm.principal_amount = Number(dep.principal_amount || 0)
+    depositForm.monthly_deposit = Number(dep.monthly_deposit || 0)
     depositForm.interest_rate = Number(dep.interest_rate || 0)
     depositForm.compounding_frequency = dep.compounding_frequency || 'QUARTERLY'
     depositForm.start_date = dep.start_date ? new Date(dep.start_date).toISOString().substring(0, 10) : ''
@@ -644,19 +671,21 @@ function recalculateMaturity() {
     const r = Number(depositForm.interest_rate || 0) / 100
     const start = new Date(depositForm.start_date).getTime()
     const end = new Date(depositForm.maturity_date).getTime()
-    const years = Math.max(0.1, (end - start) / (365.25 * 24 * 60 * 60 * 1000))
+    const years = Math.max(0.05, (end - start) / (365.25 * 24 * 60 * 60 * 1000))
+    const freqMap: Record<string, number> = { MONTHLY: 12, QUARTERLY: 4, HALF_YEARLY: 2, ANNUALLY: 1, SIMPLE: 0 }
+    const n = freqMap[depositForm.compounding_frequency] ?? 4
 
     if (depositForm.deposit_type === 'FIXED') {
-        // A = P * (1 + r/4)^(4*t)
-        const amt = p * Math.pow(1 + r / 4, 4 * years)
+        const amt = n > 0 ? p * Math.pow(1 + r / n, n * years) : p * (1 + r * years)
         depositForm.maturity_amount = Math.round(amt)
     } else {
-        // RD compound approximation
-        const months = Math.round(years * 12)
-        const monthlyRate = r / 12
+        const monthly = Number(depositForm.monthly_deposit || p || 0)
+        const months = Math.max(1, Math.round(years * 12))
         let amt = 0
-        for (let m = 1; m <= months; m++) {
-            amt += p * Math.pow(1 + monthlyRate, m)
+        for (let k = 0; k < months; k++) {
+            const tYears = (months - k) / 12
+            const factor = n > 0 ? Math.pow(1 + r / n, n * tYears) : (1 + r * tYears)
+            amt += monthly * factor
         }
         depositForm.maturity_amount = Math.round(amt)
     }
@@ -665,23 +694,25 @@ function recalculateMaturity() {
 async function saveDeposit() {
     savingDeposit.value = true
     try {
+        const payload = {
+            name: depositForm.name,
+            bank_name: depositForm.bank_name,
+            deposit_type: depositForm.deposit_type,
+            principal_amount: depositForm.principal_amount,
+            monthly_deposit: depositForm.deposit_type === 'RECURRING' ? depositForm.monthly_deposit : null,
+            interest_rate: depositForm.interest_rate,
+            compounding_frequency: depositForm.compounding_frequency,
+            start_date: depositForm.start_date,
+            maturity_date: depositForm.maturity_date,
+            maturity_amount: depositForm.maturity_amount,
+            is_tax_saver: depositForm.is_tax_saver,
+            deposit_number: depositForm.deposit_number
+        }
         if (isEditing.value) {
-            await financeApi.updateFixedDeposit(depositForm.id, {
-                name: depositForm.name,
-                bank_name: depositForm.bank_name,
-                deposit_type: depositForm.deposit_type,
-                principal_amount: depositForm.principal_amount,
-                interest_rate: depositForm.interest_rate,
-                compounding_frequency: depositForm.compounding_frequency,
-                start_date: depositForm.start_date,
-                maturity_date: depositForm.maturity_date,
-                maturity_amount: depositForm.maturity_amount,
-                is_tax_saver: depositForm.is_tax_saver,
-                deposit_number: depositForm.deposit_number
-            })
+            await financeApi.updateFixedDeposit(depositForm.id, payload)
             notification.success('Deposit updated successfully')
         } else {
-            await financeApi.createFixedDeposit(depositForm)
+            await financeApi.createFixedDeposit(payload)
             notification.success('Deposit created successfully')
         }
         depositModal.value = false

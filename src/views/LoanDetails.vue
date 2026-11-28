@@ -52,7 +52,8 @@ const repaymentForm = ref({
   date: todayLocalString(),
   bank_account_id: '',
   installment_no: null as number | null,
-  description: ''
+  description: '',
+  is_prepayment: false
 })
 
 const loanTypeOptions: Record<string, string> = {
@@ -80,7 +81,8 @@ const openRepaymentModal = (item: any) => {
     date: item.due_date ? item.due_date.split('T')[0] : todayLocalString(),
     bank_account_id: loan.value?.bank_account_id || (accounts.value[0]?.id || ''),
     installment_no: item.installment_no,
-    description: `EMI #${item.installment_no} for ${loan.value?.name || 'Loan'}`
+    description: `EMI #${item.installment_no} for ${loan.value?.name || 'Loan'}`,
+    is_prepayment: false
   }
   showRepaymentModal.value = true
 }
@@ -814,6 +816,8 @@ onMounted(() => {
         v-model="showRepaymentModal"
         :repayment-form="repaymentForm"
         :account-options="accountOptions"
+        :outstanding-balance="Number(loan?.outstanding_balance || 0)"
+        :interest-rate="Number(loan?.interest_rate || 0)"
         :saving="isSubmitting"
         @submit="submitRepayment"
       />
