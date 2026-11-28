@@ -61,8 +61,15 @@ const expandedIds = ref<Record<string, boolean>>({})
 const ignoreRules = ref<any[]>([])
 const loadingRules = ref(false)
 
-// Filters (Default: Last 7 Days)
-const datePreset = ref<'today' | 'yesterday' | '7d' | '30d' | 'month' | 'all' | 'custom'>('7d')
+// Filters (Default: Last 7 Days; capped to 14-day retention window)
+const RETENTION_DAYS = 14
+const datePreset = ref<'today' | 'yesterday' | '7d' | '14d' | 'custom'>('7d')
+const minRetentionDate = computed(() => {
+  const d = new Date()
+  d.setDate(d.getDate() - (RETENTION_DAYS - 1))
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+})
 const filters = reactive({
   source: 'ALL', // ALL | SMS | EMAIL
   outcome: 'ALL',
@@ -168,10 +175,8 @@ const datePresetOptions = [
   { id: 'today', label: 'Today' },
   { id: 'yesterday', label: 'Yesterday' },
   { id: '7d', label: 'Last 7 Days' },
-  { id: '30d', label: 'Last 30 Days' },
-  { id: 'month', label: 'This Month' },
-  { id: 'all', label: 'All Time' },
-  { id: 'custom', label: 'Custom Range' }
+  { id: '14d', label: 'Last 14 Days' },
+  { id: 'custom', label: 'Custom Range (14d max)' }
 ] as const
 
 function computeDateBounds(): { start_date?: string; end_date?: string } {
@@ -192,14 +197,10 @@ function computeDateBounds(): { start_date?: string; end_date?: string } {
     s.setDate(now.getDate() - 6)
     return { start_date: startOfDay(s).toISOString(), end_date: endOfDay(now).toISOString() }
   }
-  if (datePreset.value === '30d') {
+  if (datePreset.value === '14d') {
     const s = new Date(now)
-    s.setDate(now.getDate() - 29)
+    s.setDate(now.getDate() - 13)
     return { start_date: startOfDay(s).toISOString(), end_date: endOfDay(now).toISOString() }
-  }
-  if (datePreset.value === 'month') {
-    const s = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
-    return { start_date: s.toISOString(), end_date: endOfDay(now).toISOString() }
   }
   if (datePreset.value === 'custom') {
     const res: { start_date?: string; end_date?: string } = {}
@@ -570,6 +571,14 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- 14-DAY RETENTION NOTICE -->
+    <div class="flex items-center gap-2.5 px-3.5 py-2.5 rounded-wf-lg bg-amber-500/10 border border-amber-500/25 text-xs text-amber-800 dark:text-amber-300">
+      <Clock class="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+      <span>
+        <strong>14-Day Log Retention:</strong> Diagnostic SMS &amp; email ingestion logs are permanently auto-purged after 14 days for privacy and storage hygiene. Your ledger transactions remain permanently.
+      </span>
+    </div>
+
     <!-- 2. FILTER BAR -->
     <WfCard variant="flat" padding="md" radius="lg" class="shadow-2xs space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
@@ -604,12 +613,14 @@ onMounted(() => {
               <input
                 v-model="filters.customStart"
                 type="date"
+                :min="minRetentionDate"
                 class="h-8 px-2 rounded-wf-md border border-wf-border-subtle bg-wf-surface text-xs text-wf-text-primary"
               />
               <span class="text-xs text-wf-text-muted">to</span>
               <input
                 v-model="filters.customEnd"
                 type="date"
+                :min="minRetentionDate"
                 class="h-8 px-2 rounded-wf-md border border-wf-border-subtle bg-wf-surface text-xs text-wf-text-primary"
               />
             </template>
@@ -696,7 +707,7 @@ onMounted(() => {
         <Clock class="w-7 h-7 text-wf-text-muted mx-auto opacity-60" />
         <p class="text-sm font-semibold text-wf-text-primary">No messages matched these filters</p>
         <p class="text-xs text-wf-text-muted">
-          Showing activity for <strong class="text-wf-text-secondary">{{ datePresetOptions.find(d => d.id === datePreset)?.label }}</strong>. Try switching to Last 7 Days or All Time.
+          Showing activity for <strong class="text-wf-text-secondary">{{ datePresetOptions.find(d => d.id === datePreset)?.label }}</strong>. Try switching to Last 7 Days or Last 14 Days.
         </p>
         <WfButton v-if="datePreset === 'today'" variant="secondary" size="sm" @click="datePreset = '7d'">
           Show Last 7 Days
