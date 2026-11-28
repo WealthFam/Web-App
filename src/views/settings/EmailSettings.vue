@@ -59,9 +59,28 @@ const emailForm = ref({
   host: 'imap.gmail.com',
   folder: 'INBOX',
   auto_sync: false,
+  sync_interval_minutes: 180,
   user_id: null as string | null,
   last_sync_at: '' as string
 })
+
+const syncIntervalOptions = [
+  { title: 'Every 15 minutes', value: 15 },
+  { title: 'Every 30 minutes', value: 30 },
+  { title: 'Every 1 hour', value: 60 },
+  { title: 'Every 2 hours', value: 120 },
+  { title: 'Every 3 hours', value: 180 },
+  { title: 'Every 6 hours', value: 360 },
+  { title: 'Every 12 hours', value: 720 },
+  { title: 'Daily (24 hours)', value: 1440 }
+]
+
+function formatSyncInterval(minutes?: number) {
+  const mins = Number(minutes || 180)
+  if (mins < 60) return `${mins}m`
+  if (mins % 60 === 0) return `${mins / 60}h`
+  return `${mins}m`
+}
 
 // Email Logs State
 const emailLogs = ref<any[]>([])
@@ -177,6 +196,7 @@ async function saveEmailConfig() {
       imap_server: emailForm.value.host,
       folder: emailForm.value.folder,
       auto_sync_enabled: emailForm.value.auto_sync,
+      sync_interval_minutes: Number(emailForm.value.sync_interval_minutes || 180),
       user_id: emailForm.value.user_id
     }
 
@@ -193,7 +213,7 @@ async function saveEmailConfig() {
     }
 
     showEmailModal.value = false
-    emailForm.value = { email: '', password: '', host: 'imap.gmail.com', folder: 'INBOX', auto_sync: false, user_id: null, last_sync_at: '' }
+    emailForm.value = { email: '', password: '', host: 'imap.gmail.com', folder: 'INBOX', auto_sync: false, sync_interval_minutes: 180, user_id: null, last_sync_at: '' }
     fetchData()
   } catch (e) {
     notify.error('Failed to save email config')
@@ -208,6 +228,7 @@ function openAddEmailModal() {
     host: 'imap.gmail.com',
     folder: 'INBOX',
     auto_sync: false,
+    sync_interval_minutes: 180,
     user_id: null,
     last_sync_at: ''
   }
@@ -221,6 +242,7 @@ function openEditEmailModal(config: any) {
     host: config.imap_server,
     folder: config.folder,
     auto_sync: config.auto_sync_enabled || false,
+    sync_interval_minutes: Number(config.sync_interval_minutes || 180),
     user_id: config.user_id || null,
     last_sync_at: config.last_sync_at ? localISOString(new Date(config.last_sync_at)) : ''
   }
@@ -434,7 +456,7 @@ onMounted(() => {
                     class="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-500"
                   >
                     <RefreshCw class="w-2.5 h-2.5" />
-                    Auto
+                    Auto • {{ formatSyncInterval(config.sync_interval_minutes) }}
                   </span>
                 </div>
               </div>
@@ -702,7 +724,7 @@ onMounted(() => {
             <div class="flex items-center justify-between p-2.5 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle self-end">
               <div>
                 <p class="text-xs font-bold text-wf-text-primary">Auto Sync</p>
-                <p class="text-[10px] text-wf-text-muted">Runs every 15 minutes</p>
+                <p class="text-[10px] text-wf-text-muted">Runs every {{ formatSyncInterval(emailForm.sync_interval_minutes) }}</p>
               </div>
               <input
                 v-model="emailForm.auto_sync"
@@ -710,6 +732,15 @@ onMounted(() => {
                 class="w-4 h-4 rounded text-wf-primary focus:ring-wf-primary"
               />
             </div>
+          </div>
+
+          <div v-if="emailForm.auto_sync">
+            <label class="block text-xs font-bold text-wf-text-secondary mb-1">Sync Frequency</label>
+            <WfSelect
+              v-model="emailForm.sync_interval_minutes"
+              :items="syncIntervalOptions"
+              size="md"
+            />
           </div>
         </div>
 
