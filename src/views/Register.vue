@@ -11,7 +11,9 @@ import {
   TrendingUp,
   PieChart,
   Users,
-  Sparkles
+  Sparkles,
+  BookOpen,
+  ExternalLink
 } from 'lucide-vue-next'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfInput from '@/components/ui/WfInput.vue'
@@ -19,16 +21,24 @@ import WfAlert from '@/components/ui/WfAlert.vue'
 import { telemetry } from '@/services/telemetry'
 
 const router = useRouter()
+const websiteUrl = (import.meta.env.VITE_WEBSITE_URL || 'https://wealthfam.in').replace(/\/$/, '')
+const registrationGuideUrl = `${websiteUrl}/registration-guide`
 
 const familyName = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const allowTelemetry = ref(true)
+const hasReadGuide = ref(false)
 const error = ref('')
 const loading = ref(false)
 
 async function handleRegister() {
+  if (!hasReadGuide.value) {
+    error.value = 'Please read the Family Account & Registration Guide and confirm the checkbox before registering.'
+    return
+  }
+
   if (password.value !== confirmPassword.value) {
     error.value = "Passwords do not match."
     return
@@ -149,13 +159,35 @@ async function handleRegister() {
 
       <!-- Form Center Container -->
       <div class="w-full max-w-md mx-auto my-auto py-8">
-        <div class="mb-8">
+        <div class="mb-6">
           <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-wf-text-primary mb-2">
             Create family workspace
           </h1>
           <p class="text-sm text-wf-text-secondary">
             Set up your administrative profile to begin.
           </p>
+        </div>
+
+        <!-- Must-Read Family Account Notice -->
+        <div class="mb-6 p-3.5 rounded-wf-lg bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-left">
+          <div class="flex items-start gap-2.5">
+            <BookOpen class="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div class="space-y-1.5 text-xs leading-relaxed text-amber-950 dark:text-amber-100">
+              <p class="font-semibold">Must Read Before Registering</p>
+              <p class="text-amber-900/90 dark:text-amber-200/90">
+                Only <strong>one person per household</strong> should register as the <strong>Family Owner</strong>. If your family already has a workspace, ask the Owner to add you in <strong>Settings → Family Circle</strong> instead.
+              </p>
+              <a
+                :href="registrationGuideUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1 font-semibold text-indigo-700 dark:text-indigo-300 hover:underline pt-0.5"
+              >
+                <span>Read How Family Accounts Work</span>
+                <ExternalLink class="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
         </div>
 
         <form @submit.prevent="handleRegister" class="space-y-4">
@@ -231,6 +263,30 @@ async function handleRegister() {
               <span class="font-medium text-wf-text-primary block mb-0.5">Share anonymized telemetry and logs to improve experience</span>
               Helps us optimize performance, diagnose crashes, and improve overall stability. 
               <span class="text-wf-primary font-medium">Zero financial records, accounts, or personal identities are ever collected.</span>
+            </label>
+          </div>
+
+          <!-- Must-Read Family Guide Confirmation -->
+          <div class="p-3 rounded-lg bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/60 flex items-start gap-3 text-left">
+            <input
+              id="family-guide-consent"
+              type="checkbox"
+              v-model="hasReadGuide"
+              class="mt-1 w-4 h-4 rounded border-wf-border-subtle text-wf-primary focus:ring-wf-primary/30 shrink-0 cursor-pointer"
+            />
+            <label for="family-guide-consent" class="text-xs text-wf-text-secondary leading-relaxed cursor-pointer select-none">
+              I have read the
+              <a
+                :href="registrationGuideUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="font-semibold text-wf-primary hover:underline inline-flex items-center gap-0.5"
+                @click.stop
+              >
+                <span>Family Account &amp; Registration Guide</span>
+                <ExternalLink class="w-3 h-3" />
+              </a>
+              and understand that only one person per family should create a new workspace.
             </label>
           </div>
 

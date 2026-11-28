@@ -10,7 +10,9 @@ import {
   TrendingUp,
   PieChart,
   Users,
-  Sparkles
+  Sparkles,
+  BookOpen,
+  ExternalLink
 } from 'lucide-vue-next'
 import WfButton from '@/components/ui/WfButton.vue'
 import WfInput from '@/components/ui/WfInput.vue'
@@ -19,6 +21,8 @@ import WfModal from '@/components/ui/WfModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const websiteUrl = (import.meta.env.VITE_WEBSITE_URL || 'https://wealthfam.in').replace(/\/$/, '')
+const registrationGuideUrl = `${websiteUrl}/registration-guide`
 
 const email = ref('')
 const password = ref('')
@@ -244,8 +248,8 @@ async function handleDemoLogin() {
           </WfButton>
         </div>
 
-        <!-- Register Link -->
-        <div class="mt-8 pt-6 border-t border-wf-border text-center">
+        <!-- Register Link & Family Account Guide -->
+        <div class="mt-8 pt-6 border-t border-wf-border space-y-3 text-center">
           <p class="text-xs sm:text-sm text-wf-text-secondary">
             Don't have a family account?
             <router-link
@@ -255,6 +259,29 @@ async function handleDemoLogin() {
               Create Family Account
             </router-link>
           </p>
+
+          <div class="p-3 rounded-wf-lg bg-wf-surface-variant/60 border border-wf-border-subtle text-left">
+            <div class="flex items-start gap-2.5">
+              <BookOpen class="w-4 h-4 text-wf-primary shrink-0 mt-0.5" />
+              <div class="text-xs leading-relaxed text-wf-text-secondary">
+                <p>
+                  New to WealthFam?
+                  <a
+                    :href="registrationGuideUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="font-semibold text-wf-primary hover:underline inline-flex items-center gap-0.5 ml-0.5"
+                  >
+                    <span>Read how Family Accounts work (Must Read)</span>
+                    <ExternalLink class="w-3 h-3" />
+                  </a>
+                </p>
+                <p class="text-[11px] text-wf-text-muted mt-0.5">
+                  Already added by your Family Owner? Just sign in above with the email &amp; password they set for you.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
