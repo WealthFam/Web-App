@@ -218,17 +218,27 @@ const viewportSummary = computed(() => {
     }
 })
 
+const DEFAULT_OSM_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+
 function syncTileLayer() {
     if (!map) return
     if (tileLayer) {
         map.removeLayer(tileLayer)
     }
+    const customDark = (import.meta.env.VITE_MAP_TILE_URL_DARK as string | undefined)?.trim()
+    const customLight = (import.meta.env.VITE_MAP_TILE_URL_LIGHT as string | undefined)?.trim()
     const url = mapDark.value
-        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+        ? (customDark || DEFAULT_OSM_TILE_URL)
+        : (customLight || DEFAULT_OSM_TILE_URL)
+
+    // Apply CSS dark-mode filter on base tiles when using keyless OSM in dark mode
+    if (mapContainer.value) {
+        mapContainer.value.classList.toggle('wf-map-dark', mapDark.value && !customDark)
+    }
+
     tileLayer = L.tileLayer(url, {
         maxZoom: 19,
-        subdomains: 'abcd',
+        attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map)
 }
 
@@ -1073,5 +1083,9 @@ onUnmounted(() => {
 :deep(.leaflet-control-zoom-out:hover) {
     background: var(--wf-color-primary) !important;
     color: white !important;
+}
+
+.wf-map-dark :deep(.leaflet-tile-pane) {
+    filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
 }
 </style>

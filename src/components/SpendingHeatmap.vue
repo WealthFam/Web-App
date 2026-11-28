@@ -94,9 +94,15 @@ const initMap = () => {
         attributionControl: false
     }).setView(center, 13)
 
-    // Premium Dark Mode Tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Keyless OpenStreetMap tiles (with optional VITE_MAP_TILE_URL_DARK override)
+    const customDarkTileUrl = (import.meta.env.VITE_MAP_TILE_URL_DARK as string | undefined)?.trim()
+    const tileUrl = customDarkTileUrl || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+    if (mapContainer.value) {
+        mapContainer.value.classList.toggle('wf-map-dark', !customDarkTileUrl)
+    }
+    L.tileLayer(tileUrl, {
         maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map)
 
     // Add zoom control manually to bottom right
@@ -293,5 +299,9 @@ onUnmounted(() => {
 :deep(.leaflet-control-zoom-out:hover) {
     background: var(--wf-color-primary) !important;
     color: white !important;
+}
+
+.wf-map-dark :deep(.leaflet-tile-pane) {
+    filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
 }
 </style>
