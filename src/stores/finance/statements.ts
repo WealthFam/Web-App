@@ -27,6 +27,8 @@ export interface Statement {
     created_at: string
     is_attended?: boolean
     closed_at?: string | null
+    keep_pdf?: boolean
+    pdf_purged_at?: string | null
     email_sender?: string
     email_body?: string
     failure_reason?: string
@@ -265,6 +267,20 @@ export const useStatementStore = defineStore('statements', () => {
         }
     }
 
+    async function toggleKeepPdf(id: string, keepPdf: boolean) {
+        try {
+            const res = await financeApi.updateStatementRetention(id, keepPdf)
+            const index = statements.value.findIndex(s => s.id === id)
+            if (index !== -1) {
+                statements.value[index] = res.data
+            }
+            return res.data
+        } catch (error) {
+            console.error('[StatementStore] Failed to update statement retention', error)
+            throw error
+        }
+    }
+
     return {
         statements,
         totalStatements,
@@ -286,6 +302,7 @@ export const useStatementStore = defineStore('statements', () => {
         reconcileStatement,
         updateStatement,
         reprocessStatement,
-        toggleAttended
+        toggleAttended,
+        toggleKeepPdf
     }
 })

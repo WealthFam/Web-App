@@ -24,7 +24,9 @@ import {
     Pencil,
     Ban,
     Plus,
-    Store
+    Store,
+    Pin,
+    HardDrive
 } from 'lucide-vue-next'
 
 import MainLayout from '@/layouts/MainLayout.vue'
@@ -164,6 +166,69 @@ const newRuleValue = ref('')
 const savingNewRule = ref(false)
 
 const attachmentUrl = ref<string | null>(null)
+
+// P2-E: Per-user 100 MB storage quota & 40-day PDF retention helpers
+const storageUsage = ref<{
+    used_bytes: number
+    quota_bytes: number
+    used_mb: number
+    quota_mb: number
+    percent_used: number
+    is_exceeded: boolean
+} | null>(null)
+const togglingKeepPdf = ref(false)
+
+async function fetchStorageUsage() {
+    try {
+        const res = await financeApi.getVaultStorageUsage()
+        storageUsage.value = res.data
+    } catch {
+        // Non-blocking UI hint
+    }
+}
+
+function getStatementAgeDays(stmt?: Statement | null): number {
+    if (!stmt?.created_at) return 0
+    const createdMs = new Date(stmt.created_at).getTime()
+    if (Number.isNaN(createdMs)) return 0
+    return Math.max(0, Math.floor((Date.now() - createdMs) / (1000 * 60 * 60 * 24)))
+}
+
+function isPdfExpiringSoon(stmt?: Statement | null): boolean {
+    if (!stmt || stmt.keep_pdf || !stmt.vault_id || stmt.pdf_purged_at) return false
+    const age = getStatementAgeDays(stmt)
+    return age >= 30 && age < 40
+}
+
+function getDaysUntilPdfPurge(stmt?: Statement | null): number {
+    const age = getStatementAgeDays(stmt)
+    return Math.max(0, 40 - age)
+}
+
+async function handleToggleKeepPdf(stmt: Statement) {
+    if (togglingKeepPdf.value) return
+    togglingKeepPdf.value = true
+    const nextVal = !stmt.keep_pdf
+    try {
+        const updated = await store.toggleKeepPdf(stmt.id, nextVal)
+        if (selectedStatement.value?.id === stmt.id) {
+            selectedStatement.value.keep_pdf = updated.keep_pdf
+        }
+        notification.success(
+            nextVal
+                ? "Pinned: PDF will not be auto-deleted after 40 days."
+                : "Unpinned: PDF will follow the 40-day auto-purge policy."
+        )
+    } catch (e: any) {
+        notification.error(e.response?.data?.detail || 'Failed to update PDF retention setting')
+    } finally {
+        togglingKeepPdf.value = false
+    }
+}
+
+onMounted(() => {
+    fetchStorageUsage()
+})
 
 // Category options tree builder for bulk ingest
 const categoryOptions = computed(() => {
@@ -1093,6 +1158,20 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                 </div>
 
                 <div class="flex items-center gap-2.5 flex-wrap">
+                    <div
+                        v-if="storageUsage"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-wf-pill text-[11px] font-semibold border"
+                        :class="storageUsage.is_exceeded
+                            ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/60'
+                            : storageUsage.percent_used >= 80
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60'
+                                : 'bg-wf-surface text-wf-text-secondary border-wf-border'"
+                        :title="`Vault & Statement PDF storage: ${storageUsage.used_mb} MB of ${storageUsage.quota_mb} MB (${storageUsage.percent_used}%)`"
+                    >
+                        <HardDrive class="w-3.5 h-3.5 shrink-0" />
+                        <span>{{ storageUsage.used_mb }} / {{ storageUsage.quota_mb }} MB</span>
+                    </div>
+
                     <WfButton
                         variant="outline"
                         size="sm"
@@ -1488,9 +1567,24 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                                         </button>
 
                                         <button
+                                            v-if="selectedStatement.vault_id"
+                                            @click="handleToggleKeepPdf(selectedStatement)"
+                                            :disabled="togglingKeepPdf"
+                                            class="inline-flex items-center gap-1 px-2 py-1 rounded-wf-md border text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                                            :class="selectedStatement.keep_pdf
+                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700'
+                                                : 'border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant'"
+                                            :title="selectedStatement.keep_pdf ? 'Pinned: PDF will not be auto-deleted after 40 days. Click to unpin.' : 'Pin PDF to opt out of 40-day automatic deletion'"
+                                        >
+                                            <Pin class="w-3.5 h-3.5" />
+                                            <span>{{ selectedStatement.keep_pdf ? "Pinned" : "Don't Delete" }}</span>
+                                        </button>
+
+                                        <button
                                             @click="promptReevaluate(selectedStatement)"
-                                            class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant hover:border-wf-primary/40 transition-colors cursor-pointer"
-                                            title="Re-evaluate Statement"
+                                            :disabled="!selectedStatement.vault_id"
+                                            class="p-1.5 rounded-wf-md border border-wf-border text-wf-text-secondary hover:text-wf-primary hover:bg-wf-surface-variant hover:border-wf-primary/40 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                            :title="selectedStatement.vault_id ? 'Re-evaluate Statement' : 'Original PDF has been purged'"
                                         >
                                             <RefreshCw class="w-4 h-4" />
                                         </button>
@@ -1554,13 +1648,25 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
                             </button>
 
                             <button
-                                v-if="selectedStatement.vault_id"
+                                v-if="selectedStatement.vault_id || selectedStatement.pdf_purged_at"
                                 @click="activeTab = 'attachment'"
                                 class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border-b-2 transition-colors"
                                 :class="activeTab === 'attachment' ? 'border-wf-primary text-wf-primary font-bold' : 'border-transparent text-wf-text-secondary hover:text-wf-text-primary'"
                             >
                                 <Eye class="w-3.5 h-3.5" />
                                 <span>Attachment / PDF</span>
+                                <span
+                                    v-if="selectedStatement.pdf_purged_at && !selectedStatement.vault_id"
+                                    class="ml-1 px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                                >
+                                    Purged
+                                </span>
+                                <span
+                                    v-else-if="isPdfExpiringSoon(selectedStatement)"
+                                    class="ml-1 px-1.5 py-0.2 rounded-wf-pill text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                                >
+                                    {{ getDaysUntilPdfPurge(selectedStatement) }}d left
+                                </span>
                             </button>
 
                             <button
@@ -1984,7 +2090,63 @@ function isCasWithdrawal(txn: StatementTransaction): boolean {
 
                             <!-- TAB 2: Attachment (PDF Viewer) -->
                             <div v-if="activeTab === 'attachment'" class="flex-1 min-h-0 flex flex-col bg-slate-100 dark:bg-slate-900 h-full">
-                                <div v-if="!selectedStatement.vault_id" class="p-10 text-center flex flex-col items-center justify-center text-wf-text-muted flex-1">
+                                <!-- Expiring Soon Warning Bar (30-40 days) -->
+                                <div
+                                    v-if="selectedStatement.vault_id && isPdfExpiringSoon(selectedStatement)"
+                                    class="px-4 py-2 bg-amber-50 dark:bg-amber-950/50 border-b border-amber-200 dark:border-amber-800/60 flex items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200 shrink-0"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <Clock class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                                        <span>
+                                            <strong>Expiring Soon:</strong> This PDF will be permanently auto-purged in
+                                            <strong>{{ getDaysUntilPdfPurge(selectedStatement) }} day(s)</strong> (40-day retention).
+                                            Extracted transactions remain intact.
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        @click="handleToggleKeepPdf(selectedStatement)"
+                                        :disabled="togglingKeepPdf"
+                                        class="px-2.5 py-1 rounded-wf-sm bg-amber-600 hover:bg-amber-700 text-white font-semibold text-[11px] shrink-0 cursor-pointer"
+                                    >
+                                        Don't Delete
+                                    </button>
+                                </div>
+                                <!-- Standard Retention Notice Bar (<30 days, unpinned) -->
+                                <div
+                                    v-else-if="selectedStatement.vault_id && !selectedStatement.keep_pdf"
+                                    class="px-4 py-1.5 bg-wf-surface-variant/60 border-b border-wf-border flex items-center justify-between gap-3 text-[11px] text-wf-text-secondary shrink-0"
+                                >
+                                    <span>Unpinned statement PDFs are automatically purged after <strong>40 days</strong> to save storage.</span>
+                                    <button
+                                        type="button"
+                                        @click="handleToggleKeepPdf(selectedStatement)"
+                                        :disabled="togglingKeepPdf"
+                                        class="text-wf-primary font-semibold hover:underline shrink-0 cursor-pointer"
+                                    >
+                                        Pin "Don't Delete"
+                                    </button>
+                                </div>
+
+                                <!-- Auto-Purged PDF Banner -->
+                                <div v-if="!selectedStatement.vault_id && selectedStatement.pdf_purged_at" class="p-8 sm:p-10 text-center flex flex-col items-center justify-center flex-1">
+                                    <div class="max-w-md w-full p-6 rounded-wf-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-left space-y-2.5">
+                                        <div class="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-sm">
+                                            <Clock class="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                                            <span>Source PDF Auto-Purged</span>
+                                        </div>
+                                        <p class="text-xs text-amber-900/90 dark:text-amber-200/90 leading-relaxed">
+                                            This statement's original PDF file was automatically removed on
+                                            <strong>{{ format(new Date(selectedStatement.pdf_purged_at), 'dd MMM yyyy') }}</strong>
+                                            after the 40-day retention window to keep your 100 MB storage quota free.
+                                        </p>
+                                        <p class="text-xs text-wf-text-secondary leading-relaxed">
+                                            All extracted statement records and ledger transactions remain completely intact.
+                                            To keep future PDFs permanently, click <strong>Don't Delete</strong> before day 40.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div v-else-if="!selectedStatement.vault_id" class="p-10 text-center flex flex-col items-center justify-center text-wf-text-muted flex-1">
                                     <AlertCircle class="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
                                     <div class="text-sm font-bold text-wf-text-primary">No Attachment Found</div>
                                     <div class="text-xs text-wf-text-muted mt-0.5">This statement record does not have an associated source PDF file in the vault.</div>

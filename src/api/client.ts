@@ -515,6 +515,8 @@ export const financeApi = {
     bulkIngestStatementTransactions: (data: { items: { transaction_id: string, category: string | null, create_rule: boolean, exclude_from_reports: boolean }[], account_id?: string }) => apiClient.post('/finance/statements/transactions/bulk-ingest', data),
     reconcileCasStatement: (statementId: string, transactionIds: string[], userId?: string) => apiClient.post(`/finance/statements/${statementId}/reconcile-cas`, { transaction_ids: transactionIds, user_id: userId }),
     markStatementAttended: (id: string, is_attended: boolean) => apiClient.patch(`/finance/statements/${id}/attend`, { is_attended }),
+    updateStatementRetention: (id: string, keep_pdf: boolean) => apiClient.patch(`/finance/statements/${id}/retention`, { keep_pdf }),
+    getVaultStorageUsage: () => apiClient.get('/vault/storage-usage'),
     getAttentionSummary: (userId?: string) => apiClient.get('/finance/statements/attention-summary', { params: { user_id: userId } }),
 }
 
