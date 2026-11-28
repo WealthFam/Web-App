@@ -43,7 +43,7 @@ function handleClose() {
             Strategic Debt Repayment Intelligence
           </h3>
           <p class="text-[11px] text-wf-text-muted mt-0.5 leading-none">
-            AI-driven debt snowball, avalanche, and prepayment optimization
+            Smart debt snowball, avalanche, and prepayment optimization
           </p>
         </div>
       </div>

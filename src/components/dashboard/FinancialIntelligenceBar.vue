@@ -13,7 +13,7 @@
               Cached
             </span>
             <span v-else class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50">
-              Live AI
+              Live Insights
             </span>
           </div>
         </div>
@@ -24,7 +24,7 @@
             class="p-1 rounded-wf-sm text-wf-text-muted hover:text-wf-primary hover:bg-wf-surface-variant transition-colors"
             @click="$emit('refresh')"
             :disabled="refreshing"
-            title="Refresh AI Insights"
+            title="Refresh Insights"
           >
             <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': refreshing }" />
           </button>

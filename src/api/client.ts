@@ -516,7 +516,7 @@ export const financeApi = {
     reconcileCasStatement: (statementId: string, transactionIds: string[], userId?: string) => apiClient.post(`/finance/statements/${statementId}/reconcile-cas`, { transaction_ids: transactionIds, user_id: userId }),
     markStatementAttended: (id: string, is_attended: boolean) => apiClient.patch(`/finance/statements/${id}/attend`, { is_attended }),
     updateStatementRetention: (id: string, keep_pdf: boolean) => apiClient.patch(`/finance/statements/${id}/retention`, { keep_pdf }),
-    getVaultStorageUsage: () => apiClient.get('/vault/storage-usage'),
+    getVaultStorageUsage: () => apiClient.get('/finance/vault/storage-usage'),
     getAttentionSummary: (userId?: string) => apiClient.get('/finance/statements/attention-summary', { params: { user_id: userId } }),
 }
 

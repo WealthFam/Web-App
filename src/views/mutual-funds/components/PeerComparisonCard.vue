@@ -503,7 +503,7 @@ const portfolioPosture = computed(() => {
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400">
                     <Sparkles class="w-4 h-4 text-indigo-500" />
-                    <span>AI Advisor Intelligence Highlights</span>
+                    <span>Portfolio Intelligence Highlights</span>
                 </div>
                 <button
                     v-if="data?.advisor_insights_markdown"
@@ -526,7 +526,7 @@ const portfolioPosture = computed(() => {
                 <div class="flex items-center justify-between pb-3 border-b border-wf-border-subtle shrink-0">
                     <div class="flex items-center gap-2">
                         <Sparkles class="w-4 h-4 text-indigo-500" />
-                        <h4 class="text-sm font-bold text-wf-text-primary">Section 16.1 AI Advisor Comprehensive Report</h4>
+                        <h4 class="text-sm font-bold text-wf-text-primary">Comprehensive Portfolio Review</h4>
                     </div>
                     <button
                         type="button"

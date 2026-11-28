@@ -790,7 +790,7 @@ function isImageUrl(url: string) {
 
                             <div v-if="isInsightsLoading" class="py-8 flex flex-col items-center justify-center gap-2">
                                 <div class="w-6 h-6 rounded-full border-2 border-wf-primary border-t-transparent animate-spin"></div>
-                                <span class="text-xs font-medium text-wf-text-muted">Computing AI Intelligence...</span>
+                                <span class="text-xs font-medium text-wf-text-muted">Computing Fund Intelligence...</span>
                             </div>
 
                             <div v-else-if="insightsError && !fundInsights" class="py-6 text-center space-y-2">
