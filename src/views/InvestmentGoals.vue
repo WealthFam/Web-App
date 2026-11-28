@@ -229,11 +229,13 @@ const unlinkHolding = async (goalId: string, holdingId: string) => {
 }
 
 const accountOptions = computed(() => {
-  return accounts.value.map(acc => ({
-    label: `${acc.name} (${formatAmount(acc.balance)})`,
-    value: acc.id,
-    type: acc.type
-  }))
+  return accounts.value
+    .filter(acc => acc.type !== 'CREDIT_CARD' && acc.type !== 'LOAN')
+    .map(acc => ({
+      label: `${acc.name} (${formatAmount(acc.balance)})`,
+      value: acc.id,
+      type: acc.type
+    }))
 })
 
 const portfolioOptions = computed(() => {

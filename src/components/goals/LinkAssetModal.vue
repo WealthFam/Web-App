@@ -49,7 +49,9 @@ const filteredPortfolioOptions = computed(() => {
 })
 
 const formattedAccountOptions = computed(() =>
-  props.accountOptions.map(a => ({ title: a.label, value: a.value }))
+  props.accountOptions
+    .filter(a => a.type !== 'CREDIT_CARD' && a.type !== 'LOAN')
+    .map(a => ({ title: a.label, value: a.value }))
 )
 
 const formattedPortfolioOptions = computed(() =>

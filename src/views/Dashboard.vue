@@ -189,9 +189,13 @@
                 {{ formatAmount(mfPortfolio.current) }}
               </div>
             </div>
-            <div class="pt-2 border-t border-wf-border-subtle mt-2 flex items-center text-[11px] text-wf-success font-semibold">
-              <TrendingUp class="w-3 h-3 mr-1 shrink-0" />
-              <span class="tabular-nums">{{ formatAmount(mfPortfolio.pl) }} gains</span>
+            <div
+              class="pt-2 border-t border-wf-border-subtle mt-2 flex items-center text-[11px] font-semibold"
+              :class="(mfPortfolio.pl || 0) >= 0 ? 'text-wf-success' : 'text-wf-error'"
+            >
+              <TrendingUp v-if="(mfPortfolio.pl || 0) >= 0" class="w-3 h-3 mr-1 shrink-0" />
+              <TrendingDown v-else class="w-3 h-3 mr-1 shrink-0" />
+              <span class="tabular-nums">{{ formatSignedAmount(mfPortfolio.pl || 0) }} {{ (mfPortfolio.pl || 0) >= 0 ? 'gains' : 'loss' }}</span>
             </div>
           </WfCard>
 
@@ -349,9 +353,10 @@ const netWorth = computed(() => {
 const netWorthChange = computed(() => {
   if (netWorthTrend.value.length < 2) return 0
   const current = netWorthTrend.value[netWorthTrend.value.length - 1]
-  const previous = netWorthTrend.value[netWorthTrend.value.length - 2]
+  // Compare against the start of the ~30-day window (not 1-day delta)
+  const previous = netWorthTrend.value[0]
   if (previous === 0) return 0
-  return ((current - previous) / previous) * 100
+  return ((current - previous) / Math.abs(previous)) * 100
 })
 
 const formattedInsights = computed(() => {

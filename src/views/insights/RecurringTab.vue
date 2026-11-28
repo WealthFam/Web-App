@@ -6,7 +6,7 @@
                 <h2 class="text-lg font-bold text-wf-text-primary">Subscriptions & Recurring</h2>
                 <p class="text-xs text-wf-text-secondary mt-0.5">Track and manage your recurring bills, subscriptions, and regular cash outflows</p>
             </div>
-            <WfButton variant="primary" size="sm" @click="showAddModal = true">
+            <WfButton variant="primary" size="sm" @click="openAddModal()">
                 <Plus :size="15" class="mr-1.5" />
                 <span>Add Subscription</span>
             </WfButton>
@@ -157,8 +157,11 @@
                             </div>
 
                             <div class="text-right shrink-0">
-                                <div class="text-sm font-bold font-mono text-wf-text-primary">
-                                    {{ formatAmount(rec.amount) }}
+                                <div
+                                    class="text-sm font-bold font-mono"
+                                    :class="rec.type === 'CREDIT' ? 'text-wf-success' : 'text-wf-text-primary'"
+                                >
+                                    {{ rec.type === 'CREDIT' ? '+' : '' }}{{ formatAmount(Math.abs(rec.amount)) }}
                                 </div>
                                 <span v-if="rec.exclude_from_reports" class="px-1.5 py-0.2 rounded text-[8px] font-bold bg-rose-50 text-rose-600 dark:bg-rose-950/30 uppercase tracking-wider">
                                     Hidden
@@ -218,7 +221,7 @@
                     No active recurring tracking detected. Add fixed commitments like rent, utilities, insurance, or streaming subscriptions for reliable cashflow projections.
                 </p>
             </div>
-            <WfButton variant="primary" size="sm" @click="showAddModal = true">
+            <WfButton variant="primary" size="sm" @click="openAddModal()">
                 <Plus :size="14" class="mr-1.5" />
                 <span>Add First Subscription</span>
             </WfButton>
@@ -316,9 +319,34 @@
                     </label>
                     <WfInput
                         v-model="newRecurrence.name"
-                        placeholder="e.g. Netflix, Rent, AWS, Gym..."
+                        placeholder="e.g. Netflix, Rent, Salary, AWS..."
                         required
                     />
+                </div>
+
+                <!-- Type Selector (DEBIT / CREDIT) -->
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">
+                        Transaction Type
+                    </label>
+                    <div class="grid grid-cols-2 gap-2 p-1 rounded-wf-md bg-wf-surface-variant/40 border border-wf-border-subtle">
+                        <button
+                            type="button"
+                            @click="newRecurrence.type = 'DEBIT'"
+                            class="py-1.5 text-xs font-bold rounded-wf-sm transition-all"
+                            :class="newRecurrence.type === 'DEBIT' ? 'bg-wf-surface text-rose-600 shadow-2xs border border-wf-border' : 'text-wf-text-muted hover:text-wf-text-primary'"
+                        >
+                            Expense / Outflow
+                        </button>
+                        <button
+                            type="button"
+                            @click="newRecurrence.type = 'CREDIT'"
+                            class="py-1.5 text-xs font-bold rounded-wf-sm transition-all"
+                            :class="newRecurrence.type === 'CREDIT' ? 'bg-wf-surface text-emerald-600 shadow-2xs border border-wf-border' : 'text-wf-text-muted hover:text-wf-text-primary'"
+                        >
+                            Income / Inflow
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Amount & Billing Cycle -->
@@ -348,14 +376,14 @@
                     </div>
                 </div>
 
-                <!-- First/Next Date & Source Account -->
+                <!-- Next Run Date & Source Account -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="space-y-1">
                         <label class="text-[11px] font-bold uppercase tracking-wider text-wf-text-secondary">
-                            First / Next Payment Date
+                            {{ newRecurrence.id ? 'Next Scheduled Date' : 'First / Next Payment Date' }}
                         </label>
                         <WfInput
-                            v-model="newRecurrence.start_date"
+                            v-model="newRecurrence.next_run_date"
                             type="date"
                             required
                         />
@@ -518,14 +546,16 @@ async function approveSuggestion(suggestion: any) {
     )
     if (!isConfirmed) return
 
+    const startDate = suggestion.last_date ? suggestion.last_date.split('T')[0] : todayLocalString()
     newRecurrence.value = {
         id: null,
         name: suggestion.name,
-        amount: suggestion.amount,
+        amount: Math.abs(Number(suggestion.amount || 0)),
         category: suggestion.category || '',
         account_id: suggestion.account_id,
         frequency: suggestion.frequency,
-        start_date: suggestion.last_date ? suggestion.last_date.split('T')[0] : todayLocalString(),
+        start_date: startDate,
+        next_run_date: startDate,
         type: 'DEBIT',
         exclude_from_reports: false
     }
@@ -540,20 +570,29 @@ const newRecurrence = ref({
     account_id: '',
     frequency: 'MONTHLY',
     start_date: todayLocalString(),
+    next_run_date: todayLocalString(),
     type: 'DEBIT',
     exclude_from_reports: false
 })
 
+function openAddModal() {
+    resetForm()
+    showAddModal.value = true
+}
+
 async function editRecurrence(rec: any) {
+    const startStr = rec.start_date ? rec.start_date.split('T')[0] : todayLocalString()
+    const nextStr = rec.next_run_date ? rec.next_run_date.split('T')[0] : startStr
     newRecurrence.value = {
         id: rec.id,
         name: rec.name,
-        amount: Math.abs(rec.amount),
+        amount: Math.abs(Number(rec.amount || 0)),
         category: rec.category,
         account_id: rec.account_id,
         frequency: rec.frequency,
-        start_date: rec.start_date ? rec.start_date.split('T')[0] : todayLocalString(),
-        type: rec.amount < 0 ? 'DEBIT' : 'CREDIT',
+        start_date: startStr,
+        next_run_date: nextStr,
+        type: rec.type ? String(rec.type).toUpperCase() : (rec.amount < 0 ? 'DEBIT' : 'CREDIT'),
         exclude_from_reports: rec.exclude_from_reports
     }
     showAddModal.value = true
@@ -561,17 +600,21 @@ async function editRecurrence(rec: any) {
 
 async function saveRecurrence() {
     try {
+        const { id, ...fields } = newRecurrence.value
+        const nextDate = fields.next_run_date || fields.start_date
         const payload = {
-            ...newRecurrence.value,
-            next_run_date: newRecurrence.value.start_date
+            ...fields,
+            amount: Math.abs(Number(fields.amount || 0)),
+            start_date: id ? fields.start_date : nextDate,
+            next_run_date: nextDate
         }
         
-        if (newRecurrence.value.id) {
-            await financeApi.updateRecurring(newRecurrence.value.id, payload)
-            notification.success(`Subscription updated: ${newRecurrence.value.name}`)
+        if (id) {
+            await financeApi.updateRecurring(id, payload)
+            notification.success(`Subscription updated: ${fields.name}`)
         } else {
             await financeApi.createRecurringTransaction(payload)
-            notification.success(`Subscription created: ${newRecurrence.value.name}`)
+            notification.success(`Subscription created: ${fields.name}`)
         }
         
         showAddModal.value = false
@@ -583,6 +626,7 @@ async function saveRecurrence() {
 }
 
 function resetForm() {
+    const today = todayLocalString()
     newRecurrence.value = {
         id: null,
         name: '',
@@ -590,7 +634,8 @@ function resetForm() {
         category: '',
         account_id: '',
         frequency: 'MONTHLY',
-        start_date: todayLocalString(),
+        start_date: today,
+        next_run_date: today,
         type: 'DEBIT',
         exclude_from_reports: false
     }
