@@ -516,7 +516,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import {
     ShieldCheck, Plus, TrendingUp, Briefcase, Coins, MoreVertical, Edit2, Trash2,
     Search, X, RotateCcw
@@ -531,9 +531,11 @@ import WfMenu from '@/components/ui/WfMenu.vue'
 import { financeApi } from '@/api/client'
 import { useCurrency } from '@/composables/useCurrency'
 import { useNotificationStore } from '@/stores/notification'
+import { useAuthStore } from '@/stores/auth'
 
 const { formatAmount } = useCurrency()
 const notification = useNotificationStore()
+const authStore = useAuthStore()
 
 const loading = ref(true)
 const funds = ref<any[]>([])
@@ -616,7 +618,7 @@ function formatDate(iso?: string) {
 async function fetchFunds() {
     loading.value = true
     try {
-        const res = await financeApi.getProvidentFunds()
+        const res = await financeApi.getProvidentFunds(authStore.selectedMemberId || undefined)
         funds.value = res.data || []
     } catch (e) {
         console.error('Failed to fetch funds', e)
@@ -625,6 +627,10 @@ async function fetchFunds() {
         loading.value = false
     }
 }
+
+watch(() => authStore.selectedMemberId, () => {
+    fetchFunds()
+})
 
 function onTypeChange(type: any) {
     if (type === 'EPF') fundForm.annual_interest_rate = 8.25

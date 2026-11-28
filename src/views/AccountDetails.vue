@@ -201,14 +201,13 @@
                                 type="text"
                                 placeholder="Search account transactions..."
                                 class="w-full h-8 pl-9 pr-8 text-xs bg-wf-surface border border-wf-border rounded-wf-md text-wf-text-primary placeholder:text-wf-text-muted focus:outline-none focus:ring-2 focus:ring-wf-primary/20 focus:border-wf-primary transition-colors"
-                                @input="fetchTransactions"
                             />
                             <div v-if="searchQuery" class="absolute inset-y-0 right-0 flex items-center pr-2.5">
                                 <button
                                     type="button"
                                     class="text-wf-text-muted hover:text-wf-text-primary p-0.5 rounded cursor-pointer flex items-center justify-center"
                                     aria-label="Clear search"
-                                    @click="searchQuery = ''; fetchTransactions()"
+                                    @click="searchQuery = ''"
                                 >
                                     <X :size="13" />
                                 </button>
@@ -635,7 +634,7 @@ async function fetchAccount() {
     try {
         const id = route.params.id as string
         const [accsRes, intelRes] = await Promise.all([
-            financeApi.getAccounts(),
+            financeApi.getAccounts(undefined, true),
             financeApi.getCreditIntelligence()
         ])
         allAccounts.value = accsRes.data
@@ -643,7 +642,11 @@ async function fetchAccount() {
         intelligence.value = intelRes.data.find((i: any) => i.id === id)
         
         if (account.value) {
-            fetchTransactions()
+            if (account.value.type !== 'CREDIT_CARD' && periodFilter.value === 'current') {
+                periodFilter.value = 'month'
+            } else {
+                fetchTransactions()
+            }
         }
     } catch (e) {
         notify.error("Failed to load account details")
@@ -655,8 +658,10 @@ async function fetchAccount() {
 async function fetchTransactions(options?: any) {
     if (!account.value) return
     
-    if (options) {
+    if (options && typeof options.page === 'number') {
         page.value = options.page
+    }
+    if (options && typeof options.itemsPerPage === 'number') {
         limit.value = options.itemsPerPage
     }
 
@@ -729,8 +734,20 @@ function getOwnerName(id: string) {
 }
 
 // --- Watchers ---
-watch([periodFilter, searchQuery, page], () => {
+watch([periodFilter, page], () => {
     fetchTransactions()
+})
+
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
+watch(searchQuery, () => {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+    searchDebounceTimer = setTimeout(() => {
+        if (page.value !== 1) {
+            page.value = 1
+        } else {
+            fetchTransactions()
+        }
+    }, 300)
 })
 
 watch(customRange, () => {

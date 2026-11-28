@@ -1,5 +1,5 @@
 import { ref, watch, type Ref } from 'vue'
-import { localISOString } from '@/utils/time'
+import { localISOString, utcToLocalInput } from '@/utils/time'
 import { financeApi } from '@/api/client'
 import { useNotificationStore } from '@/stores/notification'
 
@@ -124,7 +124,7 @@ export function useTransactionModals(
             category_id: txn.category_id || '',
             category: txn.category,
             amount: Math.abs(txn.amount),
-            date: txn.date ? txn.date.slice(0, 16) : localISOString(),
+            date: txn.date ? utcToLocalInput(txn.date) : localISOString(),
             account_id: txn.account_id,
             is_transfer: txn.is_transfer || false,
             to_account_id: txn.transfer_account_id || '',

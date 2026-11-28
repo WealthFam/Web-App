@@ -631,7 +631,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
     CreditCard, Plus, ShieldCheck, Clock, Receipt,
@@ -649,10 +649,12 @@ import WfMenu from '@/components/ui/WfMenu.vue'
 import { financeApi } from '@/api/client'
 import { useCurrency } from '@/composables/useCurrency'
 import { useNotificationStore } from '@/stores/notification'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const { formatAmount } = useCurrency()
 const notification = useNotificationStore()
+const authStore = useAuthStore()
 
 const loading = ref(true)
 const cards = ref<any[]>([])
@@ -803,7 +805,7 @@ function formatDate(iso?: string) {
 async function fetchCards() {
     loading.value = true
     try {
-        const res = await financeApi.getCreditCards()
+        const res = await financeApi.getCreditCards(authStore.selectedMemberId || undefined)
         cards.value = res.data || []
     } catch (e) {
         console.error('Failed to fetch credit cards', e)
@@ -815,7 +817,7 @@ async function fetchCards() {
 
 async function fetchBankAccounts() {
     try {
-        const res = await financeApi.getAccounts()
+        const res = await financeApi.getAccounts(authStore.selectedMemberId || undefined)
         const raw = res.data?.data || res.data || []
         bankAccounts.value = raw.filter((a: any) => a.type === 'BANK' && !a.is_deleted)
     } catch (e) {
@@ -910,6 +912,11 @@ function openPayModal(card: any) {
     payForm.description = `Bill Payment for ${card.name}`
     payModal.value = true
 }
+
+watch(() => authStore.selectedMemberId, () => {
+    fetchCards()
+    fetchBankAccounts()
+})
 
 onMounted(() => {
     fetchCards()

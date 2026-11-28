@@ -429,8 +429,9 @@ const investmentChange = computed(() => {
 
 // --- Actions ---
 async function fetchAllData() {
-  dashboardStore.fetchDashboardData()
-  financeApi.getRecurringTransactions()
+  const userId = auth.selectedMemberId || undefined
+  dashboardStore.fetchDashboardData(userId)
+  financeApi.getRecurringTransactions(userId)
     .then(res => { recurringTransactions.value = res.data })
 }
 
@@ -443,6 +444,11 @@ async function fetchMetadata() {
     expenseGroupStore.fetchGroups()
   ])
 }
+
+watch(() => auth.selectedMemberId, async () => {
+  await fetchMetadata()
+  fetchAllData()
+})
 
 onMounted(async () => {
   await fetchMetadata()

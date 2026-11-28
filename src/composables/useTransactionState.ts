@@ -146,7 +146,7 @@ export function useTransactionState(
         switch (value) {
             case 'today':
                 start = todayLocalString()
-                end = localDateString(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+                end = todayLocalString()
                 break
             case 'this-week': {
                 const weekStart = new Date(today)

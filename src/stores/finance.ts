@@ -26,11 +26,12 @@ export const useFinanceStore = defineStore('finance', () => {
     async function fetchAll(userId?: string) {
         loading.value = true
         error.value = null
+        const targetUserId = userId ?? (auth.selectedMemberId || undefined)
         try {
             const [cats, accs, recs] = await Promise.all([
                 financeApi.getCategories(true),
-                financeApi.getAccounts(),
-                financeApi.getRecurringTransactions(userId)
+                financeApi.getAccounts(targetUserId),
+                financeApi.getRecurringTransactions(targetUserId)
             ])
             categories.value = cats.data
             accounts.value = accs.data
